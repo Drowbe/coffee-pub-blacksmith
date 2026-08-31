@@ -36,8 +36,19 @@ Register during your module's `ready`. There is no `waitForReady()` on the API r
 | `validateEntry(kindId, profileId, entry)` | Shape validation. Pure and synchronous; no world access, nothing created. |
 | `validateEntryDeep(kindId, profileId, entry)` | Shape validation plus a dry conversion. Returns the assembled data on `data`. Nothing created. |
 | `buildDocumentData(kindId, profileId, entry)` | Document source data for one entry, ready for `createDocuments`. Nothing created. |
+| `buildDocumentUpdate(kindId, profileId, entry)` | A partial document from the fields the entry supplies, ready for `Document#update`. Nothing created. |
 
 `buildDocumentData` is the primitive that lets a module stop maintaining its own builder, and it is **not only for JSON import**. Any surface that collects friendly fields -- a form in your own window, a macro, a generator -- can map them to an entry and get the same document data the importer produces, from the same declaration. Declaring a shape once is the point; a second builder beside it is what the model exists to remove.
+
+**Creating and editing are two modes of one assembler, not two builders.** `buildDocumentUpdate` reads the same declaration and runs the same transforms, and omits the three things creation does that an edit must not:
+
+- the document `type` and every `const` -- rewriting a type the document already has fails the whole save, not just the field
+- defaults for absent fields -- an edit must not assert `quantity: 1` and `identified: true` because the form did not mention them
+- derivations -- they assemble whole content from the whole entry and cannot express "leave the rest alone"
+
+A field present but empty still clears, because that is a value you supplied. Nested paths come back as nested objects, which is what `Document#update` merges; an array field replaces, as everywhere else.
+
+This exists because moving only a create path onto declarations, while keeping a hand-written builder for edits, takes a module from one builder to two -- worse than the duplication being removed.
 
 If you call `createDocuments` yourself, you own what follows. Destination, permissions, rollback and GM-note preservation are promises the **import path** makes, and they do not travel with the data. Use the import path where they matter.
 

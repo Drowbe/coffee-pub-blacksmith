@@ -531,7 +531,8 @@ function mergeNamespaces(target, namespaces) {
  * @param {object} entry
  * @returns {Promise<object>} Document source data, ready for create.
  */
-export async function buildDocumentData(kindId, profileId, entry) {
+async function assemble(kindId, profileId, entry, mode) {
+    const update = mode === 'update';
     const declaration = getDeclaration(kindId, profileId);
     if (!declaration) {
         throw new Error(`No declaration registered for ${kindId}.${profileId}`);
@@ -568,12 +569,15 @@ export async function buildDocumentData(kindId, profileId, entry) {
             data[key] = foundry.utils.deepClone(value);
         }
     }
-    if (declaration.document?.type) data.type = declaration.document.type;
+    // The document TYPE and every const are creation-only. An update that rewrites
+    // them attempts a retype of a document that already has one, which dnd5e rejects
+    // -- taking the whole save with it, not just the field.
+    if (declaration.document?.type && !update) data.type = declaration.document.type;
 
     for (const field of composed.fields) {
         if (!gateHolds(field, composed, entry)) continue;
         if (field.const !== undefined) {
-            if (field.path) writePath(data, field.path, foundry.utils.deepClone(field.const));
+            if (field.path && !update) writePath(data, field.path, foundry.utils.deepClone(field.const));
             continue;
         }
         // A selector picks the profile; an input is read by another field's
@@ -588,7 +592,13 @@ export async function buildDocumentData(kindId, profileId, entry) {
 
         // `preserve` means an absent field leaves whatever is on the document
         // alone, so present-but-empty can still clear it. Nothing to write here.
-        if (!hasValue && field.absentMeans === 'preserve') continue;
+        //
+        // On an UPDATE every absent field preserves, whatever it declared. A default
+        // is what a document should start life with, not what an edit should assert:
+        // applying them here would reset quantity to 1 and identified to true every
+        // time someone edited an unrelated field. Present-but-empty still clears,
+        // because that is a value the author supplied.
+        if (!hasValue && (update || field.absentMeans === 'preserve')) continue;
 
         let value = hasValue ? normalizeValue(field, supplied) : field.default;
 
@@ -607,11 +617,58 @@ export async function buildDocumentData(kindId, profileId, entry) {
     // After every field, never before: a derivation reads what construction
     // produced -- the guessed icon, the normalised range units -- none of which
     // exists while the raw entry is all there is.
-    if (declaration.derive?.length) {
+    //
+    // Creation only. A derivation assembles whole content from the whole entry --
+    // every activity, every table row -- and has no way to express "leave the rest
+    // alone", so running one over a partial edit would replace the collection it
+    // touches with whatever the partial entry implied.
+    if (declaration.derive?.length && !update) {
         const { applyDerivations } = await import('./manager-declaration-derivations.js');
         return await applyDerivations(declaration.derive, data, entry);
     }
     return data;
+}
+
+/**
+ * Build document source data for one entry, ready to create.
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {object} entry
+ * @returns {Promise<object>} Document source data.
+ */
+export async function buildDocumentData(kindId, profileId, entry) {
+    return assemble(kindId, profileId, entry, 'create');
+}
+
+/**
+ * Build an UPDATE for an existing document from the fields an entry actually
+ * supplies -- what a form hands back after an edit, rather than a whole document.
+ *
+ * The same assembler and the same declaration as `buildDocumentData`, in a second
+ * mode rather than a second builder. That distinction is the point: a consumer
+ * asked for this because moving only its create path to us would have left it
+ * maintaining a builder for edits, going from one builder to two, which is worse
+ * than the duplication we were removing.
+ *
+ * Three things creation does are wrong for an edit, and all three are omitted:
+ * the document type and every const (rewriting a type dnd5e already assigned
+ * fails the whole save), defaults for absent fields (an edit must not assert
+ * quantity 1 and identified true because the form did not mention them), and
+ * derivations (they assemble whole content and cannot express "leave the rest").
+ *
+ * Transforms DO run, so a supplied field converts exactly as it would on create.
+ * A field present but empty still clears: that is a value the author supplied.
+ *
+ * Nested paths come back as nested objects, which is what `Document#update` merges.
+ * An array field replaces rather than merges, as it does everywhere else.
+ *
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {object} entry - Only the fields being changed.
+ * @returns {Promise<object>} A partial document, ready for `Document#update`.
+ */
+export async function buildDocumentUpdate(kindId, profileId, entry) {
+    return assemble(kindId, profileId, entry, 'update');
 }
 
 /**

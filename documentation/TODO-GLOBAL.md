@@ -481,16 +481,24 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
   is not sufficient on its own — see the workstream for why. Artificer must not ship the hard cut before the
   floor exists.
 
-**Open, and Artificer has not seen it yet: the item sheet erases biomes on save.** Not the gather join and
-not a dead button -- a plain data-loss path that fires just by opening and saving a component. In
-`window-artificer-item.js`, `biomesValue` is the hidden form field and is built as
-`flagBiomes.filter(b => OFFICIAL_BIOMES.includes(b))` (`:215-219`); on submit that same field is split and
-filtered again into `artificerData.biomes` (`:619-622`). Both comparisons are case-sensitive. So once the
-vocabulary is lowercase, any component whose stored biomes were not normalized renders with every biome
-button off, and the next save -- for any reason, a rename included -- writes an empty biome array. Silent,
-permanent, per item, and not gated on gathering being enabled. `:210-214` and `:410-413` are the same
-comparison in the selection path. This is the strongest argument for normalizing at the read boundary rather
-than relying on the migration having reached every item, and it is theirs to fix.
+**The item sheet soft-locks once the vocabulary is lowercase.** Raised by Blacksmith as a data-loss path and
+corrected by Artificer, who were right: nothing is written. In `window-artificer-item.js` the render chain
+compares stored biomes against the vocabulary case-sensitively at `:210-214` and `:215-219`, so every habitat
+button renders off and the hidden field empties; `:619-622` then filters the same field to an empty array on
+submit. The write never lands, because the Component-requires-habitat rule (`:631-641`, shipped in Artificer
+13.2.0) catches the empty array, warns, and returns first. The empty write is unreachable in practice: it
+needs a guard-less build (13.1.1 or earlier) *and* lowercase item data, and no shipping path produces both --
+packs travel inside the module, and the case-sensitive import filter at `utility-artificer-item.js:346` means
+lowercase JSON on an old build stores nothing rather than storing lowercase.
+
+The result is a soft lock rather than corruption: every existing Component opens with its habitats apparently
+unset and cannot be saved at all -- blocking a rename or any unrelated edit -- while the sheet advises
+choosing a habitat that is already stored. Loud and reversible, but it stops Component authoring outright,
+which is why the item-sheet reads are fixed before the join sites. A bad join only narrows a result set.
+
+Worth recording because the near miss was structural: a validation rule written to reject bad JSON on import
+turned out to be the only write barrier for a read bug three files away, and it was not written with case in
+mind.
 
 **One correction to Artificer's plan, and it shrinks their work.** Their compendium re-export is not a
 release-window dependency. Normalizing both sides at the join makes stored case irrelevant, and it covers a

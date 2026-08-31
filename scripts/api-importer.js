@@ -42,7 +42,8 @@ import {
     buildGuideText,
     validateEntry,
     validateEntryDeep,
-    buildDocumentData
+    buildDocumentData,
+    buildDocumentUpdate
 } from './manager-declarations.js';
 
 export class ImporterAPI {
@@ -154,6 +155,30 @@ export class ImporterAPI {
      */
     static buildDocumentData(kindId, profileId, entry) {
         return buildDocumentData(kindId, profileId, entry);
+    }
+
+    /**
+     * Build an UPDATE for an existing document from the fields an entry supplies.
+     *
+     * The counterpart to `buildDocumentData`, and the same assembler in a second
+     * mode rather than a second builder -- which is the point. Moving only a create
+     * path onto declarations while keeping a hand-written builder for edits takes a
+     * module from one builder to two.
+     *
+     * Omits what creation does that an edit must not: the document type and every
+     * const (rewriting a type the document already has fails the whole save),
+     * defaults for absent fields (an edit must not assert `quantity: 1` because the
+     * form did not mention it), and derivations (they assemble whole content and
+     * cannot express "leave the rest alone").
+     *
+     * Transforms still run, so a supplied field converts as it would on create, and
+     * a field present but empty still clears.
+     *
+     * @param {object} entry - Only the fields being changed.
+     * @returns {Promise<object>} A partial document, ready for `Document#update`.
+     */
+    static buildDocumentUpdate(kindId, profileId, entry) {
+        return buildDocumentUpdate(kindId, profileId, entry);
     }
 
     // ---------- Kind registry (being replaced) ----------

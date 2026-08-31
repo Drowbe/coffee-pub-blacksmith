@@ -110,7 +110,7 @@ export default {
                     // has to keep its own builder, which is the duplication this whole
                     // model exists to end -- and Blacksmith reaching them internally
                     // while a sibling could not was the consumer-zero violation.
-                    'validateEntry', 'validateEntryDeep', 'buildDocumentData',
+                    'validateEntry', 'validateEntryDeep', 'buildDocumentData', 'buildDocumentUpdate',
                     'registerFieldGroup', 'getFieldGroupsFor', 'listFieldGroups'
                 ]) {
                     expect.ok(`api.importer.${method} is a function`,
@@ -125,6 +125,23 @@ export default {
                 });
                 expect('the public path builds a document', built?.name, 'Probe Loot');
                 expect('and types it from the declaration', built?.type, 'loot');
+
+                // An UPDATE must assert only what the caller supplied. Everything
+                // asserted here was a way a consumer's edit path would have clobbered
+                // live state, which is why it exists at all.
+                const patch = await api.importer.buildDocumentUpdate('item', 'loot', {
+                    itemName: 'Renamed Loot'
+                });
+                expect('an update carries the supplied field', patch?.name, 'Renamed Loot');
+                expect.ok('an update never retypes the document', patch.type === undefined);
+                expect.ok('an update applies no defaults for absent fields',
+                    patch.system?.quantity === undefined && patch.system?.identified === undefined);
+                // Transforms still run, so a supplied field converts as it would on create.
+                const priced = await api.importer.buildDocumentUpdate('item', 'loot', {
+                    itemName: 'X', itemPrice: '15 GP'
+                });
+                expect('an update still converts what it does carry',
+                    priced.system?.price?.value, 15);
             }
         },
 
