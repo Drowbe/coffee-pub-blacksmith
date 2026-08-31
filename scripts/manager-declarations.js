@@ -274,12 +274,124 @@ function sourceKey(field, entry) {
  * @returns {*}
  */
 export function normalizeValue(field, value) {
-    if (typeof value !== 'string' || !field.aliases) return value;
+    if (typeof value !== 'string') return value;
     const token = value.trim().toLowerCase();
-    for (const [alias, target] of Object.entries(field.aliases)) {
+    for (const [alias, target] of Object.entries(field.aliases ?? {})) {
         if (alias.toLowerCase() === token) return target;
     }
-    return value;
+    // A declared vocabulary is canonical, and matching it is case-insensitive.
+    // Every parser in this repo lowercases before comparing -- `_recovery` and the
+    // save-ability lookup both do -- so a declaration that compared exactly
+    // rejected "Recharge" against a list containing "recharge" and read as a typo
+    // in the payload rather than as strictness the code it replaced never had.
+    const canonical = (field.values ?? []).find(one =>
+        typeof one === 'string' && one.toLowerCase() === token);
+    return canonical ?? value;
+}
+
+/**
+ * Check one field against the object that should carry it, recursing into a
+ * declared nested shape.
+ *
+ * Extracted so a NESTED field is checked by the same code as a top-level one.
+ * Nesting was previously unchecked: a declaration could describe twenty-five
+ * activity fields or a result row's shape, and validation looked only at whether
+ * the containing value was an array. Every requirement, type and value list below
+ * the first level was documented in the guide, emitted in the template, and
+ * enforced nowhere -- the two-readers defect in its quietest form, where the
+ * second reader does not exist and the first one's rules simply evaporate.
+ *
+ * Errors carry a dotted path (`sidekick.role`, `results[2].resultWeight`) so an
+ * author is told which element is wrong rather than that something in the array is.
+ *
+ * @param {object} field
+ * @param {object} container - The object that should carry the field.
+ * @param {string} prefix - Dotted path of `container` within the entry, '' at top level.
+ * @param {object[]} errors - Collected, mutated.
+ * @param {object[]} warnings - Collected, mutated.
+ */
+function validateField(field, container, prefix, errors, warnings) {
+    const { key, aliased } = sourceKey(field, container);
+    const label = prefix + (key ?? field.name);
+
+    if (key === null) {
+        if (field.required) {
+            errors.push(issue('REQUIRED_FIELD_MISSING', label,
+                `${label} is required.`));
+        }
+        return;
+    }
+    // A field the author is not meant to write. Not fatal -- it is dropped or
+    // preserved rather than applied -- but silence here is how discovery state
+    // gets wiped by a payload that looked accepted.
+    if (field.authorable === false) {
+        warnings.push(issue('FIELD_NOT_AUTHORABLE', label,
+            `${label} is maintained by Blacksmith and is ignored on import.`));
+        return;
+    }
+    if (aliased) {
+        warnings.push(issue('DEPRECATED_KEY', label,
+            `${label} is accepted for compatibility; the current name is ${field.name}.`,
+            { canonical: field.name }));
+    }
+
+    const raw = container[key];
+    if (raw === undefined) return;
+    // null is only skipped when the field does not treat it as a value; a
+    // nullable field validates it like anything else.
+    if (raw === null && field.nullable !== true) return;
+
+    if (field.type && !fieldAccepts(field, raw)) {
+        errors.push(issue('TYPE_MISMATCH', label,
+            `${label} must be of type ${field.type}.`,
+            { expected: field.type, actual: Array.isArray(raw) ? 'array' : typeof raw }));
+        return;
+    }
+    if (Array.isArray(field.values)) {
+        // On an ARRAY field, `values` constrains each ELEMENT, not the array.
+        // Comparing the array itself to the allowed list is false for every
+        // array including an empty one, so a field declared this way rejected
+        // everything -- enforced-looking and never satisfiable. No Blacksmith
+        // profile had an array with a values list, so nothing here exercised
+        // it; the first one belonged to a consuming module.
+        const candidates = field.type === 'array'
+            ? (Array.isArray(raw) ? raw : [raw])
+            : [raw];
+        const rejected = candidates
+            .map(one => normalizeValue(field, one))
+            .filter(one => !field.values.includes(one));
+        if (rejected.length) {
+            errors.push(issue('VALUE_NOT_ALLOWED', label,
+                `${label} must be one of: ${field.values.join(', ')}.`,
+                { allowed: field.values, actual: rejected.length === 1 ? rejected[0] : rejected }));
+        }
+    }
+
+    // A numeric bound. Declared rather than checked in a derivation so the guide
+    // sentence and the validation come from the one place: a sidekick level and a
+    // class level are both 1 to 20, and both were previously a thrown string deep
+    // in construction with a hand-written guide line hoping to match it.
+    if (field.min !== undefined && Number(raw) < field.min) {
+        errors.push(issue('VALUE_OUT_OF_RANGE', label,
+            `${label} must be ${field.min} or more.`, { min: field.min, actual: raw }));
+    } else if (field.max !== undefined && Number(raw) > field.max) {
+        errors.push(issue('VALUE_OUT_OF_RANGE', label,
+            `${label} must be ${field.max} or less.`, { max: field.max, actual: raw }));
+    }
+
+    if (!Array.isArray(field.fields)) return;
+    const elements = field.type === 'array' ? raw : [raw];
+    elements.forEach((element, index) => {
+        const at = field.type === 'array' ? `${label}[${index}]` : label;
+        if (!element || typeof element !== 'object' || Array.isArray(element)) {
+            errors.push(issue('TYPE_MISMATCH', at, `${at} must be an object.`,
+                { expected: 'object', actual: Array.isArray(element) ? 'array' : typeof element }));
+            return;
+        }
+        for (const nested of field.fields) {
+            validateField(nested, element, `${at}.`, errors, warnings);
+        }
+    });
 }
 
 /**
@@ -312,61 +424,9 @@ export function validateEntry(kindId, profileId, entry) {
     const composed = effectiveDeclaration(declaration, entry);
     const claimed = new Set();
     for (const field of composed.fields) {
-        const { key, aliased } = sourceKey(field, entry);
+        const { key } = sourceKey(field, entry);
         if (key) claimed.add(key);
-
-        if (key === null) {
-            if (field.required) {
-                errors.push(issue('REQUIRED_FIELD_MISSING', field.name,
-                    `${field.name} is required.`));
-            }
-            continue;
-        }
-        // A field the author is not meant to write. Not fatal -- it is dropped or
-        // preserved rather than applied -- but silence here is how discovery state
-        // gets wiped by a payload that looked accepted.
-        if (field.authorable === false) {
-            warnings.push(issue('FIELD_NOT_AUTHORABLE', key,
-                `${key} is maintained by Blacksmith and is ignored on import.`));
-            continue;
-        }
-        if (aliased) {
-            warnings.push(issue('DEPRECATED_KEY', key,
-                `${key} is accepted for compatibility; the current name is ${field.name}.`,
-                { canonical: field.name }));
-        }
-
-        const raw = entry[key];
-        if (raw === undefined) continue;
-        // null is only skipped when the field does not treat it as a value; a
-        // nullable field validates it like anything else.
-        if (raw === null && field.nullable !== true) continue;
-
-        if (field.type && !fieldAccepts(field, raw)) {
-            errors.push(issue('TYPE_MISMATCH', key,
-                `${key} must be of type ${field.type}.`,
-                { expected: field.type, actual: Array.isArray(raw) ? 'array' : typeof raw }));
-            continue;
-        }
-        if (Array.isArray(field.values)) {
-            // On an ARRAY field, `values` constrains each ELEMENT, not the array.
-            // Comparing the array itself to the allowed list is false for every
-            // array including an empty one, so a field declared this way rejected
-            // everything -- enforced-looking and never satisfiable. No Blacksmith
-            // profile had an array with a values list, so nothing here exercised
-            // it; the first one belonged to a consuming module.
-            const candidates = field.type === 'array'
-                ? (Array.isArray(raw) ? raw : [raw])
-                : [raw];
-            const rejected = candidates
-                .map(one => normalizeValue(field, one))
-                .filter(one => !field.values.includes(one));
-            if (rejected.length) {
-                errors.push(issue('VALUE_NOT_ALLOWED', key,
-                    `${key} must be one of: ${field.values.join(', ')}.`,
-                    { allowed: field.values, actual: rejected.length === 1 ? rejected[0] : rejected }));
-            }
-        }
+        validateField(field, entry, '', errors, warnings);
     }
 
     // Cross-field rules run only once every field is individually sound: a rule
@@ -389,7 +449,15 @@ export function validateEntry(kindId, profileId, entry) {
     // no profile at all and never will. One line names them all, a typo included,
     // and the noise goes away for good at step 5 when templates are derived per
     // profile and the residue stops being generated.
-    const undeclared = Object.keys(entry).filter(key => !claimed.has(key));
+    //
+    // PASSTHROUGH is exempt, and not as a concession. Its payload IS document
+    // source data -- the declaration describes only the envelope written around
+    // it -- so every native key is undeclared by design. Warning on them would
+    // name thirty fields on a stock NPC and mean the opposite of what it says:
+    // they are not ignored, they are the import.
+    const undeclared = declaration.form === 'passthrough'
+        ? []
+        : Object.keys(entry).filter(key => !claimed.has(key));
     if (undeclared.length) {
         warnings.push(issue('UNKNOWN_FIELDS', '',
             `${undeclared.length} field${undeclared.length === 1 ? '' : 's'} not part of the `
@@ -474,19 +542,45 @@ export async function buildDocumentData(kindId, profileId, entry) {
     // proven by the harness against the parser it replaces.
     const { applyTransform } = await import('./manager-declaration-transforms.js');
 
+    const composed = effectiveDeclaration(declaration, entry);
+
+    // PASSTHROUGH seeds from the payload; every other form starts empty.
+    //
+    // The payload is already document source data, so the default is to KEEP a
+    // key rather than to drop it -- the inverse of `mapped`, where a key reaches
+    // the document only by being declared. What the declaration describes is the
+    // envelope written around that data: fields an author supplies which are not
+    // document keys and must be consumed and removed (a sidekick block, a
+    // character's plain-name foundations), plus the few native keys worth stating
+    // so they are validated and appear in the template.
+    //
+    // Removing a declared key from the seed is what makes the envelope work. A
+    // field that lands on a path is written below from its declared value, and a
+    // field that lands nowhere is read by a derivation; in both cases leaving the
+    // author's raw key in the seed would carry it onto the document beside the
+    // consumed form of itself.
     const data = {};
+    if (declaration.form === 'passthrough') {
+        const declared = new Set(composed.fields.flatMap(field =>
+            [field.name, ...(field.acceptsKeys ?? [])]));
+        for (const [key, value] of Object.entries(entry)) {
+            if (declared.has(key)) continue;
+            data[key] = foundry.utils.deepClone(value);
+        }
+    }
     if (declaration.document?.type) data.type = declaration.document.type;
 
-    const composed = effectiveDeclaration(declaration, entry);
     for (const field of composed.fields) {
         if (!gateHolds(field, composed, entry)) continue;
         if (field.const !== undefined) {
             if (field.path) writePath(data, field.path, foundry.utils.deepClone(field.const));
             continue;
         }
-        // A selector picks the profile; an input is read by another field's transform.
-        // Neither lands, and both are still authored, validated and templated.
-        if (field.role === 'selector' || field.role === 'input') continue;
+        // A selector picks the profile; an input is read by another field's
+        // transform; an envelope is authored around a passthrough payload and
+        // consumed into it by a derivation. None lands, and all three are still
+        // authored, validated and templated.
+        if (field.role) continue;
 
         const { key } = sourceKey(field, entry);
         const supplied = key === null ? undefined : entry[key];
@@ -530,23 +624,28 @@ export async function buildDocumentData(kindId, profileId, entry) {
  * so the author learns at the worst moment; `plan-importer-api.md` specifies that
  * validation performs conversion checks, and this is where they run.
  *
- * Nothing is created. The converted data is discarded; only its failure matters.
+ * Nothing is created. The converted data is RETURNED rather than discarded, so a
+ * caller that also wants to inspect the assembled document does not build it a
+ * second time. Actor is the case that made this matter: assembling one resolves
+ * every named item, spell and feature against the configured compendiums, and its
+ * warning pass reads the result, so discarding it here doubled the slowest part
+ * of validating an Actor to learn nothing new.
+ *
  * @param {string} kindId
  * @param {string} profileId
  * @param {object} entry
- * @returns {Promise<{status: string, errors: object[], warnings: object[]}>}
+ * @returns {Promise<{status: string, errors: object[], warnings: object[], data?: object}>}
  */
 export async function validateEntryDeep(kindId, profileId, entry) {
     const shape = validateEntry(kindId, profileId, entry);
     if (shape.status === 'error') return shape;
     try {
-        await buildDocumentData(kindId, profileId, entry);
+        return { ...shape, data: await buildDocumentData(kindId, profileId, entry) };
     } catch (error) {
         const raised = error?.issue
             ?? issue('CONVERT_FAILED', '', String(error?.message || error), {}, 'convert');
         return { status: 'error', errors: [raised], warnings: shape.warnings };
     }
-    return shape;
 }
 
 // ==================================================================
@@ -581,16 +680,29 @@ function authoringRuleSentences(declaration, options) {
  * @param {object} field
  * @returns {string}
  */
-function guideLine(field) {
+function guideLine(field, prefix = '') {
     const notes = [];
     if (field.required) notes.push('required');
     if (Array.isArray(field.values) && field.values.length) {
         notes.push(`one of: ${field.values.map(one => (one === '' ? '""' : String(one))).join(', ')}`);
     }
+    if (field.min !== undefined && field.max !== undefined) notes.push(`${field.min} to ${field.max}`);
+    else if (field.min !== undefined) notes.push(`${field.min} or more`);
+    else if (field.max !== undefined) notes.push(`${field.max} or less`);
     if (field.acceptsKeys?.length) notes.push(`also accepts: ${field.acceptsKeys.join(', ')}`);
     if (field.requiresWhen) notes.push(`only when ${field.requiresWhen.replace(':', ' is ')}`);
     const suffix = notes.length ? ` (${notes.join('; ')})` : '';
-    return `- ${field.name}${suffix}: ${field.guidance ?? ''}`.trimEnd();
+    const lines = [`- ${prefix}${field.name}${suffix}: ${field.guidance ?? ''}`.trimEnd()];
+
+    // A nested shape is documented field by field, indented, for the same reason
+    // it is now validated field by field: a declaration that describes a row or a
+    // metadata block and then documents only its container tells an author the
+    // shape exists without telling them what it is.
+    if (Array.isArray(field.fields)) {
+        const inner = field.type === 'array' ? `${field.name}[].` : `${field.name}.`;
+        lines.push(...field.fields.filter(isAuthorable).map(nested => `  ${guideLine(nested, inner)}`));
+    }
+    return lines.join('\n');
 }
 
 /**
@@ -624,7 +736,7 @@ export function buildGuideText(kindId, profileId, options = {}) {
         buildTemplateText(kindId, profileId, options),
         '',
         'Fields',
-        ...shown.map(guideLine)
+        ...shown.map(field => guideLine(field))
     ];
 
     const sentences = authoringRuleSentences(declaration, options);
@@ -645,7 +757,13 @@ export function buildGuideText(kindId, profileId, options = {}) {
         'Before importing',
         '- No trailing commas, no duplicate keys.',
         '- Keep numbers, booleans, null, arrays and objects as their JSON types; do not quote them.',
-        '- Every field above is one this profile reads. Anything else is reported and ignored.'
+        // The closing sentence is the OPPOSITE for a passthrough profile, where the
+        // payload is document data and the fields above are only the envelope. The
+        // mapped sentence there would tell an author their stat block is ignored.
+        declaration.form === 'passthrough'
+            ? '- The fields above are the ones Blacksmith reads directly. Everything else is'
+                + ' document data and is kept as written.'
+            : '- Every field above is one this profile reads. Anything else is reported and ignored.'
     );
     return sections.join('\n');
 }

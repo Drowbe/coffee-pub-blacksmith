@@ -1,8 +1,9 @@
 # Scene Geography and Environment
 
-**Status: Planned — nothing implemented.** Live scaffolding. The open questions in the last section must be
-settled before Workstream 3 begins; Workstream 1 can start immediately and is tracked in `TODO.md` as
-"One Scene Config tab injector, registered like a toolbar tool".
+**Status: Planned — nothing implemented.** Live scaffolding. The questions blocking Workstreams 2 and 4 were
+settled 2026-08-31 and are recorded under "Settled" below; what still blocks Workstream 3 is Artificer's to
+answer. Workstream 1 can start immediately and is tracked in `TODO.md` as "One Scene Config tab injector,
+registered like a toolbar tool".
 
 **On completion:** the data model and API surface fold into `documentation/architecture/` and
 `documentation/api/`, the work items become `TODO.md` entries, the cross-module contract goes to
@@ -118,7 +119,7 @@ One flag on the Scene document, `coffee-pub-blacksmith.geography`:
     area: '',
     environment: [],      // values from the canonical vocabulary
     reputation: null,     // -100..+100; key absent means never set
-    locationUuid: null    // JournalEntryPage uuid of the Location entry, if any
+    locationUuid: null    // JournalEntryPage uuid of the Location entry; set by the Area importer, no picker in v1
 }
 ```
 
@@ -167,13 +168,15 @@ Add the flag, the read and write helpers, and the resolution order. Change `Camp
 take an optional scene and resolve flag before setting. Add `api.campaign.getSceneContext(scene)` returning
 the full holistic view.
 
-Decide what `saveCampaignGeography()` does once a scene can own geography: "remember this for next time" and
-"record this about this scene" stop being the same action, and the current unconditional write-back cannot
-mean both.
+`saveCampaignGeography()` loses its unconditional write-back (settled question 7): an import records onto the
+scene flag, and the world settings are written only by the settings UI. Carry `locationUuid` in the schema and
+have the Area importer populate it when one run creates both a scene and a Location entry (settled question 6);
+no picker in v1.
 
 ### 3. Environment ownership move
 
-`OFFICIAL_BIOMES` moves to Blacksmith and is exposed through the API as the canonical vocabulary. The Habitats
+`OFFICIAL_BIOMES` moves to Blacksmith and is exposed through the API as a closed constant, not a registry
+(settled question 1). The Habitats
 fieldset leaves the Artificer tab and appears in the Geography tab. Every other fieldset in Artificer's tab
 stays, because component types, harvesting skills, DC thresholds, gather spots, and discovery radius only mean
 anything if you are harvesting.
@@ -190,9 +193,9 @@ Minstrel are ready to move in the same release window.
 
 ### 4. Reputation migration
 
-Move `blacksmithPartyData.scenes[sceneId].reputation` onto the scene flag, drop the denormalized `uuid` and
-`title` mirrors, expose `api.reputation` as public surface, and resolve the aggregate question in `TODO.md`
-— which becomes tractable once absence is distinguishable from neutral.
+Move `blacksmithPartyData.scenes[sceneId].reputation` onto the scene flag as a flat value (settled question
+4), drop the denormalized `uuid` and `title` mirrors, expose `api.reputation` as public surface, and resolve
+the aggregate question in `TODO.md` — which becomes tractable once absence is distinguishable from neutral.
 
 Last, and on its own. This is the only step that can lose real world data, and it needs a real one-way
 migration rather than a dual-read.
@@ -202,35 +205,52 @@ vocabulary questions below are settled, because it is a contract with two other 
 
 ---
 
+## Settled (2026-08-31, by the author)
+
+These were the blocking open questions. They are answers now, not options -- the alternatives are gone
+deliberately, so nothing here reads as still up for grabs.
+
+1. **The environment vocabulary is a closed enum of the twelve.** It matches every consumer that exists, and
+   it is the safe direction on the API: a constant can become a pre-populated registry later without breaking
+   anyone, where a registry cannot be narrowed back to a constant. This also retires the "what does an unknown
+   environment do to harvest tables" question -- nothing can be unknown if the list cannot grow. If a world
+   with a Feywild forces the issue later, that is a registry proposal with its own plan.
+4. **Reputation is a flat value; absence means unset.** `reputation: -100..100`, key absent means never set.
+   Blacksmith has exactly one party -- numbered `partyMember{N}` settings and a single `partyLeader`
+   ([settings.js:1034](../../scripts/settings.js#L1034), [:1084](../../scripts/settings.js#L1084)) -- with no
+   party id anywhere, so a `{partyId: value}` map would be an index whose key is always the same invented
+   constant. Multi-party is a real feature if it ever arrives, and this would be a small part of its migration.
+6. **`locationUuid` is in the v1 schema; its UI is not.** The nullable key ships with the flag, and the Area
+   importer populates it when it creates a scene and a Location entry in the same run. The manual picker and
+   any backfill of existing worlds are deferred. Reserving the key costs nothing and new content starts
+   accumulating real links immediately, instead of more `scenetitle` string matches to clean up later.
+7. **The importer writes the scene, and the world settings become a seed.** An import records geography onto
+   the scene flag for the scene it was launched from; the four world settings are the seed for a scene with no
+   flag, and only the settings UI writes them. This is the split the model exists for -- "record this about
+   this place" and "remember this for next time" stop being one action. `saveCampaignGeography()`
+   ([registry-json-import-journals.js:694](../../scripts/registry-json-import-journals.js#L694)) loses its
+   unconditional write-back.
+
+   **One edge this leaves open:** an Area import launched with no scene in context. It reads the seed and
+   records geography nowhere, which is defensible but silent. Decide during Workstream 2 whether that
+   warrants a notice.
+
 ## Open questions
 
-**Blocking Workstream 3.**
+**Blocking Workstream 3.** Both are Artificer's to answer, and are asked in `TODO-GLOBAL.md`.
 
-1. **Is the environment vocabulary a closed enum or an extensible registry?** Once Blacksmith owns the list, a
-   world with a Feywild or an ashland will reasonably want to add one. But Artificer's harvest tables key off
-   the fixed twelve, so an extensible list needs a defined fallback: an unknown environment yields nothing, or
-   a default table, or is ignored by Artificer while still driving Minstrel. This determines whether the API
-   exposes a constant or a registry, so it cannot be deferred.
-2. **What is the canonical case?** Artificer stores `MOUNTAIN`; Minstrel lowercases on every read. Pick one
-   canonical form, normalize on write, and stop making consumers guess.
+2. **What is the canonical case?** Artificer stores `MOUNTAIN`; Minstrel lowercases on every read
+   (`coffee-pub-minstrel/scripts/manager-automation.js:80`). Recommendation, absent an objection from
+   Artificer: **lowercase**, normalized on write by the migration. It matches what Minstrel already does, so
+   Minstrel deletes code rather than adding it, and it is the conventional form for an API value. Nothing
+   depends on the display form -- labels come from the vocabulary, not from the stored value.
 3. **Does Artificer keep a read-through fallback for one release, or is the migration hard at ready?**
 
 **Blocking Workstream 4.**
 
-4. **Does reputation need to be party-keyed?** Reputation is party state, not place state. If multiple parties
-   are ever in scope the shape must be `reputation: {partyId: value}` from the start, or reputation should
-   stay where it is. Cheap to decide now, expensive to migrate twice.
-5. **What does "overall reputation" mean** — mean of scenes with an entry, or a campaign-level value with
+5. **What does "overall reputation" mean** -- mean of scenes with an entry, or a campaign-level value with
    scene reputation as local colour? The `TODO.md` reputation entry lists the options; this plan does not
-   settle them.
-
-**Blocking Workstream 2.**
-
-6. **Is `locationUuid` in scope for v1, or deferred?** It is the highest-value field in the model — Location
-   journals and Area scenes describe the same place and today the only join is a `scenetitle` string match —
-   but it is orthogonal to everything else here and could ship separately.
-7. **What happens to the unconditional write-back in `saveCampaignGeography()`** once a scene can own
-   geography?
+   settle them. Not urgent: Workstream 4 is last, and the sentinel fix does not depend on the answer.
 
 **Scope.**
 

@@ -1,6 +1,9 @@
 # Plan: the Importer API
 
-**Status: Implemented through step 4 of 11.** All eight Item profiles -- loot, weapon, equipment,
+**Status: Implemented through step 7 of 11.** Item, Roll Table and Actor are declared and **live** --
+fourteen profiles, and all three of the model's forms now have a real user: `mapped` for Item and Roll
+Table, `passthrough` for Actor. Only `rendered` is unexercised, and Journal at step 8 is what exercises it.
+All eight Item profiles -- loot, weapon, equipment,
 tool, container, feature, spell and consumable -- are declared and **live**. The Item importer routes an
 entry to the derived path when a declaration exists for its profile, and every one now does; commenting out
 the declaration import in `registry-json-import-items.js` returns every profile to the parser, which is the

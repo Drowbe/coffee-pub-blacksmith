@@ -91,9 +91,15 @@ function isPresent(entry, declaration, reference) {
         // false forever. Nothing caught it because both existing uses happen to fit
         // the two supported shapes: itemIsMagical is a boolean, weaponProperties is
         // an array. A silently-never-true rule reads as enforced and is not.
-        if (Array.isArray(value)) return value.includes(member);
+        // Both branches compare the SAME way. They did not: the list branch used an
+        // exact `includes` while the scalar branch below folded case, so
+        // `weaponProperties:versatile` was false for a payload listing "Versatile"
+        // and the rule requiring its formula fired on a correct item. Every parser
+        // here folds case on these vocabularies; only the declaration path did not.
+        const same = (one) => String(one).trim().toLowerCase() === String(member).trim().toLowerCase();
+        if (Array.isArray(value)) return value.some(same);
         if (value === undefined || value === null) return false;
-        return String(value).trim().toLowerCase() === String(member).trim().toLowerCase();
+        return same(value);
     }
     if (value === undefined || value === null) return false;
     if (typeof value === 'string') return value.trim() !== '';

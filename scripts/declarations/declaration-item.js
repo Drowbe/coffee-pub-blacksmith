@@ -314,7 +314,17 @@ export const ITEM_WEAPON_DECLARATION = {
     rules: [
         { kind: 'requiresTogether', fields: ['weaponProperties:versatile', 'weaponVersatileDamageFormula'] },
         { kind: 'mutuallyExclusive', fields: ['weaponProperties:versatile', 'weaponProperties:two-handed'] },
-        { kind: 'impliedBy', when: 'itemIsMagical', then: ['weaponProperties:magical'] },
+        // The magical flag and the magical property are related in ONE direction,
+        // not both. `weaponProperties` adds `mgc` when the flag is set
+        // (manager-declaration-transforms.js:163, matching parse-item.js:370), so
+        // requiring the author to also list it made a correct weapon fail for not
+        // saying it twice -- it rejected this repo's own weapon fixture.
+        //
+        // The reverse IS required, and is not merely tidiness: the flag is what the
+        // `attunement` transforms key on, so a weapon listing the property without
+        // setting the flag silently loses its attunement. `parse-item.js:371` throws
+        // on exactly this, and the rule keeps that.
+        { kind: 'requires', when: 'weaponProperties:magical', then: ['itemIsMagical'] },
         { kind: 'requires', when: 'weaponMagicalBonus', then: ['itemIsMagical'] },
         { kind: 'mustBeEmpty', field: 'activities' },
         { named: 'weaponRangeRequired' }
@@ -518,8 +528,9 @@ export const ACTIVITY_FIELDS = [
     { name: 'saveAbility', type: 'string', default: 'wis', example: 'wis',
       values: ['str', 'dex', 'con', 'int', 'wis', 'cha'],
       guidance: 'Which ability the target saves with.' },
-    { name: 'saveDC', type: 'integer', nullable: true, default: null, example: null,
-      guidance: 'A fixed save DC; leave blank to let dnd5e calculate it.' },
+    // A FormulaField on the activity: a fixed number and a formula are both valid.
+    { name: 'saveDC', type: 'formula', nullable: true, default: null, example: null,
+      guidance: 'A fixed save DC or a formula; leave blank to let dnd5e calculate it.' },
     { name: 'onSave', type: 'string', default: 'none', example: 'none',
       values: ['none', 'half', 'full'],
       guidance: 'How much effect a successful save avoids.' },
@@ -529,7 +540,7 @@ export const ACTIVITY_FIELDS = [
       guidance: 'The ability the attack uses; blank lets dnd5e choose.' },
     { name: 'rollFormula', type: 'string', default: '', example: '',
       guidance: 'A formula rolled by a utility activity.' },
-    { name: 'activityUsesMax', type: 'string', nullable: true, default: null, example: null,
+    { name: 'activityUsesMax', type: 'formula', nullable: true, default: null, example: null,
       guidance: 'Uses of this activity specifically, separate from the item.' },
     { name: 'activityUsesSpent', type: 'integer', default: 0, example: 0,
       guidance: 'How many of those uses are already spent.' },

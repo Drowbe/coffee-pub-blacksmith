@@ -154,10 +154,73 @@ async function rollTableResults(data, entry) {
     return data;
 }
 
+/**
+ * A sidekick block folded into the Actor's flags and traits.
+ *
+ * A derivation rather than a field with a path, because the block does not land
+ * anywhere as written: it is normalised, stamped with a schema version, and it
+ * also sets `system.traits.important`, which is a second place no single field
+ * mapping reaches.
+ * @param {object} data
+ * @param {object} entry
+ * @returns {Promise<object>}
+ */
+async function actorSidekick(data, entry) {
+    const { consumeSidekick } = await import('./parsers/parse-actor.js');
+    return entry?.sidekick ? consumeSidekick(data, entry.sidekick) : data;
+}
+
+/**
+ * A Character's race, background, classes and subclasses folded into its items.
+ *
+ * The association each one carries is recorded on `_characterFoundations` for the
+ * post-create link step, which is the only work in the importer that cannot
+ * happen before the document exists.
+ * @param {object} data
+ * @param {object} entry
+ * @returns {Promise<object>}
+ */
+async function actorCharacterFoundations(data, entry) {
+    const { consumeCharacterFoundations } = await import('./parsers/parse-actor.js');
+    data.items = Array.isArray(data.items) ? data.items : [];
+    data._characterFoundations = consumeCharacterFoundations(data, entry);
+    return data;
+}
+
+/**
+ * The friendly `token` block merged forward onto `prototypeToken`.
+ * @param {object} data
+ * @param {object} entry
+ * @returns {Promise<object>}
+ */
+async function actorToken(data, entry) {
+    const { consumeToken } = await import('./parsers/parse-actor.js');
+    const token = entry?.token;
+    if (!token || typeof token !== 'object' || Array.isArray(token)) return data;
+    return consumeToken(data, token);
+}
+
+/**
+ * The payload's named items, spells and features resolved against the configured
+ * compendiums, then the defaults every imported Actor gets.
+ *
+ * The two are one derivation because the second is only correct after the first:
+ * `processCharacterData` may return a NEW object, so applying defaults before it
+ * applies them to something that gets replaced. That ordering was implicit in the
+ * parser and is worth stating rather than leaving to declaration order.
+ * @param {object} data
+ * @returns {Promise<object>}
+ */
+async function actorContent(data) {
+    const { resolveActorContent, applyActorDefaults } = await import('./parsers/parse-actor.js');
+    return applyActorDefaults(await resolveActorContent(data));
+}
+
 /** @type {Record<string, Function>} */
 const DERIVATIONS = {
     weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier,
-    rollTableResults
+    rollTableResults,
+    actorSidekick, actorCharacterFoundations, actorToken, actorContent
 };
 
 /**

@@ -659,13 +659,22 @@ export default {
                     code({ weaponProperties: ['versatile', 'two-handed'], weaponVersatileDamageFormula: '1d10' }),
                     'RULE_MUTUALLYEXCLUSIVE');
 
-                // impliedBy is bidirectional: either half alone is a contradiction.
-                expect('magical without the magical property fails',
-                    code({ itemIsMagical: true }), 'RULE_IMPLIEDBY');
+                // The flag and the property are related in ONE direction. The flag
+                // alone is complete -- the transform adds the property -- and
+                // demanding both made a correct weapon fail for not saying it twice.
+                expect('the magical flag alone is complete',
+                    code({ itemIsMagical: true }), 'success');
+                // The reverse still fails, and not for tidiness: the flag is what the
+                // attunement transforms key on, so the property alone silently drops
+                // attunement.
                 expect('the magical property without the flag fails',
-                    code({ weaponProperties: ['magical'] }), 'RULE_IMPLIEDBY');
+                    code({ weaponProperties: ['magical'] }), 'RULE_REQUIRES');
                 expect('both together are clean',
                     code({ itemIsMagical: true, weaponProperties: ['magical'] }), 'success');
+                // Case folds here as everywhere: the payload spelling is not the
+                // canonical one, and the rule must still see it.
+                expect('a capitalised property without the flag still fails',
+                    code({ weaponProperties: ['Magical'] }), 'RULE_REQUIRES');
 
                 expect('a magical bonus requires a magical weapon',
                     code({ weaponMagicalBonus: 1 }), 'RULE_REQUIRES');
@@ -1164,6 +1173,118 @@ export default {
                 // Duplicate ids would render the same gate twice.
                 const all = (kind.promptCheckboxes ?? []).map(one => one.id);
                 expect('no option is offered twice', all.length, new Set(all).size);
+            }
+        },
+
+        {
+            id: 'actor-passthrough',
+            label: 'Actor declares its envelope and passes the stat block through',
+            tier: 'headless',
+            group: 'Step 7 - Actor',
+            note: 'Passthrough keeps every undeclared key; the envelope is consumed and removed.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-actor.js`);
+
+                expect.ok('all three Actor profiles are declared',
+                    registry.getDeclarationsForKind('actor').length === 3);
+                for (const profile of ['npc', 'sidekick', 'character']) {
+                    expect.ok(`${profile} is passthrough`,
+                        registry.getDeclaration('actor', profile).form === 'passthrough');
+                }
+
+                // The whole point of passthrough: a stat block nobody declared has to
+                // survive intact, and be reported as content rather than as noise.
+                const statBlock = {
+                    name: 'Harness Goblin', type: 'npc', img: 'icons/svg/mystery-man.svg',
+                    system: { abilities: { str: { value: 8 } }, attributes: { hp: { value: 7, max: 7 } } },
+                    effects: [], items: []
+                };
+                const shape = manager.validateEntry('actor', 'npc', statBlock);
+                expect('a stat block validates clean', shape.errors, []);
+                expect.ok('undeclared native keys are not reported as unknown',
+                    !shape.warnings.some(one => one.code === 'UNKNOWN_FIELDS'));
+
+                // Nested validation. Every one of these was declared before this step
+                // and enforced by nothing: validation looked at the containing value
+                // and never descended into it.
+                const NESTED = [
+                    { id: 'a role outside the list', entry: { name: 'A', sidekick: { role: 'wizard', level: 1 } },
+                      code: 'VALUE_NOT_ALLOWED', path: 'sidekick.role' },
+                    { id: 'a level above the bound', entry: { name: 'A', sidekick: { role: 'expert', level: 44 } },
+                      code: 'VALUE_OUT_OF_RANGE', path: 'sidekick.level' },
+                    { id: 'a missing nested requirement', entry: { name: 'A', sidekick: { role: 'expert' } },
+                      code: 'REQUIRED_FIELD_MISSING', path: 'sidekick.level' }
+                ];
+                for (const testCase of NESTED) {
+                    const result = manager.validateEntry('actor', 'sidekick', testCase.entry);
+                    const found = result.errors.some(one => one.code === testCase.code && one.path === testCase.path);
+                    if (!found) log(`${testCase.id}: got ${JSON.stringify(result.errors)}`);
+                    expect.ok(`${testCase.id} is reported at its own path`, found);
+                }
+                expect('a sound sidekick block passes',
+                    manager.validateEntry('actor', 'sidekick',
+                        { name: 'A', sidekick: { role: 'expert', level: 3, spellcastingAbility: '' } }).errors, []);
+
+                // Nesting reaches the other kinds too, which is why it is asserted here
+                // rather than only on Actor: a Roll Table row is the same shape of claim.
+                const row = manager.validateEntry('rolltable', 'text', {
+                    tableName: 'Harness Nested',
+                    results: [{ resultType: 'text', resultText: 'a' }, { resultType: 'nope', resultText: 'b' }]
+                });
+                expect.ok('a bad Roll Table row names its index',
+                    row.errors.some(one => one.path === 'results[1].resultType'));
+
+                // A declared vocabulary is canonical and matching it folds case, the
+                // way every parser here already did.
+                expect('a capitalised value matches its canonical form',
+                    manager.validateEntry('rolltable', 'text', {
+                        tableName: 'Harness Case',
+                        results: [{ resultType: 'Text', resultText: 'a' }]
+                    }).errors, []);
+
+                const guide = manager.buildGuideText('actor', 'sidekick');
+                expect.ok('the guide documents a nested field', guide.includes('sidekick.role'));
+                expect.ok('the guide states a declared bound', guide.includes('1 to 20'));
+                expect.ok('the guide does not claim undeclared keys are ignored',
+                    guide.includes('kept as written'));
+            }
+        },
+
+        {
+            id: 'actor-construction',
+            label: 'Actor construction consumes the envelope and keeps the rest',
+            tier: 'interactive',
+            group: 'Step 7 - Actor',
+            note: 'Needs Foundry: construction resolves named content against the configured compendiums.',
+            run: async ({ expect, log }) => {
+                const { manager } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-actor.js`);
+
+                const built = await manager.buildDocumentData('actor', 'sidekick', {
+                    name: 'Harness Pip', type: 'sidekick',
+                    sidekick: { role: 'expert', level: 3, baseCreature: 'Mastiff', baseStatBlock: '', spellcastingAbility: '' },
+                    token: { name: 'Pip', actorLink: true },
+                    system: { attributes: { proficiency: 2 } },
+                    items: []
+                });
+
+                expect('the profile decides the Actor type', built.type, 'npc');
+                expect('sidekick metadata lands in the module namespace',
+                    built.flags?.['coffee-pub-blacksmith']?.sidekick?.role, 'expert');
+                expect('a sidekick is marked important', built.system?.traits?.important, true);
+                expect('the friendly token block becomes prototypeToken',
+                    built.prototypeToken?.name, 'Pip');
+                expect('the payload stat block survives',
+                    built.system?.attributes?.proficiency, 2);
+
+                // The envelope is CONSUMED, not copied. Leaving the authored key
+                // behind would store `sidekick` and `token` on the Actor beside the
+                // consumed form of themselves.
+                for (const key of ['sidekick', 'token']) {
+                    expect.ok(`${key} is removed from the document`, built[key] === undefined);
+                }
+                if (built.sidekick !== undefined) log(`sidekick survived as ${JSON.stringify(built.sidekick)}`);
             }
         },
 

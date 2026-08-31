@@ -100,7 +100,15 @@ An entry importing with warnings shows `1 processed - 0 succeeded - 1 warnings -
 banner. Every number is correct; the presentation is not, and on 2026-08-25 it stopped a live import that
 would have succeeded. The trigger that produced those particular warnings is fixed; the summary is not.
 
-**Verify:** import an entry producing one warning and no errors. The summary says it imported.
+The same line has a second symptom, found on 2026-08-31: a FAILED entry carrying warnings reads
+`0 warnings` while five warning rows render directly beneath it. Both symptoms are one cause. `summarize`
+in `registry-json-import.js` counts mutually exclusive entry STATES -- an entry is success, warning or
+error -- while the labels name MESSAGES and the renderer shows every message an entry carries whatever its
+state. Fix the vocabulary rather than the arithmetic: the counts are of entries, so either say so or count
+messages instead.
+
+**Verify:** import an entry producing one warning and no errors -- the summary says it imported. Then
+import one that fails while carrying warnings -- the warning count matches the rows shown.
 
 ### Dead `render` option on directly-constructed DialogV2 instances
 
@@ -121,16 +129,15 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 
 Design, contract and build sequence: **`documentation/plans/plan-importer-api.md`**.
 
-### Finish the re-founding: steps 5-11
+### Finish the re-founding: steps 8-11
 
-Steps 0-4 are shipped and live -- all eight Item profiles are declared and routing, asserted equivalent to
-the parser across thirteen construction cases and round-tripped through Foundry itself. What remains, in
-order,
-each leaving the module working: **5.** guide and prompt derivation. **6.** Roll Table. **7.** Actor,
-including its move out of `blacksmith.js`. **8.** Journal, with the passthrough seam that lets us construct
-a module-owned subtype -- today's hardcoded `type: "text"` is what prevents it. **9.** fragments, `tags`
-first. **10.** export derivation and the three completeness layers. **11.** the parity check, then a
-consumer.
+Steps 0-7 are shipped and live: Item, Roll Table and Actor are declared and routing -- fourteen profiles --
+each asserted against the parser it replaced. Item and Roll Table are round-tripped through Foundry; Actor's
+in-world import is the one verification still owed, and is tracked in `testing/`. What remains,
+in order, each leaving the module working: **8.** Journal, the `rendered` form plus the passthrough seam
+that lets us construct a module-owned subtype -- today's hardcoded `type: "text"` is what prevents it, and
+Librarian's codex and quests and Artificer's recipes are all waiting on it. **9.** fragments, `tags` first.
+**10.** export derivation and the three completeness layers. **11.** the parity check, then a consumer.
 
 **Verify:** a field added to a declaration appears in the template, the guide, the prompt and the export
 with no other edit. That single check is the whole point of the model.

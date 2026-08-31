@@ -61,18 +61,21 @@ A profile declares how its fields reach the document.
 | `rendered` | Fields feed a template and the whole payload lands as one HTML string. Blacksmith's own journal profiles; not offered to consumers. |
 | `passthrough` | The payload already is document source data, plus declared envelope fields consumed into it. |
 
+On a `passthrough` profile the payload is the seed: every key reaches the document unless a declaration claims it, which is the inverse of `mapped`. Declare only the envelope -- the keys an author writes that are not document data -- and a `role: 'envelope'` field is consumed by a derivation and removed. Undeclared keys are not reported, because on this form they are the content rather than a mistake, and the authoring guide says so rather than saying the opposite.
+
 ### Fields
 
 ```javascript
 {
     name: 'potionRarity',            // the authoring key
     path: 'system.rarity',           // MANDATORY on a mapped profile
-    type: 'string',                  // string | number | integer | boolean | array | object
+    type: 'string',                  // string | number | integer | boolean | array | object | formula
     required: false,
     nullable: false,                 // whether null is a VALUE rather than an absence
     default: 'common',               // applied when the field is absent
     example: 'common',               // shown in the template
-    values: ['common', 'rare'],      // allowed canonical values
+    values: ['common', 'rare'],      // allowed canonical values; matching folds case
+    min: 1, max: 20,                 // inclusive bounds; number and integer fields only
     aliases: { ordinary: 'common' }, // other spellings of a VALUE
     acceptsKeys: ['rarity'],         // other KEYS this field arrives under
     transform: 'price',              // a named, Blacksmith-owned conversion
@@ -84,6 +87,10 @@ A profile declares how its fields reach the document.
 
 `default` and `example` are **both in authored shape** -- what a person types, never what a transform produces. Transforms run over a default too, so a default already in converted shape is converted twice. The registry rejects one that does not match its own field's declared type.
 
+`type: 'formula'` is a dnd5e FormulaField, which accepts a number or a roll-formula string. Use it wherever both are legitimate -- a save DC is `15` or `8 + @prof + @abilities.cha.mod` -- because `integer` rejects every formula and `string` rejects every plain number.
+
+`values` is a canonical vocabulary and matching it **folds case**: a payload saying `Recharge` satisfies a list containing `recharge`, and the canonical spelling is what reaches the document. `min` and `max` are rejected at registration on anything but a number or integer field.
+
 **`aliases` and `acceptsKeys` are different mechanisms.** `aliases` renames a *value*; `acceptsKeys` names other *keys* the field may arrive under. Both are permanent compatibility surface, not migration conveniences.
 
 Other field properties:
@@ -93,7 +100,7 @@ Other field properties:
 - `role: 'selector' | 'input' | 'envelope'` -- fields that do not land on a path of their own. An `input` is read by a sibling field's transform, which is how two authored fields feed one document path.
 - `requiresOption` / `suppressedByOption` -- gate on an import option a person ticks.
 - `requiresWhen: 'otherField:value'` -- gate on another FIELD's value.
-- `fields` -- a nested declaration for object and array-of-object fields. The template's worked example is derived from it, so the example cannot drift from what validation accepts.
+- `fields` -- a nested declaration for object and array-of-object fields. Nested fields are validated exactly as top-level ones are, to any depth, and an error names its own path (`sidekick.role`, `results[2].resultType`). The template's worked example is derived from the same declaration, so the example cannot drift from what validation accepts.
 
 ### Rules
 

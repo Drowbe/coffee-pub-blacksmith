@@ -5,7 +5,12 @@
 import { fetchPromptText, applyCampaignPlaceholders } from './utility-json-import-prompts.js';
 import { getConfiguredCompendiums } from './utility-json-import-compendium-lists.js';
 import { queryImportCatalog, formatImportCatalog } from './utility-rolltable-import-lists.js';
+import { buildTemplateObject, buildGuideText } from './manager-declarations.js';
+// Side-effect import: registers the declared Actor profiles, which the template
+// and the guide below are composed from.
+import './declarations/declaration-actor.js';
 
+const ACTOR_KIND_ID = 'actor';
 const ACTOR_PROMPT_FILE = 'prompt-characters.txt';
 const CHARACTER_PROMPT_FILE = 'prompt-character-snapshot.txt';
 const ACTOR_AUTHORING_PROFILES = 'npc sidekick character';
@@ -279,18 +284,17 @@ export async function buildActorJsonTemplate(profile = 'npc') {
         ownership: { default: 0 },
         folder: null
     };
+    // The ENVELOPE keys are absent on purpose. `sidekick`, `characterRace`,
+    // `characterBackground`, `characterClasses` and `characterSubclasses` are
+    // declared in `declarations/declaration-actor.js` and merged in below, so the
+    // shape an author is shown and the shape validation accepts are one thing.
     if (profile === 'sidekick') {
-        data.sidekick = { role: '', level: 1, baseCreature: '', baseStatBlock: '', spellcastingAbility: '' };
         data.system.traits.important = true;
         data.token.actorLink = true;
         data.prototypeToken.actorLink = true;
     }
     if (profile === 'character') {
         data.type = 'character';
-        data.characterRace = '';
-        data.characterBackground = '';
-        data.characterClasses = [{ name: '', levels: 1 }];
-        data.characterSubclasses = [];
         data.system.details = {
             biography: { value: '', public: '' }, alignment: '', ideal: '', bond: '', flaw: '',
             xp: { value: 0 }, appearance: '', trait: '', eyes: '', height: '', faith: '', hair: '', weight: '', gender: '', skin: '', age: ''
@@ -309,24 +313,32 @@ export async function buildActorJsonTemplate(profile = 'npc') {
         data.system.tools = {};
         data.features = [];
     }
-    return applyCampaignPlaceholders(JSON.stringify(data, null, 2));
+
+    // Envelope first so it reads at the top, native values winning any shared key.
+    //
+    // The body above is a worked example of a schema dnd5e owns -- six ability
+    // scores at 10, a d8 hit die, medium size -- and which worked values to show
+    // is an authoring choice, not schema. Blacksmith declares the envelope and
+    // nothing else, so this is the one place the two meet.
+    const envelope = buildTemplateObject(ACTOR_KIND_ID, profile);
+    return applyCampaignPlaceholders(JSON.stringify({ ...envelope, ...data }, null, 2));
 }
 
 export async function buildActorAuthoringGuide(profile = 'npc') {
     const isSidekick = profile === 'sidekick';
     const isCharacter = profile === 'character';
     const json = await buildActorJsonTemplate(profile);
+    // The derived half states every envelope field, its type, its allowed values
+    // and its bounds. What follows it is the dnd5e stat block, which Blacksmith
+    // passes through and does not declare -- so it is the half a declaration
+    // cannot supply, and the only half still written by hand.
     return `BLACKSMITH ${isSidekick ? 'SIDEKICK SNAPSHOT' : (isCharacter ? 'CHARACTER SNAPSHOT' : 'NPC/MONSTER')} JSON AUTHORING GUIDE
 
-The JSON block below is a valid starter template. Copy only the JSON object into Blacksmith's Import JSON tab after editing it. Keep JSON value types intact: numbers and booleans must not be quoted.
+${buildGuideText(ACTOR_KIND_ID, profile)}
 
-Required basics
-- name: the Actor's display name; it must not be blank when importing.
-- type: keep "${isCharacter ? 'character' : 'npc'}" for this profile.
-${isSidekick ? '- sidekick: this root-level object is Blacksmith-friendly import metadata, placed beside name/type/system rather than inside Foundry flags. Set role to expert, spellcaster, or warrior; level to an integer from 1 through 20; baseCreature to the narrative creature identity; baseStatBlock to the exact existing Actor name supplying the mechanical base; and spellcastingAbility to int, wis, cha, or an empty string. Blacksmith consumes the object and stores it at flags["coffee-pub-blacksmith"].sidekick before creating the standard dnd5e NPC.\n- For a Spellcaster, system.attributes.spellcasting must use the same int/wis/cha key as sidekick.spellcastingAbility. Supply the finished current-level statistics and content; Blacksmith does not calculate sidekick progression or auto-level the Actor.' : ''}
-${isSidekick ? '- Final HP, AC, proficiency bonus, abilities, skills, inventory, features, and spells are authoritative. Do not derive them from CR during import. CR and XP are informational compatibility values for this profile.\n- Blacksmith marks Sidekick NPCs as important so dnd5e exposes NPC death saves at 0 HP. Class-like abilities remain ordinary Feature items.' : ''}
-${isCharacter ? '- characterRace and characterBackground accept an exact existing Item name or a complete inline native Item definition. characterClasses uses { "name": "Exact Class Name", "levels": 1 } for referenced classes (one entry per class) or complete inline native Class definitions. characterSubclasses accepts exact names or inline native definitions. Arrays support multiclass snapshots.\n- Plain names resolve through Blacksmith\'s configured Item sources. Do not supply UUIDs or embedded IDs. Leave a field blank only when the character intentionally has no such document.\n- Supply final current-level values and content. Blacksmith does not apply advancements, make build choices, auto-level, or repair an incomplete character.' : ''}
-${isCharacter ? '- Actor-local state on an existing reference uses the friendly wrapper { "itemName": "Exact Name", "itemType": "Equipment", "equipped": true, "attuned": false, "quantity": 1 }; Spell wrappers may use prepared. Blacksmith copies the resolved document and applies only the supplied state keys.\n- Plain strings remain exact references when no state override is needed.' : ''}
+The rest of the payload is an ordinary dnd5e Actor and is imported as written.
+${isSidekick ? '\n- For a Spellcaster, system.attributes.spellcasting must use the same int/wis/cha key as sidekick.spellcastingAbility. Supply the finished current-level statistics and content; Blacksmith does not calculate sidekick progression or auto-level the Actor.\n- Final HP, AC, proficiency bonus, abilities, skills, inventory, features, and spells are authoritative. Do not derive them from CR during import. CR and XP are informational compatibility values for this profile.\n- Blacksmith marks Sidekick NPCs as important so dnd5e exposes NPC death saves at 0 HP. Class-like abilities remain ordinary Feature items.' : ''}
+${isCharacter ? '\n- Plain names resolve through Blacksmith\'s configured Item sources. Do not supply UUIDs or embedded IDs. Leave a foundation blank only when the character intentionally has no such document.\n- Supply final current-level values and content. Blacksmith does not apply advancements, make build choices, auto-level, or repair an incomplete character.\n- Actor-local state on an existing reference uses the friendly wrapper { "itemName": "Exact Name", "itemType": "Equipment", "equipped": true, "attuned": false, "quantity": 1 }; Spell wrappers may use prepared. Blacksmith copies the resolved document and applies only the supplied state keys.\n- Plain strings remain exact references when no state override is needed.' : ''}
 - abilities: set the six ability scores; proficient is 1 only for saving-throw proficiency.
 - attributes: set Armor Class, current/maximum HP, hit-die formula, movement, senses, and proficiency bonus.
 - details: set alignment, creature type/subtype, CR, XP, source, biography, ideal, bond, and flaw.
@@ -351,7 +363,7 @@ ${isSidekick ? '- For a persistent named Sidekick, token.name should match the r
 Validation reminders
 - Do not add comments or trailing commas inside the JSON.
 - Keep prototypeToken as an object for Foundry v13 compatibility.
-- Blacksmith forces Actor type npc, root-folder placement, and default GM ownership.
+- Blacksmith sets the Actor type from the profile, and forces root-folder placement and default GM ownership.
 
 JSON TEMPLATE
 

@@ -25,7 +25,9 @@
  * @property {'selector'|'envelope'|'input'} [role] - `selector` picks the profile; `input` is read by
  *                             another field's transform; `envelope` is consumed into the document
  *                             (passthrough form). None of the three lands on a path of its own.
- * @property {string} [type] - 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object'.
+ * @property {string} [type] - 'string' | 'number' | 'integer' | 'boolean' | 'array' | 'object' |
+ *                             'formula'. A `formula` field targets a dnd5e FormulaField and accepts
+ *                             a number or a roll-formula string.
  * @property {boolean} [nullable=false] - Whether null is a real value for this field rather than an
  *                             absence. dnd5e uses it that way: a null `proficient` means "follow the
  *                             character", and a null range bound means "no such bound".
@@ -39,6 +41,8 @@
  * @property {'default'|'preserve'} [absentMeans='default'] - `preserve` leaves whatever is on the
  *                             document untouched, so present-but-empty can still clear it.
  * @property {string[]} [values] - Allowed canonical values.
+ * @property {number} [min] - Inclusive lower bound. Number and integer fields only.
+ * @property {number} [max] - Inclusive upper bound. Number and integer fields only.
  * @property {Record<string,string>} [aliases] - Accepted spellings mapping onto a canonical VALUE.
  * @property {string[]} [acceptsKeys] - Other payload KEYS this field may arrive under. Distinct
  *                             from `aliases`: one renames the value, the other renames the field.
@@ -93,6 +97,13 @@ export function matchesType(type, value) {
         case 'integer': return Number.isInteger(value);
         case 'array': return Array.isArray(value);
         case 'object': return typeof value === 'object' && value !== null && !Array.isArray(value);
+        // A dnd5e FormulaField, which genuinely accepts both: `15` and
+        // `8 + @prof + @abilities.cha.mod` are equally valid save DCs, and dnd5e
+        // coerces the number to a string on assignment. Declaring such a field as
+        // `integer` rejects every formula and as `string` rejects every plain
+        // number, so both were wrong and the third option is to name what it is.
+        case 'formula': return typeof value === 'string'
+            || (typeof value === 'number' && Number.isFinite(value));
         default: return true;
     }
 }
@@ -158,6 +169,22 @@ function validateField(field, form, where, nested = false) {
     }
     if (field.values !== undefined && !Array.isArray(field.values)) {
         throw new Error(`${at}: values must be an array`);
+    }
+    // A bound only means anything on a number. On a string field it would read as
+    // a length limit, which it is not, and would be enforced as a numeric compare
+    // against NaN -- a check that can never fail, declared by someone who believed
+    // it would.
+    for (const bound of ['min', 'max']) {
+        if (field[bound] === undefined) continue;
+        if (typeof field[bound] !== 'number' || Number.isNaN(field[bound])) {
+            throw new Error(`${at}: ${bound} must be a number`);
+        }
+        if (field.type !== 'number' && field.type !== 'integer') {
+            throw new Error(`${at}: ${bound} requires a number or integer field, not ${field.type}`);
+        }
+    }
+    if (field.min !== undefined && field.max !== undefined && field.min > field.max) {
+        throw new Error(`${at}: min ${field.min} is greater than max ${field.max}`);
     }
     // An alias pointing at a value that is not allowed is the failure mode that
     // silently normalises authored content into something the profile rejects.

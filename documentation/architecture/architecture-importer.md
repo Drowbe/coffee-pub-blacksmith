@@ -6,7 +6,7 @@
 
 **Public surface:** See `../api/api-importer.md`.
 
-**Status:** The declaration model is live for the Item kind -- all eight Item profiles route through it. Roll Table, Actor and Journal still use the per-profile parser functions, and move one at a time. Both paths coexist by design, and which one runs is decided by whether a declaration exists.
+**Status:** The declaration model is live for Item, Roll Table and Actor -- fourteen profiles route through it. Journal still uses its per-profile parser functions and moves at its own step. Both paths coexist by design, and which one runs is decided by whether a declaration exists.
 
 ## Why it is shaped this way
 
@@ -32,6 +32,9 @@ A kind now registers a **declaration**: its shape, as data. Blacksmith derives t
 | `scripts/manager-declaration-derivations.js` | Content generated after fields resolve |
 | `scripts/utility-import-issues.js` | The structured error vocabulary |
 | `scripts/declarations/declaration-item.js` | Blacksmith's own eight Item profiles, as data |
+| `scripts/declarations/declaration-rolltable.js` | The two Roll Table result profiles, as data |
+| `scripts/declarations/declaration-actor.js` | The three Actor profiles -- the envelope only |
+| `scripts/parsers/parse-actor.js` | Consuming the Actor envelope, and the post-create link step |
 
 `manager-declarations.js` knows nothing about items, journals or any content type. It reads a declaration and emits. That is the property to protect: anything content-specific belongs in a declaration or a named transform, never in the manager.
 
@@ -51,7 +54,7 @@ Derived by expressing all four of Blacksmith's own kinds -- nineteen profiles --
 |---|---|---|
 | `mapped` | landing at a declared path | Item profiles, and every module-owned type |
 | `rendered` | feeding a template; the whole payload becomes one HTML string | Journal profiles (`journal-area.hbs` and siblings) |
-| `passthrough` | already being document source data, plus a declared envelope consumed into it | Actor, and the Item kind's native branch |
+| `passthrough` | already being document source data, plus a declared envelope consumed into it | Actor profiles, and the Item kind's native branch |
 
 **Rendered is Blacksmith-internal.** Every satellite that has asked -- Librarian's codex and quests, Artificer's recipes -- wants `mapped` against its own declared subtype. Rendered exists for Area, Location, Encounter and Injury, which are ours. Designing the satellite path around rendered would have designed it around the thing those modules most want to stop doing.
 
@@ -105,13 +108,44 @@ rule gets added.
 
 Every issue carries `code`, `stage`, `path`, `message` and `details`. `issueFromError` in `registry-json-import.js` has always read the first three off a thrown error, and no kind on the callback path ever supplied them, so every failure surfaced as a blanket `VALIDATE_FAILED` with a blank path. Under declarations they are derived: a field that fails its declared type knows its own path, and a named rule knows its own code.
 
+## Passthrough: declaring the envelope, not the document
+
+Actor is the case that defines the form, and the decision worth recording is what a
+passthrough declaration deliberately leaves out.
+
+An Actor payload is dnd5e Actor source data. Declaring its abilities, attributes, traits
+and skills would put a second copy of dnd5e's schema in this repo, to drift from the real
+one the next time the system changed. So the declaration describes only the ENVELOPE --
+the keys an author writes that are not Actor data and must be consumed into it and removed:
+`token` on every profile, `sidekick` on one, the four plain-name foundations on another.
+
+Three consequences follow, and each was a bug before it was a rule:
+
+**The seed is the payload.** Under `mapped` a key reaches the document only by being
+declared; under `passthrough` every key does unless a declaration claims it. A declared key
+is removed from the seed, because a field that lands on a path is written from its declared
+value and a field that lands nowhere is read by a derivation -- leaving the author's raw key
+in the seed carries it onto the document beside the consumed form of itself.
+
+**The undeclared-key warning is suppressed.** On a mapped profile an undeclared key is a
+typo worth naming. Here it is the import, and warning on them would name thirty native
+fields on a stock NPC.
+
+**The guide's closing sentence is chosen by form.** The mapped one -- "anything else is
+reported and ignored" -- tells a passthrough author their stat block is discarded.
+
+The worked stat block an author starts from is therefore NOT derived, and this is the same
+call Roll Table's row count settled: which ability scores to show at 10 and which hit die to
+suggest is an authoring choice, not schema. The kind composes it, merging the derived
+envelope in so the two halves cannot drift.
+
 ## Actor import specifics
 
-These describe the Actor kind, which is still on the parser and moves at its own step.
+Actor is also the only kind with work AFTER the document exists, and so the only one that rolls back. A Character's foundations are authored as plain names, become ordinary entries in `items[]`, and can only have their Actor-local ids written into dnd5e's relationship fields once the items are embedded -- so a failure there leaves an Actor that exists and is wrong, which is worse than none.
 
 Actor Import treats sidekicks as static dnd5e NPC snapshots. The Sidekick authoring profile records role, current level, narrative base creature, exact mechanical base-stat-block Actor name, and optional spellcasting ability in Blacksmith flags, while the supplied NPC system data and embedded items remain authoritative. Final HP, AC, proficiency, and features are accepted rather than inferred from CR. Validation warns when sidekick level and proficiency disagree, creature size and the HP formula's Hit Die disagree, the exact base Actor cannot be resolved, or supplied CR differs from the unscaled base Actor CR; it never silently recalculates the snapshot. Imported sidekicks are marked as important NPCs so dnd5e exposes death saves, and Blacksmith excludes their cosmetic CR/XP values from its monster encounter and XP calculations. Sidekick progression and automatic leveling are explicitly outside the current importer contract.
 
-The friendly payload places `sidekick` at the Actor JSON root. This is an import envelope, not a native Foundry field: Blacksmith consumes it before creation and writes the normalized metadata to `flags["coffee-pub-blacksmith"].sidekick`. Already-native payloads using that flag location are also accepted. Spellcaster snapshots must use the same `int`, `wis`, or `cha` key in both `sidekick.spellcastingAbility` and `system.attributes.spellcasting`; validation warns when they diverge.
+The friendly payload places `sidekick` at the Actor JSON root. This is an import envelope, not a native Foundry field: Blacksmith consumes it before creation and writes the normalized metadata to `flags["coffee-pub-blacksmith"].sidekick`. The block's shape -- the three roles, the level bound, the spellcasting keys -- is declared and validated as nested fields; `parsers/parse-actor.js` only consumes it, and re-checking it there would be two readers of one contract. Already-native payloads using that flag location are also accepted. Spellcaster snapshots must use the same `int`, `wis`, or `cha` key in both `sidekick.spellcastingAbility` and `system.attributes.spellcasting`; validation warns when they diverge.
 
 The friendly Actor schema's `token` block is likewise an authoring convenience. Before Foundry v13 Actor creation, Blacksmith merges it into `prototypeToken` (with explicitly supplied `prototypeToken` values taking precedence) and removes the legacy root key. This preserves generated token names, linkage, disposition, vision, bars, dimensions, and texture settings.
 

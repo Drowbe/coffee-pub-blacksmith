@@ -461,10 +461,15 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
 
 - Keep the twelve harvest-specific keys on its own flag (`componentTypes`, `harvestingSkills`, `enabled`,
   `profile`, DCs, gather spots, discovery). Those encode what Artificer is for.
-- Hand `habitats` to Blacksmith's scene geography once the API exists. The vocabulary is currently a
-  closed twelve-value enum (`OFFICIAL_BIOMES`); whether Blacksmith keeps it closed or makes a registry
-  is an open question in the plan, and Artificer has to say what an unknown environment does to harvest
-  tables — nothing, a default table, or ignore while Minstrel still uses it.
+- Hand `habitats` to Blacksmith's scene geography once the API exists. **Settled 2026-08-31: the vocabulary
+  stays a closed twelve-value enum**, moved to Blacksmith and exposed as a constant rather than a registry.
+  Nothing can be unknown if the list cannot grow, so the harvest-table fallback question is retired and
+  Artificer no longer owes an answer on it. A registry, if a world ever forces one, is a later proposal.
+- **Two things Artificer does still owe, and they block the move.** First, the canonical case: Artificer
+  stores `MOUNTAIN`, Minstrel lowercases on every read, and Blacksmith's recommendation is **lowercase**,
+  normalized on write by the migration — say if that breaks something, because nothing on our side reads the
+  stored form for display. Second, whether Artificer keeps a read-through fallback to its own flag for one
+  release or the migration is hard at `ready`. Blacksmith will build to whichever, but not to both.
 - Register the harvest tab through Blacksmith's Scene Config injector rather than its own
   `renderSceneConfig`. That is what makes the race one problem instead of two.
 
