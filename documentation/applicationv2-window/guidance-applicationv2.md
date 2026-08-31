@@ -319,7 +319,7 @@ Application V2 injects the body part’s HTML without executing `<script>` tags 
 
 Below is a **minimal plug-in window** that includes all five zones from the contract (option bar, header, body, action bar) so you can copy and remove the zones you don’t need. Replace placeholders with your module id, template path, and styles.
 
-**Copyable files** are in `documentation/applicationv2-window/` (example-window.hbs, example-window.js, README.md).
+The working example -- template, Application V2 class, and its instructions -- lives in the `coffee-pub-prototype` module.
 
 **Zone diagram:** See [primer-applicationv2-zones.webp](../assets/primer-applicationv2-zones.webp) for the canonical layout. [primer-applicationv2-samples.png](../assets/primer-applicationv2-samples.png) shows real windows and which zones they use (option bar and header optional; action bar optional; body content varies widely).
 
@@ -377,7 +377,7 @@ Below is a **minimal plug-in window** that includes all five zones from the cont
 </div>
 ```
 
-### 6.2 Script: `scripts/example-module-window.js` (or copy from `documentation/example-applicationv2-window/example-window.js`)
+### 6.2 Script: `scripts/example-module-window.js`
 
 ```js
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;

@@ -9,7 +9,7 @@ This document describes the **Window API**: how to build standard editor windows
 **Related docs:**
 - **documentation/architecture/architecture-window.md** — Internal architecture (zone contract, registry, base class).
 - **documentation/applicationv2-window/guidance-applicationv2.md** — How to build an Application V2 window (Handlebars, PARTS, delegation, scroll).
-- **documentation/applicationv2-window/README.md** and **example-window.hbs** / **example-window.js** — Copy-paste example.
+- A working example window ships in the `coffee-pub-prototype` module, as loadable code rather than a copy-paste block.
 
 ---
 
@@ -657,7 +657,7 @@ static get DEFAULT_OPTIONS() {
 
 ### 1. Build Your Window (Application V2)
 
-Follow **documentation/applicationv2-window/guidance-applicationv2.md** to create an Application V2 window: `HandlebarsApplicationMixin(ApplicationV2)`, PARTS, `getData`, document-level delegation, scroll save/restore. Use **example-window.hbs** and **example-window.js** as a starting point; include only the zones you need (option bar, header, body, action bar).
+Follow **documentation/applicationv2-window/guidance-applicationv2.md** to create an Application V2 window: `HandlebarsApplicationMixin(ApplicationV2)`, PARTS, `getData`, document-level delegation, scroll save/restore. The `coffee-pub-prototype` module carries a working example window to start from; include only the zones you need (option bar, header, body, action bar).
 
 ### 2. Access the API
 

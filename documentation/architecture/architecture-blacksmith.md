@@ -158,7 +158,7 @@ If your integration only needs registration and utilities, using **`Hooks.once('
 
 ## 5. Windows and Applications
 
-- **Application V2 window system** — Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture/architecture-window.md** and **documentation/api/api-window.md**. Implementation guidance and examples: **documentation/applicationv2-window/guidance-applicationv2.md**, **documentation/applicationv2-window/README.md**.
+- **Application V2 window system** — Zone contract (title bar, option bar, header, body, action bar), window registry (`registerWindow` / `openWindow`), and optional base class for consistent windows. See **documentation/architecture/architecture-window.md** and **documentation/api/api-window.md**. Implementation guidance: **documentation/applicationv2-window/guidance-applicationv2.md**. A working example window lives in the `coffee-pub-prototype` module.
 - **PinConfigWindow** (`window-pin-configuration.js`) — Pin configuration (Application).
 - **SkillCheckDialog** (`window-skillcheck.js`) — Skill check dialog; uses manager-rolls for orchestration and delivery.
 - **CSSEditor** (`window-gmtools.js`) — GM custom CSS.

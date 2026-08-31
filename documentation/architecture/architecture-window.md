@@ -22,7 +22,7 @@ Design principles:
 
 ## 2. Zone contract
 
-All windows that follow the Blacksmith contract use up to five zones. The canonical diagram is **documentation/applicationv2-window/blacksmith-windows-zones.webp**; real-world variability (which zones appear in which windows) is in **documentation/applicationv2-window/window-samples.png**.
+All windows that follow the Blacksmith contract use up to five zones. The canonical diagram is [the zone layout](../assets/primer-applicationv2-zones.webp); real-world variability (which zones appear in which windows) is in [real windows](../assets/primer-applicationv2-samples.png).
 
 | Zone | Required? | Description |
 |------|-----------|-------------|
@@ -182,10 +182,9 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 | Item | Purpose |
 |------|---------|
 | **documentation/applicationv2-window/guidance-applicationv2.md** | Implementation guidance: HandlebarsApplicationMixin(ApplicationV2), PARTS, getData, delegation, scroll, zone structure. |
-| **documentation/applicationv2-window/blacksmith-windows-zones.webp** | Canonical zone layout diagram. |
-| **documentation/applicationv2-window/window-samples.png** | Real windows showing optional zones and body layout variety. |
-| **documentation/applicationv2-window/example-window.hbs** | Example template with all five zones (consumer omits what they do not need). |
-| **documentation/applicationv2-window/example-window.js** | Example Application V2 class (delegation, scroll save/restore, static actions). |
+| [Zone layout diagram](../assets/primer-applicationv2-zones.webp) | Canonical zone layout. |
+| [Real windows](../assets/primer-applicationv2-samples.png) | Optional zones and body layout variety across shipped windows. |
+| `coffee-pub-prototype` | Carries a working example window -- template and Application V2 class with delegation, scroll save/restore, and static actions -- as loadable code rather than a copy-paste block. |
 | **templates/window-template.hbs** | Canonical core template for the zone contract; uses `blacksmith-window-v2-*` classes. New windows copy from here or the doc example. |
 | **scripts/window-tool-base.js** | Compact tool/palette Application V2 base and stable style identifiers. |
 | **templates/window-tool-template.hbs** | Lightweight tool template: optional toolbar, body, optional footer. |
@@ -194,5 +193,4 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 | **scripts/window-fullscreen-base.js** | Frameless viewport-covering base: singleton, Escape, backdrop, layouts. |
 | **templates/window-fullscreen-template.hbs** | Fullscreen template: backdrop layer, close control, header, tools, body, action bar. |
 | **styles/window-fullscreen.css** | Fullscreen shell and the four layouts. |
-| **documentation/applicationv2-window/README.md** | Quick start for the example. |
 | **documentation/api/api-window.md** | Public API for registering and opening windows. |
