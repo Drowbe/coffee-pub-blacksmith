@@ -29,7 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Three leaks were found and fixed while wiring it, all the same shape: a value-gated field appeared in the JSON template, producing a contradictory example that the profile's own rules forbid; a stale variables block contradicted the derived field list eighty lines below it; and a contributing group's RULES were stated in prompts where its fields had been switched off, telling a generator about constraints on fields it was never given. Authoring is gated by the option a person ticks, while validation is gated by what the payload engages, and using the second set for the first is what produced the third.
 
-  **Verify:** the Importer Declarations suite passes **188/188**, including that the window receives a derived template for a declared profile and falls back for an undeclared one, that a gated field is documented but never templated, and that a group's fields, rules and preamble all follow its option together. **Verified 2026-08-31** by generating the Weapon prompt with the Artificer option both on and off and diffing the two.
+  **Verify:** the Importer Declarations suite passes **192/192**, including that the window receives a derived template for a declared profile and falls back for an undeclared one, that a gated field is documented but never templated, and that a group's fields, rules and preamble all follow its option together. **Verified 2026-08-31** by generating the Weapon prompt with the Artificer option both on and off and diffing the two.
+
+  **Also verified end to end**, which nothing had previously done: the derived Weapon prompt was given to a generator, and its output imported unaltered. The created Item carried the mapped subtype code, the friendly property names converted to dnd5e's, the generated Attack activity with the item's artwork and chat flavour, a guessed icon, the GM Notes flag, and Artificer's fields at their own namespace -- with no legacy `coffee-pub` flag. That run is what found the array-enum defect below; the model's output was correct and the importer was not.
 
 - **Field groups: a module can contribute fields to profiles it does not own** (`scripts/registry-declarations.js`, `scripts/manager-declarations.js`, `scripts/api-importer.js`). Raised by Artificer, and a real gap rather than a convenience. Their flags are orthogonal to the D&D item type -- an Artificer item is a loot, or a consumable, or a tool, *with* their fields added -- so there was no profile id to register under. Registering `item/artificer` would have competed with the eight rather than composed with them, and declaring the block once per host duplicates it while still not being opt-in per import.
 
@@ -54,6 +56,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   A companion interactive check creates a weapon and a spell and **leaves them**, because behaviour after creation is the one thing no comparison of document data can reach: a structurally valid activity can still roll wrongly, and a template that stores correctly can still fail to place.
 
   **Verified 2026-08-30** in a running world: the Importer Declarations suite passes **143/143**, up from 107 -- every fixture imports and Foundry stores what the engine built, including the generated weapon activity with its attack block intact. By hand, an imported weapon rolls its generated attack and an imported spell places its measured template.
+
+### Fixed
+
+- **A field declared as an array with an allowed-values list rejected every payload** (`scripts/manager-declarations.js`). The check compared the whole array against the allowed list rather than each element, so `["FOREST"]` failed exactly as `["ATLANTIS"]` did, and an empty array failed too -- the field was enforced-looking and never satisfiable.
+
+  It survived because no Blacksmith profile has an array with a values list: every enum we declare is scalar, and `weaponProperties` and `spellProperties` are arrays without one. The first such field in existence belongs to a consuming module, so our own coverage could not reach it, and it was found by giving a real generator the derived prompt and importing what came back. `values` now constrains each element, and the failure names the offending value rather than dumping the array.
+
+- **`tools/check-harness-paths.mjs` did not check the paths a suite fetches** (`tools/check-harness-paths.mjs`). It validated `import` paths only, while its own comment noted that a suite also fetches over HTTP and that a wrong path is a 404. When the import fixtures moved directory the check passed and six harness assertions failed on 404s. It now validates every absolute module path a suite names, directories included, skipping those already covered as imports.
 
 ## [13.21.1]
 
@@ -290,7 +300,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   It is a leftover rather than a decision: the JSON template emits `itemSource: "[ADD-CAMPAIGN-NAME-HERE]"` (`scripts/registry-json-import-items.js:198`), so the field's intended meaning is the campaign name. The default is now an empty string. Blacksmith does not invent a source it does not know, and an item authored without one is silently unattributed instead of misattributed.
 
-  Existing items are unchanged; this only affects items imported from now on. **Verify:** import `testing/data/import-json/item-import-weapon.json` with `itemSource` removed from the payload, then open the item's Details tab -- the Source field is blank rather than reading "Artificer".
+  Existing items are unchanged; this only affects items imported from now on. **Verify:** import `testing/import-json/item-import-weapon.json` with `itemSource` removed from the payload, then open the item's Details tab -- the Source field is blank rather than reading "Artificer".
 
 - **A published wiki page carried a broken link** (`documentation/api/api-importer.md`). The page is in the publish set (`tools/wiki-sync.mjs:54`) and pointed at `architecture-importer.md`, which is deliberately held back from publication, so the link resolved to nothing on the live wiki. The line is removed until the architecture document clears its gate.
 

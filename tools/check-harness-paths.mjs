@@ -128,6 +128,26 @@ if (existsSync(suitesOnDisk)) {
                 problems.push(`testing/suites/${name} imports ${match[1]} - no such file`);
             }
         }
+
+        // EVERY absolute module path in a suite, not only the imported ones.
+        //
+        // A suite also FETCHES over HTTP -- fixtures, in the only current case --
+        // and those paths are built from a bare string constant rather than an
+        // import, so nothing checked them. When the fixtures moved directory on
+        // 2026-08-31 this check passed while six assertions failed on 404s, which
+        // is precisely the gap the note above describes and does not close.
+        //
+        // A directory counts: a fixture path is a folder the suite appends to.
+        for (const match of text.matchAll(/'(\/modules\/[^']+)'/g)) {
+            if (text.includes(`from '${match[1]}'`)) continue;
+            checked++;
+            const target = onDisk(match[1]);
+            if (!target) {
+                problems.push(`testing/suites/${name} references ${match[1]} - not a path inside this module`);
+            } else if (!existsSync(target)) {
+                problems.push(`testing/suites/${name} references ${match[1]} - no such file or directory`);
+            }
+        }
     }
 }
 

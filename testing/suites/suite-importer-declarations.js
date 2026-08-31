@@ -14,7 +14,7 @@
 import { requireApi } from '../harness-lib.js';
 
 const MODULE_PATH = '/modules/coffee-pub-blacksmith/scripts';
-const FIXTURE_PATH = '/modules/coffee-pub-blacksmith/testing/data/import-json';
+const FIXTURE_PATH = '/modules/coffee-pub-blacksmith/testing/import-json';
 
 /**
  * The declaration modules are imported at their CANONICAL urls, deliberately
@@ -288,6 +288,30 @@ export default {
 
                 expect('a valid entry is clean',
                     run({ itemName: 'Plain', itemRarity: 'common' }).status, 'success');
+
+                // On an ARRAY field, `values` constrains each ELEMENT. Comparing the
+                // array itself to the allowed list is false for every array including
+                // an empty one, so a field declared that way rejected everything --
+                // enforced-looking and never satisfiable. No Blacksmith profile has an
+                // array with a values list, so nothing here exercised it until a
+                // consuming module declared the first one.
+                const { registry } = await loadDeclarations();
+                const kind = probeKind();
+                registry.registerDeclaration(validDeclaration(kind, { id: 'host' }));
+                registry.registerFieldGroup({
+                    id: 'enumlist', module: 'coffee-pub-probe', kind, appliesTo: '*',
+                    option: { id: 'enumListOption', label: 'Enum List' },
+                    fields: [{ name: 'tags', path: 'flags.probe.tags', type: 'array',
+                               default: [], example: [], values: ['ALPHA', 'BETA'],
+                               guidance: 'A constrained list.' }]
+                });
+                const list = (tags) => manager.validateEntry(kind, 'host', { probeName: 'X', tags });
+                expect('an empty constrained array is clean', list([]).status, 'success');
+                expect('every element allowed is clean', list(['ALPHA', 'BETA']).status, 'success');
+                expect('one disallowed element fails',
+                    list(['ALPHA', 'GAMMA']).errors[0]?.code, 'VALUE_NOT_ALLOWED');
+                expect('and the failure names the value, not the array',
+                    list(['ALPHA', 'GAMMA']).errors[0]?.details?.actual, 'GAMMA');
             }
         },
 

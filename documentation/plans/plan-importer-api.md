@@ -1217,7 +1217,7 @@ cross-check. And Librarian will build quests against declarations rather than gi
 model first, so step 8 is not waiting on them and their timeline does not shape ours.
 
 **How to verify:** all four Blacksmith kinds are declarations registered through the public path, and
-`node tools/check-importer-parity.mjs` passes. Every fixture in `testing/data/import-json/` still imports.
+`node tools/check-importer-parity.mjs` passes. Every fixture in `testing/import-json/` still imports.
 A field added to a declaration appears in the template, the guide, the prompt and the export with no other
 edit. Artificer's prompt files are gone from `prompts/` and Artificer supplies them.
 
@@ -1240,7 +1240,7 @@ Confirmed in the source 2026-08-23. The double-conversion defect is absent here 
   `1 processed - 0 succeeded - 1 warnings - 0 failed` under a **WARNING** banner. Every number is correct --
   the counts split success from warning, per the status rules in `plans/plan-importer-api.md` -- but
   "0 succeeded" beside a warning banner reads as "nothing worked", and on 2026-08-25 that stopped a live
-  import of `testing/data/import-json/item-import-equipment-passive.json` that would have succeeded.
+  import of `testing/import-json/item-import-equipment-passive.json` that would have succeeded.
 
   **The trigger has been fixed and the presentation has not.** The nine warnings that prompted it were
   template residue reported one per field, now collapsed to a single line. But any entry importing with a
@@ -1279,7 +1279,7 @@ Confirmed in the source 2026-08-23. The double-conversion defect is absent here 
   model wholesale. That is also its publish gate.
 
 - **No automated coverage at all** -- no suite, no check, no testing doc, against 12 fixtures already in
-  `testing/data/import-json/`. **Do not build a suite against the callback importer.** It would assert a
+  `testing/import-json/`. **Do not build a suite against the callback importer.** It would assert a
   contract being replaced, which is the failure the harness header warns about: a harness asserting a stale
   contract manufactures confidence. `suite-importer-declarations.js` arrives with step 1 of the build
   sequence above and grows with each step, which is why coverage is listed here as a defect but scheduled

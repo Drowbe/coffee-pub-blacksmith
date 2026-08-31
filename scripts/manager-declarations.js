@@ -349,11 +349,22 @@ export function validateEntry(kindId, profileId, entry) {
             continue;
         }
         if (Array.isArray(field.values)) {
-            const normalized = normalizeValue(field, raw);
-            if (!field.values.includes(normalized)) {
+            // On an ARRAY field, `values` constrains each ELEMENT, not the array.
+            // Comparing the array itself to the allowed list is false for every
+            // array including an empty one, so a field declared this way rejected
+            // everything -- enforced-looking and never satisfiable. No Blacksmith
+            // profile had an array with a values list, so nothing here exercised
+            // it; the first one belonged to a consuming module.
+            const candidates = field.type === 'array'
+                ? (Array.isArray(raw) ? raw : [raw])
+                : [raw];
+            const rejected = candidates
+                .map(one => normalizeValue(field, one))
+                .filter(one => !field.values.includes(one));
+            if (rejected.length) {
                 errors.push(issue('VALUE_NOT_ALLOWED', key,
                     `${key} must be one of: ${field.values.join(', ')}.`,
-                    { allowed: field.values, actual: raw }));
+                    { allowed: field.values, actual: rejected.length === 1 ? rejected[0] : rejected }));
             }
         }
     }
