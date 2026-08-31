@@ -113,7 +113,7 @@ because it looks right.
 
 ## Documentation — the kinds, and where the rules live
 
-**The suite-wide standard is `documentation/architecture/architecture-documentation.md`, and it is
+**The suite-wide standard is `documentation/resources/resource-documentation-standard.md`, and it is
 authoritative for every Coffee Pub module including this one.** It carries the folder layout, naming, the
 document kinds, what publishes, the README product page, and the CHANGELOG / plan / TODO / testing rules.
 Where this section and the standard disagree, the standard wins and this section gets fixed. Two deliberate
@@ -265,8 +265,11 @@ of reality with a short shelf life, not a parking spot for work.
 
 Every doc published to the wiki conforms to this. It is checkable, so check it before publishing:
 
-- **No emoji or decorative icons** — not in headings, prose, tables, or example output. Write
-  `console.log('Foo working')`, not `console.log('✅ Foo working')`. No `📋`, `🔧`, `⭐`, `⚠️`, `⛔`.
+- **No emoji or decorative icons, ever, in any document** — published or not, and including the README,
+  the CHANGELOG, `TODO.md`, plans, and testing docs. Not in headings, prose, tables, example output, or as
+  a status marker in a list. Write `console.log('Foo working')`, with no tick in front of it. If a mark is
+  carrying meaning, write the meaning. Typographic punctuation — em dashes, arrows, section marks — is not
+  an icon and is unaffected.
 - **No styled callout blocks.** A `>` block with a bold warning header is still a note about the code;
   state it as prose. (Ordinary blockquotes for actual quotations are fine.)
 - **ASCII quotes and apostrophes**, not curly ones.
@@ -300,7 +303,7 @@ moment you update the doc after the fix. The transient lists point outward (they
 durable docs never point back at them. A reader who wants the backlog opens `TODO.md` or `known-issues.md`
 directly — both stand on their own.
 
-> ⚠️ **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
+> **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
 > were substantially wrong — one architecture doc had **zero** real symbols across 24 code blocks. See the
 > verification table in `documentation/TODO-GLOBAL.md` for what has actually been checked. **Verify before
 > you rely on a doc claim, and fix it when you find it wrong.**

@@ -71,9 +71,10 @@ const PUBLISH = [
   'api/api-worldclock.md',
   // Guides
   'guides/guide-dnd5e-conditions.md',
+  // Resources
+  'resources/resource-documentation-standard.md',
   // Architecture
   'architecture/architecture-ownership.md',
-  'architecture/architecture-documentation.md',
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-calendar.md',
   'architecture/architecture-chatcards.md',
@@ -126,8 +127,7 @@ function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
   if (rel === 'guides/guide-dnd5e-conditions.md') return 'dnd5e conditions';
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
-  if (rel === 'architecture/architecture-documentation.md') return 'Documentation standard';
-  const base = pageName(rel).replace(/^(api|architecture|design|guide)-/, '');
+  const base = pageName(rel).replace(/^(api|architecture|design|guide|resource|userguide)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
@@ -182,10 +182,13 @@ function rewriteLinks(md, srcRel) {
       // CODE_PATH entry could otherwise swallow these silently.
       const hub = siblingWikiUrl(target);
       if (hub) return `[${text}](${hub})`;
-      if (CODE_LINK.test(target) || CODE_PATH.test(target)) {         // code / asset -> plain text
+      if (CODE_LINK.test(target)) {                                   // code / asset -> plain text
         downgraded.push(`${srcRel}: code -> text  (${target})`);
         return text;
       }
+      // A .md target is a doc wherever it lives, and this is tested BEFORE CODE_PATH on purpose:
+      // `resources/` names both the shipped code folder and a documentation folder, so the other
+      // ordering downgrades every link into documentation/resources/ to plain text, silently.
       const m = target.match(/([^/]+)\.md(#.+)?$/i);                 // .md doc link
       if (m) {
         const name = m[1];
@@ -195,6 +198,10 @@ function rewriteLinks(md, srcRel) {
         if (publishedPages.has(name)) return `[${clean}](${name}${anchor})`;
         downgraded.push(`${srcRel}: unpublished -> text  (${target})`);
         return clean;
+      }
+      if (CODE_PATH.test(target)) {                                   // extensionless code dir -> text
+        downgraded.push(`${srcRel}: code -> text  (${target})`);
+        return text;
       }
       return whole;
     });
@@ -225,6 +232,9 @@ function buildSidebar() {
     '',
     '### Guides',
     group('guides/'),
+    '',
+    '### Resources',
+    group('resources/'),
     '',
     '### API',
     group('api/'),

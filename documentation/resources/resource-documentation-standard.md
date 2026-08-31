@@ -5,7 +5,7 @@
 Every module in the suite -- the hub and all thirteen satellites -- lays out, names, writes, and publishes
 its documentation the same way, so what a reader learns navigating one module holds for all of them.
 
-This is the counterpart to [architecture-ownership.md](architecture-ownership.md): that one decides which
+This is the counterpart to [architecture-ownership.md](../architecture/architecture-ownership.md): that one decides which
 module a feature belongs in, this one decides where its documentation goes, what it may say, and whether it
 reaches the wiki. It is authoritative for the whole suite and supersedes the documentation sections of any
 module's `CLAUDE.md`.
@@ -372,11 +372,17 @@ person does not pay for it again. That is what those documents are for.
 
 ## The uniform header, and the formatting standard
 
-Every published document, without exception:
+Every published document, without exception. The emoji rule below binds every document in the repository,
+published or not; the rest of this list binds what publishes:
 
 - **Line 1 is `# <Name>`.** Then one bold audience line. Then a one-sentence scope line. Then, if there is
   an authoritative counterpart, where it lives.
-- **No emoji or decorative icons** -- not in headings, prose, tables, or example output.
+- **No emoji or decorative icons, ever, in any document** -- published or not, and including the README,
+  the CHANGELOG, `TODO.md`, plans, and testing documents. Not in headings, prose, tables, example output,
+  or as a status marker in a list. The rule is absolute so that nobody has to adjudicate whether a
+  particular icon is decorative or load-bearing; if a mark is carrying meaning, write the meaning.
+  Checkably: no pictographic or dingbat character. Typographic punctuation -- em dashes, arrows, section
+  marks -- is not an icon and is unaffected.
 - **No styled callout blocks.** A blockquote with a bold warning header is still a note about the module;
   state it as prose. Ordinary blockquotes for actual quotations are fine.
 - **ASCII quotes and apostrophes**, not curly ones.
@@ -433,10 +439,10 @@ What it does, in order:
 
 **Source documents are never modified.** Every rewrite happens on the way out.
 
-**One collision to keep in mind: `resources/` is also the name of the shipped code folder** at every
-module's root. The publisher downgrades any link whose path names a code directory, so it must match code
-paths at the repo root rather than anywhere in a path, or every link into `documentation/resources/` is
-silently turned into plain text. Nothing errors; the links simply stop being links.
+**A `.md` target is resolved as a document before any code-path test is applied.** The order matters
+because `resources/` is also the name of the shipped code folder at every module's root: tested the other
+way round, every link into `documentation/resources/` is silently turned into plain text. Nothing errors;
+the links simply stop being links.
 
 ### The boundary rule, enforced rather than remembered
 
@@ -467,7 +473,9 @@ reader cannot hold in their head:
 - Every file's prefix matches its folder.
 - No published document links a transient list, and none carries an "Open work" section.
 - Every HOLD entry names a file that exists and carries a reason.
-- Every published document has the uniform header, and no emoji.
+- Every published document has the uniform header.
+- No document anywhere in the repository contains an emoji or dingbat -- the whole tree, not the publish
+  set, since the rule is absolute.
 - Every relative image link resolves to a file that is actually committed.
 
 Run it after touching documentation. Nothing else runs it -- the release workflow only zips and releases on

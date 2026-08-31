@@ -79,7 +79,7 @@ file. Same rule as `TODO.md`.
 
 ## Suite-wide documentation standard — roll out to all 14 modules
 
-**Decided.** The standard is `architecture/architecture-documentation.md` — folder layout, naming, the seven
+**Decided.** The standard is `resources/resource-documentation-standard.md` — folder layout, naming, the seven
 document kinds, what publishes, the README product page, and the CHANGELOG/plan/TODO/testing rules, for the
 whole suite. It supersedes the documentation sections of every module's `CLAUDE.md`. Two changes from what
 Blacksmith does today: **user guides are a new seventh kind** (the largest gap in the suite — no module
@@ -99,10 +99,11 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
       `module.json`; publish by folder membership with a HOLD list; rewrite relative image links to raw URLs
       so screenshots render on the wiki; sidebar groups in the standard's order; `Home` from
       `documentation/home.md`. Verified by: `build` in Blacksmith, then in one satellite, with the page list
-      diffed against expectation. Note the collision: the current `CODE_PATH` regex matches
-      `resources/` anywhere in a path, so it would silently downgrade every link into the new
-      `documentation/resources/` folder — it must anchor to the repo root.
-- [ ] **Write `tools/check-docs-structure.mjs`** to the six checks the standard names. Verified by: it exits
+      diffed against expectation. Keep the ordering fix that landed with the standard: a
+      `.md` target is resolved as a doc before any code-path test, because `resources/` names both a code
+      folder and a documentation folder.
+- [ ] **Write `tools/check-docs-structure.mjs`** to the checks the standard names, the emoji check across the
+      whole repository included. Verified by: it exits
       non-zero on a deliberately misfiled file and zero on the clean tree.
 - [ ] **Rewrite `README.md` as the product page** — what it is, screenshots, requirements, install, links to
       the wiki. Currently a feature dump. Verified by: read it as someone who has never heard of the module.
