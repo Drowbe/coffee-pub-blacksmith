@@ -132,8 +132,7 @@ Design, contract and build sequence: **`documentation/plans/plan-importer-api.md
 ### Finish the re-founding: steps 8-11
 
 Steps 0-7 are shipped and live: Item, Roll Table and Actor are declared and routing -- fourteen profiles --
-each asserted against the parser it replaced. Item and Roll Table are round-tripped through Foundry; Actor's
-in-world import is the one verification still owed, and is tracked in `testing/`. What remains,
+each asserted against the parser it replaced and round-tripped through Foundry itself. What remains,
 in order, each leaving the module working: **8.** Journal, the `rendered` form plus the passthrough seam
 that lets us construct a module-owned subtype -- today's hardcoded `type: "text"` is what prevents it, and
 Librarian's codex and quests and Artificer's recipes are all waiting on it. **9.** fragments, `tags` first.

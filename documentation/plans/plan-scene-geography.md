@@ -244,11 +244,14 @@ reply raised it.
    with no biomes at all, so gather keeps returning results drawn only from untagged components and looks
    entirely normal.
 
-   Normalizing both sides at the join makes stored case irrelevant, which is what makes lowercase safe to
-   pick. It also covers a case a compendium re-export cannot reach: Artificer's gather pool is built from
-   compendium items **and** `game.items` (`coffee-pub-artificer/scripts/cache/cache-items.js:375-378`), so
-   components a GM imported into their world before the migration keep their old case regardless of what the
-   packs say. Blacksmith normalizes at the API edge for the same reason.
+   Normalizing both sides **at the join** makes stored case irrelevant, which is what makes lowercase safe to
+   pick. Two things force the fix to sit at the join rather than upstream of it. Artificer's gather pool is
+   built from compendium items **and** `game.items`
+   (`coffee-pub-artificer/scripts/cache/cache-items.js:375-378`), so components a GM imported into their world
+   keep their old case whatever a re-exported pack says; and their item cache is persisted to a world setting,
+   so normalizing where records are built would leave every established world serving the old form until
+   something rebuilt it -- a migration that passes on a fresh world and silently fails on a real one.
+   Blacksmith normalizes at the API edge for the same reason: the edge is the one place that cannot be stale.
 - **Q3. Hard cut at `ready`. Artificer keeps no read-through fallback.** Artificer's call, and their reasoning is
    the deciding one: a fallback means two sources with two cases feeding one case-sensitive join during
    exactly the window when a half-migrated scene exists. Worse, `_hasGatheringConfigured`
@@ -278,11 +281,13 @@ reply raised it.
    records geography nowhere, which is defensible but silent. Decide during Workstream 2 whether that
    warrants a notice.
 
-- **Q10. The environment constant exposes `{key, label}` pairs, not bare strings.** Artificer renders the stored
-   form as a user-facing label in three places -- `getBiomeOptions()` returns `{value: b, label: b}` and
-   `getBiomeOptionsForMultiselect()` returns `{name: b}`, the latter being what the gather window actually
-   uses (`coffee-pub-artificer/scripts/window-gather.js:131`). A bare lowercase array would put "underdark"
-   in front of GMs. Labels come from the vocabulary; the key is what is stored and joined on.
+- **Q10. The environment constant exposes `{key, label}` pairs, not bare strings.** The key is what is stored
+   and joined on; the label is what a GM reads. A bare lowercase array would put "underdark" in front of
+   people, but display is the smaller half of the reason. In Artificer the stored form is also the round-trip
+   key -- `data-biome="{{name}}"` carries the same value the button displays, and the click handler validates
+   it against the vocabulary -- so a value that is simultaneously label and identity cannot be made
+   human-readable without breaking the round trip. Separating them is what makes the case change safe on the
+   consumer side, not merely prettier.
 
 ## Open questions
 
