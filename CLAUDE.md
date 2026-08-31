@@ -111,14 +111,26 @@ change, but it cannot tell you whether a relocated pointer is *right*. When it f
 and not just the location: a correctly-relocated pointer to changed behaviour is worse than a broken one,
 because it looks right.
 
-## Documentation — there are only six kinds
+## Documentation — the kinds, and where the rules live
+
+**The suite-wide standard is `documentation/architecture/architecture-documentation.md`, and it is
+authoritative for every Coffee Pub module including this one.** It carries the folder layout, naming, the
+document kinds, what publishes, the README product page, and the CHANGELOG / plan / TODO / testing rules.
+Where this section and the standard disagree, the standard wins and this section gets fixed. Two deliberate
+differences from what is written below, both decided rather than drifted:
+
+- **There are seven kinds, not six.** User guides -- how to *use* the module as a player or a GM -- are the
+  seventh, and the largest gap in the suite. `documentation/userguides/`, prefix `userguide-`.
+- **The folders are `designsystem/`, `resources/` (was `guides/`), and `userguides/`.** This repo has not
+  been renamed yet; the rename and the rest of the rollout are tracked in `documentation/TODO-GLOBAL.md`
+  under "Suite-wide documentation standard". Until it lands, expect the paths below to name the old folders.
 
 This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that
-nobody deletes. **Everything that isn't one of these six is noise.** Don't create a seventh kind, and don't
+nobody deletes. **Everything that isn't one of the kinds is noise.** Don't invent a new kind, and don't
 add to a category by inventing a parallel file.
 
-Two of the six are **transitional**: plans and testing docs both exist to be dismantled and deleted. The
-other four are permanent. See the two scaffolding sections below.
+Two kinds are **transitional**: plans and testing docs both exist to be dismantled and deleted. The
+rest are permanent. See the two scaffolding sections below.
 
 | Kind | Where | Audience | Rule |
 |---|---|---|---|

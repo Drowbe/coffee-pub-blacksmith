@@ -77,6 +77,50 @@ file. Same rule as `TODO.md`.
 
 ---
 
+## Suite-wide documentation standard — roll out to all 14 modules
+
+**Decided.** The standard is `architecture/architecture-documentation.md` — folder layout, naming, the seven
+document kinds, what publishes, the README product page, and the CHANGELOG/plan/TODO/testing rules, for the
+whole suite. It supersedes the documentation sections of every module's `CLAUDE.md`. Two changes from what
+Blacksmith does today: **user guides are a new seventh kind** (the largest gap in the suite — no module
+documents how to *use* it), and **publication is by folder membership plus a HOLD list**, not a hand-kept
+allow-list.
+
+Rollout order matters: the publisher rewrite (item 2) must land before any satellite copies it, or thirteen
+copies of the hardcoded `THIS_MODULE` trap go out at once.
+
+- [ ] **Conform Blacksmith's tree to the standard.** `git mv documentation/design-system designsystem` and
+      `documentation/guides` → `resources/` with the `resource-` prefix; create `userguides/`; fold
+      `applicationv2-window/` into `resources/` with its sample files. Touches
+      `tools/check-design-tokens.mjs` and `tools/wiki-sync.mjs`, which both name the old paths. Verified by:
+      both checkers pass, and `node tools/wiki-sync.mjs build` produces the same page set apart from the
+      intended renames.
+- [ ] **Rewrite `tools/wiki-sync.mjs` to the portable contract.** Derive module id and wiki URL from
+      `module.json`; publish by folder membership with a HOLD list; rewrite relative image links to raw URLs
+      so screenshots render on the wiki; sidebar groups in the standard's order; `Home` from
+      `documentation/home.md`. Verified by: `build` in Blacksmith, then in one satellite, with the page list
+      diffed against expectation. Note the collision: the current `CODE_PATH` regex matches
+      `resources/` anywhere in a path, so it would silently downgrade every link into the new
+      `documentation/resources/` folder — it must anchor to the repo root.
+- [ ] **Write `tools/check-docs-structure.mjs`** to the six checks the standard names. Verified by: it exits
+      non-zero on a deliberately misfiled file and zero on the clean tree.
+- [ ] **Rewrite `README.md` as the product page** — what it is, screenshots, requirements, install, links to
+      the wiki. Currently a feature dump. Verified by: read it as someone who has never heard of the module.
+- [ ] **Write `documentation/home.md`.** Replaces `guide-registering-with-blacksmith.md` as the wiki Home
+      source; that document becomes an ordinary published page under `resources/`.
+- [ ] **Write Blacksmith's two required user guides** — `userguide-getting-started.md` and
+      `userguide-settings.md`. The settings guide covers ~286 registered settings; consider generating its
+      table from `settings.js` plus `lang/en.json` and checking it, rather than hand-maintaining it.
+- [ ] **Roll out to the thirteen satellites** — five folders, the two publisher files, the checker, a
+      `home.md`, a product README, and the two required user guides each. Verified by: each module's wiki
+      has a Home and a User guides group.
+- [ ] **Strip the duplicated documentation rules from each module's `CLAUDE.md`** and point at the standard
+      instead. Leave code conventions, traps, and pointers.
+- [ ] **Re-check the Wiki section below before working any of it.** Several of its items — the publish path,
+      the sidebar, mirror scope, the Home page — were overtaken by the automated publisher and are stale.
+
+---
+
 ## Phase 1 — Documentation cleanup (do first)
 
 ### Verification status — read this before trusting any doc

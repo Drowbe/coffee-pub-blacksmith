@@ -73,6 +73,7 @@ const PUBLISH = [
   'guides/guide-dnd5e-conditions.md',
   // Architecture
   'architecture/architecture-ownership.md',
+  'architecture/architecture-documentation.md',
   'architecture/architecture-blacksmith.md',
   'architecture/architecture-calendar.md',
   'architecture/architecture-chatcards.md',
@@ -125,6 +126,7 @@ function label(rel) {
   if (rel === 'api/api-effects.md') return 'Active Effects';
   if (rel === 'guides/guide-dnd5e-conditions.md') return 'dnd5e conditions';
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
+  if (rel === 'architecture/architecture-documentation.md') return 'Documentation standard';
   const base = pageName(rel).replace(/^(api|architecture|design|guide)-/, '');
   const spaced = base.replace(/-/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
