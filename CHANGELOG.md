@@ -17,6 +17,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Roll Table is declared: both result profiles build their own documents** (`scripts/declarations/declaration-rolltable.js`, `scripts/manager-declaration-derivations.js`, `scripts/registry-json-import-rolltables.js`). A Roll Table's profile is its RESULT type rather than a document type -- both build a RollTable and differ in what a row carries -- so `text` and `document` are declared as the two, matching what the window has always offered.
+
+  It was not repetition, and the two differences are worth recording because the next kind may share them.
+
+  **A kind can now compose its own authoring output.** The Roll Table guide embeds a live catalog of real document names drawn from the configured compendiums, which no declaration describes. Replacing the guide wholesale would have silently dropped it, so a descriptor may declare `composesOwnAuthoring` and call the derivation itself, appending what only it can supply. That is the shape the Item prompt already used, now available to any kind rather than hardcoded in one.
+
+  **Row count is an authoring choice rather than schema.** The declaration owns the shape of one row; how many rows an author wants to start from is a prompt field. The derived template emits one row and the kind repeats it, numbering the ranges, so authors get what they had.
+
+  Ranges and the die stay in the parser as one algorithm rather than being re-derived per field: an omitted range follows from the row before through a running cursor, and the formula follows from the highest range across every row. Splitting that to fit the field model would have been the model driving the code rather than describing it. Document rows still resolve an exact name to a UUID at import, and `missingDocumentPolicy` still decides whether a name resolving to nothing stops the import or degrades the row to text.
+
+  **Verify:** the Importer Declarations suite passes **198/198**, including a Roll Table parity group comparing derived construction against the parser for ordered rows, weighted ranges and explicit ranges, asserting the derived die covers the widest range, and asserting overlapping ranges are refused. **Verified 2026-08-31** in a running world: a full Run All Headless passes **1241/1241**, and `testing/import-json/rolltable-import-simple.json` imports as a 1d2 table with both rows numbered correctly.
+
 - **The JSON template, authoring guide and prompt schema are derived from declarations** (`scripts/manager-declarations.js`, `scripts/registry-json-import.js`). The import window asked a hand-maintained builder that emitted one field set for all eight Item profiles; it now asks the declaration for the selected profile, and falls back to the kind's own builder when no declaration exists -- the same routing rule construction uses, so a kind moves across by being declared rather than by an edit to the router.
 
   **The guide now states every rule.** Weapon has six -- versatile requires its formula, versatile excludes two-handed, the magical flag and the magical property imply each other, a magical bonus requires a magical weapon, activities must be empty, and ranged or thrown weapons require a range. The hand-written guide stated none of them, while the parser enforced all of them. Guide and validator now share the same sentence and cannot disagree. The guide also stops documenting `itemImageTerms` and `itemImageNuance`, which belong to image generation and were never read on import.

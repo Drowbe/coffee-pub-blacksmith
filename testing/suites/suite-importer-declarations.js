@@ -1168,6 +1168,92 @@ export default {
         },
 
         {
+            id: 'rolltable-parity',
+            label: 'Roll Table construction matches the parser it replaces',
+            tier: 'headless',
+            group: 'Step 6 - Roll Table',
+            note: 'Ordered ranges and the derived die are the whole risk here.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-rolltable.js`);
+                const parser = await import(`${MODULE_PATH}/parsers/parse-rolltable.js`);
+
+                expect.ok('both Roll Table profiles are declared',
+                    registry.getDeclarationsForKind('rolltable').length === 2);
+
+                const CASES = [
+                    {
+                        id: 'rows numbered in order',
+                        profile: 'text',
+                        entry: {
+                            tableName: 'Harness Order', results: [
+                                { resultType: 'text', resultText: 'first' },
+                                { resultType: 'text', resultText: 'second' },
+                                { resultType: 'text', resultText: 'third' }
+                            ]
+                        }
+                    },
+                    {
+                        id: 'weights widening the ranges',
+                        profile: 'text',
+                        entry: {
+                            tableName: 'Harness Weights', drawWithReplacement: false,
+                            displayRollFormula: true,
+                            results: [
+                                { resultType: 'text', resultText: 'common', resultWeight: 5 },
+                                { resultType: 'text', resultText: 'rare', resultWeight: 1 }
+                            ]
+                        }
+                    },
+                    {
+                        id: 'explicit ranges honoured',
+                        profile: 'text',
+                        entry: {
+                            tableName: 'Harness Explicit', results: [
+                                { resultType: 'text', resultText: 'low', resultRangeLower: 1, resultRangeUpper: 10 },
+                                { resultType: 'text', resultText: 'high', resultRangeLower: 11, resultRangeUpper: 20 }
+                            ]
+                        }
+                    }
+                ];
+
+                for (const testCase of CASES) {
+                    const derived = await manager.buildDocumentData('rolltable', testCase.profile, testCase.entry);
+                    const current = await parser.parseTableToFoundry(testCase.entry);
+                    const keys = [...new Set([...Object.keys(derived), ...Object.keys(current)])].sort();
+                    for (const key of keys) {
+                        if (JSON.stringify(derived[key]) !== JSON.stringify(current[key])) {
+                            log(`${testCase.id} differs at ${key}:`);
+                            log(`   derived ${JSON.stringify(derived[key])}`);
+                            log(`   current ${JSON.stringify(current[key])}`);
+                        }
+                    }
+                    expect(`${testCase.id}: derived construction equals the parser`, derived, current);
+                }
+
+                // The die follows the rows. A formula that disagrees with the ranges
+                // produces a table that cannot roll some of its own results.
+                const weighted = await manager.buildDocumentData('rolltable', 'text', CASES[1].entry);
+                expect('the die covers the widest range', weighted.formula, '1d6');
+
+                // Overlapping ranges are refused rather than silently producing a
+                // table where one number rolls two things.
+                let overlapped = null;
+                try {
+                    await manager.buildDocumentData('rolltable', 'text', {
+                        tableName: 'Harness Overlap', results: [
+                            { resultType: 'text', resultText: 'a', resultRangeLower: 1, resultRangeUpper: 5 },
+                            { resultType: 'text', resultText: 'b', resultRangeLower: 4, resultRangeUpper: 8 }
+                        ]
+                    });
+                } catch (error) {
+                    overlapped = error;
+                }
+                expect.ok('overlapping ranges are refused', overlapped !== null);
+            }
+        },
+
+        {
             id: 'template-diff',
             label: 'Diff the derived loot template against the current hand-built one',
             tier: 'headless',

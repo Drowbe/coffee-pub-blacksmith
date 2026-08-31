@@ -126,9 +126,38 @@ async function slugIdentifier(data) {
     return data;
 }
 
+/**
+ * A Roll Table's rows and the die that rolls them.
+ *
+ * A derivation rather than a field transform because no row can be converted on
+ * its own: an omitted range follows from the row BEFORE it through a running
+ * cursor, and the table's formula follows from the highest range across all of
+ * them. A per-field transform sees one value and cannot do either.
+ *
+ * Document rows resolve a name to a UUID here as well. The author supplies an
+ * exact name and never a UUID -- a name survives a pack being rebuilt where a
+ * UUID does not -- and `missingDocumentPolicy` decides whether a name that
+ * resolves to nothing stops the import or degrades the row to plain text.
+ *
+ * @param {object} data - Assembled document source data.
+ * @param {object} entry - The authored payload.
+ * @returns {Promise<object>} The same data, with results and formula attached.
+ */
+async function rollTableResults(data, entry) {
+    const { parseTableToFoundry } = await import('./parsers/parse-rolltable.js');
+    // The row conversion, the ordered ranges, the overlap check and the document
+    // resolution are one algorithm and are not split apart to be re-derived. What
+    // the declaration owns is the SHAPE of a row; what this owns is the sequence.
+    const converted = await parseTableToFoundry(entry);
+    data.results = converted.results;
+    data.formula = converted.formula;
+    return data;
+}
+
 /** @type {Record<string, Function>} */
 const DERIVATIONS = {
-    weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier
+    weaponAttackActivity, equippablePassiveEffects, itemActivities, slugIdentifier,
+    rollTableResults
 };
 
 /**

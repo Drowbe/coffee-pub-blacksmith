@@ -29,6 +29,9 @@ const kinds = new Map();
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildJsonTemplate] - Build a clean JSON-only hand-authoring template.
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildAuthoringGuide] - Build a plain-text JSON template plus human authoring instructions.
+ * @property {boolean} [composesOwnAuthoring] - True when the kind builds its own template and
+ *   guide from the declaration rather than having them replaced, for authoring output carrying
+ *   something a declaration cannot describe such as a live catalog.
  * @property {(entries: object[]) => Promise<unknown>} [onImport] - Legacy batch fallback for kinds not yet using onImportEntry.
  * @property {(entry: object) => Promise<unknown>} [onValidateEntry]
  * @property {(entry: object) => Promise<unknown>} [onImportEntry]
@@ -68,6 +71,15 @@ export function registerJsonImportKind(kind) {
  * @returns {JsonImportKind}
  */
 function routeAuthoringToDeclarations(kind) {
+    // A kind that COMPOSES its own authoring output is left alone. Replacing a
+    // builder wholesale is right when everything it produces is derivable, and
+    // wrong when it also carries something a declaration cannot describe -- the
+    // Roll Table guide embeds a live catalog of real document names for an author
+    // to pick from, and wrapping it would silently drop that. Such a kind calls
+    // the derivation itself and appends what only it can supply, which is what the
+    // Item prompt already does.
+    if (kind.composesOwnAuthoring) return kind;
+
     const declared = (templateKey) => {
         const profile = String(templateKey ?? '').trim().toLowerCase();
         return profile ? getDeclaration(kind.id, profile) : null;

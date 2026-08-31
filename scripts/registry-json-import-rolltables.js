@@ -3,6 +3,10 @@
 // ==================================================================
 
 import { registerJsonImportKind } from './registry-json-import.js';
+import { getDeclaration } from './registry-declarations.js';
+import { validateEntryDeep, buildDocumentData, buildTemplateText, buildGuideText } from './manager-declarations.js';
+// Side-effect import: registers the declared Roll Table profiles.
+import './declarations/declaration-rolltable.js';
 import { parseTableToFoundry } from './parsers/parse-rolltable.js';
 import { fetchPromptText, composePrompt, applyCampaignPlaceholders } from './utility-json-import-prompts.js';
 import { queryImportCatalog, formatImportCatalog } from './utility-rolltable-import-lists.js';
@@ -192,6 +196,28 @@ export async function buildRollTableImportPrompt(templateKey, options = {}, onPr
 export async function buildRollTableJsonTemplate(templateKey, options = {}) {
     const key = String(templateKey || 'text').toLowerCase();
     if (!ROLLTABLE_PROMPT_PROFILES[key]) throw new Error(`Unsupported Roll Table result type: ${templateKey}`);
+
+    // Derived when the profile is declared, then repeated to the requested row
+    // count. The declaration owns the SHAPE of a row; how many rows an author
+    // wants to start with is an authoring choice a declaration does not describe,
+    // so it is applied here rather than pushed into the model.
+    const declaration = getDeclaration(ROLLTABLE_JSON_IMPORT_KIND_ID, key);
+    if (declaration) {
+        const table = JSON.parse(buildTemplateText(ROLLTABLE_JSON_IMPORT_KIND_ID, key, options));
+        const row = table.results?.[0] ?? {};
+        table.results = Array.from({ length: parseResultCount(options.resultCount) }, (_, index) => ({
+            ...foundry.utils.deepClone(row),
+            ...(key === 'document' && options.catalogDocumentType
+                ? { resultDocumentType: String(options.catalogDocumentType) }
+                : {}),
+            resultRangeLower: index + 1,
+            resultRangeUpper: index + 1
+        }));
+        // An array, matching what this kind has always emitted: a Roll Table
+        // payload is commonly several tables at once, and the bracket is the hint.
+        return JSON.stringify([table], null, 2);
+    }
+
     const count = parseResultCount(options.resultCount);
     const results = Array.from({ length: count }, (_, index) => ({
         resultType: key,
@@ -215,6 +241,13 @@ export async function buildRollTableJsonTemplate(templateKey, options = {}) {
 export async function buildRollTableAuthoringGuide(templateKey, options = {}, onProgress) {
     const key = String(templateKey || 'text').toLowerCase();
     const json = await buildRollTableJsonTemplate(key, options);
+    // The derived guide carries every field and rule; the catalog below carries
+    // real document names, which is the half a declaration cannot supply.
+    const derived = getDeclaration(ROLLTABLE_JSON_IMPORT_KIND_ID, key)
+        ? `
+${buildGuideText(ROLLTABLE_JSON_IMPORT_KIND_ID, key, options)}
+`
+        : '';
     const catalog = await buildFilteredCatalog(key, options, onProgress);
     const catalogSection = catalog.enabled
         ? `\nFILTERED CATALOG\n\nDocument type: ${options.catalogDocumentType || 'Actor'}\nSelected sources: ${catalog.sources.join(', ')}\nMatching entries: ${catalog.rows.length}\n\n${catalog.text}\n`
@@ -222,7 +255,7 @@ export async function buildRollTableAuthoringGuide(templateKey, options = {}, on
     return `BLACKSMITH ROLL TABLE JSON AUTHORING GUIDE
 
 Edit the JSON block, then paste only its JSON array into Import JSON.
-
+${derived}
 Selected contract
 ${buildTableDirectives(key, options)}
 - Text results are never linked.
@@ -251,13 +284,55 @@ registerJsonImportKind({
     onBuildJsonTemplate: buildRollTableJsonTemplate,
     onBuildAuthoringGuide: buildRollTableAuthoringGuide,
     onProfileName: (entry) => entry?.results?.[0]?.resultType || '',
+    // The guide carries a live catalog of real document names, which no declaration
+    // describes, so this kind composes its own rather than having it replaced.
+    composesOwnAuthoring: true,
     onValidateEntry: async (entry) => {
+        const declaration = declaredProfileFor(entry);
+        if (declaration) {
+            const outcome = await validateEntryDeep(ROLLTABLE_JSON_IMPORT_KIND_ID, declaration.id, entry);
+            if (outcome.errors.length) throw errorFromIssue(outcome.errors[0]);
+            return { validationWarnings: outcome.warnings };
+        }
         if (!String(entry?.tableName || '').trim()) throw new Error('tableName is required.');
         if (!Array.isArray(entry?.results) || !entry.results.length) throw new Error('results must contain at least one table result.');
         return parseTableToFoundry(entry);
     },
     onImportEntry: async (entry) => {
-        const [created] = await RollTable.createDocuments([await parseTableToFoundry(entry)], { keepId: false });
+        const declaration = declaredProfileFor(entry);
+        const data = declaration
+            ? await buildDocumentData(ROLLTABLE_JSON_IMPORT_KIND_ID, declaration.id, entry)
+            : await parseTableToFoundry(entry);
+        const [created] = await RollTable.createDocuments([data], { keepId: false });
         return created;
     }
 });
+
+/**
+ * The declared profile for an entry, or null to fall back to the parser.
+ *
+ * A Roll Table's profile is its RESULT type rather than a document type, and the
+ * payload does not name it -- the rows do. A table whose rows disagree is not a
+ * profile we have, so the first row decides and validation reports the rest.
+ * @param {object} entry
+ * @returns {object|null}
+ */
+function declaredProfileFor(entry) {
+    const rows = Array.isArray(entry?.results) ? entry.results : [];
+    const profile = String(rows[0]?.resultType ?? 'text').trim().toLowerCase();
+    return getDeclaration(ROLLTABLE_JSON_IMPORT_KIND_ID, profile) ?? null;
+}
+
+/**
+ * Carry a structured issue on a thrown Error, so a failure reaches the result
+ * screen naming the field rather than as a blanket validation failure.
+ * @param {object} issue
+ * @returns {Error}
+ */
+function errorFromIssue(issue) {
+    const error = new Error(issue.message);
+    error.code = issue.code;
+    error.path = issue.path;
+    error.details = issue.details;
+    return error;
+}
