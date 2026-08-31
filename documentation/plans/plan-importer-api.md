@@ -1,8 +1,14 @@
 # Plan: the Importer API
 
 **Status: Implemented through step 4 of 11.** All eight Item profiles -- loot, weapon, equipment,
-tool, container, feature, spell and consumable -- are declared and **live**: the Item importer routes
-an entry to the derived path when a declaration exists for its profile, and every one now does.
+tool, container, feature, spell and consumable -- are declared and **live**. The Item importer routes an
+entry to the derived path when a declaration exists for its profile, and every one now does; commenting out
+the declaration import in `registry-json-import-items.js` returns every profile to the parser, which is the
+whole switch, because routing is by declaration presence.
+
+Verified 2026-08-30 in a running world: every fixture imports and Foundry stores what the engine built,
+asserted by the round-trip checks in `testing/suites/suite-importer-declarations.js`, and an imported weapon
+rolls its generated attack while an imported spell places its measured template.
 Construction is asserted equivalent to the parser it replaces across thirteen cases in
 `testing/suites/suite-importer-declarations.js`. The parser's per-profile builders are retained
 deliberately as the comparison baseline and become deletable when the remaining kinds move.
@@ -1159,34 +1165,16 @@ of Blacksmith's own kinds -- nineteen profiles -- against the model rather than 
 That survey is what the three previous attempts skipped. Three profile forms came out of it (mapped,
 rendered, passthrough) and nothing in nineteen profiles needed a construct outside the model.
 
-**Steps 0 to 4 are implemented and recorded in `CHANGELOG.md`; they are removed from this list.** All
-eight Item profiles -- loot, weapon, equipment, tool, container, feature, spell and consumable -- are
-declared, with construction asserted equivalent to the parser across thirteen cases.
-`testing/suites/suite-importer-declarations.js` stands at 107 assertions.
+**Steps 0 to 4 are implemented, live, and recorded in `CHANGELOG.md`.** All eight Item profiles -- loot,
+weapon, equipment, tool, container, feature, spell and consumable -- are declared and routing, with
+construction asserted equivalent to the parser across thirteen cases and round-tripped through Foundry
+itself.
 
-**It is gated off and is not running.** `registry-json-import-items.js` has the declaration import
-commented out, so nothing registers and every entry routes to the parser. That was deliberate: the
-importer is not being leveraged in production yet and must not silently change what a GM's import
-produces. Uncommenting one line is the whole switch, because routing is by declaration presence.
-
-### Turn the declaration engine on
-
-Its own item because it is a decision rather than a step, and because the sequence below reads as
-though the engine were already live otherwise.
-
-Everything needed is built and asserted. What is NOT yet proven is behaviour in a running world:
-thirteen parity cases compare document *source data*, not what Foundry stores once a document is
-created. Before uncommenting, import each fixture in `testing/data/import-json/` and confirm the
-created document -- particularly the generated weapon activity, equipment passive effects, and a
-spell's template and materials.
-
-Expect two visible changes on the day it goes on, both intended and both listed in `CHANGELOG.md`:
-imports get stricter (an invalid `itemRarity` or a non-numeric `itemQuantity` now fail, naming the
-field), and the retired `coffee-pub` flag and `system.consumableType` stop being written.
-
-**How to verify:** `api.importer.listDeclarations()` returns eight profiles rather than `[]`, every
-fixture imports, and a deliberately malformed payload fails naming the offending field instead of
-reporting a blanket validation failure.
+They shipped **gated off** in 13.20.0 and were turned on 2026-08-30 after the round-trip checks were built
+and a live pass confirmed an imported weapon rolls its generated attack and an imported spell places its
+measured template. The gate was one commented-out import; that is worth remembering as the shape rather
+than the instance, because every kind that follows should ship the same way -- declared, asserted, and off
+until something has actually created a document with it.
 
 ### Build sequence
 

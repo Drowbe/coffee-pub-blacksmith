@@ -123,7 +123,9 @@ Design, contract and build sequence: **`documentation/plans/plan-importer-api.md
 
 ### Finish the re-founding: steps 5-11
 
-Steps 0-4 are shipped and live -- all eight Item profiles are declared and routing. What remains, in order,
+Steps 0-4 are shipped and live -- all eight Item profiles are declared and routing, asserted equivalent to
+the parser across thirteen construction cases and round-tripped through Foundry itself. What remains, in
+order,
 each leaving the module working: **5.** guide and prompt derivation. **6.** Roll Table. **7.** Actor,
 including its move out of `blacksmith.js`. **8.** Journal, with the passthrough seam that lets us construct
 a module-owned subtype -- today's hardcoded `type: "text"` is what prevents it. **9.** fragments, `tags`

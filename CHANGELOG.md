@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The declaration engine is on: all eight Item profiles now build their own documents** (`scripts/registry-json-import-items.js`). The engine shipped in 13.20.0 deliberately gated off -- declared, asserted, and not running -- so that turning it on was a separate decision from building it. That decision is taken. The Item importer now routes every entry to the derived path, and the parser's per-profile builders are no longer reached for anything but native Foundry payloads.
+
+  Two changes a GM will notice, both intended. **Imports are stricter:** an `itemRarity` outside dnd5e's set and a non-numeric `itemQuantity` now fail, naming the field, where both previously imported and wrote invalid data while reporting success. **Two fields stop being written:** the `coffee-pub` flag, a duplicate of `system.source.custom` that nothing in Blacksmith or any of the thirteen siblings reads, and `system.consumableType`, which dnd5e reads in exactly one place -- a migration shim, into a variable named `oldType`. Items already carrying either keep them.
+
+  A payload authored from a stock template now also produces **one warning line** naming the fields that profile does not read. `buildItemJsonTemplate` still emits one field set for all eight profiles, so every template-authored payload carries fields its own profile ignores. It is one line rather than one per field, and it goes away at step 5 when templates are derived per profile.
+
+### Added
+
+- **Round-trip checks: the fixtures are imported for real and read back** (`testing/suites/suite-importer-declarations.js`). The existing parity check compares what `buildDocumentData` produces and stops there -- it never calls `createDocuments`, so nothing had ever checked what dnd5e accepts, normalises or silently discards on the way in. That gap is where the risk sat, because the highest-value things the engine builds are *derived* rather than mapped: a weapon's Attack activity and a feature's measured template are generated from resolved data, and a structural mistake in either is invisible until a document exists.
+
+  The headless check imports all six fixtures plus an inline consumable, asserts what Foundry persisted -- the generated activity survives with its attack block, passive effects transfer, a spell's level, school and materials land, a consumable's `autoDestroy` is set -- and deletes each one, with a final assertion that nothing was left behind. It also asserts the two retired fields are genuinely absent, so neither can quietly return.
+
+  A companion interactive check creates a weapon and a spell and **leaves them**, because behaviour after creation is the one thing no comparison of document data can reach: a structurally valid activity can still roll wrongly, and a template that stores correctly can still fail to place.
+
+  **Verified 2026-08-30** in a running world: the Importer Declarations suite passes **143/143**, up from 107 -- every fixture imports and Foundry stores what the engine built, including the generated weapon activity with its attack block intact. By hand, an imported weapon rolls its generated attack and an imported spell places its measured template.
+
 ## [13.21.1]
 
 ### Added

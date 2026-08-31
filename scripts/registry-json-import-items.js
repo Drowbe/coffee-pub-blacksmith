@@ -6,20 +6,11 @@ import { registerJsonImportKind } from './registry-json-import.js';
 import { parseFlatItemToFoundry, isNativeFoundryItemData } from './parsers/parse-item.js';
 import { getDeclaration } from './registry-declarations.js';
 import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
-// THE DECLARATION ENGINE IS GATED OFF, DELIBERATELY.
-//
-// All eight Item profiles are declared and asserted equivalent to the parser
-// across thirteen construction cases, but the importer is not being leveraged in
-// production yet, so it must not silently change what a GM's import produces.
-// Without this import nothing registers, `declaredProfileFor` finds no profile,
-// and every entry routes to the parser exactly as before.
-//
-// The harness imports the declarations itself, so the suite still exercises the
-// engine in full while the live path is untouched.
-//
-// TO TURN IT ON: uncomment the line below. That is the whole switch -- routing is
-// by declaration presence, so registering the profiles is what activates them.
-// import './declarations/declaration-item.js';
+// Side-effect import: registers the eight declared Item profiles. This is the
+// switch -- routing is by declaration presence, so registering them is what makes
+// the declaration engine live. Commenting this line out returns every profile to
+// the parser, with no other change needed.
+import './declarations/declaration-item.js';
 import {
     fetchPromptText,
     composePrompt,

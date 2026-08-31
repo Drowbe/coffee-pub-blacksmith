@@ -14,6 +14,7 @@
 import { requireApi } from '../harness-lib.js';
 
 const MODULE_PATH = '/modules/coffee-pub-blacksmith/scripts';
+const FIXTURE_PATH = '/modules/coffee-pub-blacksmith/testing/data/import-json';
 
 /**
  * The declaration modules are imported at their CANONICAL urls, deliberately
@@ -699,6 +700,180 @@ export default {
                 expect('it carries a stable code', caught?.issue?.code, 'PRICE_UNPARSEABLE');
                 expect('it names the field', caught?.issue?.path, 'itemPrice');
                 expect('it names the convert stage', caught?.issue?.stage, 'convert');
+            }
+        },
+
+        {
+            id: 'roundtrip-fixtures',
+            label: 'Every fixture imports and Foundry stores what we built',
+            tier: 'headless',
+            group: 'Step 4 - round trip through Foundry',
+            note: 'Creates real Items and deletes them. Parity stops at the source data; this is the half after.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('importer');
+                const kind = api.importer.getKind('item');
+                expect.ok('the item kind is reachable through the public surface',
+                    typeof kind?.onImportEntry === 'function');
+                if (typeof kind?.onImportEntry !== 'function') return;
+
+                // The gap this closes: construction-parity compares what
+                // buildDocumentData PRODUCES. It never calls createDocuments, so
+                // nothing has ever checked what dnd5e accepts, normalises or
+                // silently drops on the way in. A structurally wrong activity is
+                // accepted by our code and fixed up or discarded by the system.
+                const imported = async (fixture, assertions) => {
+                    let response;
+                    try {
+                        response = await fetch(`${FIXTURE_PATH}/${fixture}`);
+                    } catch (error) {
+                        expect(`${fixture} is readable`, error.message, 'no error');
+                        return;
+                    }
+                    if (!response.ok) {
+                        expect(`${fixture} is readable`, `HTTP ${response.status}`, 'HTTP 200');
+                        return;
+                    }
+                    const entry = await response.json();
+
+                    let created = null;
+                    try {
+                        created = await kind.onImportEntry(entry);
+                    } catch (error) {
+                        expect(`${fixture} imports`, error.message, 'no error');
+                        return;
+                    }
+                    try {
+                        expect.ok(`${fixture}: the Item is in the world`,
+                            Boolean(game.items.get(created?.id)));
+                        // Stored source, not prepared data: the question is what
+                        // Foundry persisted, which is not what the sheet shows.
+                        await assertions(created.toObject(), created);
+                    } finally {
+                        await created?.delete?.();
+                    }
+                };
+
+                await imported('item-import-loot.json', (stored) => {
+                    expect('loot: type', stored.type, 'loot');
+                    expect('loot: price survived', stored.system?.price,
+                        { value: 5, denomination: 'gp' });
+                    expect.ok('loot: the GM Notes flag is stored',
+                        Boolean(stored.flags?.['coffee-pub-blacksmith']?.gmNotes?.html));
+                    expect.ok('loot: the retired coffee-pub flag is NOT written',
+                        stored.flags?.['coffee-pub'] === undefined);
+                });
+
+                await imported('item-import-weapon.json', (stored) => {
+                    expect('weapon: type', stored.type, 'weapon');
+                    // The activity is DERIVED, not mapped -- the highest-risk thing
+                    // the engine builds, and invisible until a document exists.
+                    const activities = Object.values(stored.system?.activities ?? {});
+                    expect('weapon: exactly one generated activity', activities.length, 1);
+                    expect('weapon: it is an attack', activities[0]?.type, 'attack');
+                    expect.ok('weapon: dnd5e kept the attack block',
+                        Boolean(activities[0]?.attack?.type?.value));
+                    expect.ok('weapon: base damage survived',
+                        activities[0] !== undefined && stored.system?.damage?.base !== undefined);
+                    expect('weapon: not attuned on import', stored.system?.attuned, false);
+                    expect('weapon: not equipped on import', stored.system?.equipped, false);
+                    log(`weapon activity: ${JSON.stringify(activities[0]?.attack ?? null)}`);
+                });
+
+                await imported('item-import-equipment-passive.json', (stored) => {
+                    expect('equipment: type', stored.type, 'equipment');
+                    expect('equipment: one passive effect stored', (stored.effects ?? []).length, 1);
+                    expect.ok('equipment: the effect transfers to its owner',
+                        stored.effects?.[0]?.transfer === true);
+                    expect.ok('equipment: attunement was written for a magical item',
+                        typeof stored.system?.attunement === 'string');
+                });
+
+                await imported('item-import-feature.json', (stored) => {
+                    expect('feature: type', stored.type, 'feat');
+                    expect.ok('feature: an identifier was derived from the name',
+                        Boolean(stored.system?.identifier));
+                });
+
+                await imported('item-import-feature-save-area.json', (stored) => {
+                    expect('feature-area: type', stored.type, 'feat');
+                    const activities = Object.values(stored.system?.activities ?? {});
+                    expect.ok('feature-area: at least one activity', activities.length > 0);
+                    expect.ok('feature-area: a measured template survived creation',
+                        activities.some(one => Boolean(one?.target?.template?.type)));
+                });
+
+                await imported('item-import-spell.json', (stored) => {
+                    expect('spell: type', stored.type, 'spell');
+                    expect.ok('spell: level is a number', Number.isInteger(stored.system?.level));
+                    expect.ok('spell: school survived', Boolean(stored.system?.school));
+                    expect.ok('spell: the materials block is an object',
+                        stored.system?.materials !== null && typeof stored.system?.materials === 'object');
+                });
+
+                // No consumable fixture exists -- the profile whose activity path had
+                // rotted was also the one nothing covered. Built inline until one lands.
+                await (async () => {
+                    let created = null;
+                    try {
+                        created = await kind.onImportEntry({
+                            itemType: 'consumable', itemSubType: 'Potion',
+                            itemName: 'Harness Test Potion',
+                            limitedUsesMax: 1, destroyOnEmpty: true,
+                            itemImagePath: 'icons/consumables/potions/bottle-round-corked-red.webp'
+                        });
+                        const stored = created.toObject();
+                        expect('consumable: type', stored.type, 'consumable');
+                        expect('consumable: uses max stored', String(stored.system?.uses?.max), '1');
+                        expect('consumable: destroys when empty',
+                            stored.system?.uses?.autoDestroy, true);
+                        expect.ok('consumable: the retired consumableType is NOT written',
+                            stored.system?.consumableType === undefined);
+                    } finally {
+                        await created?.delete?.();
+                    }
+                })();
+
+                expect.ok('no test items were left behind',
+                    !game.items.some(one => one.name?.startsWith('Harness Test')));
+            }
+        },
+
+        {
+            id: 'roundtrip-behaviour',
+            label: 'Import a weapon and a spell, then use them',
+            tier: 'interactive',
+            group: 'Step 4 - round trip through Foundry',
+            note: 'Creates two Items and LEAVES them. Roll the weapon, place the spell template, then delete both.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('importer');
+                const kind = api.importer.getKind('item');
+                const made = [];
+                for (const fixture of ['item-import-weapon.json', 'item-import-spell.json']) {
+                    const response = await fetch(`${FIXTURE_PATH}/${fixture}`);
+                    if (!response.ok) {
+                        log(`SKIPPED: ${fixture} not readable (${response.status})`);
+                        continue;
+                    }
+                    const created = await kind.onImportEntry(await response.json());
+                    made.push(created);
+                    log(`created: ${created.name} (${created.uuid})`);
+                }
+                expect.ok('both items were created', made.length === 2);
+
+                // Everything above this line is assertable and is asserted in the
+                // headless check. What is left is behaviour AFTER creation, which no
+                // comparison of document data can reach: a structurally valid activity
+                // can still roll wrongly, and a template that stores fine can still
+                // fail to place.
+                log('');
+                log('CHECK, then delete both items yourself:');
+                log('  1. Drag the weapon to an actor and roll its attack.');
+                log('     The attack should roll and the damage button should appear.');
+                log('  2. Open the spell and use it. Its measured template should be');
+                log('     offered for placement at the right size.');
+                log('  3. Both sheets should open with no console errors.');
+                log('');
+                log('These are LEFT IN THE WORLD on purpose -- you cannot roll a deleted item.');
             }
         },
 
