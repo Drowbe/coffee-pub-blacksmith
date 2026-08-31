@@ -492,10 +492,23 @@ export default {
             group: 'Stage chain',
             note: 'a total read before the count is published cuts later items mid-flight',
             run: async ({ expect, log }) => {
-                const read = () => {
-                    const el = surfaceEl();
-                    return parseFloat(getComputedStyle(el).getPropertyValue('--fs-stage-total')) || 0;
+                // Milliseconds, whatever unit CSS reports. The chain resolves to `s`
+                // once the numbers grow past a second, and a bare parseFloat then reads
+                // 3.06s as 3.06ms -- which compared a total in seconds against a last
+                // finish in milliseconds and failed a check the feature was passing.
+                // The base has `_readCssMs` for exactly this; the mistake was reading
+                // the value a second way rather than the same way.
+                const asMs = (raw) => {
+                    const value = String(raw ?? '').trim();
+                    if (!value) return 0;
+                    const parsed = parseFloat(value);
+                    if (!Number.isFinite(parsed)) return 0;
+                    return value.endsWith('ms') ? parsed
+                        : value.endsWith('s') ? parsed * 1000
+                            : parsed;
                 };
+                const read = () => asMs(getComputedStyle(surfaceEl())
+                    .getPropertyValue('--fs-stage-total'));
                 const previous = { cards: state.cards, contested: state.contested };
                 state.contested = false;
                 try {
