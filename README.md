@@ -72,19 +72,25 @@ This is a personal project built for my own FoundryVTT games. If you find it use
 
 ## Coffee Pub Module Suite
 
-Blacksmith is the foundation for all modules in the suite:
+Blacksmith is the foundation every other Coffee Pub module is built on. Each one is optional and
+installed separately.
 
-| Module | Description |
+| Module | What it adds |
 |---|---|
-| [Artificer](https://github.com/Drowbe/coffee-pub-artificer) | Item and content creation tools |
-| [Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph) | Library and reference management |
-| [Cartographer](https://github.com/Drowbe/coffee-pub-cartographer) | Drawing and map tools |
-| [Crier](https://github.com/Drowbe/coffee-pub-crier) | Enhanced announcements and notifications |
-| [Herald](https://github.com/Drowbe/coffee-pub-herald) | Streaming and broadcast view |
-| [Monarch](https://github.com/Drowbe/coffee-pub-monarch) | Module collection management |
-| [Regent](https://github.com/Drowbe/coffee-pub-regent) | AI assistant and rules lookup |
-| [Scribe](https://github.com/Drowbe/coffee-pub-scribe) | Advanced journaling and note-taking |
-| [Squire](https://github.com/Drowbe/coffee-pub-squire) | Character sheet sidebar tray |
+| [Artificer](https://github.com/Drowbe/coffee-pub-artificer) | A crafting, recipe, and blueprint system. |
+| [Bibliosoph](https://github.com/Drowbe/coffee-pub-bibliosoph) | In-game player messaging backed by journals, plus injuries, quick encounter building, inspiration, and critical hit announcements. |
+| [Cartographer](https://github.com/Drowbe/coffee-pub-cartographer) | Party strategic planning and sketching. |
+| [Crier](https://github.com/Drowbe/coffee-pub-crier) | Combat turn announcements with turn cards, round announcements, and status tracking. |
+| [Curator](https://github.com/Drowbe/coffee-pub-curator) | Image management: token replacement, portrait replacement, and tile and map placement. |
+| [Herald](https://github.com/Drowbe/coffee-pub-herald) | Streaming and broadcast view. Designate a cameraman user for a clean, UI-free view that follows tokens. |
+| [Librarian](https://github.com/Drowbe/coffee-pub-librarian) | A codex of people, places, factions and artifacts, and the quests running through them, linked to the canvas. |
+| [Merchant](https://github.com/Drowbe/coffee-pub-merchant) | Shops and merchants: mark an actor as a merchant and let players browse and buy from their stock. |
+| [Minstrel](https://github.com/Drowbe/coffee-pub-minstrel) | A music, environment, and one-shot manager. |
+| [Monarch](https://github.com/Drowbe/coffee-pub-monarch) | Save and load sets of enabled modules. |
+| [Regent](https://github.com/Drowbe/coffee-pub-regent) | Optional AI tools: Consult the Regent, plus lookup, character, assistant, encounter, and narrative worksheets. |
+| [Scribe](https://github.com/Drowbe/coffee-pub-scribe) | Journal and chat card formatting for sharing snippets of narrative. |
+| [Squire](https://github.com/Drowbe/coffee-pub-squire) | A character tray: abilities, items, spells and conditions, with party tools and item transfers. |
+| [Vault](https://github.com/Drowbe/coffee-pub-vault) | Optional shared assets for the suite. |
 
 ## Development Setup
 
