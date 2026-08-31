@@ -1,8 +1,97 @@
 # Blacksmith Importer Architecture
 
-**Audience:** Contributors to Blacksmith and maintainers of tools that generate content for Blacksmith.
+**Audience:** Contributors to Blacksmith, and maintainers of modules whose content Blacksmith imports.
 
-**Status:** Active incremental implementation. Shared authoring, validation, per-entry import orchestration, and result reporting are implemented for Item, Actor, Journal, and Roll Table importers. The kind registry is public as `module.api.importer` (`scripts/api-importer.js`), so a consuming module registers its own kind and supplies its own validate/import callbacks. A wider contract -- capability discovery, template and prompt outputs, `validateJson` / `importJson` -- was drafted and not built; it is planned work, not current behavior.
+**Scope:** How the JSON importer is built and why it is shaped this way.
+
+**Public surface:** See `../api/api-importer.md`.
+
+**Status:** The declaration model is live for the Item kind -- all eight Item profiles route through it. Roll Table, Actor and Journal still use the per-profile parser functions, and move one at a time. Both paths coexist by design, and which one runs is decided by whether a declaration exists.
+
+## Why it is shaped this way
+
+The importer exists for four reasons, and they are worth keeping in view because they decide arguments:
+
+1. Every module was writing its own code to build an item or a journal, and that code already existed in Blacksmith.
+2. Every module did it differently.
+3. Users were handed authoring prompts of completely different shapes.
+4. The core shapes turned out to be the same, with the exceptions normalisable.
+
+The first implementation had a kind register **behavior** -- `onValidateEntry`, `onImportEntry`, `onBuildPrompt`, `onBuildJsonTemplate`, `onBuildAuthoringGuide`. Five callbacks is five places for every module to differ, so it guaranteed the divergence it existed to end. Measured against those four reasons it answers none of them.
+
+A kind now registers a **declaration**: its shape, as data. Blacksmith derives the JSON template, the validation, the conversion checks, the document and eventually the export from that one source. Nobody builds, so nothing is built differently; two modules' prompts are structurally identical by construction rather than convention; and a field added to a declaration reaches every output with no other edit.
+
+## The pieces
+
+| File | Owns |
+|---|---|
+| `scripts/registry-declarations.js` | Declarations and field groups; validating both at registration |
+| `scripts/manager-declarations.js` | Derivation: template, validation, construction, field composition |
+| `scripts/manager-declaration-transforms.js` | Named conversions a declaration selects |
+| `scripts/manager-declaration-rules.js` | The closed cross-field vocabulary, and named rules |
+| `scripts/manager-declaration-derivations.js` | Content generated after fields resolve |
+| `scripts/utility-import-issues.js` | The structured error vocabulary |
+| `scripts/declarations/declaration-item.js` | Blacksmith's own eight Item profiles, as data |
+
+`manager-declarations.js` knows nothing about items, journals or any content type. It reads a declaration and emits. That is the property to protect: anything content-specific belongs in a declaration or a named transform, never in the manager.
+
+## Blacksmith builds the document
+
+A module shapes its own data and never calls `create`. This is the boundary everything else rests on.
+
+Destination, permissions, rollback, GM-note preservation and document-type preservation are all promises the importer makes. **None of them is enforceable if the module creates the document.** The evidence was internal before it was external: of the four kinds on the old callback path, only Actor rolled back on partial failure. One module, one author, four kinds, already inconsistent.
+
+Foundry namespaces a module-declared subtype as `${module.id}.${subtype}`, so Blacksmith cannot *declare* another module's type. It can *create* one -- the registered data model validates whoever calls create, and a partial `system` is completed by the model. Verified against Foundry 13.351: a page created with a foreign subtype comes back with its system data intact. Declaration and construction are separate questions, and only the first is namespaced.
+
+## Three profile forms
+
+Derived by expressing all four of Blacksmith's own kinds -- nineteen profiles -- against the model rather than by specifying it in advance.
+
+| Form | Fields reach the document by | Used by |
+|---|---|---|
+| `mapped` | landing at a declared path | Item profiles, and every module-owned type |
+| `rendered` | feeding a template; the whole payload becomes one HTML string | Journal profiles (`journal-area.hbs` and siblings) |
+| `passthrough` | already being document source data, plus a declared envelope consumed into it | Actor, and the Item kind's native branch |
+
+**Rendered is Blacksmith-internal.** Every satellite that has asked -- Librarian's codex and quests, Artificer's recipes -- wants `mapped` against its own declared subtype. Rendered exists for Area, Location, Encounter and Injury, which are ours. Designing the satellite path around rendered would have designed it around the thing those modules most want to stop doing.
+
+A kind may support more than one form; the Item kind is mapped or passthrough depending on whether the payload is already document-shaped.
+
+## Composition: field groups
+
+A module whose fields are **orthogonal to the host's type** cannot register a profile. An Artificer item is a loot, or a consumable, or a tool, *with* their fields added -- so there is no profile id to register under, and declaring the block once per host duplicates it while still not being opt-in per import.
+
+A field group is its own registry, merged into a host profile's fields when that profile is derived. Two properties are load-bearing and were each a bug first:
+
+**Composition happens on the whole declaration, not on the field list.** Rule evaluation resolves key aliases by looking a field up by name, so a group's rules must be evaluated against a field set that includes the group's fields. Composing the two separately put a group's fields in the template while its rules silently never fired.
+
+**In validation and construction, a group applies when the payload engages it** -- the entry carries at least one of its fields. Authoring gates on an import option a person ticks; validation sees only JSON and has no options to consult. With every group always in play, a group's `required` field is demanded of every entry of the kind, and a plain weapon fails for want of an Artificer type.
+
+## What a module selects and what it supplies
+
+Transforms, rules and derivations are **named, Blacksmith-owned, and selected but never supplied**.
+
+The reason is not tidiness. Blacksmith derives the validation, the guide line and the prompt sentence from the same declaration; a module supplying its own predicate gives us validation we cannot describe to a generator, which is reason 3 above returning by another route.
+
+The rule vocabulary is **closed**, and keeping extension expensive is doing work rather than obstructing it. A consumer needing a scalar equality test wrote down why they wanted a new operator before asking for one, at which point the existing `field:value` notation turned out to already mean it and to be only half-implemented. A cheap extension point would have bolted an operator beside a rule that could never fire, and the never-firing rule would have survived.
+
+Where the vocabulary genuinely cannot reach, a **named rule** carries its own sentence, so the prompt stays derivable. `weaponRangeRequired` is the first: ranged-ness is derived from the weapon subtype through a lookup table, so it is a rule about a value the author never wrote.
+
+## Two readers of one contract is the recurring defect
+
+Almost every bug this migration surfaced has one shape: two implementations of the same question, maintained separately, with nothing comparing them.
+
+The item parser and the authoring template were written apart, so the template offered a spell four limited-uses fields the spell parser never read -- limited uses on a spell silently did nothing. Consumable had a second activity builder emitting `type: 'util'`, which is not a dnd5e activity type, beside a shared builder using `utility`. The three code paths answering "what does no activities look like" gave three different answers. Two source fields were invented rather than left blank, in two different builders.
+
+None of them threw. All were invisible to reading and obvious to diffing, which is why `testing/suites/suite-importer-declarations.js` compares derived construction against the parser it replaces rather than asserting the derived output alone. **Keep that comparison until a kind's parser is deleted**; it is the evidence the migration was faithful, and deleting the baseline first removes the only thing that could show otherwise.
+
+## Errors
+
+Every issue carries `code`, `stage`, `path`, `message` and `details`. `issueFromError` in `registry-json-import.js` has always read the first three off a thrown error, and no kind on the callback path ever supplied them, so every failure surfaced as a blanket `VALIDATE_FAILED` with a blank path. Under declarations they are derived: a field that fails its declared type knows its own path, and a named rule knows its own code.
+
+## Actor import specifics
+
+These describe the Actor kind, which is still on the parser and moves at its own step.
 
 Actor Import treats sidekicks as static dnd5e NPC snapshots. The Sidekick authoring profile records role, current level, narrative base creature, exact mechanical base-stat-block Actor name, and optional spellcasting ability in Blacksmith flags, while the supplied NPC system data and embedded items remain authoritative. Final HP, AC, proficiency, and features are accepted rather than inferred from CR. Validation warns when sidekick level and proficiency disagree, creature size and the HP formula's Hit Die disagree, the exact base Actor cannot be resolved, or supplied CR differs from the unscaled base Actor CR; it never silently recalculates the snapshot. Imported sidekicks are marked as important NPCs so dnd5e exposes death saves, and Blacksmith excludes their cosmetic CR/XP values from its monster encounter and XP calculations. Sidekick progression and automatic leveling are explicitly outside the current importer contract.
 
@@ -24,307 +113,20 @@ Raw native Character exports are a distinct future ingestion profile because the
 
 **Related documentation:**
 
-- `../api/api-importer.md` — the public `api.importer` registry surface
-- `../api/api-window.md` — shared Application V2 window contract
-- `../../prompts/` — current prompt parts and profile contracts
-
-## Purpose
-
-Blacksmith should be the authoritative boundary between authored content and Foundry documents. Content may be written by hand, produced by a form, exported from another tool, or generated with AI. The importer must not require or assume any particular authoring method.
-
-The canonical contract is:
-
-```text
-Blacksmith JSON schema -> validation/conversion -> Foundry document creation -> structured result
-```
-
-Human instructions and AI prompts are separate authoring adapters that help a user or tool produce JSON satisfying that contract. They are not the contract themselves.
-
-This distinction is important both architecturally and socially: users who do not want AI should receive a complete first-class workflow, not an AI workflow with instructions removed.
-
-## Product principles
-
-1. **Import first.** Importing valid JSON is Blacksmith's primary responsibility.
-2. **Authoring-method neutral.** Handwritten JSON, form-generated JSON, exports, and AI-generated JSON enter the same pipeline.
-3. **Schema-owned.** Blacksmith owns field names, supported profiles, validation, conversion, and compatibility with Foundry/dnd5e.
-4. **Prompts are derived assistance.** Prompt parts describe Blacksmith's schema; external tools should not need to reconstruct it independently.
-5. **Human guidance is first-class.** A guided template must explain how to fill out valid JSON without requiring AI.
-6. **Plain-text portability.** Copy to clipboard and Save As plain text remain supported for every authoring output.
-7. **Visible outcomes.** Import windows remain open after processing and report successes, warnings, and failures.
-8. **Repeatable workflow.** A user can correct failed content or import another payload without reopening the window.
+- `../api/api-importer.md` -- the public `api.importer` registry surface
+- `../api/api-window.md` -- shared Application V2 window contract
+- `../../prompts/` -- current prompt parts and profile contracts
 
 ## Window information architecture
 
-Importer windows use three tabs in this order:
+Importer windows use three tabs, in this order: **Import JSON**, **JSON Template**, **Prompt Template**. The ordering communicates that AI is optional and the importer is the product. A header switcher moves between kinds, saving each one's authoring choices independently; the switcher changes content kind while the tabs change authoring workflow.
 
-1. **Import JSON**
-2. **JSON Template**
-3. **Prompt Template**
+The window stays open after processing and reports per-entry results, so a failed entry can be corrected and retried without re-opening or re-pasting. Retry Failed submits only the failed entries and does not recreate successes.
 
-The ordering communicates that AI is optional and that the importer is the core product.
+Every authoring output supports Copy and Save As plain text. Authoring choices are remembered per user and per importer; campaign-owned defaults such as journal geography are world state.
 
-Journal, Actor, Item, and Roll Table importers use the same window contract. A header switcher moves directly between those importers; switching saves the current importer's authoring choices and restores the destination importer's independent choices. The switcher changes content kind, while the three tabs continue to change authoring workflow.
+## Related documentation
 
-### Import JSON
-
-Accepts completed JSON from any source. This tab does not mention AI.
-
-Responsibilities:
-
-- Paste or edit JSON.
-- Load a plain-text file.
-- Validate without creating documents.
-- Import and create documents.
-- Preserve submitted JSON after processing.
-- Display structured results.
-- Offer Edit and Retry, Retry Failed, Import Another, and Close.
-
-### JSON Template
-
-Supports manual authoring. The user first selects a content kind/profile (for example Item -> Weapon), then applicable schema options.
-
-Output modes:
-
-- **Template Only:** valid raw JSON with neutral defaults.
-- **Template + Instructions:** the same JSON plus human-readable field guidance in a plain-text document.
-
-Instructions must never be inserted as JSON comments. Template Only must be directly parseable. Template + Instructions is an authoring document containing a clearly delimited JSON block and guidance; it is not pasted wholesale into Import JSON.
-
-Examples of schema options:
-
-- Include passive effects.
-- Include activities and choose activity type/count.
-- Include applied effects.
-- Include limited uses and recovery.
-- Include Artificer fields when available.
-- Include optional image metadata.
-
-Only options applicable to the selected kind/profile are shown.
-
-### Prompt Template
-
-Supports AI-assisted or other instruction-driven generation. The user selects the same content kind/profile, applicable schema options, and creative generation options.
-
-The output is a plain-text prompt containing:
-
-- The requested task.
-- Campaign context where appropriate.
-- The selected profile and schema contract.
-- Selected generation direction.
-- Validation and output rules.
-- Optional integrations such as Artificer or image generation.
-
-Prompt output must instruct the generator to return Blacksmith-compatible JSON. It must not create a competing schema.
-
-## Option categories
-
-Options are metadata, not arbitrary UI strings. Each option has an id, allowed values, default, applicable profiles, and effects on one or more outputs.
-
-### Schema options
-
-Change JSON shape. They affect JSON Template and Prompt Template consistently.
-
-Example: `includePassiveEffects` adds a `passiveEffects` example to the JSON template and instructs a generator how to populate it.
-
-### Creative options
-
-Guide content but do not change schema. They appear only on Prompt Template.
-
-Examples: lore depth, scene emphasis, Actor purpose, power posture.
-
-### Import options
-
-Control validation, destination, conflict handling, or creation. They appear only on Import JSON.
-
-Examples: destination folder/pack, duplicate policy, dry run, and partial-batch policy.
-
-### Capability gating
-
-The selected kind/profile declares its supported options. The UI and API consume the same capability metadata. Unsupported values fail clearly; they are never silently ignored.
-
-## Catalog queries and linked content
-
-Authoring workflows that reference existing content must use a shared, UI-neutral catalog query layer. A query identifies the document kind (`actor` or `item`), source (`world` or selected compendium ids), and typed filters. Actor filters include CR bounds, creature type, size, and name; Item filters include document type, rarity, magical status, and name.
-
-Roll Tables expose only Foundry v13's `text` and `document` result types. World and compendium choices are source controls, not result types. Text tables may optionally consume a filtered catalog as unlinked source material. Document tables emit friendly exact names, document categories, and optional source ids; Blacksmith's centralized Compendium API resolves those names to UUID-backed `documentCollection`/`documentId` data during import. Prompt output receives only the filtered catalog, and a guided human template receives the same list with exact names and source ids. The planned Utility tab will expose these queries directly as plain-text lists; it must not create a second catalog implementation.
-
-Exact linked references are the default. A prompt may explicitly request Text fallback, but Blacksmith must never silently convert a misspelled linked result into a different document. The author or AI does not supply UUIDs. Compendium selection is per configured pack and remains part of the request and friendly source context so external callers can reproduce the same resolution scope.
-
-## Output delivery
-
-Every authoring output supports:
-
-- **Copy** to clipboard.
-- **Save As** a plain-text file.
-
-Authoring choices are remembered per user and per importer: selected profile/type, clean versus guided JSON output, structured fields, and checkboxes. Campaign-owned defaults such as Journal geography remain world state; transient paste/import results are not stored in authoring preferences.
-
-Blacksmith intentionally does not require a specialized editor or binary format. Suggested filenames may distinguish the output (`weapon-template.txt`, `weapon-template-guided.txt`, `weapon-full-prompt.txt`), but all remain readable in any text editor.
-
-Before Copy/Save, the UI should show a compact output summary, for example:
-
-> Weapon template · passive effects included · standard Attack generated automatically · Artificer omitted
-
-## Import pipeline
-
-The target pipeline is explicitly staged:
-
-```text
-parse -> normalize -> validate -> convert -> create -> post-process -> report
-```
-
-### Parse
-
-- Normalize safe transport artifacts such as Markdown JSON fences and typographic quotes where supported.
-- Parse one object or an array of objects.
-- Retain an entry index and best-effort display name for reporting.
-
-### Normalize
-
-- Detect native Foundry data versus a Blacksmith-friendly schema.
-- Resolve aliases retained for backward compatibility.
-- Do not silently reinterpret unsupported fields.
-
-### Validate
-
-- Validate the envelope and selected profile.
-- Validate field types, allowed values, and cross-field relationships.
-- Produce errors for unsafe or impossible content.
-- Produce warnings for recoverable omissions, unresolved references, or intentionally non-automated mechanics.
-- Validation must be callable without document creation.
-
-### Convert
-
-- Convert friendly schema data into Foundry/dnd5e document source data.
-- Preserve supported native Foundry JSON without lossy remapping.
-- Generate standard system structures Blacksmith promises to create automatically.
-
-### Create
-
-- Enforce permissions.
-- Create documents at the requested supported destination.
-- Treat batch entries independently by default: one failed entry does not conceal successful entries.
-- Do not retry or duplicate successful entries when Retry Failed is chosen.
-- When update-in-place conflict handling is implemented, begin from Blacksmith's mandatory preservation paths. `flags.coffee-pub-blacksmith.gmNotes` is user-authored state and must survive every re-import by default; profiles may add paths but cannot remove it.
-
-### Post-process
-
-- Resolve and embed referenced content.
-- Apply Blacksmith flags/GM notes.
-- Perform kind-specific follow-up work.
-- Record warnings rather than hiding unresolved references in console output.
-
-### Report
-
-- Return a structured result for every input entry.
-- Include document UUIDs for successful creations.
-- Include warnings and precise stage-specific errors.
-- Drive both UI presentation and external API responses from the same result.
-
-## Result experience
-
-The import window does not close automatically after processing.
-
-Summary example:
-
-```text
-5 processed · 3 imported · 1 imported with warnings · 1 failed
-```
-
-Per-entry information:
-
-- Status: success, warning, or error.
-- Entry index, name, and requested kind/profile.
-- Created document name, type, UUID, and destination.
-- Warnings.
-- Error stage, code, and message.
-- Whether the entry is retryable.
-
-Actions:
-
-- Open a created document.
-- Open All when appropriate.
-- Copy an individual error.
-- Copy the complete report.
-- Edit and Retry using the preserved payload.
-- Retry Failed without recreating successes.
-- Import Another, which clears payload/results but preserves selected kind and options.
-- Close.
-
-## State model
-
-```text
-Editing -> Validating -> Ready
-   |           |
-   |           -> Validation Results -> Edit
-   v
-Importing -> Import Results -> Edit and Retry
-                         |-> Retry Failed
-                         |-> Import Another -> Editing
-                         |-> Close
-```
-
-Busy state prevents duplicate submission but does not destroy the editor state.
-
-## Registries and ownership
-
-Each importer kind/profile should eventually register:
-
-- Identity and labels.
-- Friendly schema/version.
-- Native Foundry types accepted.
-- Template builder.
-- Human-guide builder.
-- Prompt-part builder.
-- Schema and creative option definitions.
-- Parser/normalizer/validator/converter.
-- Creator/post-processor.
-- Result-link behavior.
-
-The shared importer owns window lifecycle, text delivery, batch orchestration, result aggregation, and public API routing. Kind implementations own domain rules.
-
-## External tools
-
-Tools such as Bibliosoph, Squire, Codex, and future modules should be able to ask Blacksmith for capabilities, templates, guides, and prompt parts. They may gather user intent or perform generation themselves, but should return JSON to Blacksmith's validator/importer.
-
-Preferred relationship:
-
-```text
-external tool -> request Blacksmith schema/prompt parts -> produce JSON
-              -> Blacksmith validate/import -> structured result
-```
-
-This avoids disconnected schemas, duplicated Foundry conversion code, and version drift.
-
-## Compatibility and versioning
-
-- Friendly schemas require explicit schema versions as they stabilize.
-- Additive fields should preserve older payloads when safe.
-- Renames use documented aliases for a bounded compatibility period.
-- Prompt and guide versions derive from the schema/profile version they explain.
-- API results include Blacksmith, Foundry, system, schema, and profile version context where useful.
-
-## Security and permissions
-
-- Document creation remains GM-only unless a kind explicitly supports another permission model.
-- External registrations are namespaced by module id.
-- Prompt text and JSON are data, never executable JavaScript.
-- Native Foundry JSON is sanitized for identity and placement fields before creation where required.
-- Errors returned to players or external tools must not expose secrets or unrelated document data.
-
-## Incremental migration
-
-Current importers do not yet implement every part of this architecture. Migration order:
-
-1. Establish this architecture and API contract.
-2. Reorganize the window into the three tabs.
-3. Separate clean JSON templates, guided templates, and prompts.
-4. Introduce shared validation/result types without changing creation behavior.
-5. Keep the window open and render results.
-6. Add Validate, Retry Failed, and Import Another.
-7. Expose stable public API methods.
-8. Migrate disconnected module workflows onto the shared contract.
-
-Steps 1–6 are implemented in the shared window/registry. Current validation performs parse and kind conversion checks without document creation, and imports process entries independently so failed entries can be retried without recreating successful entries. The result screen preserves the submitted payload and exposes per-entry status, errors, created-document links, complete/individual report copying, Retry Failed, Edit and Retry, and Import Another. Rich warning capture from every legacy domain helper and the stable public API remain follow-up work.
-
-Do not expose an API method as stable until its behavior and result shape match `api-importer.md`.
+- `../api/api-importer.md` -- the public surface
+- `../api/api-window.md` -- the shared Application V2 window contract
+- `../../prompts/` -- prompt parts, until profiles carry their own guidance

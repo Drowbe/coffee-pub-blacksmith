@@ -1,44 +1,170 @@
 # Blacksmith Importer API
 
-**Audience:** Module authors and tools that want Blacksmith to describe, validate, or import supported content.
+**Audience:** Module authors whose content should be importable from JSON.
 
-**Scope:** `api.importer` exposes the JSON import registry: a consuming module registers a kind, supplies validate and import callbacks, and gets Blacksmith's import window. That is the whole public surface.
+**Scope:** `api.importer` lets a module declare the SHAPE of its content as data. Blacksmith derives the JSON template, the validation, the conversion and the document from that declaration, and builds the document itself.
 
-## The registry surface
+**Architecture:** See `../architecture/architecture-importer.md`.
 
-This is the part that ships. Reach it through `module.api`:
+## The model in one paragraph
+
+A module does not write import code. It registers a **declaration** -- a list of fields, each naming where it lands on the document, what it accepts, and one sentence of guidance -- and Blacksmith derives everything else. Adding a field to a declaration adds it to the authoring template, the guide, the prompt, the validation and the export, with no other edit anywhere.
+
+**Blacksmith builds the document.** A module shapes its own data and never calls `create`. That is what makes destination, permissions, rollback, GM-note preservation and document-type preservation enforceable in one place rather than reimplemented per module.
+
+## Reaching it
 
 ```javascript
 const importer = game.modules.get('coffee-pub-blacksmith')?.api?.importer;
-if (!importer?.registerKind) return;   // older Blacksmith
+if (!importer?.registerDeclaration) return;   // older Blacksmith
 ```
 
-Register during your module's `ready`. There is no `waitForReady()` on the API root -- only on
-`api.sockets` -- so feature-detect the method you need instead of awaiting readiness.
+Register during your module's `ready`. There is no `waitForReady()` on the API root -- only on `api.sockets` -- so feature-detect the method you need rather than awaiting readiness.
 
 | Method | Behavior |
 |---|---|
-| `registerKind(kind)` | Registers a kind descriptor. Throws if `kind.id` is missing or blank. |
-| `getKind(kindId)` | Returns the registered descriptor, or `undefined`. |
-| `openWindow(kindId)` | Opens the import window for a registered kind. Throws on an unknown id. |
-| `parsePayload(jsonDataRaw)` | Parses a JSON string, object, or array into an array of entries. Throws with a fence hint on malformed input. |
-| `attachButton(html, kindId)` | Inserts an Import button into a directory sidebar or compatible header. Respects `gmOnly`. |
+| `registerDeclaration(declaration)` | Registers one profile. Throws, naming the offending field, when the declaration is malformed. |
+| `getDeclaration(kindId, profileId)` | The registered declaration, or `undefined`. |
+| `getDeclarationsForKind(kindId)` | Every profile of one kind, in registration order. |
+| `listDeclarations()` | Every registered profile. |
+| `registerFieldGroup(group)` | Registers fields contributed to profiles a module does not own. |
+| `getFieldGroupsFor(kindId, profileId)` | Every group attaching to one profile. |
+| `listFieldGroups()` | Every registered group. |
+| `getJsonTemplate(kindId, profileId, options?)` | The derived authoring template, as formatted JSON text. |
+| `getJsonTemplateObject(kindId, profileId, options?)` | The same template as an object. |
 
-The kind descriptor is typed as `JsonImportKind` in `scripts/registry-json-import.js:12`. The two callbacks
-that matter to a consumer:
+A malformed declaration fails at **registration**, not at import. An unknown transform name, a rule referencing a field the profile does not declare, a default that does not match its own field's type -- all rejected when you register, with the field named.
 
-- `onValidateEntry(entry)` — check one entry and return the converted data, or throw. No documents are created.
-- `onImportEntry(entry)` — create the document for one entry and return it.
+## Declaring a profile
 
-Blacksmith calls both per entry and builds the result envelope; the caller owns document construction, so a
-consuming module's schema never enters Blacksmith.
+```javascript
+importer.registerDeclaration({
+    kind: 'item',                 // the host kind
+    id: 'potion',                 // unique within the kind
+    label: 'Potion',
+    schemaVersion: 1,
+    form: 'mapped',
+    document: { documentName: 'Item', type: 'consumable' },
+    fields: [ /* below */ ],
+    rules: [ /* below */ ],
+    derive: [ /* named derivations */ ]
+});
+```
 
-Two descriptor fields govern how a kind presents itself:
+### Forms
 
-- `onProfileName(entry)` — which field on an entry names its profile. Defaults to `entry.type`.
-- `showInSwitcher` — set `false` to keep the kind out of the import window's importer dropdown. Defaults to true,
-  so a registered kind appears alongside Journal, Actor, Item, and Roll Table.
+A profile declares how its fields reach the document.
 
-Prompt authoring fields (`templateOptions`, `promptCheckboxes`, `promptFields`, `onBuildPrompt`,
-`onBuildJsonTemplate`, `onBuildAuthoringGuide`) are all optional. A kind that omits them gets the paste-and-import
-window without the prompt-builder tab.
+| Form | Meaning |
+|---|---|
+| `mapped` | Each field lands at a declared path. The common case, and what a module-owned document type wants. |
+| `rendered` | Fields feed a template and the whole payload lands as one HTML string. Blacksmith's own journal profiles; not offered to consumers. |
+| `passthrough` | The payload already is document source data, plus declared envelope fields consumed into it. |
+
+### Fields
+
+```javascript
+{
+    name: 'potionRarity',            // the authoring key
+    path: 'system.rarity',           // MANDATORY on a mapped profile
+    type: 'string',                  // string | number | integer | boolean | array | object
+    required: false,
+    nullable: false,                 // whether null is a VALUE rather than an absence
+    default: 'common',               // applied when the field is absent
+    example: 'common',               // shown in the template
+    values: ['common', 'rare'],      // allowed canonical values
+    aliases: { ordinary: 'common' }, // other spellings of a VALUE
+    acceptsKeys: ['rarity'],         // other KEYS this field arrives under
+    transform: 'price',              // a named, Blacksmith-owned conversion
+    guidance: 'How rare the potion is.'
+}
+```
+
+`path` is mandatory and never inferred from `name`: a document can have both a native `category` and a `system.category`, and only the declaration can say which is meant.
+
+`default` and `example` are **both in authored shape** -- what a person types, never what a transform produces. Transforms run over a default too, so a default already in converted shape is converted twice. The registry rejects one that does not match its own field's declared type.
+
+**`aliases` and `acceptsKeys` are different mechanisms.** `aliases` renames a *value*; `acceptsKeys` names other *keys* the field may arrive under. Both are permanent compatibility surface, not migration conveniences.
+
+Other field properties:
+
+- `authorable: false` -- declared, never offered for authoring, never written from a payload, preserved across re-import. For state a subsystem maintains.
+- `const` -- a fixed value always written and never authored.
+- `role: 'selector' | 'input' | 'envelope'` -- fields that do not land on a path of their own. An `input` is read by a sibling field's transform, which is how two authored fields feed one document path.
+- `requiresOption` / `suppressedByOption` -- gate on an import option a person ticks.
+- `requiresWhen: 'otherField:value'` -- gate on another FIELD's value.
+- `fields` -- a nested declaration for object and array-of-object fields. The template's worked example is derived from it, so the example cannot drift from what validation accepts.
+
+### Rules
+
+Cross-field validation comes from a **closed vocabulary**. Blacksmith derives the check, the guide line and the prompt sentence from the same entry, which is why a module selects a rule and never supplies a predicate.
+
+| Kind | Shape |
+|---|---|
+| `requiresTogether` | `{ kind, fields: [a, b] }` |
+| `mutuallyExclusive` | `{ kind, fields: [a, b] }` |
+| `impliedBy` | `{ kind, when, then: [...] }` -- both directions |
+| `requires` | `{ kind, when, then: [...] }` |
+| `mustBeEmpty` | `{ kind, field }` |
+
+A reference is a field name, meaning "supplied and non-empty", or `field:value`, meaning "this field has this value" -- which covers a list containing the value and a scalar equalling it.
+
+A rule referencing a field the profile does not declare is rejected at registration. Such a rule is silently inert, and an inert rule reads as enforced while enforcing nothing.
+
+Where the vocabulary genuinely cannot reach -- a rule about a value the author never wrote -- Blacksmith adds a **named rule** carrying its own sentence, and a declaration selects it: `{ named: 'weaponRangeRequired' }`. Ask for one rather than working around its absence.
+
+### Transforms and derivations
+
+Both are named, Blacksmith-owned, and **selected but never supplied**. Blacksmith owns compatibility with Foundry and the game system, so a system-shaped conversion belongs here rather than in each module.
+
+- A **transform** converts one field's authored value on the way to its path.
+- A **derivation** runs after every field resolves, over the assembled document, for content that is generated rather than authored.
+
+Needing one that does not exist is a request, not a blocker. This is one of the two places where negotiation with Blacksmith survives; the other is fragments.
+
+## Field groups
+
+For fields that are **orthogonal to the host's type** -- content that is a loot, or a consumable, or a tool, *with* your fields added. Registering a profile would compete with the host's rather than compose with it, and declaring the same block once per host profile duplicates it and still cannot be opted into per import.
+
+```javascript
+importer.registerFieldGroup({
+    id: 'artificer',
+    module: 'coffee-pub-artificer',        // required: a group must say whose fields these are
+    kind: 'item',
+    appliesTo: '*',                        // or ['loot', 'consumable', 'tool']
+    option: { id: 'artificerItem', label: 'Artificer Item' },
+    preamble: 'Prompt text that does not reduce to per-field guidance.',
+    fields: [ /* declared exactly as a profile's are */ ],
+    rules: [ /* the same vocabulary */ ]
+});
+```
+
+A group's fields are merged into every profile it applies to, and are indistinguishable from declared fields downstream. Its rules are evaluated against the composed field set, so a rule over a contributed field works.
+
+**Two behaviours worth knowing:**
+
+The group's `option` gates the whole group in authoring output -- declare the gate once rather than on each field.
+
+**In validation and construction the group applies when the PAYLOAD engages it**, meaning the entry carries at least one of its fields. Validation sees only JSON and has no options to consult. A payload that never mentions the group is unaffected by it; a payload carrying part of it is a genuine error and reported as one.
+
+A profile's own fields win a name collision. The host owns its schema.
+
+`preamble` exists so a module's prompt text has a home in its own declaration. A module should not need to host prompt files, and Blacksmith should not host another module's.
+
+## What Blacksmith owns, and what you own
+
+**Yours:** the shape of your content, which field lands where, what values you accept, your own rules, and any follow-up only you can do.
+
+**Blacksmith's:** the template, guide and prompt derived from your declaration; validation and the structured result; document construction, destination, permissions and rollback; the transform and rule libraries; and export, which inverts the same declaration.
+
+A module never calls `create`. If that seems to block something, say so -- it usually means a derivation or transform is missing rather than that the boundary is wrong.
+
+## Errors
+
+Every issue carries `code`, `stage`, `path`, `message` and `details`. `code` is stable and safe to branch on; `message` may improve. `path` names the authored field, which is what makes a failure actionable rather than a blanket rejection.
+
+## The kind registry, being replaced
+
+`registerKind`, `getKind`, `openWindow`, `parsePayload` and `attachButton` remain on the namespace and still work. They are the callback surface the declaration model replaces: a kind supplying `onValidateEntry` and `onImportEntry` builds its own documents, which is what puts destination, rollback and preservation beyond Blacksmith's reach.
+
+**Do not build new consumers on them.** Declare a profile or a field group instead.

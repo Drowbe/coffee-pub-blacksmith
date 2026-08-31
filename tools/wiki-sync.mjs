@@ -79,6 +79,7 @@ const PUBLISH = [
   'architecture/architecture-gm-request.md',
   'architecture/architecture-gmnotes.md',
   'architecture/architecture-hookmanager.md',
+  'architecture/architecture-importer.md',
   'architecture/architecture-inventory.md',
   'architecture/architecture-menubar.md',
   'architecture/architecture-notes.md',
@@ -105,7 +106,6 @@ const PUBLISH = [
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   Architecture: architecture-importer.md (gate: JSON import verified — see TODO.md)
 //   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
 //   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
 //   Out of tree:  testing docs moved to /testing alongside the harness. This script only
