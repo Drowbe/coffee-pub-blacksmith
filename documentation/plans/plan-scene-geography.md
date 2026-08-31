@@ -1,7 +1,13 @@
 # Scene Geography and Environment
 
-**Status: Workstream 1 implemented (2026-08-31), unverified in a live world. Workstreams 2-4 planned.**
-Live scaffolding. Every question blocking Workstreams 1 through 3
+**Status: Workstreams 1 and 2 implemented and verified live (2026-08-31). Workstream 3 in progress and
+GATING the 13.22.0 release. Workstream 4 planned.** Live scaffolding.
+
+**Why Workstream 3 gates the release:** habitat is a property of geography and Blacksmith owns it --
+that is the founding reason for this effort, and Artificer is a consumer of habitat information rather
+than its owner. Shipping the geography tab while Artificer still renders its own Habitats fieldset puts
+two identical twelve-item lists on one Scene Config sheet, only one of which does anything. The
+duplication resolves by the consumer's field going away, never by the owner's. Every question blocking Workstreams 1 through 3
 was settled 2026-08-31 and is recorded under "Settled" below; Artificer and Minstrel have agreed their side.
 Only Workstream 4 still has an open question, and it is last. Workstream 1 can start immediately and is tracked in `TODO.md` as "One Scene Config tab injector,
 registered like a toolbar tool".
@@ -214,10 +220,10 @@ fallback (settled question 3).
   cut turns that into silent data loss -- the exact failure the hard cut was chosen to make loud. The signal
   must distinguish "migration completed" from "Blacksmith marked ready degraded", and this design is part of
   this workstream, not an afterthought to it.
-- **A version floor to pin.** Artificer's `module.json` carries an empty `compatibility` block, so a new
-  Artificer against an old Blacksmith finds neither API nor flag and habitats are simply gone. The floor is
-  the Blacksmith release that ships this workstream; the number is the author's at BUILD time, and Artificer
-  must not ship the hard cut before it exists.
+- **A version floor to pin: `13.22.0`**, named by the author 2026-08-31. Artificer's `module.json` carries
+  an empty `compatibility` block, so a new Artificer against an old Blacksmith finds neither API nor flag
+  and habitats are simply gone. The number is an intent until the BUILD commit lands -- `module.json` still
+  reads 13.21.1 and is the author's to bump -- so Artificer pins now and releases after Blacksmith tags.
 
 This is a cross-module contract, so it belongs in `TODO-GLOBAL.md`, and it should not land until Artificer and
 Minstrel are ready to move in the same release window. Artificer's own compendium re-export is **not** part of

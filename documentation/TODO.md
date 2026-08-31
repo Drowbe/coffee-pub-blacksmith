@@ -384,6 +384,31 @@ await a fetch -- so the winner was a race. Our side is namespaced; the condition
 shipped against the current contract is another copy to migrate. **Audit Minstrel and Artificer first**, not
 last: a frame validated only on simple windows fails on them after everything has moved.
 
+### A declaration cannot take its `values` from another module's API (opened 2026-08-31)
+
+Raised by Artificer while adopting `api.geography.ENVIRONMENTS`. A field group's `values` must be a
+literal array -- enforced at registration (`registry-declarations.js:177-178`, "values must be an array")
+and consumed as one at `manager-declarations.js:350`, `:743` and `:863`. A consumer whose vocabulary
+comes from an API cannot supply one: the declaration is built at module scope, the API needs `game`, so
+the literal captures the consumer's own fallback and the field then rejects legitimate content --
+registering cleanly with the wrong vocabulary.
+
+**This is a missing capability, not a missing check.** A thunk is rejected loudly at registration, and
+`api.importer.registerDeclaration` passes through to the same validation, so a cross-module consumer gets
+the same throw. Nothing is silently unvalidated. Do not "fix" this by adding a guard -- the guard is
+already there and correct. What is missing is a way to express a vocabulary that is not known until a
+world exists.
+
+Fix: accept a callable and resolve it at use time, at those three consumption sites, keeping the
+registration guard for everything that is neither array nor function. Note that an INTRA-repo consumer
+needs none of this -- `scripts/utility-geography-vocabulary.js` is a leaf with no `const.js` dependency,
+so a Blacksmith declaration can static-import `ENVIRONMENT_KEYS` and stay headless. This is only for
+consumers who must come through the API.
+
+**Verify:** a field group declaring `values: () => api.geography.ENVIRONMENT_KEYS` validates against the
+live vocabulary, a payload outside it fails naming the field, and `values: 42` still throws at
+registration.
+
 ### Geography and the journal importer: three changes owed by importer step 8 (opened 2026-08-31)
 
 Scene geography shipped its data model, API and Scene Config tab, but the importer half is deliberately
@@ -399,6 +424,13 @@ that rewrite and be absorbed by it. **These are requirements on step 8, not sepa
   `applyAreaJournalGeography()` (`:750`) are the substitution points.
 - **The Area importer populates `locationUuid`** when one run creates both a scene and a Location entry.
   That kills the `scenetitle` string match (`:597`) as the only join between the two.
+- **Environment travels with that write, not into the journal.** Environment is a geography field like
+  the other four, so a payload carrying `sceneenvironment` (Regent sends one; nothing here reads it)
+  reaches `api.geography.set(scene, {environment})` alongside the rest. It is deliberately not a template
+  field, a guide entry or a prompt line -- nothing in the journal path composes it, and declaring a field
+  no composer reads offers an author something read by nothing. Pass the payload value through
+  `normalizeEnvironments` rather than trusting it: an inbound array is exactly the untrusted shape that
+  function exists for.
 
 One edge left open deliberately: an Area import launched with no scene in context records geography
 nowhere. Defensible, but silent -- decide during step 8 whether it warrants a notice.
@@ -686,8 +718,22 @@ are the same await. A consumer that hard-cuts to our data instead of its own the
 Raised by Artificer while scoping the scene-geography hard cut (`plans/plan-scene-geography.md`,
 workstream 3), which needs a migration-complete signal built on this. Wider than that plan, so it is here.
 
+**Shipped 2026-08-31 as `readyStatus` / `waitForReadyStatus()` / `isHealthy()` on `BlacksmithAPI`.**
+`bailOutOfReady` records the failed stage before marking ready, so a consumer waking on the resolve sees
+the degraded status rather than racing it. What remains here is the doc pass and a harness check that
+forces a bail-out; the surface itself exists.
+
+**"Fail loudly" is not loud for a consumer registering settings, which raises the bar here.** Raised by
+Artificer 2026-08-31. `game.settings.register` runs once per key and refuses re-registration, so choices
+derived from a degraded API are not a temporary degraded state that recovers -- they are a permanently
+unusable dropdown that a reload does not fix. The degraded-ready design assumes a consumer that fails
+visibly and retries; a consumer that registers settings gets a silently empty control outliving the
+session. So the signal cannot merely report "ready finished"; a settings-registering consumer has to be
+able to refuse to register at all.
+
 **Verify:** force a bail-out (throw in one `ready` stage) and confirm a consumer awaiting readiness can
-distinguish degraded from healthy without reading the console.
+distinguish degraded from healthy without reading the console, and that a consumer building settings
+choices from the API can tell before it calls `register`.
 
 ### Overall party reputation, for external consumers
 

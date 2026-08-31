@@ -476,7 +476,13 @@ there will be one injector that both Blacksmith's geography and Artificer's harv
 
 - **The environment constant exposes `{key, label}` pairs**, not bare lowercase strings. Confirmed — Artificer
   renders the stored form as a user-facing label in three places, and a bare array would show GMs "underdark".
-- **A migration-complete signal that a degraded `ready` cannot fake**, and **a version floor to pin**.
+- **The version floor is `13.22.0`** (named by the author 2026-08-31). Artificer pins
+  `relationships.requires[coffee-pub-blacksmith].compatibility.minimum = "13.22.0"`, which its empty
+  `compatibility` block does not carry today, and deletes its `OFFICIAL_BIOMES` fallback once pinned.
+  **Pin now, release after:** 13.22.0 is an intent until the author tags it, and a module pinning a
+  minimum that does not exist yet will not activate against the installed 13.21.1. So the pin can land in
+  a branch immediately, and Artificer's release waits on Blacksmith's.
+- **A migration-complete signal that a degraded `ready` cannot fake.**
   Artificer's `module.json` `compatibility` block is empty today, and awaiting `BlacksmithAPI.waitForReady()`
   is not sufficient on its own — see the workstream for why. Artificer must not ship the hard cut before the
   floor exists.
@@ -590,6 +596,22 @@ Three defects found in Regent on 2026-08-31 while confirming usage, none yet rep
   Regent**. A free identifier, so `ReferenceError` on first use. Dead on arrival.
 - `api.createJournalEntry` is a legacy API-root surface Regent depends on. Step 8 either keeps it working or
   ships Regent a declared replacement in the same release.
+- **Regent's four geography fields are dropped on every encounter import, silently.** Both its prompt
+  templates instruct the generator to emit `sceneparent`, `scenearea`, `sceneenvironment` and
+  `scenelocation` (`window-query.js:2191`, `:2410`). Blacksmith reads **none of those names** anywhere --
+  the encounter builder reads `realm`, `region`, `site` and `area`. So the import succeeds, the journal is
+  created, and its entire breadcrumb is missing. This is worse than the two defects above because both of
+  those fail; this one reports success.
+
+  **The mapping is a decision, not a lookup, and it is the author's.** Regent's own UI labels its
+  breadcrumb `LOCATION > PARENT > ENVIRONMENT > AREA` against Blacksmith's `realm > region > site > area`,
+  so positionally `scenelocation` is our realm, `sceneparent` our region, `sceneenvironment` our site and
+  `scenearea` our area -- but `environment` mapping onto `site` is a guess, and environment is now a
+  first-class geography concept of its own with a closed vocabulary. Declaring the Encounter profile needs
+  this settled: the four accepted spellings become `acceptsKeys` on the declared fields, which is exactly
+  what that mechanism is for, and then a Regent payload works unchanged and is reported rather than dropped.
+
+  **Blocks declaring the Encounter profile**, which is the last Blacksmith journal profile on the parser.
 
 ### Librarian and Artificer
 

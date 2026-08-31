@@ -1321,6 +1321,119 @@ export default {
         },
 
         {
+            id: 'shipped-fixtures-validate',
+            label: 'Every shipped fixture validates against its declared profile',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The check that would have caught the area fixture failing import after passing validate.',
+            run: async ({ expect, log }) => {
+                const { manager } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-journal.js`);
+                await import(`${MODULE_PATH}/declarations/declaration-actor.js`);
+                await import(`${MODULE_PATH}/declarations/declaration-rolltable.js`);
+
+                // A fixture is a worked example we ship. One that does not validate is
+                // either a broken example or a wrong declaration, and both are defects
+                // -- but neither announces itself, because nothing imports the fixtures
+                // except a person doing it by hand.
+                //
+                // This exists because the Area journal fixture passed Validate and then
+                // failed Import: `blocks.area.narrative` is an OBJECT of three labelled
+                // passages and the declaration called it a string. It went unnoticed
+                // because the throwaway script that checked the other fixtures had no
+                // journal mapping and skipped them silently.
+                const FIXTURES = [
+                    ['journal-import-area.json', 'journal', 'area'],
+                    ['actor-import-npc.json', 'actor', 'npc'],
+                    ['actor-import-sidekick.json', 'actor', 'sidekick'],
+                    ['actor-import-character.json', 'actor', 'character'],
+                    ['rolltable-import-simple.json', 'rolltable', 'text'],
+                    ['item-import-loot.json', 'item', 'loot'],
+                    ['item-import-weapon.json', 'item', 'weapon'],
+                    ['item-import-equipment-passive.json', 'item', 'equipment'],
+                    ['item-import-feature.json', 'item', 'feature'],
+                    ['item-import-feature-save-area.json', 'item', 'feature'],
+                    ['item-import-spell.json', 'item', 'spell']
+                ];
+
+                for (const [file, kind, profile] of FIXTURES) {
+                    let payload;
+                    try {
+                        const response = await fetch(`${FIXTURE_PATH}/${file}`);
+                        if (!response.ok) {
+                            expect.ok(`${file} is readable`, false);
+                            continue;
+                        }
+                        payload = await response.json();
+                    } catch (error) {
+                        expect.ok(`${file} is readable`, false);
+                        log(`${file}: ${error.message}`);
+                        continue;
+                    }
+                    const entry = Array.isArray(payload) ? payload[0] : payload;
+                    const outcome = manager.validateEntry(kind, profile, entry);
+                    if (outcome.errors.length) {
+                        log(`${file}: ${outcome.errors.map(one => `${one.code} ${one.path}`).join(', ')}`);
+                    }
+                    expect(`${file} validates as ${kind}.${profile}`, outcome.errors, []);
+                }
+            }
+        },
+
+        {
+            id: 'journal-subtype-seam',
+            label: 'A journal profile creates the page subtype it declares',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The seam three siblings wait on: a module-owned JournalEntryPage subtype.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-journal.js`);
+
+                expect.ok('both JSON journal profiles are declared',
+                    registry.getDeclarationsForKind('journal').length >= 2);
+
+                // Blacksmith's own profiles keep the default. A page with no declared
+                // subtype must still be `text`, or every existing journal changes shape.
+                const area = await manager.buildDocumentData('journal', 'area', {
+                    journaltype: 'area', area: 'Harness Cave',
+                    blocks: { area: { narrative: 'A damp cave.' } }
+                });
+                expect('an undeclared page type defaults to text', area.pages?.[0]?.type, 'text');
+                expect.ok('and the page carries composed content',
+                    typeof area.pages?.[0]?.text?.content === 'string' && area.pages[0].text.content.length > 0);
+
+                // A satellite's shape: its own namespaced subtype. Foundry namespaces the
+                // DECLARATION of a subtype, not its creation, which is why Blacksmith can
+                // build one it does not own.
+                const kind = `probe-journal-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind, id: 'injury', label: 'Probe Injury', schemaVersion: 1, form: 'mapped',
+                    module: 'coffee-pub-bibliosoph',
+                    document: { documentName: 'JournalEntry', pageType: 'coffee-pub-bibliosoph.injury' },
+                    derive: [],
+                    fields: [
+                        { name: 'severity', path: 'severity', type: 'string', required: true,
+                          values: ['minor', 'moderate', 'severe'], example: 'minor' },
+                        { name: 'odds', path: 'odds', type: 'integer', min: 1, default: 1, example: 1 }
+                    ]
+                });
+                const declared = registry.getDeclaration(kind, 'injury');
+                expect('the profile declares its page subtype',
+                    declared?.document?.pageType, 'coffee-pub-bibliosoph.injury');
+
+                const shape = manager.validateEntry(kind, 'injury', { severity: 'Severe', odds: 3 });
+                if (shape.errors.length) log(`unexpected: ${JSON.stringify(shape.errors)}`);
+                expect('a foreign profile validates through the public path', shape.errors, []);
+
+                const rejected = manager.validateEntry(kind, 'injury', { severity: 'fatal', odds: 0 });
+                expect.ok('and its own vocabulary and bounds are enforced',
+                    rejected.errors.some(one => one.code === 'VALUE_NOT_ALLOWED')
+                    && rejected.errors.some(one => one.code === 'VALUE_OUT_OF_RANGE'));
+            }
+        },
+
+        {
             id: 'rolltable-parity',
             label: 'Roll Table construction matches the parser it replaces',
             tier: 'headless',

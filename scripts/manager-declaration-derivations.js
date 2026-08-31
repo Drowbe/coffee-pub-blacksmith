@@ -264,9 +264,11 @@ async function journalAreaContent(data, entry) {
     }
 
     data.name = area || sceneTitle || 'Unnamed Entry';
+    // No `type` here on purpose: the profile's declared `document.pageType` is
+    // stamped on after derivations, which is what lets a module-owned subtype be
+    // created without every derivation knowing about it.
     data.pages = [{
         name: sceneTitle || area || 'Area',
-        type: 'text',
         text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
     }];
     return data;

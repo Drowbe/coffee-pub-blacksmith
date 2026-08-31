@@ -95,9 +95,10 @@ export async function buildLocationJournalPage(journalData) {
         // Every location page files into one shared entry, so a world's places
         // read as a single document rather than one entry per village.
         journalName: toSentenceCase(normalize(journalData.journalname) || 'Locations'),
+        // No `type`: the profile's declared `document.pageType` is stamped on after
+        // derivations run, so a module-owned subtype needs no change here.
         page: {
             name: strTitle,
-            type: 'text',
             text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
         }
     };

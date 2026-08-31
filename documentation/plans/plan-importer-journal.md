@@ -1,6 +1,6 @@
 # Plan: Importer step 8 — Journal
 
-**Status: In progress.** `rendered` is removed and both JSON profiles are declared and derive. Nothing is routed through them yet -- the kind still calls the parser -- so no behaviour has changed for a user.
+**Status: In progress.** `rendered` is removed, both JSON profiles are declared and derive, construction routes through them, find-or-create is unified, and the page-subtype seam is built. Remaining: move the kind out of the parser tail, keep `api.createJournalEntry` working for Regent, and settle encounter and injury.
 
 Scope: move the Journal kind onto the declaration model, and build the subtype seam three siblings are
 waiting on. This plan is scaffolding — when it is implemented its design goes to
@@ -69,24 +69,71 @@ because none lands at a path on its own, and one derivation composes the HTML. T
 `rendered` is removed from `FORMS`, from `api-importer.md` and from `architecture-importer.md`. Two forms now,
 and the satellite case -- `mapped` against a declared subtype -- is simply the ordinary one.
 
+## Requirements inherited from scene geography
+
+Settled 2026-08-31 by the geography work and recorded in `TODO.md`, "Geography and the journal importer:
+three changes owed by importer step 8". Not restated here -- three requirements, all with call sites inside
+the `area` and `location` builders this plan re-founds, which is why they were left for this step rather than
+done separately.
+
+One edge was left open there and is now **settled: it warns.** An Area import launched with no scene in
+context records geography nowhere, and says so on the result screen rather than succeeding quietly. The
+importer already has a warnings channel that names a field, and this is exactly what it is for -- an import
+that quietly did not do half of what was asked reads as a success and is not one. Agreed with the geography
+session 2026-08-31.
+
+**The geography vocabulary has one source, and all three copies are collapsed.** It lives in
+`utility-geography-vocabulary.js`, a leaf with zero imports so the declaration layer stays headless --
+`manager-geography.js` itself reaches `const.js`, which fetches `module.json` at load, and importing the
+manager from a declaration would have cost validation and template derivation their headless assertability.
+The importer's `GEOGRAPHY_SETTING_KEYS` is now built from `GEOGRAPHY_FIELD_LIST`, and the declaration's four
+fields are derived from the same list; the declaration keeps only the authoring guidance and `breadcrumb`,
+which overrides the derived path and so is not vocabulary.
+
+**No environment field is declared, deliberately.** `ENVIRONMENT_KEYS` is available as a literal and could be
+declared today, but nothing composes it: `parse-journal-area.js` reads realm, region, site, area, scenetitle,
+breadcrumb and blocks, and no template renders an environment. Declaring a field no composer reads is the
+same defect as a rule that can never fire, in the other direction -- offered to an author, and ignored.
+It lands when something renders it, and then its `values` are `ENVIRONMENT_KEYS` and its incoming value goes
+through `normalizeEnvironments`, which drops nulls and dedupes: a checkbox group submits null, and
+`String(null)` is the perfectly good string `"null"` that case folding does not catch.
+
 ## Sequence
 
-1. **Verify the injury page-write defect** in a console, and record which of the two failures it is.
+1. ~~Verify the injury page-write defect.~~ Done 2026-08-31: `Array.isArray(j.pages)` is `false`,
+   `EmbeddedCollection`, 9 pages. The guard always takes the empty branch, so appending has never worked
+   through that path. Nothing about it was worth preserving.
 2. ~~Settle `rendered`.~~ Done -- see above. Removed.
 3. ~~Declare `area` and `location`.~~ Done. Both derive template, guide and validation; the Location
    composer moved to `parsers/parse-journal-location.js` beside its Area counterpart. The HTML composition
    stays in the parsers — it is one algorithm over the whole payload, and splitting it per field would be
    the model driving the code rather than describing it, the same call Roll Table's ranges settled.
    **Not yet routed**: `onImportEntry` still calls the parser, so nothing has changed for a user.
-4. **Unify find-or-create** as one declared behaviour, with folder scoping and page format no longer per
-   builder.
-5. **Build the subtype seam**: a profile declares the page type it creates, defaulting to `text`.
+4. ~~Unify find-or-create.~~ Done -- `utility-journal-destination.js`, one implementation replacing four.
+5. ~~Build the subtype seam.~~ Done -- `document.pageType`, stamped after derivations, defaulting to `text`.
 6. **Move the kind out of `registry-json-import-journals.js`'s parser tail**, as Actor moved.
 7. **Keep `api.createJournalEntry` working**, or ship Regent a declared replacement in the same release. It
    is a legacy API-root surface with a live consumer.
-8. **Encounter and injury**: encounter stays and is declared, because Regent drives it. Injury moves to
-   Bibliosoph, who declare the profile and the subtype; Blacksmith deletes `buildInjuryJournalEntry`,
-   `templates/journal-injury.hbs` and its injury profile.
+8. **Encounter and injury.** Encounter stays, because Regent drives it through `api.createJournalEntry`.
+   Its declaration is **written and verified against the composer's CARDDATA, and deliberately not
+   registered**: the composer is still inside `utility-common.js`'s encounter branch, and a profile whose
+   derivation cannot run is worse than one that does not exist -- it registers, validates, and then fails at
+   construction. Registering it is one mechanical step behind extracting
+   `parsers/parse-journal-encounter.js`, which is ~340 intertwined lines and the largest remaining piece.
+
+   **Regent's field names are settled** (2026-08-31, by the author): `scenelocation` is our realm,
+   `sceneparent` our region, `scenearea` our area, and Regent supplies no site. They are declared as
+   `acceptsKeys`, which is what stops them being dropped -- Blacksmith read none of those names anywhere, so
+   every Regent encounter imported successfully with its whole breadcrumb missing.
+
+   `sceneenvironment` is NOT among them. It is a **habitat** -- the name Regent got wrong, which core rules,
+   Artificer and every conversation call habitat, and which geography has since renamed to match. A habitat
+   is a scene-geography field with its own closed vocabulary rather than a step in the breadcrumb, so it
+   lands with the scene-geography write, not as a journal field. Until then it is reported as an unknown
+   field, which is the truth.
+
+   Injury moves to Bibliosoph, who declare the profile and the subtype; Blacksmith deletes
+   `buildInjuryJournalEntry`, `templates/journal-injury.hbs` and its injury profile.
 
 ## Verification
 

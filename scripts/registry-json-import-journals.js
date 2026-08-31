@@ -6,6 +6,12 @@ import { MODULE } from './const.js';
 import { CampaignManager } from './manager-campaign.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { createJournalEntry, buildInjuryJournalEntry } from './utility-common.js';
+import { GEOGRAPHY_FIELD_LIST } from './manager-geography.js';
+import { getDeclaration } from './registry-declarations.js';
+import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
+// Side-effect import: registers the declared Journal profiles.
+import './declarations/declaration-journal.js';
+import { upsertJournalEntry } from './utility-journal-destination.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import {
     fetchPromptText,
@@ -678,12 +684,13 @@ export function getJournalAreaImportUi() {
     };
 }
 
-const GEOGRAPHY_SETTING_KEYS = {
-    realm: 'defaultCampaignRealm',
-    region: 'defaultCampaignRegion',
-    site: 'defaultCampaignSite',
-    area: 'defaultCampaignArea'
-};
+// Built from the geography vocabulary rather than restated. This was a second
+// copy of the same four fields and their seed settings, and `manager-geography.js`
+// already carries both -- `key` is what the payload calls the field, `setting` is
+// what seeds it. One list, so a fifth field or a renamed setting cannot reach one
+// of them and not the other.
+const GEOGRAPHY_SETTING_KEYS = Object.fromEntries(
+    GEOGRAPHY_FIELD_LIST.map(field => [field.key, field.setting]));
 
 /**
  * Persist folder and geography from the import UI. Always mirrors whatever the GM entered
@@ -1282,7 +1289,44 @@ function validateJournalEntry(journalData) {
     return true;
 }
 
+/**
+ * The declared profile for an entry, or null to fall back to the parser.
+ *
+ * The payload names its own profile in `journaltype`, which it always has, so
+ * unlike Item and Roll Table there is nothing to infer.
+ * @param {object} entry
+ * @returns {object|null}
+ */
+function declaredProfileFor(entry) {
+    const profile = String(entry?.journaltype ?? '').trim().toLowerCase();
+    return profile ? (getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, profile) ?? null) : null;
+}
+
+/**
+ * Carry a structured issue on a thrown Error, so a failure reaches the result
+ * screen naming the field rather than as a blanket validation failure.
+ * @param {object} issue
+ * @returns {Error}
+ */
+function errorFromIssue(issue) {
+    const error = new Error(issue.message);
+    error.code = issue.code;
+    error.path = issue.path;
+    error.details = issue.details;
+    return error;
+}
+
 async function importJournalEntry(journalData) {
+    const declaration = declaredProfileFor(journalData);
+    if (declaration) {
+        const outcome = await validateEntryDeep(JOURNAL_JSON_IMPORT_KIND_ID, declaration.id, journalData);
+        if (outcome.errors.length) throw errorFromIssue(outcome.errors[0]);
+        // The declaration says what the page SAYS; the destination says where it
+        // goes. One find-or-create for every profile, rather than the four that
+        // disagreed -- see utility-journal-destination.js for what each did.
+        return await upsertJournalEntry(outcome.data, { folderName: journalData.foldername });
+    }
+
     validateJournalEntry(journalData);
     const journalType = String(journalData.journaltype).trim().toUpperCase();
     if (journalType === 'INJURY') return buildInjuryJournalEntry(journalData);
@@ -1321,7 +1365,20 @@ const journalJsonImportKind = {
     onBuildJsonTemplate: buildJournalJsonTemplate,
     onBuildAuthoringGuide: buildJournalAuthoringGuide,
     onProfileName: (entry) => entry?.journaltype || '',
-    onValidateEntry: async (entry) => validateJournalEntry(entry),
+    // Validate and Import must ask the SAME reader. Routing construction to the
+    // declaration while leaving validation on the parser produced exactly the
+    // failure `validateEntryDeep` exists to prevent: Validate reported success and
+    // Import then failed on a field the parser never checked, which is the worst
+    // moment for an author to learn it.
+    onValidateEntry: async (entry) => {
+        const declaration = declaredProfileFor(entry);
+        if (declaration) {
+            const outcome = await validateEntryDeep(JOURNAL_JSON_IMPORT_KIND_ID, declaration.id, entry);
+            if (outcome.errors.length) throw errorFromIssue(outcome.errors[0]);
+            return { validationWarnings: outcome.warnings.map(warning => warning.message) };
+        }
+        return validateJournalEntry(entry);
+    },
     onImportEntry: async (entry) => importJournalEntry(entry)
 };
 

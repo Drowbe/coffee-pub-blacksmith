@@ -75,6 +75,34 @@ the whole of persistence:
 Your tab's inputs are part of the sheet's form whether or not the tab is the visible one, so any save
 submits them — including a save made from a core tab by someone who never opened yours.
 
+### Active-tab state is handled for you
+
+A `.tab` is `display: none` until it also carries `.active`, and ApplicationV2 applies that class during
+its own render, to its own parts. A tab injected afterwards starts with neither, which is invisible while
+someone arrives by clicking it and breaks the moment the sheet opens with your tab already selected.
+
+The injector applies the app's own `tabGroups` state to both the nav button and the panel, so you do not
+need to think about it. Note the state, not the DOM, is the source of truth here: after a render, the
+markup can show a different tab as active while `tabGroups` still holds yours, so a module doing its own
+injection should read `app.tabGroups[group]` rather than inspecting classes.
+
+### You own the read, not the write
+
+Naming an input `flags.<moduleId>.<path>` hands persistence to Foundry, which is why there is no `save`
+callback — but it also means the submit is not yours. Every guard you write sits on the read side, where
+it protects your own code and does nothing to keep the document clean. Whatever the form submits is what
+lands on the scene, verbatim.
+
+That is usually invisible, because your reads normalise and everything looks correct. It stops being
+invisible when something reads the flag without going through you: a sibling module, a scene exported to
+a compendium and re-imported, or a person inspecting flags in a console. A downstream consumer defensive
+enough to cope will silently mask it, which delays discovery rather than preventing harm.
+
+If a tab writes anything that needs normalising, put that on the write path with a `preUpdateScene` hook
+rather than trusting the form. `scripts/manager-geography.js` does this — see `GeographyManager.initialize`
+— and it is the reason the geography flag is canonical no matter who wrote it. The alternative, for a
+module that would rather own its submit outright, is a window of its own rather than a tab.
+
 ### Checkbox groups submit a null per unchecked box, not an empty array
 
 Several checkboxes sharing one `name` are the natural way to express a multi-select, and they do not

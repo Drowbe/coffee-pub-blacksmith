@@ -425,7 +425,53 @@ export class BlacksmithAPI {
      * Call from `blacksmith.js` after default + merged asset JSON is loaded and choice caches
      * (including sounds) are refreshed; do not call from `ready` before that or consumers see empty data.
      */
+    /**
+     * Health of the completed `ready` pass. Consumers must be able to tell these apart.
+     *
+     * `waitForReady()` only ever RESOLVES -- a failed `ready` still calls
+     * `markReadyForConsumers()` on purpose, so that a consumer gets a degraded API and fails
+     * visibly rather than awaiting a promise that never settles. The cost is that awaiting
+     * proves the hook FINISHED, not that it SUCCEEDED, and those need different responses:
+     * a consumer whose degraded path is retryable should degrade, while one registering
+     * settings must refuse to start, because `game.settings.register` runs once per key and
+     * an empty choices object is a dead control for the life of the world rather than until
+     * the next attempt.
+     *
+     * 'pending'  - `ready` has not finished.
+     * 'ok'       - `ready` completed normally.
+     * 'degraded' - `ready` bailed out; some of the API is missing. Reason in `readyFailure`.
+     */
+    static readyStatus = 'pending';
+
+    /** The stage that failed, when `readyStatus` is 'degraded'. */
+    static readyFailure = null;
+
+    /**
+     * Resolve when `ready` has finished, and report whether it succeeded.
+     * @returns {Promise<{status: 'ok'|'degraded', failedStage: string|null}>}
+     */
+    static async waitForReadyStatus() {
+        await this.waitForReady();
+        return { status: this.readyStatus, failedStage: this.readyFailure };
+    }
+
+    /** True only when `ready` completed without bailing out. */
+    static isHealthy() {
+        return this.readyStatus === 'ok';
+    }
+
+    /**
+     * Record that `ready` abandoned at `stage`. Called by `bailOutOfReady` BEFORE
+     * `markReadyForConsumers()`, so a consumer that wakes on the resolve sees the
+     * degraded status rather than racing it.
+     */
+    static markReadyDegraded(stage) {
+        this.readyStatus = 'degraded';
+        this.readyFailure = stage ?? 'unknown';
+    }
+
     static markReadyForConsumers() {
+        if (this.readyStatus === 'pending') this.readyStatus = 'ok';
         if (!this.isReady) {
             console.log('🔧 Blacksmith API: markReadyForConsumers (caches + settings ready)');
             this._markReady();

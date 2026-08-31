@@ -23,12 +23,31 @@ This is the part that causes most integration bugs, so it is worth reading once.
 
 - **`module.api` is assigned synchronously at the start of Blacksmith's `init`**, before any `await` in that hook. So by the time your `ready` handler runs, `game.modules.get('coffee-pub-blacksmith')?.api` is non-null and `registerModule`, `utils`, `version`, `BLACKSMITH`, and `stats` are usable.
 - **Some members start as `null` placeholders** and are filled in later during `init`, when their dynamic imports complete: the toolbar, window, menubar, notification, and secondary-bar functions. Call these from `ready` (or after `await BlacksmithAPI.waitForReady()`), not from `init`.
+- **`api.compendiums` and `api.campaign` bind before the first `await` in Blacksmith's `ready`**, alongside the compendium, roll table and macro choice caches. This matters because module scripts load alphabetically: a sibling whose id sorts before `coffee-pub-blacksmith` registers its `ready` handler first and therefore runs first. Anything assigned later in the hook is `undefined` for that window.
 - **Asset-backed data finishes during Blacksmith's `ready`**: `assetLookup` and the merged keys on `BLACKSMITH`. `api.BLACKSMITH` is the same object reference throughout — it gains keys as merges run, so a reference captured early stays valid.
 - **The `window.Blacksmith*` globals are attached when `markReadyForConsumers()` runs**, near the end of Blacksmith's `ready` — not at the first line of it. `BlacksmithAPI.waitForReady()` resolves after that point.
 
 Rule of thumb: register and read simple API members in `ready`; `await BlacksmithAPI.waitForReady()` first if you need asset-backed constants or the globals.
 
 One known gap: `window.BlacksmithCanvasLayer` is effectively never set. Use `BlacksmithAPI.getCanvasLayer()` instead — see `api-canvas.md`.
+
+### Awaiting readiness tells you `ready` ran, not that it succeeded
+
+`BlacksmithAPI.waitForReady()` is only ever resolved, never rejected. If a stage of Blacksmith's `ready` throws, the failure handler still calls `markReadyForConsumers()` — deliberately, so that a consumer gets a degraded API and fails visibly rather than awaiting a promise that never settles. The consequence for you is that **awaiting and then dereferencing is not safe**: the await proves the hook finished, not that what you need exists.
+
+Check for what you actually use, after the await:
+
+```js
+await BlacksmithAPI.waitForReady();
+const api = game.modules.get('coffee-pub-blacksmith')?.api;
+if (!api?.compendiums) { /* decide: degrade, or refuse to start */ }
+```
+
+**Then match your failure mode to whether recovery is possible.** Degrading is right when a later attempt can succeed — a panel that renders empty now and repopulates on the next open costs a user nothing. Degrading is wrong when the failed operation cannot be retried, because the "degraded" state is permanent and silent rather than loud.
+
+Settings registration is the case where it cannot. `game.settings.register` runs once per key and refuses re-registration, so a dropdown built from empty API-derived choices is not a temporary degradation that a reload repairs — it is a dead control for the life of that world. A consumer in that position should refuse to initialise and say why, rather than register settings it knows are wrong. That is what `coffee-pub-artificer` does, and it is the correct reading of this contract rather than an unusually strict one.
+
+The general rule, since it applies well beyond settings: **degrade where recovery is possible, refuse where it is not.** A guard that silently supplies `?? {}` to something unretryable converts a loud failure into a permanent one.
 
 ## Quick start
 

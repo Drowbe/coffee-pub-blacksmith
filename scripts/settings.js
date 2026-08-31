@@ -956,6 +956,17 @@ export const registerSettings = () => {
 
 
 	// -- Default Campaign Realm --
+	// Records that the one-time habitat migration has run. Not shown: it is a marker, not a preference.
+	game.settings.register(MODULE.ID, 'geographyHabitatMigrated', {
+		name: 'Habitat migration complete',
+		hint: 'Internal marker recording that scene habitats have been migrated onto geography.',
+		scope: "world",
+		config: false,
+		requiresReload: false,
+		type: Boolean,
+		default: false
+	});
+
 	game.settings.register(MODULE.ID, 'defaultCampaignRealm', {
 		name: MODULE.ID + '.defaultCampaignRealm-Label',
 		hint: MODULE.ID + '.defaultCampaignRealm-Hint',

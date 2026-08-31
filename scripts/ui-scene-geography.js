@@ -5,7 +5,7 @@ import {
     GeographyManager,
     GEOGRAPHY_FLAG,
     GEOGRAPHY_FIELD_LIST,
-    ENVIRONMENTS
+    HABITATS
 } from './manager-geography.js';
 
 // ==================================================================
@@ -51,28 +51,28 @@ function geographyRows(scene) {
 }
 
 /**
- * Environment checkboxes.
+ * Habitat checkboxes.
  *
  * The value attribute carries the canonical key and the visible text is the label,
  * which is why the vocabulary is {key, label} rather than bare strings. A checkbox
  * group submits one entry per box with `null` for each unticked one, so the read
  * side must filter against the vocabulary rather than for truthiness -- that is
- * what GeographyManager.normalizeEnvironments does, and why nothing here trusts
+ * what GeographyManager.normalizeHabitats does, and why nothing here trusts
  * the raw stored array.
  */
-function environmentRows(scene) {
-    const selected = new Set(GeographyManager.getEnvironments(scene));
-    const boxes = ENVIRONMENTS.map((environment) => `
-        <label class="checkbox blacksmith-geography-environment">
-            <input type="checkbox" name="${esc(fieldName('environment'))}"
-                   value="${esc(environment.key)}" ${selected.has(environment.key) ? 'checked' : ''} />
-            ${esc(environment.label)}
+function habitatRows(scene) {
+    const selected = new Set(GeographyManager.getHabitats(scene));
+    const boxes = HABITATS.map((habitat) => `
+        <label class="checkbox blacksmith-geography-habitat">
+            <input type="checkbox" name="${esc(fieldName('habitat'))}"
+                   value="${esc(habitat.key)}" ${selected.has(habitat.key) ? 'checked' : ''} />
+            ${esc(habitat.label)}
         </label>`).join('');
 
     return `
         <div class="form-group stacked">
-            <label>Environment</label>
-            <div class="blacksmith-geography-environments">${boxes}</div>
+            <label>Habitat</label>
+            <div class="blacksmith-geography-habitats">${boxes}</div>
             <p class="notes">What this place is like. Other Coffee Pub modules read this ${''
                 }to decide what can be found here and what it sounds like.</p>
         </div>`;
@@ -90,7 +90,7 @@ function renderGeographyTab(scene) {
             ${geographyRows(scene)}
             ${breadcrumb ? `<p class="notes blacksmith-geography-breadcrumb"><strong>Path:</strong> ${esc(breadcrumb)}</p>` : ''}
             <hr />
-            ${environmentRows(scene)}
+            ${habitatRows(scene)}
         </div>`;
 }
 

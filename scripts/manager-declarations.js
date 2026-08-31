@@ -624,7 +624,37 @@ async function assemble(kindId, profileId, entry, mode) {
     // touches with whatever the partial entry implied.
     if (declaration.derive?.length && !update) {
         const { applyDerivations } = await import('./manager-declaration-derivations.js');
-        return await applyDerivations(declaration.derive, data, entry);
+        return stampPageType(await applyDerivations(declaration.derive, data, entry), declaration);
+    }
+    return stampPageType(data, declaration);
+}
+
+/**
+ * Give every page the subtype its profile creates.
+ *
+ * THIS IS THE SEAM three sibling modules were waiting on. Every journal builder
+ * hardcoded `type: "text"`, so Blacksmith could not construct a page subtype
+ * another module declares -- Bibliosoph's `coffee-pub-bibliosoph.injury`,
+ * Librarian's codex, Artificer's recipes.
+ *
+ * Foundry namespaces a module-declared subtype as `${module.id}.${subtype}`, but
+ * it namespaces the DECLARATION, not the CREATION: the registered data model
+ * validates whoever calls create, so Blacksmith can build a foreign subtype and
+ * a partial `system` is completed by that model. Verified against Foundry 13.351.
+ *
+ * Applied here rather than in each derivation so a profile states its page type
+ * once, as data, and every derivation stays ignorant of it. A page that names its
+ * own type keeps it, which is what lets one profile emit mixed pages.
+ *
+ * @param {object} data
+ * @param {object} declaration
+ * @returns {object} The same data.
+ */
+function stampPageType(data, declaration) {
+    if (!Array.isArray(data?.pages)) return data;
+    const pageType = declaration.document?.pageType ?? 'text';
+    for (const page of data.pages) {
+        if (page && page.type === undefined) page.type = pageType;
     }
     return data;
 }

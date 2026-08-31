@@ -67,7 +67,11 @@
  * @property {number} schemaVersion
  * @property {'mapped'|'passthrough'} form
  * @property {string} [module] - Owning module id. Absent means Blacksmith.
- * @property {object} document - { documentName, type }.
+ * @property {object} document - { documentName, type, pageType }. `pageType` is the
+ *                             JournalEntryPage subtype a journal profile creates, defaulting to
+ *                             'text'. A module-owned subtype is namespaced `<module.id>.<subtype>`;
+ *                             Foundry namespaces the DECLARATION of one, not its creation, so
+ *                             Blacksmith can build a subtype another module declares.
  * @property {DeclarationField[]} fields
  * @property {object[]} [rules] - Cross-field rules: a closed vocabulary kind, or a named rule.
  * @property {string[]} [derive] - Named derivations run over the assembled document data.

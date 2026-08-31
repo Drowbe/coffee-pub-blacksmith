@@ -316,17 +316,41 @@ export class SceneConfigManager {
         panel.dataset.tab = tab.id;
         panel.dataset.group = dataGroup;
         panel.innerHTML = content;
-        // Insert AFTER the last existing tab body, not at the end of the host.
+        // Insert immediately BEFORE the footer, anchoring on a core element.
         //
-        // ApplicationV2 renders SceneConfig's parts as flat siblings in this order: the tab nav,
-        // then one element per tab body, then the footer holding Save
-        // (`client/applications/sheets/scene-config.mjs:38-44`). Appending to the host therefore
-        // lands the panel AFTER the footer, and the sheet renders with Save Changes sitting above
-        // the tab's own content. It looks like a styling problem and is purely an ordering one.
-        const existingPanels = form.querySelectorAll('.tab[data-tab]');
-        const lastPanel = existingPanels[existingPanels.length - 1];
-        if (lastPanel?.parentElement) lastPanel.after(panel);
+        // ApplicationV2 renders SceneConfig's parts as flat siblings: the tab nav, one element per
+        // tab body, then `footer.form-footer` holding Save
+        // (`client/applications/sheets/scene-config.mjs:38-44`, `templates/generic/form-footer.hbs`).
+        // Appending to the container therefore lands the panel AFTER the footer, and the sheet
+        // renders with Save Changes above the tab's own content.
+        //
+        // The obvious fix -- insert after the last `.tab[data-tab]` -- is wrong in a way that only
+        // shows up with a second module installed. Render hooks fire in registration order and
+        // module scripts load alphabetically, so a module earlier in the alphabet injects BEFORE
+        // this runs; "the last tab panel" is then ITS panel, and this inherits whatever position it
+        // chose. Anchoring on the footer is independent of who else has already injected.
+        const footer = form.querySelector('footer.form-footer') ?? form.querySelector('footer');
+        if (footer?.parentElement) footer.before(panel);
         else tabBodyHost.appendChild(panel);
+
+        // Carry the app's active-tab state onto what we just injected.
+        //
+        // A `.tab` is `display: none` until it also has `.active`, and ApplicationV2 applies that
+        // class during its own render, to its own parts (`changeTab`, application.mjs:1118 and
+        // :1124). Our nav button and panel are added afterwards, so they start with no active class
+        // at all. That is invisible while the user arrives by CLICKING the tab -- the click handler
+        // sets it -- and breaks the moment the sheet OPENS with our tab already selected, which is
+        // what happens as soon as it is the remembered tab: the nav renders active, the panel does
+        // not, and the tab body is empty.
+        //
+        // Clicking does not recover it either: changeTab returns early when the group is already on
+        // the requested tab (`:1112`), so the class is never applied and the tab stays blank.
+        const activeTab = app?.tabGroups?.[dataGroup];
+        if (activeTab !== undefined) {
+            const isActive = activeTab === tab.id;
+            tabButton.classList.toggle('active', isActive);
+            panel.classList.toggle('active', isActive);
+        }
     }
 
     /**

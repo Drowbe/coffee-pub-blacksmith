@@ -76,7 +76,7 @@ import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js'
 import { XpManager } from './manager-xp.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
-import { GeographyManager, ENVIRONMENTS, ENVIRONMENT_KEYS, normalizeEnvironments } from './manager-geography.js';
+import { GeographyManager, HABITATS, HABITAT_KEYS, normalizeHabitats } from './manager-geography.js';
 import { initializeSceneGeography } from './ui-scene-geography.js';
 import {
     SceneConfigManager,
@@ -409,11 +409,38 @@ Hooks.once('canvasReady', () => {
 Hooks.once('ready', async () => {
     postConsoleAndNotification(MODULE.NAME, "BLACKSMITH: Ready hook started", "", false, false);
 
-    // Before any await: compendiums / roll tables / macros must exist for other modules' ready hooks and BlacksmithAPI readiness.
+    // Before any await: the compendium / roll table / macro CHOICE CACHES must be filled, because
+    // other modules read them from their own ready hooks. Module scripts load alphabetically, so a
+    // sibling earlier in the alphabet registers its ready handler first and therefore runs first.
     primeCoreChoiceCaches();
     
     // Bind menubar API synchronously so it is available to all ready callbacks (internal and external)
     const mod = game.modules.get(MODULE.ID);
+
+    // These bind HERE, before any await, because consumers read them from their own
+    // ready hooks -- which, per the load order above, run BEFORE this one finishes.
+    // They were assigned with the rest of the API roughly 850 lines and 25 awaits
+    // later, so both were undefined for the whole of that window. Artificer crashed
+    // on exactly that on 2026-08-31: settings registration reading `api.compendiums`
+    // from its own ready hook.
+    //
+    // The comment above used to cover this too, which is how it was read and why the
+    // gap went unnoticed; it now describes only the choice caches, which is all it
+    // ever actually guaranteed.
+    //
+    // It can bind early because it needs nothing awaited -- `CompendiumsAPI` is a
+    // plain object of arrow functions delegating to `compendiumManager`, resolved at
+    // module load. Anything that does need an await stays below and must not be
+    // promised here.
+    if (mod) {
+        if (!mod.api) mod.api = {};
+        // `campaign` rides along for the same reason and with the same guarantee: a plain
+        // statically-imported object with nothing to await, read by consumers from their own
+        // ready hooks. Binding it late made it undefined for the same window.
+        mod.api.compendiums = CompendiumsAPI;
+        mod.api.campaign = CampaignAPI;
+    }
+
     if (mod && MenuBar) {
         if (!mod.api) mod.api = {};
         Object.assign(mod.api, {
@@ -494,6 +521,10 @@ Hooks.once('ready', async () => {
         console.error(`${MODULE.ID}: ${stage} failed (early ready)`, error);
         LoadingProgressManager.forceHide();
         try {
+            // Record the failure BEFORE marking ready. markReadyForConsumers resolves every
+            // waiter, so a consumer that wakes on that resolve must already be able to see
+            // the degraded status rather than racing us to it.
+            BlacksmithAPI.markReadyDegraded(stage);
             BlacksmithAPI.markReadyForConsumers();
             console.warn(`${MODULE.ID}: API marked ready in a DEGRADED state after ${stage} failed — consumers may see missing features.`);
         } catch (readyError) {
@@ -594,6 +625,19 @@ Hooks.once('ready', async () => {
         if (mod?.api) mod.api.assetLookup = assetLookup;
     } catch (e) {
         bailOutOfReady('loadAssetBundlesWithOverrides / merge', e);
+        return;
+    }
+
+    // Habitat custody moves onto geography in this release, and the migration runs HERE:
+    // after settings exist (it reads and writes one) and BEFORE consumers are marked ready,
+    // so a module that hard-cuts to api.geography.getHabitats() cannot observe a half-migrated
+    // world. A throw bails out, which marks the API degraded -- exactly the signal such a
+    // consumer needs in order to refuse to start, rather than reading absent habitats as
+    // "this scene simply has none".
+    try {
+        await GeographyManager.runMigrationIfNeeded();
+    } catch (e) {
+        bailOutOfReady('geography habitat migration', e);
         return;
     }
 
@@ -1070,6 +1114,7 @@ function initializeSettingsDependentFeatures() {
     // Blacksmith is consumer zero for the injector: the Geography tab registers through
     // the same public path a sibling module uses, with no internal shortcut.
     initializeSceneGeography();
+    GeographyManager.initialize();
 
 }
 
@@ -1184,19 +1229,19 @@ Hooks.once('init', async function() {
          * @see documentation/api/api-scene-config.md
          */
         /**
-         * Scene geography and the canonical environment vocabulary.
+         * Scene geography and the canonical habitat vocabulary.
          * @see documentation/api/api-geography.md
          */
         geography: {
             get: (scene = null) => GeographyManager.getGeography(scene),
             getSceneContext: (scene = null) => GeographyManager.getSceneContext(scene),
-            getEnvironments: (scene) => GeographyManager.getEnvironments(scene),
+            getHabitats: (scene) => GeographyManager.getHabitats(scene),
             getBreadcrumb: (scene = null) => GeographyManager.getBreadcrumb(scene),
             set: (scene, data) => GeographyManager.setGeography(scene, data),
             clear: (scene) => GeographyManager.clearGeography(scene),
-            ENVIRONMENTS,
-            ENVIRONMENT_KEYS,
-            normalizeEnvironments
+            HABITATS,
+            HABITAT_KEYS,
+            normalizeHabitats
         },
         registerSceneConfigTab,
         unregisterSceneConfigTab,

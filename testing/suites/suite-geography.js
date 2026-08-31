@@ -65,8 +65,8 @@ export default {
             settingRow('World defaults',
                 Object.values(defaults).filter(Boolean).join(' > ') || 'all four empty',
                 'the seed for a scene with no flag'),
-            settingRow('Vocabulary', `${api.geography.ENVIRONMENT_KEYS.length} environments`,
-                api.geography.ENVIRONMENT_KEYS.join(', ')),
+            settingRow('Vocabulary', `${api.geography.HABITAT_KEYS.length} habitats`,
+                api.geography.HABITAT_KEYS.join(', ')),
             settingRow('This scene', scene ? (api.geography.getBreadcrumb(scene) || 'inherits everything') : '-')
         ];
     },
@@ -79,18 +79,18 @@ export default {
             label: 'The geography surface is present and shaped as documented',
             run: async ({ expect }) => {
                 const api = requireApi('geography');
-                for (const name of ['get', 'getSceneContext', 'getEnvironments', 'getBreadcrumb', 'set', 'clear', 'normalizeEnvironments']) {
+                for (const name of ['get', 'getSceneContext', 'getHabitats', 'getBreadcrumb', 'set', 'clear', 'normalizeHabitats']) {
                     expect(`api.geography.${name} is a function`, typeof api.geography[name], 'function');
                 }
-                expect('ENVIRONMENTS has twelve entries', api.geography.ENVIRONMENTS.length, 12);
+                expect('HABITATS has twelve entries', api.geography.HABITATS.length, 12);
                 expect('every entry is {key, label}',
-                    api.geography.ENVIRONMENTS.every(e => typeof e.key === 'string' && typeof e.label === 'string'), true);
+                    api.geography.HABITATS.every(e => typeof e.key === 'string' && typeof e.label === 'string'), true);
                 expect('keys are lowercase',
-                    api.geography.ENVIRONMENTS.every(e => e.key === e.key.toLowerCase()), true);
+                    api.geography.HABITATS.every(e => e.key === e.key.toLowerCase()), true);
                 expect('labels are not merely the keys',
-                    api.geography.ENVIRONMENTS.some(e => e.label !== e.key), true);
-                expect('ENVIRONMENT_KEYS matches ENVIRONMENTS',
-                    api.geography.ENVIRONMENT_KEYS, api.geography.ENVIRONMENTS.map(e => e.key));
+                    api.geography.HABITATS.some(e => e.label !== e.key), true);
+                expect('HABITAT_KEYS matches HABITATS',
+                    api.geography.HABITAT_KEYS, api.geography.HABITATS.map(e => e.key));
             }
         },
         {
@@ -122,18 +122,18 @@ export default {
             }
         },
         {
-            id: 'environment-nulls',
+            id: 'habitat-nulls',
             tier: 'headless',
-            group: 'Environment',
+            group: 'Habitat',
             label: 'A checkbox group\'s nulls are dropped, not stringified',
             note: 'The raw array from an unticked checkbox group is [null, null, ...]. "null" is truthy.',
             run: async ({ expect }) => {
                 const api = requireApi('geography');
-                const normalize = api.geography.normalizeEnvironments;
+                const normalize = api.geography.normalizeHabitats;
 
                 // Exactly what FormDataExtended submits for twelve boxes with one ticked.
                 const formShaped = [null, null, null, null, null, null, 'forest', null, null, null, null, null];
-                expect('one ticked box out of twelve yields one environment', normalize(formShaped), ['forest']);
+                expect('one ticked box out of twelve yields one habitat', normalize(formShaped), ['forest']);
                 expect('all unticked yields empty', normalize(new Array(12).fill(null)), []);
                 expect('no "null" string ever survives',
                     normalize(new Array(12).fill(null)).includes('null'), false);
@@ -147,19 +147,48 @@ export default {
             }
         },
         {
-            id: 'environment-roundtrip',
+            id: 'write-normalisation',
             tier: 'headless',
-            group: 'Environment',
-            label: 'Environments survive a write and read back canonical',
+            group: 'Habitat',
+            label: 'A sheet save stores canonical values, not the raw form array',
+            note: 'The Scene Config tab does not go through set(); Foundry writes its inputs directly.',
             run: async ({ expect }) => {
                 const api = requireApi('geography');
                 const scene = testScene();
                 if (!scene) return expect.ok('a scene exists', false);
 
                 await withRestoredFlag(scene, async () => {
-                    await api.geography.set(scene, { environment: ['FOREST', null, 'not-a-biome', 'urban'] });
+                    // Exactly the shape Foundry's form submission produces for the tab: one entry per
+                    // checkbox, null for each unticked one, and untrimmed text in the four fields.
+                    await scene.update({
+                        [`flags.coffee-pub-blacksmith.geography`]: {
+                            realm: '  Harness Realm  ',
+                            habitat: [null, null, 'forest', null, null, null, null, null, null, null, null, 'urban'],
+                            reputation: 999
+                        }
+                    });
+
+                    const raw = scene.getFlag(MODULE_ID, 'geography');
+                    expect('nulls never reach the document', raw.habitat, ['forest', 'urban']);
+                    expect('the four fields are trimmed on the way in', raw.realm, 'Harness Realm');
+                    expect('reputation is clamped on the way in', raw.reputation, 100);
+                });
+            }
+        },
+        {
+            id: 'habitat-roundtrip',
+            tier: 'headless',
+            group: 'Habitat',
+            label: 'Habitats survive a write and read back canonical',
+            run: async ({ expect }) => {
+                const api = requireApi('geography');
+                const scene = testScene();
+                if (!scene) return expect.ok('a scene exists', false);
+
+                await withRestoredFlag(scene, async () => {
+                    await api.geography.set(scene, { habitat: ['FOREST', null, 'not-a-biome', 'urban'] });
                     expect('stored canonical, filtered, ordered',
-                        api.geography.getEnvironments(scene), ['forest', 'urban']);
+                        api.geography.getHabitats(scene), ['forest', 'urban']);
                 });
             }
         },
@@ -200,8 +229,8 @@ export default {
                 if (!scene) return expect.ok('a scene exists', false);
                 const context = api.geography.getSceneContext(scene);
                 expect('exactly the documented keys', Object.keys(context).sort(),
-                    ['area', 'environment', 'locationUuid', 'realm', 'region', 'reputation', 'site']);
-                expect('environment is always an array', Array.isArray(context.environment), true);
+                    ['area', 'habitat', 'locationUuid', 'realm', 'region', 'reputation', 'site']);
+                expect('habitat is always an array', Array.isArray(context.habitat), true);
             }
         },
         {
@@ -230,8 +259,8 @@ export default {
                 log(`Opened Scene Config for "${scene.name}".`);
                 log('CHECK: a Geography tab is present, laid out like the core tabs.');
                 log('CHECK: empty fields show the campaign default as placeholder text, not as a value.');
-                log('CHECK: the twelve environments render as a grid, not a tall stack.');
-                log('CHECK: type a Realm, tick two environments, Save. Reopen — both persisted.');
+                log('CHECK: the twelve habitats render as a grid, not a tall stack.');
+                log('CHECK: type a Realm, tick two habitats, Save. Reopen — both persisted.');
                 log('CHECK: clear the Realm and Save. It falls back to the campaign default placeholder.');
                 log('CHECK: run the headless checks again afterwards; they must still pass on a scene with real data.');
             }

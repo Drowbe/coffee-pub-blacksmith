@@ -98,7 +98,7 @@ behavior:
 | `node tools/check-worldclock.mjs` | the clock's cross-file couplings: sky variables, the stop table, class names, the partial name, and the two coordinate spaces |
 | `node tools/check-rest-clients.mjs` | the rest flow across **two clients**: a player's rest reaches the GM, one card carries both phases, grouped rests move the clock once |
 | `node tools/check-dnd5e-citations.mjs` | our `dnd5e.mjs:NNNN` pointers still refer to the dnd5e version they were verified against |
-| `node tools/check-lazy-imports.mjs` | every `const {a} = await import('./x.js')` names an export `x.js` really has -- a lazy import that does not is `undefined` until it is called, so it throws in Foundry at construction time and nowhere earlier |
+| `node tools/check-imports.mjs` | every named import -- static and lazy -- names an export the target really has. A lazy one that does not is `undefined` until called, so it throws in Foundry at construction and nowhere earlier; a static one fails the whole module load, in the graph thirteen siblings import. `node --check` cannot see either, because it parses without resolving |
 | `node tools/check-note-reminders.mjs` | the note reminders' two-clock table: every clock fully specified, flags distinct, both reachable from the API, both hooks carrying `clock`, the wall clock polled, and every dialog pane and row mark present |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
