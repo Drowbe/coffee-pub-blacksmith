@@ -89,17 +89,35 @@ allow-list.
 Rollout order matters: the publisher rewrite (item 2) must land before any satellite copies it, or thirteen
 copies of the hardcoded `THIS_MODULE` trap go out at once.
 
+**Four decisions, settled by the author 2026-08-31:**
+
+1. **`coffee-pub-prototype` becomes its own GitHub repository.** It currently sits tracked and public inside
+   Blacksmith's repo, where its `.github/workflows/release.yml` can never fire (GitHub only runs workflows
+   from a repository root) and its declared `url` 404s. Splitting it fixes both.
+2. **Blacksmith is conformed first, the prototype second.** The template gets copied from a shape proven on
+   a real module rather than one designed in the abstract. The thirteen satellites follow the prototype.
+3. **The ApplicationV2 example becomes a working example window in the prototype**, not a code block pasted
+   into a document. The pasted version had already rotted -- it cites `styles/window-skills.css`, which is
+   not in the repository, and a path `documentation/example-applicationv2-window/` that has never existed.
+4. **Consequence of 1 and 3 together:** once the prototype is its own repository, Ground Rule 2 forbids
+   `api-window.md` from linking to that example. So the example lives in the prototype as runnable proof,
+   and the API doc points at a real Blacksmith window for the contract. Neither points at the other.
+
 - [ ] **Finish conforming Blacksmith's tree.** `design-system/` → `designsystem/` and `guides/` →
       `primers/` are both done, the second with the `primer-` prefix so folder and filename agree. Remaining:
       create `userguides/`. Verified by: `node tools/check-design-tokens.mjs` passes and
       `node tools/wiki-sync.mjs build` produces the expected page set.
-- [ ] **Fold `applicationv2-window/` into `primers/`.** Its three images are already in `assets/` and its
-      prose references are now real links. Remaining: the guidance doc becomes
-      `primer-applicationv2-windows.md` (still held pending the audit it already owes), its folder README
-      folds into that doc, and the `example-window.js`/`.hbs` samples get resolved — the standard's own
-      rule says point at a real window in `scripts/` and a real template in `templates/` rather than
-      keeping a copy; if a minimal teaching example earns its place, it goes in `primers/samples/`, never
-      in `assets/`.
+- [ ] **Dismantle `applicationv2-window/`; it does not survive as a folder.** Its 539-line guidance doc
+      duplicates `api/api-window.md`, which is 963 lines and already carries the contract — and the two
+      have drifted: `api-window.md` documents **six** zones including Tools, the guidance doc documents
+      **five** and omits it. `api-window.md` is the correct one. Four pieces, four destinations:
+      the zone contract is deleted as a duplicate; the hard-won behaviour (delegation, scroll preservation
+      across re-render, `_getRoot()`, safe `DEFAULT_OPTIONS` merge) folds into `api-window.md`'s Best
+      Practices and Troubleshooting, which already carry roughly half of it; the example code goes to the
+      prototype (decision 3); the images are already in `assets/`. Then remove the four places
+      `api-window.md` tells a reader to "follow" the guidance doc — a published page currently points at a
+      held one, so a wiki reader hits a dead end. Verified by: `node tools/wiki-sync.mjs build` reports no
+      downgraded links from `api-window.md`, and the zone table appears exactly once in the tree.
 - [ ] **Convert `assets/primer-applicationv2-samples.png` to WebP.** 3.3 MB against 87 KB and 102 KB for
       the two WebP captures beside it. No image tooling in this container, so it needs a machine with
       `cwebp` or equivalent. Verified by: the file is under ~200 KB and still legible at full width.
@@ -122,6 +140,18 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
 - [ ] **Write Blacksmith's two required user guides** — `userguide-getting-started.md` and
       `userguide-settings.md`. The settings guide covers ~286 registered settings; consider generating its
       table from `settings.js` plus `lang/en.json` and checking it, rather than hand-maintaining it.
+- [ ] **Split `coffee-pub-prototype` out into its own repository** (decision 1). It is 12 tracked files in
+      Blacksmith's root — module.json, README, CHANGELOG, LICENSE, scripts, styles, lang, its own
+      documentation, and a release workflow that cannot fire where it sits. Preserve its history when
+      extracting rather than copying files. It does not ship today (Blacksmith's zip uses an explicit
+      include list), so nothing about the release changes. Verified by: its release workflow runs, its
+      `module.json` url resolves, and Blacksmith's zip is unchanged.
+- [ ] **Build the standard into the prototype once Blacksmith is conformed** (decision 2). Five folders,
+      `assets/`, the publisher, the checker, stub docs, and a product README, plus `SETUP_PROMPT.md`
+      updated so a scaffolded module is born conformant. This is the leverage point: every module created
+      after it is free, and only the thirteen existing ones need retrofitting.
+- [ ] **Add `coffee-pub-merchant` to the sibling list in `CLAUDE.md`.** It exists on GitHub and is missing
+      from the list of thirteen.
 - [ ] **Roll out to the thirteen satellites** — five folders, the two publisher files, the checker, a
       `home.md`, a product README, and the two required user guides each. Verified by: each module's wiki
       has a Home and a User guides group.

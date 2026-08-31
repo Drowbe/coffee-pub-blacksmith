@@ -80,7 +80,7 @@ Windows that follow the Blacksmith contract use up to **five zones**. Only **Bod
 | **Body** | Yes | Scrollable area; **you inject your content here** (forms, lists, grids, etc.). |
 | **Action bar** | Optional | Bottom bar: secondary left, primary right. |
 
-See **documentation/applicationv2-window/blacksmith-windows-zones.webp** for the layout diagram and **window-samples.png** for real-window variability.
+See [the zone diagram](../assets/primer-applicationv2-zones.webp) for the layout and [real windows](../assets/primer-applicationv2-samples.png) for how much the combinations vary.
 
 ---
 
