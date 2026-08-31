@@ -60,7 +60,17 @@ whatever round-trips it.
 
 **Normalise at your boundary rather than trusting the stored form.** `normalizeHabitats` accepts any
 case, drops anything outside the vocabulary, collapses duplicates, and returns vocabulary order so two
-scenes with the same habitats compare equal. Values written by a hand-edited flag or by an older
+scenes with the same habitats compare equal.
+
+Two consequences worth knowing before you render or match on the result:
+
+- **The order is vocabulary order, not alphabetical.** It is stable and comparable, but a consumer that
+  previously sorted and now renders `getHabitats()` directly will show a different order than before,
+  with nothing to signal the change. Sort at your own display layer if the order matters to a reader.
+- **A value outside the twelve resolves to nothing.** Filtering is against the closed vocabulary rather
+  than for truthiness, so a hand-edited flag carrying a bespoke habitat stops matching rather than
+  passing through. That is intended -- an unknown habitat cannot mean anything to a consumer keyed on
+  the twelve -- but it is a behaviour change for anything that used to accept whatever it found. Values written by a hand-edited flag or by an older
 build are otherwise a silent join failure.
 
 It also drops `null`, which matters more than it sounds. A checkbox group submits one entry per box with

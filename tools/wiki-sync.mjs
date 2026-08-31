@@ -102,10 +102,10 @@ const PUBLISH = [
   'architecture/architecture-worldclock.md',
   'architecture/architecture-xp.md',
   // Design system
-  'design-system/design-tokens.md',
-  'design-system/design-components.md',
-  'design-system/design-patterns.md',
-  'design-system/design-extending.md',
+  'designsystem/design-tokens.md',
+  'designsystem/design-components.md',
+  'designsystem/design-patterns.md',
+  'designsystem/design-extending.md',
 ];
 
 // Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
@@ -167,6 +167,10 @@ function siblingWikiUrl(target) {
 
 const LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
 const CODE_LINK = /\.(js|mjs|css|hbs|json|txt|webp|png)(#.*)?$/i;
+// CODE_PATH matches a directory name anywhere in the target, which is why the doc branch below runs
+// first: a documentation folder may share a name with a code folder -- `documentation/resources/` did,
+// before it became `documentation/primers/` -- and matching the code branch first would downgrade every
+// link into it to plain text as if it were source. A `.md` target is always a doc, wherever it lives.
 const CODE_PATH = /(scripts|styles|templates|resources)\//;
 
 function rewriteLinks(md, srcRel) {
@@ -241,7 +245,7 @@ function buildSidebar() {
     group('architecture/'),
     '',
     '### Design system',
-    group('design-system/'),
+    group('designsystem/'),
     '',
   ].join('\n');
 }

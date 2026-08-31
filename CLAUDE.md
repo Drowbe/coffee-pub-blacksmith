@@ -89,7 +89,7 @@ behavior:
 
 | Check | Guards |
 |---|---|
-| `node tools/check-design-tokens.mjs` | `styles/vars.css` and `design-system/design-tokens.md` agree, both ways |
+| `node tools/check-design-tokens.mjs` | `styles/vars.css` and `designsystem/design-tokens.md` agree, both ways |
 | `node tools/check-settings-headings.mjs` | no settings heading hides itself from players who can see settings under it |
 | `node tools/check-card-contracts.mjs` | a consumer cannot inject presentation into a chat card: prose is escaped, and caller-supplied colour stays confined to data-visualisation parts |
 | `node tools/check-card-text.mjs` | card copy conventions |
@@ -124,7 +124,7 @@ differences from what is written below, both decided rather than drifted:
 - **The folders are `api/`, `architecture/`, `designsystem/`, `primers/`, `userguides/`, and `plans/`.**
   `primers/` has landed and holds what `guides/` used to: everything a developer needs that is *not* this
   module -- Foundry, the game system, a consumer's side of the boundary, the suite's conventions.
-  `design-system/` still awaits its rename and `userguides/` is not written yet; both are tracked in
+  `designsystem/` has landed too; `userguides/` is not written yet, tracked in
   `documentation/TODO-GLOBAL.md` under "Suite-wide documentation standard".
 
 This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that

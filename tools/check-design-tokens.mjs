@@ -22,7 +22,7 @@ import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const VARS = path.join(ROOT, 'styles', 'vars.css');
-const DOC = path.join(ROOT, 'documentation', 'design-system', 'design-tokens.md');
+const DOC = path.join(ROOT, 'documentation', 'designsystem', 'design-tokens.md');
 
 // ---- source of truth ----
 function readVars() {

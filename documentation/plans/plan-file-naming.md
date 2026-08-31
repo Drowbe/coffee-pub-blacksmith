@@ -1,7 +1,7 @@
 # Plan: File Naming
 
 **Status: Planned.** Nothing renamed yet under this plan. It exists to be dismantled: the settled
-convention goes to `documentation/design-system/design-patterns.md` and to `CLAUDE.md`, the work goes to
+convention goes to `documentation/designsystem/design-patterns.md` and to `CLAUDE.md`, the work goes to
 `TODO.md`, and the history goes to `CHANGELOG.md`.
 
 Written 2026-08-15, prompted by a real question nobody could answer from the filename: does

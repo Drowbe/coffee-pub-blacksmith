@@ -1,4 +1,4 @@
-# Scene Geography and Environment
+# Scene Geography and Habitat
 
 **Status: Workstreams 1 and 2 implemented and verified live (2026-08-31). Workstream 3 in progress and
 GATING the 13.22.0 release. Workstream 4 planned.** Live scaffolding.
@@ -27,7 +27,7 @@ facts about a place are currently scattered across three owners, and none of tho
 
 1. **Geography** (realm / region / site / area) lives in four world settings and describes the campaign, not
    any particular scene.
-2. **Environment** (habitat, biome) lives in Artificer's scene flags, owned by a harvesting module.
+2. **Habitat** (habitat, biome) lives in Artificer's scene flags, owned by a harvesting module.
 3. **Reputation** lives in a world setting keyed by scene id, mirroring scene data it does not own.
 
 The goal is one answer to "what do we know about this place", stored on the place, readable through the API.
@@ -65,9 +65,11 @@ link between a Location journal and the scene it describes, and it is a string m
 `renderSceneConfig` handler anywhere in this module; the only scene UI touch is click behavior in
 [manager-navigation.js](../../scripts/manager-navigation.js). Scene metadata is greenfield here.
 
-### Environment is owned by Artificer and read raw by Minstrel
+### Habitat is owned by Artificer and read raw by Minstrel
 
-Artificer defines the vocabulary as a fixed twelve-value constant, `OFFICIAL_BIOMES`
+Artificer defines the vocabulary as a fixed twelve-value list, reached through `getBiomeVocabulary()`
+(renamed from a bare `OFFICIAL_BIOMES` constant on 2026-08-31, when it became an accessor so it could
+resolve Blacksmith's list at call time rather than capturing a fallback at module scope)
 (`coffee-pub-artificer/scripts/schema-ingredients.js:36`): MOUNTAIN, ARCTIC, PLANAR, COASTAL, SWAMP, DESERT,
 UNDERDARK, FOREST, UNDERWATER, GRASSLAND, URBAN, HILL. Selections are stored at
 `flags.coffee-pub-artificer.scene.habitats`, alongside twelve Artificer-specific keys — `componentTypes`,
@@ -124,7 +126,7 @@ One flag on the Scene document, `coffee-pub-blacksmith.geography`:
     region: '',
     site: '',
     area: '',
-    environment: [],      // values from the canonical vocabulary
+    habitat: [],      // values from the canonical vocabulary
     reputation: null,     // -100..+100; key absent means never set
     locationUuid: null    // JournalEntryPage uuid of the Location entry; set by the Area importer, no picker in v1
 }
@@ -143,7 +145,7 @@ Storage is a document flag rather than a world setting so the data travels with 
 duplicate, and compendium round-trip; needs no orphan cleanup when a scene is deleted; and does not serialize
 every write through one world-setting document.
 
-A note on Tags, since the word came up. Blacksmith should own the environment vocabulary as a shared,
+A note on Tags, since the word came up. Blacksmith should own the habitat vocabulary as a shared,
 reusable, labeled list, and TagWidget is a reasonable picker for it. It should not be routed through
 `TagManager` storage, which keeps assignments in a world setting keyed by `{contextKey, recordId}`
 ([manager-tags.js:294](../../scripts/manager-tags.js#L294)) — that would take the data off the document and
@@ -187,21 +189,21 @@ scene flag, and the world settings are written only by the settings UI. Carry `l
 have the Area importer populate it when one run creates both a scene and a Location entry (settled question 6);
 no picker in v1.
 
-**Environment is a checkbox group, so it carries the trap documented in
+**Habitat is a checkbox group, so it carries the trap documented in
 [api-scene-config.md](../api/api-scene-config.md): an unticked box submits `null`, not nothing, and a
-`filter(Boolean)` normalizer turns those into the literal string `"null"`. Filter the environment array
+`filter(Boolean)` normalizer turns those into the literal string `"null"`. Filter the habitat array
 against the vocabulary, never against truthiness.** This is ours before it is Artificer's -- the geography
 tab owns the habitat checkboxes after the move.
 
-### 3. Environment ownership move
+### 3. Habitat ownership move
 
-`OFFICIAL_BIOMES` moves to Blacksmith and is exposed through the API as a closed constant, not a registry
+The vocabulary moves to Blacksmith and is exposed through the API as a closed constant, not a registry
 (settled question 1). The Habitats
 fieldset leaves the Artificer tab and appears in the Geography tab. Every other fieldset in Artificer's tab
 stays, because component types, harvesting skills, DC thresholds, gather spots, and discovery radius only mean
 anything if you are harvesting.
 
-Artificer reads environment from the API instead of defining it. Minstrel reads the same API and drops its
+Artificer reads habitat from the API instead of defining it. Minstrel reads the same API and drops its
 `isArtificerAvailable()` gate, which makes its habitat automation work standalone — a user-visible fix, not
 only a refactor.
 
@@ -250,10 +252,10 @@ deliberately, so nothing here reads as still up for grabs. Q1, Q4, Q6 and Q7 wer
 and Q3 came back from Artificer the same day, and Q10 is new -- it was not on the original list and Artificer's
 reply raised it.
 
-- **Q1. The environment vocabulary is a closed enum of the twelve.** It matches every consumer that exists, and
+- **Q1. The habitat vocabulary is a closed enum of the twelve.** It matches every consumer that exists, and
    it is the safe direction on the API: a constant can become a pre-populated registry later without breaking
    anyone, where a registry cannot be narrowed back to a constant. This also retires the "what does an unknown
-   environment do to harvest tables" question -- nothing can be unknown if the list cannot grow. If a world
+   habitat do to harvest tables" question -- nothing can be unknown if the list cannot grow. If a world
    with a Feywild forces the issue later, that is a registry proposal with its own plan.
 - **Q2. Canonical case is lowercase, and every consumer normalizes at the boundary rather than trusting the
    stored form.** The second half is the load-bearing half, and it came from Artificer. Habitat is not only a
@@ -301,7 +303,7 @@ reply raised it.
    records geography nowhere, which is defensible but silent. Decide during Workstream 2 whether that
    warrants a notice.
 
-- **Q10. The environment constant exposes `{key, label}` pairs, not bare strings.** The key is what is stored
+- **Q10. The habitat constant exposes `{key, label}` pairs, not bare strings.** The key is what is stored
    and joined on; the label is what a GM reads. A bare lowercase array would put "underdark" in front of
    people, but display is the smaller half of the reason. In Artificer the stored form is also the round-trip
    key -- `data-biome="{{name}}"` carries the same value the button displays, and the click handler validates
@@ -349,7 +351,7 @@ expected types.
 habitats appear unchanged in the Geography tab. Artificer gather on a migrated scene yields the same component
 families as before. With Artificer disabled entirely, Minstrel's habitat-conditioned automation fires — this
 is the specific regression the move exists to fix, so test it explicitly. Export a migrated scene to a
-compendium, re-import it, and confirm environment survives the round-trip.
+compendium, re-import it, and confirm habitat survives the round-trip.
 
 **Workstream 4.** On a world with existing per-scene reputation, run the migration and confirm the menubar
 readout is unchanged for every scene that had a value. Confirm a scene that never had a value reports unset
