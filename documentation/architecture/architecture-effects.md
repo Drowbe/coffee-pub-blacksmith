@@ -1,5 +1,7 @@
 # Active Effects Architecture
 
+**Audience:** contributors to the Blacksmith codebase.
+
 The Active Effects subsystem is a small shared normalization layer, not an effect engine. Its purpose is to stop Blacksmith, Crier, Bibliosoph, and future Coffee Pub modules from independently filtering and formatting the same Foundry Active Effect documents.
 
 ## Components

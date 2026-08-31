@@ -1,6 +1,6 @@
 # World Clock
 
-**Audience: developers working on Blacksmith.**
+**Audience:** developers working on Blacksmith.
 
 How the in-world clock in the menubar is built and why. The public surface is described in
 `documentation/api/api-menubar.md` where it touches the menubar; this document covers the feature itself.
@@ -455,7 +455,7 @@ and loses at most one commit of world time. Nothing durable holds a partial seco
 
 `TimeDriver` knows nothing about modes: it advances at a rate until stopped. The interruptible rest needs
 the same engine running to a *target* rather than open-endedly, which is why the two are separate classes
-in one file rather than one class. See `documentation/plans/plan-interruptible-rest.md`.
+in one file rather than one class.
 
 The dependency runs clock -> modes and never back. `TimeModes.onChange(callback)` is how the clock hears
 about a switch, which keeps the pair from being circular -- the same shape as the option providers the

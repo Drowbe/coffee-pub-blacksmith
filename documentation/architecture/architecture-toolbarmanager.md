@@ -62,7 +62,7 @@ This is the asymmetry to know about. Both paths read the same registry, but they
 
 `getFoundryToolbarTools()` **never reads `tool.visible`**. A tool registered with `{ visible: () => false, onFoundry: true }` is hidden from Blacksmith's toolbar and still rendered in Foundry's. A consumer using `visible` as a kill-switch therefore ships a button they believe is off.
 
-The code comment at `:116-117` presents the omission as deliberate, but `api-toolbar.md` has always documented `visible` as a general gate. Until that is reconciled, `onFoundry` (which accepts a boolean or a function) is the only reliable Foundry-side gate. Treat this as an open contract question, not a settled design — it is listed in `known-issues.md`.
+The code comment at `:116-117` presents the omission as deliberate, but `api-toolbar.md` has always documented `visible` as a general gate. Until that is reconciled, `onFoundry` (which accepts a boolean or a function) is the only reliable Foundry-side gate. Treat this as an open contract question, not a settled design.
 
 `gmOnly` and `leaderOnly` behave as a hierarchy: GMs see everything, leaders see leader tools plus general ones, players see neither.
 

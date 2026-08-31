@@ -1,5 +1,7 @@
 # Architecture — Toast System
 
+**Audience:** contributors to the Blacksmith codebase.
+
 How the on-screen toast primitive is built and why it is shaped the way it is. The public surface
 is documented in `api/api-toast.md`; this doc covers the mechanism and the decisions.
 

@@ -23,7 +23,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -38,103 +38,77 @@ const REPO_SLUG = REPO_URL.replace(/^https?:\/\/github\.com\//i, '');
 const WIKI_URL = process.env.WIKI_URL || `${REPO_URL}.wiki.git`;
 // Assets are rewritten to raw.githubusercontent so images render on the wiki, which cannot resolve a
 // repo-relative path. Source docs keep the relative path, which renders in the repo and in an editor.
-const RAW_BASE = `https://raw.githubusercontent.com/${REPO_SLUG}/master/documentation/assets`;
+// The branch is read from the repository, so a module on `main` and a module on `master` both work.
+// Hardcoding it silently breaks every image on the wiki of any module that does not use this one's.
+function defaultBranch() {
+  for (const args of [
+    ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'],
+    ['rev-parse', '--abbrev-ref', 'HEAD'],
+  ]) {
+    try {
+      const out = execFileSync('git', ['-C', ROOT, ...args], { encoding: 'utf8' }).trim();
+      if (out && out !== 'HEAD') return out.replace(/^origin\//, '');
+    } catch { /* not a checkout, or no origin: fall through */ }
+  }
+  return 'master';
+}
+const BRANCH = defaultBranch();
+const RAW_BASE = `https://raw.githubusercontent.com/${REPO_SLUG}/${BRANCH}/documentation/assets`;
 const ASSET_LINK = /(?:^|\/)assets\/([^/\\)]+)$/i;
 
-// ---- Round-1 publish set. Add held docs here as they are finished and verified clean. ----
-const PUBLISH = [
-  // Reference
-  'known-issues.md',
-  // API
-  'api/api-campaign.md',
-  'api/api-canvas.md',
-  'api/api-chatcards.md',
-  'api/api-compendiums.md',
-  'api/api-dialog.md',
-  'api/api-entity-list.md',
-  'api/api-quantity-split.md',
-  'api/api-effects.md',
-  'api/api-contextmenu.md',
-  'api/api-core.md',
-  'api/api-create-journal-entry.md',
-  'api/api-gm-request.md',
-  'api/api-geography.md',
-  'api/api-gmnotes.md',
-  'api/api-health.md',
-  'api/api-hookmanager.md',
-  'api/api-importer.md',
-  'api/api-inventory.md',
-  'api/api-menubar.md',
-  'api/api-notes.md',
-  'api/api-party.md',
-  'api/api-pins.md',
-  'api/api-requestroll.md',
-  'api/api-rolls.md',
-  'api/api-scene-config.md',
-  'api/api-sockets.md',
-  'api/api-stats.md',
-  'api/api-tags.md',
-  'api/api-toast.md',
-  'api/api-tokens.md',
-  'api/api-toolbar.md',
-  'api/api-window.md',
-  'api/api-worldclock.md',
-  // Primers
-  // User guides
-  'userguides/userguide-getting-started.md',
-  // Architecture
-  'architecture/architecture-ownership.md',
-  'architecture/architecture-blacksmith.md',
-  'architecture/architecture-calendar.md',
-  'architecture/architecture-chatcards.md',
-  'architecture/architecture-compendiums.md',
-  'architecture/architecture-encounter.md',
-  'architecture/architecture-gm-request.md',
-  'architecture/architecture-gmnotes.md',
-  'architecture/architecture-hookmanager.md',
-  'architecture/architecture-importer.md',
-  'architecture/architecture-inventory.md',
-  'architecture/architecture-menubar.md',
-  'architecture/architecture-notes.md',
-  'architecture/architecture-pins.md',
-  'architecture/architecture-rest.md',
-  'architecture/architecture-rolls.md',
-  'architecture/architecture-stats.md',
-  'architecture/architecture-socketmanager.md',
-  'architecture/architecture-tags.md',
-  'architecture/architecture-timers.md',
-  'architecture/architecture-toast.md',
-  'architecture/architecture-token-interactions.md',
-  'architecture/architecture-token-naming.md',
-  'architecture/architecture-tool-windows.md',
-  'architecture/architecture-toolbarmanager.md',
-  'architecture/architecture-window.md',
-  'architecture/architecture-worldclock.md',
-  'architecture/architecture-xp.md',
-  // Design system
-  'designsystem/design-tokens.md',
-  'designsystem/design-components.md',
-  'designsystem/design-patterns.md',
-  'designsystem/design-extending.md',
-];
+// ---- What publishes: folder membership, not a hand-kept list. ----
+//
+// Every .md in a published folder goes live by existing. The previous version of this file carried a
+// list of 68 paths and nothing published until somebody added a line to it -- which is how
+// architecture-effects.md stayed written, finished, and invisible for months. Convention publishing
+// fails in the direction people notice instead.
+//
+// `global/` is the hub's alone: suite-wide documents are authored once here and LINKED by the
+// satellites, never copied. A satellite has no such folder, so this resolves to nothing there.
+const HUB = 'coffee-pub-blacksmith';
+const MODULE_ID = MODULE.id;
+export const IS_HUB = MODULE_ID === HUB;
 
-// Held out of round 1 (documented so intent is explicit; move into PUBLISH when ready):
-//   Global:       global/* is suite-wide knowledge, authored once here and linked by the satellites,
-//                 so it publishes from the hub only. Both files are held for now:
-//                 global-documentation-standard.md still describes a publisher and a checker that do
-//                 not exist yet, and publishing a spec as if it were built is the failure it warns
-//                 about. Unhold it when it is reconciled to what the tooling actually does.
-//   Also held:    applicationv2-window/guidance-applicationv2.md (needs audit — see TODO.md)
-//   Internal:     TODO.md, TODO-GLOBAL.md, plans/* (not consumer docs)
-//   Out of tree:  testing docs moved to /testing alongside the harness. This script only
-//                 scans documentation/, so they are now unpublishable by construction
-//                 rather than by being left off the PUBLISH list.
-//   Missing doc:  api-flags.md referenced in TODO but not written yet
+export const PUBLISHED_FOLDERS = ['api', 'architecture', 'designsystem', 'userguides', ...(IS_HUB ? ['global'] : [])];
+export const ROOT_PAGES = ['known-issues.md'];
+// home.md becomes the Home page. It is not in ROOT_PAGES as well, or it would publish twice.
+export const HOME_SRC = 'home.md';
 
-// The wiki front door. It is the Home page only -- it is not in PUBLISH as well, or it would publish
-// twice under two names.
-const HOME_SRC = 'home.md';
+// ---- HOLD: deliberately withheld, each with a reason. A hold without a reason is not a hold. ----
+export const HOLD = new Map([
+  ['global/global-documentation-standard.md',
+   'specifies a publisher and a structure checker that are still being built; publishing a spec as though it were shipped is the failure it warns about'],
+  ['global/global-dnd5e-conditions.md',
+   'held pending the decision on whether platform knowledge we do not own publishes from the hub at all'],
+]);
 
+export function collect() {
+  const out = [];
+  for (const dir of PUBLISHED_FOLDERS) {
+    const abs = path.join(DOCS, dir);
+    if (!fs.existsSync(abs)) continue;
+    for (const f of fs.readdirSync(abs).sort()) {
+      if (f.endsWith('.md') && !HOLD.has(`${dir}/${f}`)) out.push(`${dir}/${f}`);
+    }
+  }
+  for (const f of ROOT_PAGES) {
+    if (fs.existsSync(path.join(DOCS, f)) && !HOLD.has(f)) out.push(f);
+  }
+  return out;
+}
+
+// A HOLD entry naming a file that no longer exists is stale, and stale holds are how a document stays
+// invisible after the reason for hiding it is gone.
+function checkHold() {
+  const stale = [...HOLD.keys()].filter((rel) => !fs.existsSync(path.join(DOCS, rel)));
+  if (stale.length) {
+    console.warn(`
+HOLD names ${stale.length} file(s) that do not exist -- remove the entry:`);
+    for (const rel of stale) console.warn('  ' + rel);
+  }
+}
+
+const PUBLISH = collect();
 const pageName = (p) => path.basename(p, '.md');
 const publishedPages = new Set([...PUBLISH.map(pageName), 'Home']);
 
@@ -159,15 +133,16 @@ function label(rel) {
 //
 // The rule used to live only in prose, and prose is why it was misapplied at least once. The predicate
 // below is the whole of it: rewrite only when the TARGET is the hub and WE are not the hub. In
-// Blacksmith own copy THIS_MODULE === HUB, so it never rewrites and the hub cannot link out even by
-// accident. A satellite copying this file changes THIS_MODULE and gets the other two directions right
-// for free.
+// Blacksmith's own copy IS_HUB is true, so it never rewrites and the hub cannot link out even by
+// accident. A satellite copies this file unchanged and gets the other two directions right for free,
+// because the identity comes from its own module.json rather than from a constant it must remember
+// to edit.
 //
-// FRAGILITY WORTH KNOWING: an inbound link targets a page NAME from the hub PUBLISH list. A doc that
-// leaves PUBLISH, or is renamed, silently 404s every inbound link in the suite. PUBLISH is therefore a
-// contract with the satellites, not just a local choice.
-const HUB = 'coffee-pub-blacksmith';
-const THIS_MODULE = 'coffee-pub-blacksmith';
+// FRAGILITY WORTH KNOWING: an inbound link targets a page NAME. A doc that is renamed, or dropped
+// into HOLD, silently 404s every inbound link in the suite. The publish set is therefore a contract
+// with the satellites, not just a local choice.
+// HUB, MODULE_ID and IS_HUB are declared above, derived from module.json. Nothing here is hardcoded
+// per module: a satellite copies this file unchanged and gets the right answer.
 const HUB_WIKI = 'https://github.com/Drowbe/coffee-pub-blacksmith/wiki';
 const SIBLING_DOC = /coffee-pub-([a-z]+)[\\/]documentation[\\/](?:[^)]*[\\/])?([^/\\)]+)\.md(#.+)?$/i;
 
@@ -176,7 +151,7 @@ function siblingWikiUrl(target) {
   if (!m) return null;
   const targetModule = `coffee-pub-${m[1].toLowerCase()}`;
   if (targetModule !== HUB) return null;      // -> satellite: refused, whoever is asking
-  if (THIS_MODULE === HUB) return null;       // hub -> anywhere: refused
+  if (IS_HUB) return null;                    // hub -> anywhere: refused
   return `${HUB_WIKI}/${m[2]}${m[3] || ''}`;
 }
 
@@ -239,40 +214,29 @@ function readRewriteWrite(rel, outName) {
 }
 
 function buildSidebar() {
-  const group = (prefix) =>
+  const linksIn = (prefix) =>
     PUBLISH.filter((p) => p.startsWith(prefix))
-      .map((rel) => `- [${label(rel)}](${pageName(rel)})`)
-      .join('\n');
-  // Top-level docs (no api/ or architecture/ prefix) go under Reference.
+      .map((rel) => `- [${label(rel)}](${pageName(rel)})`);
+  // A group whose every document is held renders as a bare heading with nothing under it, which reads
+  // as a broken sidebar rather than an empty category. Emit the heading only when it has links.
+  const section = (title, links) => (links.length ? [`### ${title}`, links.join('\n'), ''] : []);
   const topLevel = PUBLISH.filter((p) => !p.includes('/'))
-    .map((rel) => `- [${label(rel)}](${pageName(rel)})`)
-    .join('\n');
+    .map((rel) => `- [${label(rel)}](${pageName(rel)})`);
   return [
-    '### Getting started',
-    '- [Home](Home)',
-    topLevel,
-    '',
-    '### User guides',
-    group('userguides/'),
-    '',
-    '### Global',
-    group('global/'),
-    '',
-    '### API',
-    group('api/'),
-    '',
-    '### Architecture',
-    group('architecture/'),
-    '',
-    '### Design system',
-    group('designsystem/'),
-    '',
+    ...section('Getting started', ['- [Home](Home)', ...topLevel]),
+    ...section('User guides', linksIn('userguides/')),
+    ...section('Global', linksIn('global/')),
+    ...section('API', linksIn('api/')),
+    ...section('Architecture', linksIn('architecture/')),
+    ...section('Design system', linksIn('designsystem/')),
   ].join('\n');
 }
 
 function build() {
   fs.rmSync(OUT, { recursive: true, force: true });
   fs.mkdirSync(OUT, { recursive: true });
+
+  checkHold();
 
   const downgrades = [];
   for (const rel of PUBLISH) downgrades.push(...readRewriteWrite(rel, `${pageName(rel)}.md`));
@@ -335,10 +299,15 @@ function publish(wikiPathArg) {
   console.log(`  git -C "${wiki}" push`);
 }
 
-const mode = process.argv[2] || 'build';
-if (mode === 'build') build();
-else if (mode === 'publish') publish(process.argv[3]);
-else {
-  console.error('usage: node tools/wiki-sync.mjs [build | publish [wikiClonePath]]');
-  process.exit(1);
+// Run the CLI only when invoked directly. check-docs-structure.mjs imports the publish rules from
+// here rather than restating them -- two copies of "what publishes" is exactly the drift this file
+// exists to prevent -- and an unguarded dispatch would run a full build on import.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const mode = process.argv[2] || 'build';
+  if (mode === 'build') build();
+  else if (mode === 'publish') publish(process.argv[3]);
+  else {
+    console.error('usage: node tools/wiki-sync.mjs [build | publish [wikiClonePath]]');
+    process.exit(1);
+  }
 }

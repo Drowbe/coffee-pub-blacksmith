@@ -8,7 +8,6 @@ This document describes the **Window API**: how to build standard editor windows
 
 **Related docs:**
 - **documentation/architecture/architecture-window.md** — Internal architecture (zone contract, registry, base class).
-- **documentation/applicationv2-window/guidance-applicationv2.md** — How to build an Application V2 window (Handlebars, PARTS, delegation, scroll).
 - A working example window ships in the `coffee-pub-prototype` module, as loadable code rather than a copy-paste block.
 
 ---
@@ -69,7 +68,7 @@ The bridge is the supported path for this one purpose. Do not deep-link anything
 
 ## Zone Contract (Summary)
 
-Windows that follow the Blacksmith contract use up to **five zones**. Only **Body** is required; the rest are optional.
+Windows that follow the Blacksmith contract use up to **six zones**. Only **Body** is required; the rest are optional.
 
 | Zone | Required? | Description |
 |------|-----------|-------------|
@@ -80,7 +79,7 @@ Windows that follow the Blacksmith contract use up to **five zones**. Only **Bod
 | **Body** | Yes | Scrollable area; **you inject your content here** (forms, lists, grids, etc.). |
 | **Action bar** | Optional | Bottom bar: secondary left, primary right. |
 
-See [the zone diagram](../assets/primer-applicationv2-zones.webp) for the layout and [real windows](../assets/primer-applicationv2-samples.png) for how much the combinations vary.
+The canonical markup for these zones is `templates/window-template.hbs`; each zone is named by a `blacksmith-window-template-*` class there.
 
 ---
 
@@ -657,7 +656,7 @@ static get DEFAULT_OPTIONS() {
 
 ### 1. Build Your Window (Application V2)
 
-Follow **documentation/applicationv2-window/guidance-applicationv2.md** to create an Application V2 window: `HandlebarsApplicationMixin(ApplicationV2)`, PARTS, `getData`, document-level delegation, scroll save/restore. The `coffee-pub-prototype` module carries a working example window to start from; include only the zones you need (option bar, header, body, action bar).
+Build an Application V2 window with `HandlebarsApplicationMixin(ApplicationV2)`, PARTS, `getData`, document-level delegation, and scroll save/restore. The `coffee-pub-prototype` module carries a working example window to start from; include only the zones you need (option bar, header, tools, body, action bar).
 
 ### 2. Access the API
 
@@ -835,7 +834,7 @@ static ACTION_HANDLERS = {
 
 - **`registerWindow` / `openWindow` undefined** — Window API not loaded yet. Wait for `ready` and check `game.modules.get('coffee-pub-blacksmith')?.api?.registerWindow`.
 - **Window doesn't open** — Ensure the window type is registered before calling `openWindow`. Check that `descriptor.open` returns or resolves to the Application instance if you need a reference.
-- **Layout or behavior issues** — Follow **documentation/applicationv2-window/guidance-applicationv2.md** (delegation, scroll save/restore, `_getRoot()`, safe merge of `DEFAULT_OPTIONS`).
+- **Layout or behavior issues** — Check document-level delegation, scroll save/restore, `_getRoot()`, and a safe merge of `DEFAULT_OPTIONS`.
 - **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use `data-action` with `ACTION_HANDLERS` (see "Application V2: Body injection and scripts" under Best Practices) or bind on `this.element` in `_onRender`.
 - **A control acts on the wrong window** — two instances of the class are open and the handler is resolving the instance from a shared reference instead of its third argument. See "`ACTION_HANDLERS` and the instance argument".
 - **`Cannot assign to read only property 'toolTitlebar'`** — Foundry freezes finalized Application V2 options. Do not mutate `this.options.toolTitlebar`; call `await app.setToolTitlebarMode('full' | 'micro')`.
@@ -960,4 +959,4 @@ the button does not render, which is the correct behaviour for an optional integ
 
 ---
 
-*For internal architecture and implementation details, see **documentation/architecture/architecture-window.md**. For step-by-step window implementation, see **documentation/applicationv2-window/guidance-applicationv2.md**.*
+For internal architecture and implementation details, see [architecture-window.md](../architecture/architecture-window.md).

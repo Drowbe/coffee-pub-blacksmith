@@ -1,6 +1,6 @@
 # Rest
 
-**Audience: developers working on Blacksmith.**
+**Audience:** developers working on Blacksmith.
 
 How resting is extended and why. Blacksmith implements no rest mechanics; this covers what it adds around
 the system's, and the client boundary that shape forces.

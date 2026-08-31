@@ -1,5 +1,7 @@
 # GM Notes Architecture
 
+**Audience:** contributors to the Blacksmith codebase.
+
 ## Purpose
 
 GM Notes is Blacksmith's document-annotation layer. It attaches GM-authored rich text to an existing Foundry Document without repurposing the document's own content fields. Items, Actors, Journal Entries, Journal Pages, and module-owned document sheets share the same storage and API.

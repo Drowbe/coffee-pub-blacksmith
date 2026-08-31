@@ -1,6 +1,8 @@
 # Blacksmith Socket API Documentation
 
-**For external module developers.** This document covers how other FoundryVTT modules can use Blacksmith's socket management system for cross-client communication.
+**Audience:** external module developers.
+
+This document covers how other FoundryVTT modules can use Blacksmith's socket management system for cross-client communication.
 
 **Audience:** Developers integrating with Blacksmith and leveraging the exposed API.
 

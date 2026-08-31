@@ -1,6 +1,6 @@
 # Getting Started with Blacksmith
 
-**Audience: players and GMs installing Coffee Pub Blacksmith for the first time.**
+**Audience:** players and GMs installing Coffee Pub Blacksmith for the first time.
 
 What Blacksmith needs, how to install it, and what changes on screen the moment it is enabled.
 

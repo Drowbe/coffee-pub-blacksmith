@@ -1,6 +1,8 @@
 # Architecture: Module Ownership
 
-**What this answers:** when you build something new for the Coffee Pub suite, which module does it go in?
+**Audience:** anyone deciding which module a new feature belongs in.
+
+when you build something new for the Coffee Pub suite, which module does it go in?
 
 This exists because that question used to be re-argued from scratch every time. The rules below are not new policy — they describe what the suite already does when it is working correctly. Where the code disagrees with them, the code is the thing that is wrong.
 

@@ -1,6 +1,6 @@
 # Coffee Pub Blacksmith
 
-**Audience: everyone -- players, GMs, contributors, and developers building against the module.**
+**Audience:** everyone -- players, GMs, contributors, and developers building against the module.
 
 Quality of life, gameplay frameworks, automation, and aesthetic improvements for D&D 5e on Foundry
 VTT, and the API hub of the Coffee Pub suite: the other Coffee Pub modules declare Blacksmith as a

@@ -134,7 +134,7 @@ External modules drive roll *requests* through `openRequestRollDialog`. They rea
 
 Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `scripts/utility-roll-classification.js` and exposed via `scripts/api-rolls.js`.
 
-**Previously duplicated in four places** (migration in progress — see `../plans/plan-rolls-classification.md`):
+**Previously duplicated in four places**, which the classifier consolidates:
 
 | Site | Role |
 |---|---|

@@ -403,10 +403,16 @@ prose, not a styled callout -- but it is transitional: when the code is fixed, t
 to the new reality.
 
 **Reference direction: stable to stable only.** A permanent document may cite code (`file.js:120`)
-and another permanent document. It must never point a reader at `TODO.md`, `known-issues.md`, or a
-plan, and must never carry an "Open work" or "Remaining work" section. Those lists exist to be
-emptied, so every inbound reference is a future broken pointer, and it breaks at exactly the moment
-somebody fixes the thing.
+and another permanent document. It must never point a reader at `TODO.md`, `TODO-GLOBAL.md`, or a
+plan, and must never carry an "Open work" or "Remaining work" section. Those never publish, so every
+inbound reference is a future broken pointer, and it breaks at exactly the moment somebody fixes the
+thing.
+
+**`known-issues.md` is the one exception, and only from the front door.** It publishes, and the file
+itself is emptied rather than deleted, so a link to it never rots -- `home.md` routes to it exactly
+as it routes to the API. But an API or architecture document still must not cite it: a spec that says
+"this is listed in known-issues" has wandered from behaviour into fix status, which the
+behaviour-not-commentary rule already forbids.
 
 **This bans the reference, not merely the hyperlink.** A bare mention in backticks is the same debt
 as a link, and it is the form the debt actually takes, because the publisher downgrades a link to an

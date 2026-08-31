@@ -2,7 +2,7 @@
 
 **Audience:** Contributors to the Blacksmith codebase.
 
-This document describes the Application V2 window system: the zone contract, the window registry, the base class, and how it fits with Blacksmith's toolbar/menubar and its own windows. For the public API other modules use to register and open windows, see **[api-window.md](../api/api-window.md)**. For implementation guidance and copy-paste examples, see **documentation/applicationv2-window/**.
+This document describes the Application V2 window system: the zone contract, the window registry, the base class, and how it fits with Blacksmith's toolbar/menubar and its own windows. For the public API other modules use to register and open windows, see **[api-window.md](../api/api-window.md)**.
 
 ---
 
@@ -22,17 +22,18 @@ Design principles:
 
 ## 2. Zone contract
 
-All windows that follow the Blacksmith contract use up to five zones. The canonical diagram is [the zone layout](../assets/primer-applicationv2-zones.webp); real-world variability (which zones appear in which windows) is in [real windows](../assets/primer-applicationv2-samples.png).
+All windows that follow the Blacksmith contract use up to six zones. The canonical markup is `templates/window-template.hbs`, where each zone is a `blacksmith-window-template-*` class; which zones a given window uses varies widely.
 
 | Zone | Required? | Description |
 |------|-----------|-------------|
 | **Title bar** | Yes (Foundry) | Foundry chrome: window title, minimize/maximize/close. Not part of the consumer's template. |
 | **Option bar** | Optional | Filters, toggles, or global options (e.g. "REFRESH CACHE", "TOKENS"/"PORTRAITS", "OmniRoll", "Show DC"). |
 | **Header** | Optional | Icon, title block (title + subtitle), optional "header-right" (toggles, values, settings). Omit entirely for minimal windows (e.g. Macros, Dice Tray). |
+| **Tools** | Optional | Bar below the header: a single content area for search, filters, or progress. |
 | **Body** | Yes | Scrollable main area. Consumers inject their content here. Many layouts: forms, lists, grids, rich text, multi-column, keypads. |
 | **Action bar** | Optional | Fixed at bottom; left = secondary, right = primary. Omit for display-only or toolbar-style windows. |
 
-Implementation details (template structure, CSS, delegation, scroll save/restore) are in **documentation/applicationv2-window/guidance-applicationv2.md**.
+Implementation details -- template structure, CSS, delegation, and scroll save/restore -- are in `api/api-window.md`, which carries the contract.
 
 ---
 
@@ -173,7 +174,6 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 ### 4.3 Documentation and assets
 
-- **documentation/applicationv2-window/** — guidance, zone contract, example template and script, zone diagram (`blacksmith-windows-zones.webp`), and window samples (`window-samples.png`). The single place for how to build and register an Application V2 window.
 
 ---
 
@@ -181,11 +181,8 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 | Item | Purpose |
 |------|---------|
-| **documentation/applicationv2-window/guidance-applicationv2.md** | Implementation guidance: HandlebarsApplicationMixin(ApplicationV2), PARTS, getData, delegation, scroll, zone structure. |
-| [Zone layout diagram](../assets/primer-applicationv2-zones.webp) | Canonical zone layout. |
-| [Real windows](../assets/primer-applicationv2-samples.png) | Optional zones and body layout variety across shipped windows. |
 | `coffee-pub-prototype` | Carries a working example window -- template and Application V2 class with delegation, scroll save/restore, and static actions -- as loadable code rather than a copy-paste block. |
-| **templates/window-template.hbs** | Canonical core template for the zone contract; uses `blacksmith-window-v2-*` classes. New windows copy from here or the doc example. |
+| **templates/window-template.hbs** | Canonical core template for the zone contract; uses `blacksmith-window-template-*` classes. New windows copy from here. |
 | **scripts/window-tool-base.js** | Compact tool/palette Application V2 base and stable style identifiers. |
 | **templates/window-tool-template.hbs** | Lightweight tool template: optional toolbar, body, optional footer. |
 | **styles/window-tool.css** | Compact native-frame and tool-layout presentation. |

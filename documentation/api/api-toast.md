@@ -1,5 +1,7 @@
 # Toast API
 
+**Audience:** module authors showing a short on-screen message.
+
 On-screen transient toasts, exposed as `module.api.toast`. A toast pops up over the play area
 (top-center stack), shows a title/subtitle with an icon or image, and auto-dismisses — optionally
 clickable to run a consumer action.

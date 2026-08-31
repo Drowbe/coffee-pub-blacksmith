@@ -1,6 +1,8 @@
 # Design Patterns and Conventions
 
-**For contributors to Blacksmith and authors of closely-integrated modules.** How the stylesheets and
+**Audience:** contributors to Blacksmith and authors of closely-integrated modules.
+
+How the stylesheets and
 scripts are organized, what the naming conventions are, and the cross-cutting layers -- stacking order and
 motion.
 

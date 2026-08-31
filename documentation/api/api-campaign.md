@@ -1,5 +1,7 @@
 # Campaign API
 
+**Audience:** module authors consuming Blacksmith's campaign context.
+
 Blacksmith exposes a normalized campaign API for other Coffee Pub modules so they do not need to read raw settings or resolve party actors themselves.
 
 ## Access

@@ -1,6 +1,8 @@
 # Design Tokens
 
-**For module authors styling against Blacksmith.** The complete set of CSS custom properties Blacksmith
+**Audience:** module authors styling against Blacksmith.
+
+The complete set of CSS custom properties Blacksmith
 defines, what each one means, and how to consume or override them from another module.
 
 The authoritative definition is `styles/vars.css`. This page is checked against it by

@@ -1,5 +1,7 @@
 # Compendiums API
 
+**Audience:** module authors resolving content through the GM's compendium mapping.
+
 Blacksmith owns the **Compendium Mapping** the GM configures (which compendiums to use for monsters, items, spells, features, species/races, backgrounds, classes, subclasses, journals, roll tables, and in what priority order), and exposes that mapping, a name-to-UUID resolver built on top of it, and a multi-result search over the same indexes for browsable pickers.
 
 The mapping is entirely manual. Per type, the GM sets **Priority Slots** (`numCompendiums{Type}`, 0–20) and fills each slot from a dropdown; slot 1 is searched first. `getMapping()`, `getSelected()`, `getSearchOrder()`, and every resolver method report and use exactly that, and nothing else filters it — a compendium sitting in a slot is a compendium that gets searched. The only entry ever dropped is one whose pack no longer exists in the world.

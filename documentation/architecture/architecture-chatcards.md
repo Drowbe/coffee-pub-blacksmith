@@ -46,8 +46,8 @@ Everywhere else `tone` names a meaning and the theme decides what it looks like,
 retheme at all.
 
 `gauge` is the exception, and the exception is principled: on a gauge the colour encodes the value rather
-than emphasising it, so a fixed palette cannot express it. See the amendment to decision 5 in
-`../plans/plan-chat-cards.md` for the test that separates the two.
+than emphasising it, so a fixed palette cannot express it. The test that separates the two: if removing the
+colour would lose information rather than emphasis, the part may take a caller-supplied colour.
 
 Those colours reach a `style` attribute, so they go through `safeColour` in `scripts/manager-chat-cards.js`,
 which allows `#hex`, `rgb()`/`rgba()`, `hsl()`/`hsla()`, `var(--property)` and keywords, and drops anything
@@ -70,8 +70,9 @@ The `pips` centre and `rows` items accept one today. The shake keyframes live in
 A card is a list of parts; a part is not a list of parts. The one exception is `subject`, which carries a
 `meter` or a `gauge` because a subject and its standing are one idea -- and it renders that bar by calling
 `renderPart` on a real part rather than reimplementing one, so the nested bar cannot drift from the
-standalone. See decision 12 in `../plans/plan-chat-cards.md` for why the exception is stated rather than
-left to judgement.
+standalone. The exception is stated rather than left to judgement because "a subject and its standing are
+one idea" is the kind of argument that can be made for any pairing, and one stated exception is cheaper to
+police than a principle everybody reinterprets.
 
 ## The text pipeline
 

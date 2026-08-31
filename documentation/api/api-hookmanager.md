@@ -1,6 +1,8 @@
 # **Blacksmith Hook Manager API**
 
-**For external module developers.** This document covers the Hook Manager API for registering and managing FoundryVTT hooks through Coffee Pub Blacksmith. For general integration setup, see `api-core.md`.
+**Audience:** external module developers.
+
+This document covers the Hook Manager API for registering and managing FoundryVTT hooks through Coffee Pub Blacksmith. For general integration setup, see `api-core.md`.
 
 **Audience:** Developers integrating with Blacksmith and using the Hook Manager for event handling.
 

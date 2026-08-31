@@ -99,6 +99,7 @@ behavior:
 | `node tools/check-rest-clients.mjs` | the rest flow across **two clients**: a player's rest reaches the GM, one card carries both phases, grouped rests move the clock once |
 | `node tools/check-dnd5e-citations.mjs` | our `dnd5e.mjs:NNNN` pointers still refer to the dnd5e version they were verified against |
 | `node tools/check-imports.mjs` | every named import -- static and lazy -- names an export the target really has. A lazy one that does not is `undefined` until called, so it throws in Foundry at construction and nowhere earlier; a static one fails the whole module load, in the graph thirteen siblings import. `node --check` cannot see either, because it parses without resolving |
+| `node tools/check-docs-structure.mjs` | the documentation standard: folder layout, prefixes, the uniform header, the emoji ban, HOLD hygiene, and assets in both directions. Imports the publish rules from `wiki-sync.mjs` rather than restating them |
 | `node tools/check-note-reminders.mjs` | the note reminders' two-clock table: every clock fully specified, flags distinct, both reachable from the API, both hooks carrying `clock`, the wall clock polled, and every dialog pane and row mark present |
 
 Run the relevant one after touching what it guards. CI (`.github/workflows/release.yml`) only zips and
@@ -111,214 +112,29 @@ change, but it cannot tell you whether a relocated pointer is *right*. When it f
 and not just the location: a correctly-relocated pointer to changed behaviour is worse than a broken one,
 because it looks right.
 
-## Documentation — the kinds, and where the rules live
+## Documentation
 
-**The suite-wide standard is `documentation/global/global-documentation-standard.md`, and it is
-authoritative for every Coffee Pub module including this one.** It carries the folder layout, naming, the
-document kinds, what publishes, the README product page, and the CHANGELOG / plan / TODO / testing rules.
-Where this section and the standard disagree, the standard wins and this section gets fixed. Two deliberate
-differences from what is written below, both decided rather than drifted:
+**The rules live in `documentation/global/global-documentation-standard.md`** -- folder layout, naming,
+the document kinds, what publishes, the README product page, and the CHANGELOG, plan, TODO, and testing
+rules. It is authoritative for the whole suite and supersedes anything this file used to say about
+documentation. Read it before writing, moving, or deleting a document.
 
-- **There are seven kinds, not six.** User guides -- how to *use* the module as a player or a GM -- are the
-  seventh, and the largest gap in the suite. `documentation/userguides/`, prefix `userguide-`.
-- **The folders are `api/`, `architecture/`, `designsystem/`, `primers/`, `userguides/`, and `plans/`,
-  plus `assets/` for images.** Images are shared from `assets/` and named for the doc that owns them;
-  product screens take `product-` and must never go in the shipped `images/`, which every user downloads.
-  `primers/` has landed and holds what `guides/` used to: everything a developer needs that is *not* this
-  module -- Foundry, the game system, a consumer's side of the boundary, the suite's conventions.
-  `designsystem/` has landed too; `userguides/` is not written yet, tracked in
-  `documentation/TODO-GLOBAL.md` under "Suite-wide documentation standard".
+It also carries the change workflow: orient in the docs, reality-check against the code, plan anything
+larger than a bug fix, break the work into TODO entries, make the change, verify it and state how,
+update architecture and API in the same change, write the CHANGELOG entry, delete the finished TODOs.
 
-This repo has repeatedly accumulated plans, migration guides, inventories, and "lessons learned" that
-nobody deletes. **Everything that isn't one of the kinds is noise.** Don't invent a new kind, and don't
-add to a category by inventing a parallel file.
+What is specific to this repo:
 
-Two kinds are **transitional**: plans and testing docs both exist to be dismantled and deleted. The
-rest are permanent. See the two scaffolding sections below.
-
-| Kind | Where | Audience | Rule |
-|---|---|---|---|
-| **Overview** | `README.md` (users), Home (devs) | README: someone deciding whether to *use* the module. Overview: a developer building *against* it. | Neither mentions architecture or internals. |
-| **TODO** | `documentation/TODO.md` | us | **Single source of truth for what we will do.** When it's done, it is **deleted** from here and lives only in `CHANGELOG.md`. Never keep a done item "for reference". **Two conditions, not one:** the CHANGELOG entry exists AND anything durable the item carried has landed in architecture or API, in context. A TODO deleted while it was the only place a design decision was written loses it. **And an entry is short** — title, what and why, the file it touches, how it will be verified. If it needs more, the extra is design and belongs in a plan; link it and keep the entry short. |
-| **CHANGELOG** | `CHANGELOG.md` | everyone | What we did and fixed. Keep-a-Changelog + SemVer; long prose entries citing file paths. Match the existing style. **Code changes are the priority — be rigorous there.** Doc changes are nice to note but not the point: the docs themselves are what matter, and a reader can just go read them. A one-line mention beats a paragraph reconstructing the doc. **Never add to a version that has already shipped** — see the section rule below. |
-
-**Never write into a released version's section.** A section is open only until its `BUILD x.y.z` commit
-lands; after that it is published history. When work starts again, open a fresh heading at the top —
-**`## [Unreleased]`**, or the next version number if the author has already named it — and the author
-settles the number at BUILD time.
-
-**Do not use `module.json` to decide which section to write into.** The version there deliberately lags,
-sitting at the last *shipped* number for the whole of development, so the section matching it is exactly the
-one you must not touch. Check `git log --oneline | grep BUILD` instead: if the top section already has a
-BUILD commit, open a new heading above it.
-| **Architecture** | `documentation/architecture/` | us, and the other Coffee Pub modules | How the module is built and why. **This is the anti-crawl artifact** — the place for things you can only learn by reading code. `architecture-blacksmith.md` is the map. |
-| **API** | `documentation/api/` | anyone leveraging Blacksmith — mostly the other Coffee Pub modules, and Blacksmith itself | The public surface. Authoritative. Update it when you change the surface. |
-| **Testing** | `testing/` | us | **Transitional.** What has shipped and is not yet proven, and how to prove it. Deleted when empty. Never a record of what passed — that is the `CHANGELOG.md` verification line. See below. |
-
-Cross-module work spanning the suite goes in `documentation/TODO-GLOBAL.md`, not `TODO.md`.
-
-**Migration guides and inventories are not a category.** If such a doc has content worth keeping, fold it
-into **architecture** and delete the original. If a "migration" is complete, it's history — it belongs in
-`CHANGELOG.md`, not in a guide named after a version that shipped two releases ago.
-
-### Plans are scaffolding, not documents
-
-`documentation/plans/` is the one exception, and it is **transitional by definition**. A plan exists to be
-dismantled into the five kinds above: work → `TODO.md`, design → architecture, surface → API, history →
-`CHANGELOG.md`. It exists until it doesn't. Three rules keep scaffolding from becoming ruins:
-
-1. **A plan must declare its status** at the top (Planned / In progress / Implemented (phase N) / Complete).
-   Without it nobody can tell live scaffolding from debris without reading the whole thing.
-2. **A plan is never a source of truth.** The moment another doc cites a plan as canonical, the plan has
-   overstayed — move that content to its real home.
-3. **Complete means delete.** Not archive, not "keep for reference". Distribute the content, then remove the
-   file. Anything already landed in a TODO or an architecture doc must be *removed from the plan*.
-   **Implemented is not the trigger; absorbed is.** A plan whose code has shipped but whose design still
-   lives only in the plan is not finished — it is a source of truth wearing scaffolding's label, which is
-   rule 2. Distribute first, then delete.
-
-**Clean documentation is critical, and it is the part that rots without anyone noticing.** Code that is
-wrong breaks; a doc that is wrong is believed. The three deletions above — plan, TODO item, testing item —
-are what keep the permanent four trustworthy, and every one of them is a step somebody has to actually take.
-Take it in the same change, not "later".
-
-### Testing docs are scaffolding too
-
-`testing/` holds the other transitional kind, added 2026-08-08. A testing doc holds **verification that is
-owed** — code that has shipped and has not been proven in a running world — and the steps to discharge it.
-Same lifecycle as a plan: it exists until it doesn't.
-
-**It lives in `testing/` rather than `documentation/`, next to the harness and the suites that discharge it.**
-A verification backlog and the scripts that clear it are one job, and splitting them across two trees meant
-reading a checklist in one place and running it from another. It is also the only doc kind that is never
-published — `tools/wiki-sync.mjs` only scans `documentation/`, so being outside that tree means a
-verification backlog cannot leak to the wiki by accident rather than merely by policy.
-
-It exists because the two homes that already existed are both wrong for it. `TODO.md` is *work we will do*, and
-unverified code is not work — the work is finished, the confidence is missing. `CHANGELOG.md` records what was
-verified in one line, not a live checklist. A verification backlog put in either one either bloats the backlog
-or rots inside a released section.
-
-Five rules:
-
-1. **It declares what is proven and what is not** at the top. A reader must be able to tell in one glance
-   whether anything here is still owed.
-2. **Checkboxes belong here.** This is the one kind where a task list is correct, because ticking items off is
-   the entire purpose. Everywhere else a checkbox means the content is in the wrong file.
-3. **Passing means delete.** Remove the item, not tick it and leave it. When the file is empty, delete the file.
-   A testing doc full of ticked boxes is indistinguishable from one nobody has run.
-4. **It is never a source of truth about behaviour.** It says "this is unproven", never "this is how it works".
-   The moment it explains a mechanism, that belongs in architecture.
-5. **Only for what a harness cannot do.** `testing/suites/` covers what can be asserted automatically, and a
-   suite is better than a checklist because it runs again next month. A testing doc is for the rest: a second
-   client, a browser reload, cross-module integration, and anything needing a human to judge what it looks
-   like. If a step could be a harness check, write the check instead.
-
-**Internal, like plans and TODO.** Never added to the `PUBLISH` list in `tools/wiki-sync.mjs` — a verification
-backlog is not a consumer document, and publishing "we have not tested this yet" to the wiki is worse than
-useless.
-
-Prefer these docs over re-deriving from source. Point at them; don't duplicate them.
-
-## The change workflow
-
-Idea → live has been the weak link here: stale docs and ad-hoc changes are what produced the rot this
-repo has been digging out of. **Every change follows this pipeline.** The docs are the source of truth;
-the code is reality. They stay honest only if updating them is *part of the change*, not a later chore.
-
-Name the outcome first — **bug fix / feature / performance / refactor** — because it sets the bar
-(a bug fix skips the plan step; nothing else does).
-
-1. **Orient in the docs.** Read the relevant architecture, API, and `TODO.md` entries for the area with the
-   outcome in mind. These are the anti-crawl artifacts — start here, not in the code.
-2. **Reality-check against the code.** Grep and read the actual source. Docs have been wrong often enough
-   that you verify before trusting — and when a doc and the code disagree, *decide which is right* (the doc
-   has been the correct spec against buggy code more than once).
-3. **Plan — anything larger than a bug fix.** Write it in `documentation/plans/` under the "Plans are
-   scaffolding" rules above. A bug fix needs no plan. The plan is deleted once implemented and its content
-   distributed to the five doc kinds.
-4. **Break the work into `TODO.md` items.** Each one carries how it will be verified (step 6).
-5. **Make the change.**
-6. **Test it — and state how.** There is no test framework beyond running Foundry, so every change names its
-   verification: the exact steps to confirm in a live world, or the console check, or the file exercised.
-   "How you test" is part of the change and travels with it into the `TODO.md` item and the `CHANGELOG.md`
-   entry. If the only check is "client loads with no errors," say exactly that — don't imply more.
-7. **Milestone check-in — author.** When a milestone's tests pass, the author reviews the diff in Cursor and
-   commits. Claude prepares reviewable changes; the author commits.
-8. **Update the docs to reflect progress.** Architecture and API now describe the new reality; finished
-   `TODO.md` items are removed (step 11), not left checked-off.
-9. **Final doc pass** when the whole plan/bug is done — architecture and API fully reconciled to shipped code.
-10. **Update `CHANGELOG.md`** for the next release — code changes first, per the CHANGELOG rule.
-11. **Delete completed TODOs.** They live in the CHANGELOG now, and their durable content lives in
-    architecture or API (step 8). Never keep a done item "for reference."
-12. **Version bump + BUILD commit — author, after final tests.** The author bumps `module.json` and makes the
-    BUILD commit, which bundles the final docs, `CHANGELOG.md`, and the todo deletions with the bump. See
-    the BUILD rule in Git for the exact shape.
-13. **Wiki sync is automatic.** A GitHub Action (`.github/workflows/sync-wiki.yml`) mirrors the publish set
-    to the wiki on every push to `master` that touches `documentation/`. What publishes is the `PUBLISH`
-    list in `tools/wiki-sync.mjs` — a new doc goes live only when added there. See the wiki note in Git.
-
-**Never hold TODOs in the API or architecture docs.** That is precisely how they drift out of sync with the
-code. Those docs describe what *is* — including "this is currently broken, and here is the truth" when that
-is the reality. Anything shaped like "we should…", "TODO:", "planned", or a task list belongs in `TODO.md`
-and nowhere else. Documenting current broken behavior is allowed — as plain behavioral prose, not a styled callout — but it is
-**transitional**: when the code is fixed, step 8 updates the sentence to the new reality. It is a description
-of reality with a short shelf life, not a parking spot for work.
-
-### The formatting standard for published docs
-
-Every doc published to the wiki conforms to this. It is checkable, so check it before publishing:
-
-- **No emoji or decorative icons, ever, in any document** — published or not, and including the README,
-  the CHANGELOG, `TODO.md`, plans, and testing docs. Not in headings, prose, tables, example output, or as
-  a status marker in a list. Write `console.log('Foo working')`, with no tick in front of it. If a mark is
-  carrying meaning, write the meaning. Typographic punctuation — em dashes, arrows, section marks — is not
-  an icon and is unaffected.
-- **No styled callout blocks.** A `>` block with a bold warning header is still a note about the code;
-  state it as prose. (Ordinary blockquotes for actual quotations are fine.)
-- **ASCII quotes and apostrophes**, not curly ones.
-- **Uniform header.** Line 1 `# <Name>`, then one bold audience line, then a one-sentence scope line,
-  then where the authoritative counterpart lives if there is one.
-- **No footers or status-theatre** — no "Last Updated: Current session", no "Status: production ready",
-  no "Version History" section (that is what `CHANGELOG.md` is for), no "Support" boilerplate.
-- **No task lists or checkboxes.** Anything shaped like work belongs in `TODO.md`.
-- **Point at code, don't copy it.** `file.js:line` pointers beat pasted classes, constant lists, and
-  signature tables. Every copied block found in the audits had drifted; every pointer had not.
-
-### Behavior, not commentary — what an API or architecture doc says
-
-These docs specify what the code **does**, as the contract: specific, present tense, neutral. When current
-behavior is a defect, state the behavior — that *is* the truth a consumer needs — but keep it to behavior.
-Leave out:
-
-- **Implementation narration / root cause.** "All three builders `await X` and discard the result" belongs in
-  `known-issues.md`, not the spec.
-- **History.** "Used to be documented", "removed in 13.9.x" belongs in `CHANGELOG.md`.
-- **Fix status.** "The fix is tracked in…", "intended contract", "open design question" belongs in `TODO.md`.
-
-Where behavior is a known defect that may change, signal it with at most a one-clause hint — "the entry is
-not *currently* returned" — and nothing more.
-
-**Reference direction: link only stable-to-stable, and structural.** A doc may link **code** (`file:line`)
-and another **stable doc** (the api-to-architecture pair). A doc must **not** link the transient lists —
-`known-issues.md` or `TODO.md` — nor carry an "Open work / Remaining work" section. Those lists exist to be
-emptied as things are fixed, so every inbound link is a future broken reference, and it breaks at exactly the
-moment you update the doc after the fix. The transient lists point outward (they cite code and docs); the
-durable docs never point back at them. A reader who wants the backlog opens `TODO.md` or `known-issues.md`
-directly — both stand on their own.
-
-> **The docs in this repo are not trustworthy yet.** Where accuracy has been checked against code, most
-> were substantially wrong — one architecture doc had **zero** real symbols across 24 code blocks. See the
-> verification table in `documentation/TODO-GLOBAL.md` for what has actually been checked. **Verify before
-> you rely on a doc claim, and fix it when you find it wrong.**
->
-> **When a doc and the code disagree, do not assume the doc is wrong.** Decide which is right. Real example:
-> `api-sockets.md` correctly specified `emit(..., {userId})` targeting and the *code* silently ignored it
-> until a consuming module hit it in production — the doc was the spec, the code was the bug.
->
-> **A doc that copies code drifts; a doc that points at code doesn't.** Every wrong doc found so far failed
-> the same way — it pasted a class, a constant list, a key set, or a signature table instead of naming where
-> to look. Describe the mechanism; point at the source.
+- **The docs here are not trustworthy yet.** Where accuracy has been checked against code, most were
+  substantially wrong -- one architecture doc had **zero** real symbols across 24 code blocks. See the
+  verification table in `documentation/TODO-GLOBAL.md` for what has actually been checked. Verify before
+  you rely on a doc claim, and fix it when you find it wrong.
+- **`documentation/global/` is Blacksmith's alone.** It holds the suite-wide documents the satellites
+  link to rather than copy, so editing one changes it for all fifteen modules at once.
+- **`documentation/TODO-GLOBAL.md` lives here** because Blacksmith is the hub. Cross-module work goes
+  there; this module's own work goes in `documentation/TODO.md`.
+- **The author commits.** Claude stages reviewable changes and states how to test them; the author
+  reviews the diff in Cursor, commits, bumps the version, and tags. See Git below.
 
 ## Conventions
 

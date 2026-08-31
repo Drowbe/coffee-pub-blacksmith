@@ -1,5 +1,7 @@
 # Active Effects API
 
+**Audience:** module authors reading Active Effects for display.
+
 Blacksmith exposes a read-only Active Effects API so sibling modules can share one definition of an effect that is suitable for display. It filters disabled and suppressed effects, normalizes Foundry and dnd5e conditions, formats duration, safely enriches descriptions, and lets feature modules register their own classifications without Blacksmith taking ownership of their rules.
 
 ## Access

@@ -1,6 +1,6 @@
 # World Clock API
 
-**Audience: any module that needs to act when in-world time reaches a moment.**
+**Audience:** any module that needs to act when in-world time reaches a moment.
 
 Scheduling against the in-world clock. The implementation and its reasoning live in
 `documentation/architecture/architecture-worldclock.md`.

@@ -1,6 +1,8 @@
 # Extending Blacksmith from Another Module
 
-**For authors of sibling modules.** How to reach the Blacksmith API safely, style against its design
+**Audience:** authors of sibling modules.
+
+How to reach the Blacksmith API safely, style against its design
 system, and add your own tools to its surfaces.
 
 Token values are on the Design tokens page; component classes are on the Design components page. The

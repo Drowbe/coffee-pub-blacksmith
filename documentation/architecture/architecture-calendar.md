@@ -1,6 +1,6 @@
 # Calendar
 
-**Audience: developers working on Blacksmith.**
+**Audience:** developers working on Blacksmith.
 
 The World Calendar window and the events it authors. The clock itself is
 `architecture-worldclock.md`; this document covers what sits on top of it.
@@ -11,8 +11,9 @@ A month of the world calendar, opened from the clock's menu, showing where today
 moves the world to a day from here; anyone can add an event.
 
 It is titled **World** Calendar because a real-world calendar is planned as a second mode of the same window
--- session dates and reminders that fire at session start. That is not built; the design and the reason the
-two want separate stores are in `../plans/plan-calendar-window.md`.
+-- session dates and reminders that fire at session start. That is not built. The two modes want separate
+stores because a world date and a real date answer different questions and are edited by different people;
+mixing them in one store makes every read ambiguous about which calendar it is on.
 
 ## Files
 

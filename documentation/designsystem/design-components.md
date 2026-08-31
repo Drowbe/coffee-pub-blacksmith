@@ -1,6 +1,8 @@
 # Design Components
 
-**For module authors building UI that matches Blacksmith.** The shared component kit: what each component
+**Audience:** module authors building UI that matches Blacksmith.
+
+The shared component kit: what each component
 is called, which stylesheet defines it, and the structure its CSS requires.
 
 Tokens are on the Design tokens page. Naming rules and file organization are on the Design patterns page.

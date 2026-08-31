@@ -46,8 +46,7 @@ there remains exactly one place where every hook and socket is registered.
 Three files carry the same method names as `stats-combat.js`'s former handlers — `stats-player.js` and
 `manager-roll-outcomes.js` each define their own `_onAttackRoll`, `_onMidiHitsChecked`, and `_forwardToGM`.
 Those are independent implementations, not calls across a boundary, and a search for any of those names will
-return all of them. `manager-roll-outcomes.js` having its own socket forwarder is a real duplication worth
-consolidating, tracked in `TODO.md` rather than here.
+return all of them. `manager-roll-outcomes.js` having its own socket forwarder is a real duplication.
 
 `stats-party.js` reads both and writes neither. It exists because every other tier is per-actor or
 per-combat, so anything party-wide has to be reduced, and that reduction should have exactly one
@@ -85,9 +84,9 @@ any given attack. The accumulator being unable to name midi-qol is what makes th
 rather than a convention. An import from either utility reappearing in `stats-combat.js` means event
 translation has leaked back in.
 
-Still outstanding: `_ensureParticipantStats` and `_ensureCombatTotals` hand back live references into the
-accumulator that the handlers write through. That is the last of the reaching-in, and it is tracked in
-`TODO.md`.
+`_ensureParticipantStats` and `_ensureCombatTotals` hand back live references into the accumulator, and the
+handlers write through them. That is the last of the reaching-in: a caller holding one of those references
+can mutate recorded statistics without going through the manager.
 
 ## One card, many sightings: what a chat message is worth reading twice
 
