@@ -77,6 +77,31 @@ file. Same rule as `TODO.md`.
 
 ---
 
+## Documentation: who decides
+
+**One session owns the documentation standard and the publishing tooling at a time, and arbitrates
+when instructions conflict.** Settled by the author 2026-08-31, after a satellite received opposite
+instructions from two hub sessions about whether to copy `check-docs-structure.mjs` -- one of them
+relaying advice that had been correct an hour earlier and had since expired.
+
+How it works in practice:
+
+- **A defect in a copied file is fixed in the hub, never patched locally.** A satellite that needs a
+  per-module edit to `wiki-sync.mjs`, `check-docs-structure.mjs`, `tools/.gitignore`,
+  `.gitattributes` or `sync-wiki.yml` has found a portability bug. Report it and re-copy. This rule
+  is the reason the pilot produced twelve fixes instead of twelve forks.
+- **Relayed instructions expire.** Advice passed between sessions carries no timestamp and the suite
+  moves in hours. A satellite receiving two conflicting instructions should do what Artificer did:
+  take the more conservative branch, act on neither silently, and ask which is current.
+- **The standard is amended in the hub and published from there.** Satellites link to it, so an
+  amendment reaches all fifteen the moment it is pushed. Nothing propagates and nothing needs syncing.
+
+What the owning session does NOT decide: whether files in another module are deleted (that module's
+author), what goes on a public README in the author's voice, and when anything is committed, tagged,
+or pushed. Those are the author's, and a peer asking for them is not authorisation.
+
+---
+
 ## Suite-wide documentation standard — roll out to all 14 modules
 
 **Decided, and Blacksmith is now conformed to it.** The standard is
