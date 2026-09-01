@@ -185,6 +185,38 @@ if (fs.existsSync(ASSETS)) {
   }
 }
 
+// ---- 7. Shared README blocks match their canonical source. -----------------------------------
+// The AI-assistance disclosure is identical in all fifteen READMEs. A README does not publish, so the
+// publisher cannot enforce "link, never copy" there -- and fifteen hand-maintained copies of the same
+// paragraphs is precisely how five satellites ended up with five diverging forks of the hub's API
+// notes. So the copy is allowed and the drift is not: one canonical file, and this check.
+const MARKED = [{ canon: 'global/global-ai-assistance.md', marker: 'global:ai-assistance' }];
+for (const { canon, marker } of MARKED) {
+  const canonAbs = path.join(DOCS, canon);
+  const readme = path.join(ROOT, 'README.md');
+  if (!fs.existsSync(canonAbs)) {
+    fail('shared-block', `${canon} is missing; it is the canonical source for the ${marker} block`);
+    continue;
+  }
+  const slice = (text, where) => {
+    const open = `<!-- ${marker} -->`;
+    const close = `<!-- /${marker} -->`;
+    const a = text.indexOf(open);
+    const b = text.indexOf(close);
+    if (a === -1 || b === -1 || b < a) {
+      fail('shared-block', `${where} is missing the ${marker} markers`);
+      return null;
+    }
+    return text.slice(a + open.length, b).trim();
+  };
+  const want = slice(fs.readFileSync(canonAbs, 'utf8'), canon);
+  if (!fs.existsSync(readme)) continue;
+  const got = slice(fs.readFileSync(readme, 'utf8'), 'README.md');
+  if (want !== null && got !== null && want !== got) {
+    fail('shared-block', `README.md's ${marker} block has drifted from ${canon}; edit the canonical file and copy it back`);
+  }
+}
+
 // ---- 7. No video committed under documentation/. ---------------------------------------------
 for (const f of allFiles) {
   if (VIDEO.test(f)) fail('video', `${relDocs(f)} -- a wiki renders a link, not a player; use an animated WebP`);

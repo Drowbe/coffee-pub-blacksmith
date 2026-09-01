@@ -121,7 +121,9 @@ before any satellite took them. They now are.
       updated so a scaffolded module is born conformant. This is the leverage point: every module created
       after it is free, and only the fourteen existing ones need retrofitting.
 - [ ] **Roll out to the fourteen satellites** — the folders, the two publisher files, the checker, a
-      `home.md`, a product README, and a getting-started guide each. Delete each satellite's forked copies
+      `home.md`, a product README, and a getting-started guide each. Each README carries the
+      AI-assistance disclosure verbatim between its `global:ai-assistance` markers, copied from
+      `global/global-ai-assistance.md`; the checker fails if a copy drifts. Delete each satellite's forked copies
       of hub documents outright rather than folding them into `api/`: five carry a `blacksmith-apis.md`,
       one module has two of them, and Artificer additionally forked the ApplicationV2 guidance doc that
       Blacksmith has since dismantled. All of them have diverged. A fork folded under a tidier name is

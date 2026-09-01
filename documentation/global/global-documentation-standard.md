@@ -155,6 +155,14 @@ Linking is already legal under the boundary rule below -- satellite to hub is th
 because the hub is a required dependency of every satellite. The rule needs no exception, only
 stating.
 
+**One exception, and it is mechanical rather than a matter of judgement: a README cannot link.** It
+ships in the release zip and is the GitHub landing page, so text that has to be read *there* has to be
+*there* -- a link to the hub wiki does not do the job. The AI-assistance disclosure is that case: the
+same paragraphs in all fifteen READMEs. The copy is allowed; the drift is not. The canonical text lives
+in `global/`, each README carries it verbatim between HTML-comment markers, and
+`check-docs-structure.mjs` fails the build if a copy stops matching. Edit the canonical file and copy
+it out; never edit a README's block directly. Do not extend this to anything a link would serve.
+
 **Amending a global document is a hub change.** It is edited in the hub, it publishes from the hub,
 and every satellite sees the new version the moment it is pushed, because they linked rather than
 copied. Nothing propagates and nothing needs syncing.

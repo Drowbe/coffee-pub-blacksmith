@@ -65,6 +65,7 @@ Everything lives in the [wiki](https://github.com/Drowbe/coffee-pub-blacksmith/w
 - **Working on Blacksmith itself** --
   [the architecture map](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/architecture-blacksmith).
 
+<!-- global:ai-assistance -->
 ## AI Assistance and the Illusion of Good Code
 
 I started writing Foundry modules for use at my own table back in 2020. There were already a ton of amazing modules out there, but they either didn't quite do what I wanted or didn't deliver the kind of user experience I was looking for.
@@ -78,6 +79,7 @@ Testing and verifying a change means running it in Foundry so I can watch the co
 Those checks are there because AI-assisted development can move very quickly, and without oversight, engagement, and planning, it can also go confidently off the rails and deliver the illusion of good code. The AI helps me build faster. It doesn't decide what gets built, its architecture, or how it should work. You can blame this human for that.
 
 If the idea of AI-assisted development keeps you up at night or just isn't your jam, no worries at all. I get it. You do you.
+<!-- /global:ai-assistance -->
 
 ## Coffee Pub Module Suite
 
