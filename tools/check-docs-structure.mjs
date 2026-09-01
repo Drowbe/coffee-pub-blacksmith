@@ -218,6 +218,26 @@ for (const f of allMd) {
     }
   }
 }
+// An asset prefixed with a document kind is claimed by that kind. Referencing it from a different
+// kind means one of the two names is a lie. Everything else is free-form: a rule with no enforcement
+// loses to whatever a human names a file, and that is the right outcome.
+// (Raised by coffee-pub-merchant on adoption.)
+const KIND_PREFIX = /^(api|architecture|design|userguide|global|plan)-/;
+for (const f of allMd) {
+  const rel = relDocs(f);
+  const kind = rel.includes('/') ? rel.split('/')[0] : 'root';
+  const folderKind = { api: 'api', architecture: 'architecture', designsystem: 'design',
+                       userguides: 'userguide', global: 'global', plans: 'plan' }[kind];
+  for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_LINK)) {
+    const base = path.basename(m[1].split('#')[0].trim());
+    const claim = KIND_PREFIX.exec(base);
+    if (!claim || !/\.(webp|png|jpg|jpeg|gif|svg)$/i.test(base)) continue;
+    if (claim[1] !== folderKind) {
+      fail('assets', `${rel} references ${base}, whose name claims it belongs to a ${claim[1]} document`);
+    }
+  }
+}
+
 if (fs.existsSync(ASSETS)) {
   for (const name of fs.readdirSync(ASSETS)) {
     if (name === '.gitkeep') continue;

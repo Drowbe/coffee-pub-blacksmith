@@ -165,10 +165,22 @@ function rewriteLinks(md, srcRel) {
   const lines = md.split(/\r?\n/);
   let inFence = false;
   const downgraded = [];
-  const rewritten = lines.map((line) => {
-    if (/^\s*```/.test(line)) { inFence = !inFence; return line; }
-    if (inFence) return line;
-    return line.replace(LINK, (whole, text, target) => {
+  // Group consecutive non-fenced lines into one string before matching. The LINK alt text may span
+  // a newline -- the house style wraps at 80-100 columns, so a long alt text is exactly what a
+  // careful author writes -- and matching per line skipped those links entirely, emitting a
+  // repo-relative path onto the wiki where it resolves to nothing. Silent: the checker passes,
+  // because the path itself is correct; only the rewrite is missed.
+  // (Found by coffee-pub-merchant on adoption.)
+  const blocks = [];
+  for (const line of lines) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; blocks.push({ fenced: true, text: line }); continue; }
+    const last = blocks[blocks.length - 1];
+    if (last && last.fenced === false) last.text += "\n" + line;
+    else blocks.push({ fenced: false, text: line });
+  }
+  const rewritten = blocks.map((b) => {
+    if (b.fenced) return b.text;
+    return b.text.replace(LINK, (whole, text, target) => {
       if (/^(https?:|mailto:|#)/i.test(target)) return whole;        // external / same-page anchor
       // Checked BEFORE the code/asset downgrade: a cross-module doc path contains `documentation/`,
       // which is not a code path, but the ordering is stated rather than assumed because a future

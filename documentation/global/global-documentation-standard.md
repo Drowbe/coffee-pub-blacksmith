@@ -395,10 +395,17 @@ not depend on that detail.
 Images live in one folder, `documentation/assets/`, shared by every document that needs them. A
 screenshot used by both a user guide and an overview has one home rather than a copy in each.
 
-**Named for what owns them.** An asset takes the prefix of the document it belongs to, so sorting the
-folder groups them the way nesting would have, and an orphan is visible by eye as well as to the
-checker. The exception is the **product screens**, which belong to no single document: the README and
-`home.md` both draw on them, so they take `product-`.
+**An asset must not be named after a document that does not own it.** That is the rule, and it is
+the checkable part: a file prefixed `userguide-`, `architecture-`, `api-`, `design-`, `global-` or
+`plan-` is claimed by that kind, and referencing it from a different kind is a misfiling the checker
+reports. Everything else is free-form -- prefix by module, by feature, by `product-`, whatever groups
+the folder for the people who look at it.
+
+The earlier version of this rule mandated `product-` for screens shared by the README and `home.md`.
+It had no enforcement, and a rule with no teeth loses to whatever a human names a file at the moment
+they create it -- which is the right outcome, because a human naming their own screenshot beats a
+convention nobody checks. `merchant-hero.webp` sorts as well as `product-hero.webp` and lies about
+nothing.
 
 **There are exactly two homes for an image, and any third is a stray.** Runtime content the module
 loads lives in `images/` and ships; everything a document or a landing page draws on lives in
