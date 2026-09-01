@@ -315,6 +315,14 @@ what a hook is, and they will not find a feature that is not described in terms 
 5. **Every claim is something you can do in a running world.** If you cannot walk the steps
    yourself, the steps are wrong. A guide derived from reading source is a draft until somebody has
    walked it, and which claims have not been walked is worth saying out loud.
+   **Screenshots are how the wrong claims surface, and they surface reliably.** The first guide
+   written this way looked correct and carried four errors, every one invisible in the source and
+   obvious in an image: the tabs render in a different order from the one the code declares them in,
+   a readout labelled one thing internally says another on screen, and two features are called by
+   their internal names rather than the words a user sees. Source tells you what exists. It does not
+   tell you what it is called or what order it appears in, and those are the only two things a reader
+   navigates by. Add the screenshots before calling a guide finished, and re-read every label against
+   them.
 6. **A dependency gets one clause, and no more.** If a behaviour only exists when another Coffee Pub
    module is installed, name that module and stop -- no link, no description of what it does, no
    instructions for it. That module's user guide is its own.
