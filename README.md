@@ -6,69 +6,76 @@
 ![Foundry v13](https://img.shields.io/badge/foundry-v13-green)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue)
 
-> **v12 notice:** Version 12.1.23 is the final build compatible with FoundryVTT v12. All subsequent releases target v13+.
+## What it is
 
-## Overview
-
-Blacksmith is the foundational framework for the entire Coffee Pub module series. It provides the shared design system, window base classes, APIs, and cross-client communication layer that all other Coffee Pub modules depend on. It is also a capable standalone module with GM tools, combat statistics, and UI customization features.
+Blacksmith puts the things you reach for most on a bar across the top of your Foundry screen, times
+your combats, keeps score, and restyles chat and the sidebar to match. It is also the foundation the
+rest of the Coffee Pub modules are built on -- install any of them and they will ask for this one.
 
 ![Blacksmith in play: the menubar, roll requests, the calendar, status effects, pins, votes, and more](documentation/assets/product-overview.webp)
 
-## Disclaimer
+Blacksmith is built for a real weekly game and released for yours. It runs every session at my table,
+which is the only reason it works as well as it does -- and that is also the shape of what is
+promised. It is offered as-is, with no guarantee of stability, compatibility, or support, and things
+do change between releases when a session shows they should. **Use at your own risk.** Bugs and
+requests go in [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues), and they get read.
 
-This is a personal project built for my own FoundryVTT games. If you find it useful, feel free to use it — but it comes with no guarantees of stability, compatibility, or support. **Use at your own risk.**
+## What it does
 
-## Features
-
-### GM Tools
-- **CSS Editor**: Live custom CSS editor with CodeMirror 6 syntax highlighting, line numbers, and search/replace (Ctrl+F / Ctrl+H)
-- **Voting System**: Create and broadcast votes to players with real-time results
-- **Pin Layers**: Manage canvas pin visibility by layer with per-layer eye toggles
-
-### Combat & Statistics
-- **Combat Timers**: Synchronized turn countdowns across all clients, with pause/resume and auto-start on movement or attacks
-- **Planning Timer**: Dedicated pre-combat timing tool
-- **Party Statistics**: Detailed combat history, leaderboards, and per-player performance tracking
-- **Player Statistics**: Individual breakdown of hits, misses, damage, healing, kills, crits, and MVP scores
-- **Enhanced Combat Tracker**: Drag-and-drop initiative, health bars, portrait display
-
-### UI & Theming
-- **Design System**: Shared CSS tokens, component library, and window base classes used across all Coffee Pub modules
-- **Theme Support**: Multiple visual themes with persistent settings; drives theme selection for all Coffee Pub modules
-- **Chat Cards**: Enhanced roll result layout with improved success/failure indicators and tooltips
-
-### Movement Controls
-- **Movement Modes**: Normal, No movement, Combat, Follow, and Conga line modes
-- **GM Controls**: Visual mode indicators, persistent settings, quick-access toolbar buttons
-
-### Quality of Life
-- **Token Management**: Smart renaming, customizable nameplates, fuzzy name matching
-- **Scene Management**: Custom mouse behaviors, configurable scene indicators
-- **Network Stats**: Real-time latency display with color-coded indicators for all players
-
-### Developer API
-- **Module Registration**: Standardized integration point for other Coffee Pub modules
-- **Socket Layer**: Cross-client messaging via SocketLib with native fallback
-- **Statistics API**: Public interface for reading and writing combat stats
-- **Window Base (V2)**: `BlacksmithWindowBaseV2` — ApplicationV2-based window class used by all windows in the suite
+- **A toolbar across the top of the screen** -- dice tray, party health at a glance, status effects for
+  the selected token, notes, and your macros, without hunting through menus.
+- **Combat and planning timers** that stay in step across every client, with pause, resume, and
+  auto-start when someone moves or attacks.
+- **Combat statistics** -- hits, misses, damage, healing, kills, crits, and an MVP, per player and per
+  session, with leaderboards and history.
+- **A richer combat tracker** with drag-and-drop initiative, health bars, and portraits.
+- **Movement modes** -- normal, none, combat, follow, and conga line, switched from the toolbar.
+- **Themes, styled chat cards, and a styled sidebar**, shared by every Coffee Pub module so the whole
+  suite looks like one thing.
+- **Token and scene quality of life** -- smart renaming, nameplates, scene indicators, custom mouse
+  behaviours, and a live latency readout for everyone at the table.
+- **A live CSS editor** with syntax highlighting and search-and-replace, for changing how any of it
+  looks without leaving Foundry.
 
 ## Requirements
 
-- **FoundryVTT**: v13+
-- **Game System**: D&D 5e (fully supported)
-- **[socketlib](https://github.com/manuelVo/foundryvtt-socketlib)**: Required for cross-client sync
+- **FoundryVTT** v13 or v14. Version 12.1.23 was the last build for v12; everything since targets v13.
+- **The D&D 5e system.** Blacksmith is built for 5e and does not work with other systems.
+- **[socketlib](https://github.com/manuelVo/foundryvtt-socketlib)** and
+  **[lib-wrapper](https://github.com/ruipin/fvtt-lib-wrapper)**, both free on Foundry's module list.
+  Blacksmith will not run without them.
 
 ## Installation
 
-1. Install **socketlib** first:
-   - Foundry Admin → Install Module → paste manifest URL:
-   `https://github.com/farling42/foundryvtt-socketlib/releases/latest/download/module.json`
-
-2. Install **Coffee Pub Blacksmith**:
-   - Foundry Admin → Install Module → paste manifest URL:
+1. In Foundry, go to **Add-on Modules** and **Install Module**.
+2. Search for and install **socketlib** and **lib-wrapper**.
+3. Install Blacksmith by pasting this manifest URL:
    `https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json`
+4. Open your world, go to **Manage Modules**, and enable all three.
 
-3. Enable both modules in your world.
+## Where to read more
+
+Everything lives in the [wiki](https://github.com/Drowbe/coffee-pub-blacksmith/wiki).
+
+- **Playing or running a game with it** --
+  [Getting started](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/userguide-getting-started).
+- **Building a module against it** --
+  [the Core API](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/api-core), which routes to every
+  other surface.
+- **Working on Blacksmith itself** --
+  [the architecture map](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/architecture-blacksmith).
+
+## AI Assistance and the Illusion of Good Code
+
+I started writing Foundry modules for use at my own table back in 2020. There were already a ton of amazing modules out there, but they either didn't quite do what I wanted or didn't deliver the kind of user experience I was looking for.
+
+I've been a design leader for more than 20 years, but I spent the first half of my career as a developer, so building my own modules seemed like a fun way to kill some time. I'm a pretty good designer. I'm a decent developer. But, over time, my hand-written code and hacks got a little messy (and memory-leaky, and a little buggy. Feels good to say it out loud.).
+
+Today, the Coffee Pub suite of modules is developed with AI assistance, primarily Claude and Cursor, for documentation, refactoring, debugging, and other development work. Every change is reviewed and committed by me, and nothing reaches a release that I haven't read and run at my own table. The UX design, architecture, and ideas still come from my own fever dreams and chronic lack of sleep.
+
+Testing and verifying a change means running it in Foundry so I can watch the console, break things, fix them, and hone the experience. The repositories carry a set of tools for testing the things that are difficult to catch through review and manual testing alone. They help ensure styles don't conflict, shared coding and documentation standards stay consistent, and the suite of modules continues to work well as a system without silently breaking.
+
+Those checks are there because AI-assisted development can move very quickly, and without oversight, engagement, and planning, it can also go confidently off the rails and deliver the illusion of good code. The AI helps me build faster. It doesn't decide what gets built, its architecture, or how it should work. You can blame this human for that.
 
 ## Coffee Pub Module Suite
 
@@ -91,21 +98,6 @@ installed separately.
 | [Scribe](https://github.com/Drowbe/coffee-pub-scribe) | Journal and chat card formatting for sharing snippets of narrative. |
 | [Squire](https://github.com/Drowbe/coffee-pub-squire) | A character tray: abilities, items, spells and conditions, with party tools and item transfers. |
 | [Vault](https://github.com/Drowbe/coffee-pub-vault) | Optional shared assets for the suite. |
-
-## Development Setup
-
-Requires [Node.js LTS](https://nodejs.org). After cloning:
-
-```bash
-npm install
-npm run build:cm6
-```
-
-`npm run build:cm6` bundles the CodeMirror 6 CSS editor into `scripts/vendor/codemirror.mjs`. This file is committed to the repo — end users do not need Node. Only contributors modifying the editor dependencies need to rebuild it.
-
-## Support
-
-File bugs and feature requests in [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues).
 
 ## License
 

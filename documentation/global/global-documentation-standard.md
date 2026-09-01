@@ -568,12 +568,6 @@ folder shares a name with a code folder in the hub today -- `api/` is both `docu
 shipped source directory -- and the other ordering downgrades every link into the documentation
 folder to plain text as though it were source. Nothing errors; the links simply stop being links.
 
-**What is specified here runs ahead of what is built.** The hub's publisher still uses a
-hand-maintained publish list and still holds its module id in a constant, and the structure checker
-below does not exist yet. Both are written down so they can be built once and copied fourteen times
-rather than negotiated per module. This paragraph is transitional and gets deleted when the tooling
-matches; until then the tooling, not this section, describes what actually happens on a push.
-
 ### The boundary rule, enforced rather than remembered
 
 **A module's documentation describes that module only.** A satellite's internals do not appear in the

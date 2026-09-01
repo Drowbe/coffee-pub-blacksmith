@@ -665,13 +665,6 @@ makes the design system govern the CSS rather than describe it.
 **`styles/widget-tags.css` (154 lines) is unlanded, not dead -- do not delete it**; it appears in no import
 chain because the widget has not landed.
 
-### `applicationv2-window/` - decide its disposition
-
-`documentation/applicationv2-window/guidance-applicationv2.md` (539 lines) has never been audited and is not
-published. Either audit and publish it, or fold it into the design-system split. **Artificer has its own
-copy**, so whichever happens has to account for that or one gets fixed and the other drifts -- same shape as
-the `cards-common.hbs` fork, one layer up. Tracked in `TODO-GLOBAL.md`.
-
 ---
 
 ## Performance

@@ -17,8 +17,8 @@ the work rather than after.
 ## Suite context
 
 Sibling modules live next to this one in `Data/modules/` and are wired in as readable directories:
-artificer, bibliosoph, cartographer, crier, curator, herald, librarian, minstrel, monarch, regent, scribe,
-squire, vault. All are public repos under `github.com/Drowbe`.
+artificer, bibliosoph, cartographer, crier, curator, herald, librarian, merchant, minstrel, monarch, regent,
+scribe, squire, vault. All are public repos under `github.com/Drowbe`.
 
 - `coffee-pub-librarian` owns **codex, quests, and objectives** — they moved out of Squire in Librarian 13.0.0,
   and Librarian declares the `JournalEntryPage` subtype, so those entries are `coffee-pub-librarian.codex`.
@@ -98,7 +98,7 @@ behavior:
 | `node tools/check-worldclock.mjs` | the clock's cross-file couplings: sky variables, the stop table, class names, the partial name, and the two coordinate spaces |
 | `node tools/check-rest-clients.mjs` | the rest flow across **two clients**: a player's rest reaches the GM, one card carries both phases, grouped rests move the clock once |
 | `node tools/check-dnd5e-citations.mjs` | our `dnd5e.mjs:NNNN` pointers still refer to the dnd5e version they were verified against |
-| `node tools/check-imports.mjs` | every named import -- static and lazy -- names an export the target really has. A lazy one that does not is `undefined` until called, so it throws in Foundry at construction and nowhere earlier; a static one fails the whole module load, in the graph thirteen siblings import. `node --check` cannot see either, because it parses without resolving |
+| `node tools/check-imports.mjs` | every named import -- static and lazy -- names an export the target really has. A lazy one that does not is `undefined` until called, so it throws in Foundry at construction and nowhere earlier; a static one fails the whole module load, in the graph fourteen siblings import. `node --check` cannot see either, because it parses without resolving |
 | `node tools/check-docs-structure.mjs` | the documentation standard: folder layout, prefixes, the uniform header, the emoji ban, HOLD hygiene, and assets in both directions. Imports the publish rules from `wiki-sync.mjs` rather than restating them |
 | `node tools/check-note-reminders.mjs` | the note reminders' two-clock table: every clock fully specified, flags distinct, both reachable from the API, both hooks carrying `clock`, the wall clock polled, and every dialog pane and row mark present |
 

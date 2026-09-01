@@ -1,4 +1,6 @@
-# Guide: Working with dnd5e Conditions and Active Effects
+# Working with dnd5e Conditions and Active Effects
+
+**Audience:** anyone in the suite applying or removing conditions and Active Effects directly.
 
 Practical, hard-won knowledge about Foundry v13 + dnd5e 5.x conditions. Verified core-only — no DFreds, no third-party condition modules.
 

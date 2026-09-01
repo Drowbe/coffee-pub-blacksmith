@@ -75,12 +75,10 @@ export const ROOT_PAGES = ['known-issues.md'];
 export const HOME_SRC = 'home.md';
 
 // ---- HOLD: deliberately withheld, each with a reason. A hold without a reason is not a hold. ----
-export const HOLD = new Map([
-  ['global/global-documentation-standard.md',
-   'specifies a publisher and a structure checker that are still being built; publishing a spec as though it were shipped is the failure it warns about'],
-  ['global/global-dnd5e-conditions.md',
-   'held pending the decision on whether platform knowledge we do not own publishes from the hub at all'],
-]);
+// Empty by design. A document goes live by existing; add an entry here only to withhold one
+// deliberately, and only with a reason -- a hold without a reason is not a hold, it is an oversight
+// wearing a policy's clothes.
+export const HOLD = new Map([]);
 
 export function collect() {
   const out = [];

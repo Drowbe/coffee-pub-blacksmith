@@ -79,15 +79,17 @@ file. Same rule as `TODO.md`.
 
 ## Suite-wide documentation standard — roll out to all 14 modules
 
-**Decided.** The standard is `global/global-documentation-standard.md` — folder layout, naming, the seven
-document kinds, what publishes, the README product page, and the CHANGELOG/plan/TODO/testing rules, for the
-whole suite. It supersedes the documentation sections of every module's `CLAUDE.md`. Two changes from what
-Blacksmith does today: **user guides are a new seventh kind** (the largest gap in the suite — no module
-documents how to *use* it), and **publication is by folder membership plus a HOLD list**, not a hand-kept
-allow-list.
+**Decided, and Blacksmith is now conformed to it.** The standard is
+`global/global-documentation-standard.md` — folder layout, naming, the document kinds, what publishes, the
+README product page, and the CHANGELOG/plan/TODO/testing rules, for the whole suite. It supersedes the
+documentation sections of every module's `CLAUDE.md`.
 
-Rollout order matters: the publisher rewrite (item 2) must land before any satellite copies it, or thirteen
-copies of the hardcoded `THIS_MODULE` trap go out at once.
+What Blacksmith has that the satellites do not yet: user guides as a kind, `global/` for suite-wide
+knowledge that satellites **link to rather than copy**, publication by folder membership plus a HOLD map,
+a publisher that derives its identity from `module.json`, and `tools/check-docs-structure.mjs`.
+
+Rollout order matters: the publisher and checker are copied unchanged, so they had to be right in the hub
+before any satellite took them. They now are.
 
 **Four decisions, settled by the author 2026-08-31:**
 
@@ -103,43 +105,11 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
    `api-window.md` from linking to that example. So the example lives in the prototype as runnable proof,
    and the API doc points at a real Blacksmith window for the contract. Neither points at the other.
 
-- [ ] **Finish conforming Blacksmith's tree.** `design-system/` → `designsystem/` and `guides/` →
-      `primers/` are both done, the second with the `primer-` prefix so folder and filename agree. Remaining:
-      create `userguides/`. Verified by: `node tools/check-design-tokens.mjs` passes and
-      `node tools/wiki-sync.mjs build` produces the expected page set.
-- [ ] **Dismantle `applicationv2-window/`; it does not survive as a folder.** Its 539-line guidance doc
-      duplicates `api/api-window.md`, which is 963 lines and already carries the contract — and the two
-      have drifted: `api-window.md` documents **six** zones including Tools, the guidance doc documents
-      **five** and omits it. `api-window.md` is the correct one. Four pieces, four destinations:
-      the zone contract is deleted as a duplicate; the hard-won behaviour (delegation, scroll preservation
-      across re-render, `_getRoot()`, safe `DEFAULT_OPTIONS` merge) folds into `api-window.md`'s Best
-      Practices and Troubleshooting, which already carry roughly half of it; the example code goes to the
-      prototype (decision 3); the images are already in `assets/`. Then remove the four places
-      `api-window.md` tells a reader to "follow" the guidance doc — a published page currently points at a
-      held one, so a wiki reader hits a dead end. Verified by: `node tools/wiki-sync.mjs build` reports no
-      downgraded links from `api-window.md`, and the zone table appears exactly once in the tree.
-- [ ] **Convert `assets/primer-applicationv2-samples.png` to WebP.** 3.3 MB against 87 KB and 102 KB for
-      the two WebP captures beside it. No image tooling in this container, so it needs a machine with
-      `cwebp` or equivalent. Verified by: the file is under ~200 KB and still legible at full width.
-- [ ] **Rewrite `tools/wiki-sync.mjs` to the portable contract.** Derive module id and wiki URL from
-      `module.json`; publish by folder membership with a HOLD list; rewrite relative image links to raw URLs
-      so screenshots render on the wiki; sidebar groups in the standard's order; `Home` from
-      `documentation/home.md`. Verified by: `build` in Blacksmith, then in one satellite, with the page list
-      diffed against expectation. Keep the ordering fix that landed with the standard: a
-      `.md` target is resolved as a doc before any code-path test, because `resources/` names both a code
-      folder and a documentation folder.
-- [ ] **Write `tools/check-docs-structure.mjs`** to the checks the standard names, the emoji check across the
-      whole repository included. Verified by: it exits
-      non-zero on a deliberately misfiled file and zero on the clean tree.
-- [ ] **Rewrite `README.md` as the product page** — what it is, screenshots, requirements, install, links to
-      the wiki. Currently a feature dump with no screenshots at all, only shields.io badges. Needs
-      `product-*` captures in `documentation/assets/`. Verified by: read it as someone who has never heard
-      of the module.
-- [ ] **Write `documentation/home.md`.** Replaces `primer-registering-with-blacksmith.md` as the wiki Home
-      source; that document becomes an ordinary published page under `primers/`.
-- [ ] **Write Blacksmith's two required user guides** — `userguide-getting-started.md` and
-      `userguide-settings.md`. The settings guide covers ~286 registered settings; consider generating its
-      table from `settings.js` plus `lang/en.json` and checking it, rather than hand-maintaining it.
+- [ ] **Write `userguide-settings.md` after the settings rebuild, not before.** Deferred by the author
+      2026-08-31: a guide to 260 controls that are about to change is waste that reads as authoritative.
+      It documents the on-screen labels and never edits them — `lang/en.json` is product copy, not doc
+      source. `userguide-getting-started.md` is written; it is a draft derived from source and still
+      needs walking in a live world.
 - [ ] **Split `coffee-pub-prototype` out into its own repository** (decision 1). It is 12 tracked files in
       Blacksmith's root — module.json, README, CHANGELOG, LICENSE, scripts, styles, lang, its own
       documentation, and a release workflow that cannot fire where it sits. Preserve its history when
@@ -149,12 +119,14 @@ copies of the hardcoded `THIS_MODULE` trap go out at once.
 - [ ] **Build the standard into the prototype once Blacksmith is conformed** (decision 2). Five folders,
       `assets/`, the publisher, the checker, stub docs, and a product README, plus `SETUP_PROMPT.md`
       updated so a scaffolded module is born conformant. This is the leverage point: every module created
-      after it is free, and only the thirteen existing ones need retrofitting.
-- [ ] **Add `coffee-pub-merchant` to the sibling list in `CLAUDE.md`.** It exists on GitHub and is missing
-      from the list of thirteen.
-- [ ] **Roll out to the thirteen satellites** — five folders, the two publisher files, the checker, a
-      `home.md`, a product README, and the two required user guides each. Verified by: each module's wiki
-      has a Home and a User guides group.
+      after it is free, and only the fourteen existing ones need retrofitting.
+- [ ] **Roll out to the fourteen satellites** — the folders, the two publisher files, the checker, a
+      `home.md`, a product README, and a getting-started guide each. Delete each satellite's forked copies
+      of hub documents outright rather than folding them into `api/`: five carry a `blacksmith-apis.md`,
+      one module has two of them, and Artificer additionally forked the ApplicationV2 guidance doc that
+      Blacksmith has since dismantled. All of them have diverged. A fork folded under a tidier name is
+      still a fork. Verified by: each module's wiki has a Home and a User guides
+      group, and `node tools/check-docs-structure.mjs` passes in each.
 - [ ] **Strip the duplicated documentation rules from each module's `CLAUDE.md`** and point at the standard
       instead. Leave code conventions, traps, and pointers.
 - [ ] **Re-check the Wiki section below before working any of it.** Several of its items — the publish path,
