@@ -11,9 +11,8 @@ file outside that chain is silently unstyled).
 
 ## Local-first: why `show()` has no recipients
 
-The toast system was designed against two real implementations: Bibliosoph's message splash
-(`coffee-pub-bibliosoph/scripts/manager-conversations.js`, `_showSplash`) and the sketch in the
-player-facing toast TODO. The load-bearing observation: **the cross-client part of a "toast to a
+The toast system was designed against two real implementations of a message splash in the suite.
+The load-bearing observation: **the cross-client part of a "toast to a
 player" always already happened.** Bibliosoph's splash renders on the receiving client after the
 message arrived through Bibliosoph's own transport; Blacksmith's leader toast renders after the
 `partyLeader` world-setting sync reached every client. The rendering primitive needs no sockets —

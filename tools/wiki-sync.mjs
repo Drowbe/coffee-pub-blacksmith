@@ -7,9 +7,9 @@
  * are rewritten from repo paths (../api/foo.md) to wiki page names (foo); links to code files, or
  * to docs not in the publish set, are downgraded to plain text so the wiki has no broken red links.
  *
- * Source docs are never modified. The publish/downgrade decision is made fresh each run from the
- * PUBLISH list below, so adding a held doc to that list later auto-links every reference to it —
- * no source edits needed.
+ * Source docs are never modified. The publish/downgrade decision is made fresh each run from folder
+ * membership minus HOLD, so releasing a doc from HOLD -- or simply creating it -- auto-links every
+ * reference to it, with no source edits needed.
  *
  * Usage:
  *   node tools/wiki-sync.mjs build              # write reviewable pages to tools/.wiki-build/
@@ -277,7 +277,8 @@ Missing documentation/${HOME_SRC} -- the wiki has no front door without it.`);
   if (unique.length) {
     console.log(`\n${unique.length} link(s) downgraded to plain text (target not in round 1):`);
     for (const d of unique) console.log('  ' + d);
-    console.log('These auto-become links again once their target is added to PUBLISH.');
+    console.log('A link to CODE is downgraded permanently and correctly -- that is the common case.');
+    console.log('A link to a DOCUMENT relinks itself once the file exists or leaves HOLD.');
   }
 }
 

@@ -47,6 +47,9 @@ const VIDEO = /\.(mp4|mov|avi|webm|mkv|m4v)$/i;
 const IMAGE_LINK = /!\[[^\]]*\]\(([^)]+)\)/g;
 const NEWLINE = /\r?\n/;
 const FENCE = /^\s*```/;
+// An <img> tag is the only way to set a width, which is exactly what a product screenshot needs,
+// so a module doing the standard-blessed thing failed the orphan check. (Raised by coffee-pub-crier.)
+const HTML_IMG = /<img\s[^>]*?src=["']([^"']+)["']/gi;
 const ANY_LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 
 function walk(dir) {
@@ -106,6 +109,17 @@ for (const f of allMd) {
   }
 }
 
+// ---- 2b. The front door must exist. ------------------------------------------------------------
+// ROOT_FILES was only ever an allowlist for what MAY sit in the root, never a set that must be there.
+// A module could adopt, pass every check, and publish a wiki with no Home page -- the publisher
+// tolerates the absence deliberately, so nothing anywhere said the file was owed. Silent, in the
+// place nobody watches, symptom (an empty wiki) far from the cause. (Raised by coffee-pub-crier.)
+for (const required of ['home.md', 'known-issues.md']) {
+  if (!fs.existsSync(path.join(DOCS, required))) {
+    fail('root', `documentation/${required} does not exist -- every module owes it`);
+  }
+}
+
 // ---- 3. HOLD hygiene: every entry names a real file and carries a reason. ---------------------
 for (const [rel, reason] of HOLD) {
   if (!fs.existsSync(path.join(DOCS, rel))) {
@@ -120,7 +134,11 @@ for (const [rel, reason] of HOLD) {
 const published = new Set([...collect(), HOME_SRC, ...ROOT_PAGES]);
 // TODO and plans never publish, so a reference to one always rots. known-issues.md does publish and
 // is emptied rather than deleted, so home.md may route to it; a spec citing it for fix status may not.
-const NEVER_PUBLISHED = /(^|[^\w-])(TODO\.md|TODO-GLOBAL\.md|plans\/)/;
+// A BARE `TODO` is the same debt as `TODO.md` -- the standard says so explicitly, and it is the form
+// the debt actually takes: `see TODO L8`, `TODO **A6**`. Matching only the filename missed every
+// one of them, including four in Librarian's published architecture and one in Blacksmith's own.
+// (Raised by coffee-pub-librarian.)
+const NEVER_PUBLISHED = /(^|[^\w-])(TODOs?|TODO\.md|TODO-GLOBAL\.md|plans\/)([^\w-]|$)/;
 const KNOWN_ISSUES = /(^|[^\w-])known-issues\.md/;
 
 for (const rel of published) {
@@ -171,6 +189,27 @@ for (const f of allMd) {
   });
 }
 
+// ---- 4c. The hub must not cite a satellite's internals. ---------------------------------------
+// The boundary rule refuses hub-to-satellite references, and that direction has no natural check:
+// a satellite cannot see the hub's documents, and the hub has no reason to look. Found twice in one
+// night here -- a stylesheet comment citing a sibling's CSS by line number, and an architecture
+// document citing a sibling's script. (Raised by coffee-pub-librarian.)
+// PUBLISHED documents only. Plans and TODO-GLOBAL.md are where cross-module work legitimately lives
+// -- TODO-GLOBAL is defined as the place for it -- and neither ever reaches the wiki. The boundary
+// rule governs what the hub PUBLISHES about a satellite, not what it tracks internally.
+if (IS_HUB) {
+  const SATELLITE_PATH = /coffee-pub-(?!blacksmith)[a-z]+\//;
+  for (const rel of published) {
+    const f = path.join(DOCS, rel);
+    if (rel === SELF || !fs.existsSync(f)) continue;
+    fs.readFileSync(f, 'utf8').split(NEWLINE).forEach((line, i) => {
+      if (SATELLITE_PATH.test(line)) {
+        fail('boundary', `${rel}:${i + 1} -- cites a path inside a satellite; the hub documents its own surface only`);
+      }
+    });
+  }
+}
+
 // ---- 5. No emoji or dingbats, anywhere in the tree. -------------------------------------------
 const isPictographic = (cp) =>
   (cp >= 0x1f300 && cp <= 0x1faff) ||
@@ -199,10 +238,19 @@ for (const f of [...allMd, ...testingDocs, path.join(ROOT, 'README.md'), path.jo
 
 // ---- 6. Assets: every link resolves, and every asset is referenced. ---------------------------
 const referenced = new Set();
-for (const f of allMd) {
-  const text = fs.readFileSync(f, 'utf8');
+// The README lives outside documentation/ but the standard explicitly blesses it drawing on assets/,
+// so an asset used only by the README is not an orphan. Scanning documentation/ alone reported every
+// one of them as unreferenced. (Raised by coffee-pub-crier.)
+const assetScanned = [...allMd, path.join(ROOT, 'README.md')].filter((f) => fs.existsSync(f));
+// Strip fenced blocks and inline code first. API documents illustrate image handling with example
+// paths -- `path/to/image.webp`, `<img src="icons/svg/treasure.svg">` -- which are not links to
+// anything and must not be read as one. This bit only after HTML images became visible, but the
+// markdown regexes had the same latent hole.
+const stripCode = (t) => t.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');
+for (const f of assetScanned) {
+  const text = stripCode(fs.readFileSync(f, 'utf8'));
   const dir = path.dirname(f);
-  for (const re of [IMAGE_LINK, ANY_LINK]) {
+  for (const re of [IMAGE_LINK, ANY_LINK, HTML_IMG]) {
     re.lastIndex = 0;
     let m;
     while ((m = re.exec(text))) {
@@ -211,7 +259,7 @@ for (const f of allMd) {
       if (!/\.(webp|png|jpg|jpeg|gif|svg)$/i.test(target)) continue;
       const abs = path.resolve(dir, target);
       if (!fs.existsSync(abs)) {
-        fail('assets', `${relDocs(f)} links ${target}, which is not committed`);
+        fail('assets', `${path.relative(ROOT, f)} links ${target}, which is not committed`);
       } else if (abs.startsWith(ASSETS)) {
         referenced.add(path.basename(abs));
       }
@@ -266,7 +314,10 @@ function sliceBlock(text, marker) {
   const a = text.indexOf(`<!-- ${marker} -->`);
   const b = text.indexOf(`<!-- /${marker} -->`);
   if (a === -1 || b === -1 || b < a) return null;
-  return text.slice(a + `<!-- ${marker} -->`.length, b).trim();
+  // Normalise line endings before comparing. A satellite on Windows without .gitattributes yet has
+  // a CRLF README, and a raw byte comparison then reports drift on a block that is character-for-
+  // character identical -- the very defect class this check was added to catch, reappearing inside it.
+  return text.slice(a + `<!-- ${marker} -->`.length, b).replace(/\r\n/g, '\n').trim();
 }
 
 for (const { canon, marker } of MARKED) {

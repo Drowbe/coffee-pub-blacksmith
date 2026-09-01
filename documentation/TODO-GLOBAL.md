@@ -77,6 +77,61 @@ file. Same rule as `TODO.md`.
 
 ---
 
+## Generate the README sibling table rather than hand-maintaining it
+
+- [ ] **Every module's README carries a suite table, and hand-maintained copies are wrong everywhere
+      checked.** Blacksmith listed nine of fourteen modules with five descriptions wrong; Crier had
+      Bibliosoph as "library and compendium management" (it is player messaging), Monarch wrong, and
+      six modules missing entirely. Both were fixed by rebuilding every row from each module's own
+      `module.json` description. A small script doing that for a given repo makes the table correct
+      by construction and any drifted row detectable -- Crier's suggestion, and cheaper than a memo
+      telling fourteen maintainers to check by hand. Verified by: running it against a module with a
+      known-wrong row reproduces the correct table.
+
+---
+
+## Handed over from Bibliosoph (2026-09-01)
+
+Eight cross-module items from Bibliosoph's TODO, restated from Blacksmith's vantage. Bibliosoph
+deliberately stripped the one line-number reference the originals carried rather than hand over a
+number they had not re-verified -- which is the rule, applied without being reminded.
+
+- [ ] **Public cross-client toast delivery**, e.g. `toast.publish(config, { recipients })`. Bibliosoph
+      runs its own socket relay for crit, fumble, injury and social toasts, and every module that
+      toasts cross-client rebuilds the same plumbing. Receipt-side click-arming stays per-module,
+      since functions cannot cross a socket; only DELIVERY belongs here. Verified by: a second client
+      receives a toast published from the first with no module-side relay.
+- [ ] **A stats surface for announcements -- events, not a query API.** Wanted before the announcer's
+      phase 3 is designed, so that "biggest hit" and "broken record" land as subscribers rather than
+      pollers. Shape it event-first or it will be a query API forever.
+- [ ] **MIDI attacker and item attribution on `damageResolved`.** Already tracked; unlocks the
+      attacker and weapon codes in Bibliosoph's injury toast.
+- [ ] **Advantage and disadvantage on requested rolls.** Injury treatment needs it. Bibliosoph's
+      interim is the required mode in the request title plus GM-side formula detection with mismatch
+      logging, which is a workaround for a missing parameter.
+- [ ] **A public duration formatter, e.g. `effects.formatRemaining({ value, unit })`.** A lingering
+      wound has no `durationLabel` during its bleed phase, so rows show damage-per-turn with no
+      countdown. Formatting it locally means re-deriving our rounds and hours wording, which has
+      already produced two shipped bugs. Verified by: a consumer renders a countdown without copying
+      our wording.
+- [ ] **`api/api-window.md` never states that `getData()` is the consumer hook.** Confirmed: the
+      document mentions `getData` six times and `_prepareContext` zero times. `_prepareContext` is the
+      base's, and overriding it -- the obvious Application V2 instinct -- intercepts the chain so the
+      base's own call fails with `this.getData is not a function`, an error pointing at Blacksmith
+      rather than at the consumer's class. Cost Bibliosoph a render cycle on the injury picker.
+- [ ] **`api/api-effects.md:73` gives guidance that is unsafe in the case that matters.** It warns
+      against `includeDescriptions: 'always'` in player-facing UI, which implies `'auto'` is the safe
+      choice. It is not, when the render is baked once by one client and broadcast: the permission
+      check is relative to the RENDERER, not the audience, so a GM composing a chat card stores the
+      enriched description for everyone. The axis is where it renders, not how permissive the flag
+      looks. Verified by: the document names the broadcast case explicitly.
+- [ ] **Two developer-experience footguns**, flagged rather than filed. `rollCoffeePubDice()`
+      fabricates a decorative 2d20 when passed nothing, which produced a fake-dice bug downstream;
+      warn and skip would be safer. `objectToString` and `stringToObject` corrupt prose containing
+      `=` or `|`, which ate an Apply-button description.
+
+---
+
 ## Handed over from Squire (2026-08-31)
 
 Six items Squire removed from its own TODO under the cross-module rule. Restated from Blacksmith's

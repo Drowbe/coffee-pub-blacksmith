@@ -19,12 +19,12 @@ Four failures, all of them live in the suite when this was written:
 
 1. **Every module invented its own layout.** Nothing is where you expect it, so nobody looks, so
    documents rot unread.
-2. **Only the hub publishes.** A satellite's documentation exists only for someone who clones the
+3. **Only the hub publishes.** A satellite's documentation exists only for someone who clones the
    repository. The wiki is where people actually read.
-3. **No module documents how to use it.** Every document in the suite is written for a developer. A
+4. **No module documents how to use it.** Every document in the suite is written for a developer. A
    GM installing a module gets a feature list in a README and nothing else. This is the largest
    single gap in the suite, and it is what `userguides/` exists to close.
-4. **Shared knowledge got copied instead of linked.** Five satellites carry their own forked copy of
+5. **Shared knowledge got copied instead of linked.** Five satellites carry their own forked copy of
    the hub's API notes, one of them twice, and they have already diverged. That is what `global/`
    exists to stop.
 
@@ -76,6 +76,11 @@ checking by hand, because it is the only one that fails quietly: a folder wrongl
 loudly and gets noticed in the first minute, whereas a satellite carrying a `TODO-GLOBAL.md` passes
 every check while tracking cross-module work in a file it is not allowed to have. It would have
 created, silently, exactly the coupling the boundary rule exists to prevent.
+
+**Before adding a check, ask which DOCUMENTS it governs, not only which modules.** A hub-only rule
+about published documents was first written to scan every markdown file, and fired twenty times on
+`plans/`, `TODO.md` and `TODO-GLOBAL.md` -- where cross-module references are not merely allowed but
+are the entire purpose. Same mistake as the one below, on the other axis.
 
 **A rule that is true of the hub is not automatically true of a satellite.** That mistake has now been
 made three times -- the shared-block check, the `api/` requirement, and `TODO-GLOBAL.md` at the root --
@@ -177,6 +182,11 @@ file only means something to a reader of ours, it is documentation and it is one
 
 **The verification BACKLOG is `testing/`, at the repository root.** That is where the testing
 documents live -- what has shipped unproven, and the steps to discharge it.
+
+**Testing document filenames are free-form, deliberately.** Every other folder takes a prefix
+because the filename becomes the wiki page name; `testing/` never publishes, so that reason does not
+reach it and a prefix would be ceremony. Name them for what they verify. The hub's own folder holds
+four different styles and none of it matters.
 
 **A module with an automated suite keeps it wherever its code lives, and `tests/` is a fine name for
 it.** This is not the same folder and must not be merged into it. Merchant has ten dependency-free
@@ -288,11 +298,11 @@ What it contains, in this order:
    way a user would describe it rather than the way the code is organised.
 4. **Requirements** -- Foundry version, game system, and every required module, stated plainly and
    completely. A dependency missing here is a failed install.
-5. **Install** -- the manifest URL and the one-line instruction.
-6. **Where to read more** -- links into the wiki: the user guides for players and GMs, the API for
+6. **Install** -- the manifest URL and the one-line instruction.
+7. **Where to read more** -- links into the wiki: the user guides for players and GMs, the API for
    developers. Depth lives there, not here.
-7. **The suite** -- the other Coffee Pub modules, one line each. See the carve-out below.
-8. **Licence and credits.**
+8. **The suite** -- the other Coffee Pub modules, one line each. See the carve-out below.
+9. **Licence and credits.**
 
 What it is not: a feature dump, an API reference, an architecture summary, a changelog, a roadmap, a
 development setup guide, or a task list. Every one of those has a home, and none of them is the front
@@ -360,6 +370,16 @@ the table.
 5. **Every claim is something you can do in a running world.** If you cannot walk the steps
    yourself, the steps are wrong. A guide derived from reading source is a draft until somebody has
    walked it, and which claims have not been walked is worth saying out loud.
+   **Record the unwalked claims in `TODO.md`, not in the guide.** Saying so inside the document is
+   status theatre, and a reader at the table cannot act on it. Walking the guide is work, so it is a
+   TODO entry naming the guide and what specifically is unverified -- usually the ordering claims and
+   anything about what a player sees, since source cannot tell you either.
+   **A product screenshot of a live game is a photograph of real people.** Player names, character
+   names and chat messages all end up in a capture of a running world, and a product screen is
+   published to a public wiki and a public landing page. Check what is in the frame, and prefer a
+   scratch world. This is a second, independent reason to delete a stale capture and does not depend
+   on the image being wrong: three of one module's four retired screenshots showed real players'
+   real names.
    **No screenshot beats a wrong one.** A stale product image is replaced or deleted, never
    republished -- and this rule overrides both the instruction below and the README's "show it".
    An image is believed harder than a document, and a reader who sees five tabs in a capture and two
@@ -380,7 +400,7 @@ the table.
 7. **Screenshots live in `documentation/assets/`** and are referenced relatively, so they render in
    the repository, in an editor, and -- after the publisher rewrites them -- on the wiki.
 8. **No design rationale.** Why it works this way is architecture. A user guide says what happens.
-9. **The formatting standard below applies in full.** User guides are the most-read documents in the
+10. **The formatting standard below applies in full.** User guides are the most-read documents in the
    suite; they are not the place to relax it.
 
 **Write the settings guide after a settings rework, not before.** A guide to controls that are about
@@ -519,6 +539,19 @@ anywhere else.
   entries verbatim, send them to whoever owns the hub's documentation, and delete them locally only
   once they have landed there. Stated because the unstated version has one realistic outcome: the
   satellite keeps the entries, which is where they already were.
+  **A satellite MAY hold a marked staging section for findings not yet handed over** -- "Owed to the
+  hub", or similar. The interval between finding something and the hub accepting it is real, and the
+  alternative to a staging section is not a clean TODO, it is the finding dying in conversation
+  scrollback. The section is legitimate precisely because it empties: an entry sits there until the
+  handoff lands, and a section that never empties has stopped being a staging area and become a
+  second backlog.
+
+**A known issue is OBSERVED, never inferred.** The stale-screenshot rule has a prose form and this
+is where it bites: an entry reasoned out from reading source rather than watched happening sends
+someone hunting a bug that may not exist, and it carries the authority of a defect report while
+resting on the evidence of a guess. One adopter drafted an entry about tooltips rendering line breaks
+as spaces, inferred from CSS they had written and never watched render, and deleted it before it
+landed. If you have not seen it, it is a suspicion, and it goes in `TODO.md` as something to check.
 
 **`known-issues.md` is the counterpart to the CHANGELOG**: the CHANGELOG records what was fixed, this
 records what is still broken. Each entry describes the defect, its workaround if there is one, and a
@@ -642,8 +675,9 @@ published or not; the rest of this list binds what publishes:
 - **No styled callout blocks.** A blockquote with a bold warning header is still a note about the
   module; state it as prose. Ordinary blockquotes for actual quotations are fine.
 - **ASCII quotes and apostrophes**, not curly ones.
-- **No task lists or checkboxes.** Anything shaped like work belongs in `TODO.md`. The one exception
-  is a testing document, and those never publish.
+- **No task lists or checkboxes.** Anything shaped like work belongs in `TODO.md`, which does not use
+  them either -- an entry is prose. The one exception is a testing document, where ticking items off
+  is the whole point, and those never publish.
 - **No footers or status theatre.** No "Last updated", no "Status: production ready", no "Version
   history" (that is the CHANGELOG), no support boilerplate.
 - **Point at code, do not copy it.** A `file.js:120` pointer beats a pasted class, constant list, or
@@ -685,20 +719,52 @@ place nobody is watching, and the symptom points away from the cause. It also ca
 copying and diffing in one sitting -- only by a second session, or by reading git's warning during
 `git add`.
 
-**`.gitattributes` cannot protect itself on the first pass, and the ordering instruction should not
-pretend otherwise.** Its rules apply from the commit that introduces them, so the copy sitting in a
-working tree before that commit is subject to whatever `core.autocrlf` already says. Copying it first
-is still the best available order, but the guarantee starts one commit later.
+### Line endings and the commit boundary
 
-**Verify by comparing STAGED BLOBS, not working trees.** A working-tree `diff` is normalisation-
-dependent: it says "identical" and keeps saying so right up until the checkout that makes it a lie.
-Comparing what git actually stores is normalisation-independent by construction and works immediately,
-before any commit:
+One property, four places it bites. Stated once here because a caveat repeated in four sections is
+the drift this standard exists to prevent.
 
-    git show ":tools/wiki-sync.mjs" | md5sum
-    git -C ../coffee-pub-blacksmith show "HEAD:tools/wiki-sync.mjs" | md5sum
+**The property.** Git's line-ending rules apply from the COMMIT that introduces them, and a working
+tree is normalised per checkout. So any comparison between two working trees, or between a working
+tree and a commit, can differ for reasons that are not drift -- and can agree while drift is pending.
+Every consequence below is that one fact seen from a different side.
 
-That turns a defect only a second session could find into one anybody can find in ten seconds.
+1. **`.gitattributes` cannot protect itself on the first pass.** The copy sitting in a working tree
+   before its own commit is subject to whatever `core.autocrlf` already says. Copying it first is
+   still the best available order; the guarantee starts one commit later.
+2. **A working-tree `diff` lies about the copied files.** It reports "identical" and keeps doing so
+   right up until the checkout that makes it false. Compare what git STORES instead -- staged blobs
+   -- which is normalisation-independent by construction and works before any commit.
+3. **A mismatch against the hub's `HEAD` has two causes.** While a hub fix is staged but uncommitted,
+   `HEAD:` is the previous version, so a faithful copy reports a DIFF indistinguishable from real
+   drift. Adopters copy precisely during that window, because that is when the hub has just fixed
+   something for them. Compare against both:
+
+        md5sum tools/wiki-sync.mjs                                                # your copy
+        git -C ../coffee-pub-blacksmith show "HEAD:tools/wiki-sync.mjs" | md5sum  # hub, committed
+        md5sum ../coffee-pub-blacksmith/tools/wiki-sync.mjs                       # hub, working tree
+
+     matches both                    correct, and the hub is not mid-change.
+     matches worktree, differs HEAD  correct. The hub has not committed. Benign; re-run later.
+     matches HEAD, differs worktree  STALE. The hub changed the file after you copied it.
+                                     Re-copy, then re-run.
+     differs from both               a real problem: a bad copy, or line-ending drift.
+
+   Say which side you compared against. "All five match" is a claim that goes stale without anyone
+   editing it, which makes it worse than no claim, because the next person stops checking.
+4. **A tool comparing raw bytes across repositories manufactures drift.** The shared-block check
+   reported a satellite's disclosure as drifted when it was character-for-character identical: their
+   README was CRLF, the canonical file LF. This is the nastiest of the four, because the other three
+   produce a false DIFF that sends someone looking, while this one ACCUSES a compliant module. A
+   tool that manufactures a defect costs more than one that misses a real one. Any check comparing
+   text across repositories normalises line endings first, and any check that can be wrong needs a
+   stated way to confirm its verdict -- here, diff the two blocks by hand before believing it.
+
+**And the ordering rule that follows: when a hub change and an adoption are in flight together, the
+hub commits first.** Otherwise the suite briefly holds a satellite shipping publisher files its hub
+has never committed, and anyone auditing in that window sees the DIFFs in the module most likely to be
+blamed for them. Same property once more: the guarantee starts at the commit, so the commit comes
+first.
 
 **A module that already has a `.gitattributes` gets the hub's rules ADDED, not the file replaced.**
 Everything the standard needs is additive -- `text=auto` plus `eol=lf` on the text kinds -- and it
@@ -815,7 +881,17 @@ releases on a tag.
 
 In order, because each step depends on the one before:
 
-1. **Create the folders** and move what already exists into them, using `git mv` so history follows.
+1. **Copy `.gitattributes` FIRST, before touching anything else.** It carries `*.md text eol=lf`,
+   so every document the later steps create or move is staged under whatever `core.autocrlf` says
+   until this file lands. The ordering warning in the publisher section is written about the five
+   copied tool files and is equally true of the documents these steps produce -- and because the
+   steps are numbered, working down them in order guarantees the wrong result. If the module already
+   has a `.gitattributes`, ADD the hub's rules rather than replacing it.
+2. **Create the folders** and move what already exists into them, using `git mv` so history follows.
+   **Then sweep for inbound references to the old paths.** A rename that history follows still breaks
+   every pointer at it: code comments, workflow files, TODO entries, plans, and links from other
+   documents. Grep for the old folder name and the old filenames, fix the live pointers, and leave
+   released CHANGELOG sections alone -- a naive find-and-replace rewrites published history.
    On Windows -- which is where this suite is developed -- renaming `todo.md` to `TODO.md` fails with
    "destination exists", because the filesystem is case-insensitive and git sees a collision. Rename
    through a temporary name: `git mv documentation/todo.md documentation/todo-tmp.md`, then
@@ -828,28 +904,45 @@ In order, because each step depends on the one before:
    **Put a `.gitkeep` in any required folder you leave empty.** Git does not track an empty directory,
    so a tree that passes locally arrives at a fresh clone missing the folder and fails there instead --
    the one place nobody is watching.
-2. **Rename files to match their folder's prefix.** Anything already published keeps its old page
+3. **Rename files to match their folder's prefix.** Anything already published keeps its old page
    name until step 7, so do the renames before the publisher goes live rather than after.
-3. **Delete the forks outright.** A satellite's own copy of the hub's API notes -- typically named
+4. **Delete the forks outright.** A satellite's own copy of the hub's API notes -- typically named
    something like `blacksmith-apis.md` -- is deleted and replaced by a link to the hub's wiki. It is
    not folded into `api/`: folding preserves the fork under a tidier name, and this is the single
    most common stray in the suite. The same goes for any local copy of a `global/` document.
-4. **Fold the remaining strays.** Anything that is not one of the kinds either folds into a kind that
-   exists or is deleted.
-5. **Check that the existing user guide is one before moving it.** The first module to adopt this had
+5. **Fold the remaining strays.** Anything that is not one of the kinds either folds into a kind that
+   exists or is deleted. **When a stray duplicates a document of the kind it would fold into,
+   reconcile BOTH against the code before folding.** The stray is not automatically the stale one.
+   In one module's three pairs the verdict differed every time: the stray was stale and
+   self-contradicting; the architecture document was publishing an abandoned design the stray had
+   correctly retired; and the third was split, with a stale body and a correct addendum. Neither the
+   filename, the folder, nor which file is older predicts it, and a fold in the wrong direction
+   silently deletes the correct text and publishes the wrong text.
+   **Then `git grep` the old filename across `scripts/` and `tools/`, not just the documents.**
+   Folding a stray leaves dangling pointers in the CODE that referenced it -- one module found six
+   such comments, two naming files deleted a month earlier. Ten seconds, and the easiest step to skip.
+6. **Check that the existing user guide is one before moving it.** The one-line test: does its H1
+   name THIS module? Three modules carried a `getting-started.md` that was starter-template
+   scaffolding about how to BUILD a Coffee Pub module -- one titled "Getting Started with Coffee Pub
+   Module DEVELOPMENT" -- and one carried two such files. The first module to adopt this had
    a `user-guide.md` whose sections were "Recommended Data Model", "Fastest High-Value Features", and
    "Product Direction" -- a product plan wearing a user guide's filename. Moving it to `userguides/`
    would have published a design document to the wiki as though it told a GM how to play. It went to
    `plans/` and a real guide was written from scratch. A filename is not evidence of a kind.
-6. **Write `home.md`** and rewrite `README.md` as the product page. Write `home.md` from scratch;
+7. **Write `home.md`** and rewrite `README.md` as the product page. Write `home.md` from scratch;
    never seed it from the wiki. Without them the wiki has no front door and the repository has no
    pitch.
-7. **Write `userguide-getting-started.md`.** Add `userguide-settings.md` too, unless the module's
+8. **Write `userguide-getting-started.md`.** Add `userguide-settings.md` too, unless the module's
    settings are being reworked, in which case it waits for the rework.
-8. **Copy in the five publisher files, `.gitattributes` first, and push.** If the module already has
+9. **Move defects out of `TODO.md` into `known-issues.md`.** An adopting module will have some,
+   because until now there was nowhere else to put them; the split reads as obvious once stated and
+   is genuinely new to a satellite. While there, delete the completed entries -- one module's only
+   dangling pointer in the entire repository sat in a finished item nobody had removed, because the
+   CHANGELOG entry had felt like the completion.
+10. **Copy in the five publisher files, `.gitattributes` first, and push.** If the module already has
    a `.gitattributes`, add the hub's rules to it rather than replacing it -- see the warning above.
    The first run publishes everything at once.
-9. **Do not silence git's warnings, and run the checker once more before committing** rather than only
+11. **Do not silence git's warnings, and run the checker once more before committing** rather than only
    after each step. Two of the defects found on the first adoption surfaced no other way: one from
    reading a `git add` warning instead of scrolling past it, one from running the check again on a
    later day. Neither survives an adoption done in one sitting by someone working down a checklist,
