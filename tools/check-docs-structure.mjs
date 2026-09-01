@@ -180,7 +180,11 @@ const isPictographic = (cp) =>
   cp === 0x2705 ||
   cp === 0x274c;
 
-for (const f of [...allMd, path.join(ROOT, 'README.md'), path.join(ROOT, 'CHANGELOG.md'), path.join(ROOT, 'CLAUDE.md')]) {
+// testing/ sits at the repository root by design, so scanning only documentation/ left the emoji
+// rule unenforced exactly where the standard tells people to put a testing document.
+// (Raised by coffee-pub-merchant on adoption.)
+const testingDocs = walk(path.join(ROOT, 'testing')).filter((f) => f.endsWith('.md'));
+for (const f of [...allMd, ...testingDocs, path.join(ROOT, 'README.md'), path.join(ROOT, 'CHANGELOG.md'), path.join(ROOT, 'CLAUDE.md')]) {
   if (!fs.existsSync(f)) continue;
   const text = fs.readFileSync(f, 'utf8');
   text.split(/\r?\n/).forEach((line, i) => {

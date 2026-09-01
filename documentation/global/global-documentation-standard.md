@@ -150,9 +150,40 @@ is not this module -- and a category defined by what it excludes becomes a junk 
 split cleanly: knowledge belonging to the suite went to `global/`, and the one file documenting the
 hub's own surface was deleted as a duplicate of the API reference that already covered it.
 
+**A cross-module data contract is documented by whichever module's API absorbs it.** Modules couple
+through flags, settings keys and document types as well as through function calls, and the temptation
+is to give the writing module an `api/` folder to declare them in. Do not. If a consuming module's API
+already registers the contract, that is its home -- it documents that module's surface, and the other
+module's participation is one string of data inside it. If no API absorbs it, it belongs in the
+writing module's architecture document. A parallel declaration in the writer's `api/` is a second
+source of truth for one string.
+
+**Archaeology is not a contract.** A read into another module's namespace is often a one-way migration
+of frozen historical data as a feature moves between modules -- deliberately built to keep working
+after the writing module is uninstalled. Documenting that as a public surface asserts the opposite of
+the truth: that the module must keep writing data it is actively retiring. Check which one you have
+before writing anything down; the test is whether the writer is still expected to produce it.
+
 **Module-local knowledge about the platform is architecture.** If a single module needs a note on how
 Foundry or the game system behaves, that is context for changing that module, and architecture is
 already the home for things you can only learn the hard way. It does not need a kind of its own.
+
+**Repository metadata is not documentation and the standard does not govern it.** `LICENSE`,
+`CONTRIBUTING.md`, and GitHub's issue and pull-request templates are platform conventions -- GitHub
+surfaces them in its own interface, and they describe how to work with the repository rather than how
+the module behaves. They live at the repository root, outside `documentation/`, and no rule here
+applies to them. The test is whether GitHub gives the file a job: if it does, it is metadata; if the
+file only means something to a reader of ours, it is documentation and it is one of the kinds.
+
+**The verification BACKLOG is `testing/`, at the repository root.** That is where the testing
+documents live -- what has shipped unproven, and the steps to discharge it.
+
+**A module with an automated suite keeps it wherever its code lives, and `tests/` is a fine name for
+it.** This is not the same folder and must not be merged into it. Merchant has ten dependency-free
+Node suites in `tests/`, cited from its architecture document as code pointers in nine places;
+renaming them for a documentation reason would break those pointers and put `.mjs` files in a folder
+this standard defines as prose. Where a suite exists, prefer it: the testing-document rule already
+says a testing document is only for what a harness cannot do, which presumes a harness may exist.
 
 **Migration guides and inventories are not a kind.** If such a document has content worth keeping,
 fold it into architecture and delete the original. If a migration is complete, it is history, and
@@ -307,7 +338,7 @@ the table.
 | File | Required | Contents |
 |---|---|---|
 | `userguide-getting-started.md` | always | What the module does, what it needs installed, and what changes on screen the moment it is enabled. The first five minutes. |
-| `userguide-settings.md` | always | Every setting, by its on-screen name: what it does, who it affects, what happens if you change it. |
+| `userguide-settings.md` | unless the settings are being reworked | Every setting, by its on-screen name: what it does, who it affects, what happens if you change it. See the note below. |
 | `userguide-gm.md` | if the module has GM-only behaviour | The GM's workflows, in the order a session actually runs. |
 | `userguide-player.md` | if players see anything at all | What a player sees and can do, and what they cannot. |
 | `userguide-<feature>.md` | as needed | One per feature large enough that the guides above would otherwise swallow it. |
@@ -329,6 +360,12 @@ the table.
 5. **Every claim is something you can do in a running world.** If you cannot walk the steps
    yourself, the steps are wrong. A guide derived from reading source is a draft until somebody has
    walked it, and which claims have not been walked is worth saying out loud.
+   **No screenshot beats a wrong one.** A stale product image is replaced or deleted, never
+   republished -- and this rule overrides both the instruction below and the README's "show it".
+   An image is believed harder than a document, and a reader who sees five tabs in a capture and two
+   on screen concludes the module is broken rather than the picture is old. Squire had seven captures
+   predating a module split, every one showing tabs that no longer exist; publishing none and writing
+   a TODO was correct.
    **Screenshots are how the wrong claims surface, and they surface reliably.** The first guide
    written this way looked correct and carried four errors, every one invisible in the source and
    obvious in an image: the tabs render in a different order from the one the code declares them in,
@@ -362,6 +399,12 @@ screenshot used by both a user guide and an overview has one home rather than a 
 folder groups them the way nesting would have, and an orphan is visible by eye as well as to the
 checker. The exception is the **product screens**, which belong to no single document: the README and
 `home.md` both draw on them, so they take `product-`.
+
+**There are exactly two homes for an image, and any third is a stray.** Runtime content the module
+loads lives in `images/` and ships; everything a document or a landing page draws on lives in
+`documentation/assets/` and does not. A root-level `product/`, `screenshots/` or similar is neither:
+it does not ship, and the publisher cannot see it, so its contents render nowhere and rot unobserved.
+Move them into `assets/` or delete them.
 
 **Product screens do not go in the module's shipped `images/` folder.** That folder is runtime
 content and ships in the release zip to every user; `documentation/` does not ship, so a product
@@ -403,6 +446,11 @@ entries that cite the files they touched. Match the style already in the file.
   entry that does not say how the change was confirmed is an entry nobody can trust. If the only
   check was that the client loaded with no errors, say exactly that and imply nothing more. This line
   records the verification; it does not replace telling the author how to run it.
+- **The emoji rule wins over this one, and a conformance fix is not "writing into" a section.**
+  A released section containing an emoji makes the two rules unsatisfiable together: the emoji rule is
+  absolute and covers the whole repository, and this rule forbids touching the section. Strip the
+  glyph, keep the words, and note it in the open entry. History is preserved by keeping the meaning,
+  not the character. This is the only edit a released section ever takes.
 - **Never write into a released version's section.** A section is open only until its `BUILD x.y.z`
   commit lands; after that it is published history. When work starts again, open a fresh heading at
   the top -- `## [Unreleased]`, or the next version number if the author has already named it.
@@ -454,6 +502,16 @@ anywhere else.
   design decision was written loses that decision.
 - **Cross-module work goes in the hub's `TODO-GLOBAL.md`**, not a module's own `TODO.md`. That file
   is process tracking and is never a licence to document another module's internals.
+  **Re-verify every `file.js:120` reference at the moment you hand it over.** A line number is the
+  one kind of claim that goes stale without anybody editing it, and "verbatim" preserves wording
+  rather than truth. Both references in the first cross-module handover had rotted: one defect had
+  simply moved down the file, and the other pointed at a line that was safe while the real bug sat
+  seventeen lines above it -- the worse shape, because someone fixes the cited line, sees no change,
+  and closes the item as done.
+  **A satellite cannot write that file, so the move is a handoff, not a deletion.** Extract the
+  entries verbatim, send them to whoever owns the hub's documentation, and delete them locally only
+  once they have landed there. Stated because the unstated version has one realistic outcome: the
+  satellite keeps the entries, which is where they already were.
 
 **`known-issues.md` is the counterpart to the CHANGELOG**: the CHANGELOG records what was fixed, this
 records what is still broken. Each entry describes the defect, its workaround if there is one, and a
@@ -507,6 +565,14 @@ Five rules:
 3. **Passing means delete.** Remove the item, do not tick it and leave it. When the file is empty,
    delete the file. A testing document full of ticked boxes is indistinguishable from one nobody has
    run.
+   **This binds the BACKLOG and never an automated suite, wherever either lives.** A suite is
+   permanent by nature -- a passing check is the reason to keep it, and deleting it because it went
+   green removes the thing that stops the failure recurring. A backlog is transitional by nature. The
+   folder does not decide which one a file is; the kind does. This matters because the two commonly
+   share a folder: Squire's `testing/` holds a manual checklist beside four automated checks, and
+   Blacksmith's holds its verification documents beside the harness, its suites, and its fixtures.
+   A careless reading of this rule in either repository deletes the checks that stop broken builds
+   shipping.
 4. **It is never a source of truth about behaviour.** It says "this is unproven", never "this is how
    it works". The moment it explains a mechanism, that belongs in architecture.
 5. **Only for what a harness cannot do.** An automated suite is better than a checklist because it
@@ -615,9 +681,17 @@ copying and diffing in one sitting -- only by a second session, or by reading gi
 **`.gitattributes` cannot protect itself on the first pass, and the ordering instruction should not
 pretend otherwise.** Its rules apply from the commit that introduces them, so the copy sitting in a
 working tree before that commit is subject to whatever `core.autocrlf` already says. Copying it first
-is still the best available order, but the guarantee starts one commit later -- a maintainer who diffs
-between the copy and the commit sees a real difference that is also harmless. Diff again after
-committing, not before.
+is still the best available order, but the guarantee starts one commit later.
+
+**Verify by comparing STAGED BLOBS, not working trees.** A working-tree `diff` is normalisation-
+dependent: it says "identical" and keeps saying so right up until the checkout that makes it a lie.
+Comparing what git actually stores is normalisation-independent by construction and works immediately,
+before any commit:
+
+    git show ":tools/wiki-sync.mjs" | md5sum
+    git -C ../coffee-pub-blacksmith show "HEAD:tools/wiki-sync.mjs" | md5sum
+
+That turns a defect only a second session could find into one anybody can find in ten seconds.
 
 **A module that already has a `.gitattributes` gets the hub's rules ADDED, not the file replaced.**
 Everything the standard needs is additive -- `text=auto` plus `eol=lf` on the text kinds -- and it

@@ -26,6 +26,7 @@
 .gitattributes text eol=lf
 
 # Images should be treated as binary
+*.webp binary
 *.png binary
 *.jpg binary
 *.gif binary

@@ -404,11 +404,8 @@
 /* ---------- GAUGE ---------- */
 
 /*
-    A scale you read a position off. Geometry follows Squire's party reputation bar
-    (coffee-pub-squire/styles/panel-party.css:546-620) and the damage ratio bar in
-    the stats cards' stylesheet (cards-stats.css, since deleted): blocks or a
-    gradient, with triangular markers positioned along
-    the range.
+    A scale you read a position off: blocks or a gradient, with triangular markers
+    positioned along the range.
 
     With no stops or segments supplied it falls back to the shared palette's red
     through green, because that is the ramp nearly every scale in the suite wants

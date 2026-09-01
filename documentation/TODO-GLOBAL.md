@@ -77,6 +77,75 @@ file. Same rule as `TODO.md`.
 
 ---
 
+## Handed over from Squire (2026-08-31)
+
+Six items Squire removed from its own TODO under the cross-module rule. Restated from Blacksmith's
+vantage rather than pasted -- Squire's framing was correct for Squire and is backwards once the item
+is ours. Two line references were wrong and are corrected here; both defects are real and I confirmed
+them in the source before recording them.
+
+- [ ] **`api.inventory` has no GM-routing escape, so every write fails for a non-owner**
+      (`scripts/api-inventory.js`). Confirmed: zero occurrences of `requestGM` in that file, against
+      two in `api-pins.js`. The precedent is our own -- `pins.requestGM('create', ...)` already solves
+      exactly this shape. With `requestGM` on inventory, a consumer needs no permission checks at all,
+      only the approval experience. What it blocks today: player-to-player currency transfer, since
+      `transferCurrency` requires ownership of BOTH actors, so it works for a GM or for one player
+      moving coins between their own characters and not otherwise. Squire has published this as a
+      known issue describing only the behaviour a user hits, per the boundary rule; when this lands,
+      that entry moves to their CHANGELOG. Verified by: a non-owner completes a transfer.
+
+- [ ] **`ui-journal-encounter.js:361` reads the bare `JournalSheet` global** --
+      `Object.values(ui.windows).find(w => w instanceof JournalSheet && ...)`. Deprecated since v13
+      and REMOVED in v15, where it becomes a hard `ReferenceError` inside a hook that fires on every
+      journal-page write. Needs `foundry.appv1.sheets.JournalSheet`. `ui.windows` on the same line
+      and again at `:377` is separately v13-deprecated in favour of `foundry.applications.instances`.
+      **Squire reported this at `:378`, which is a false positive** -- that line is a
+      `w?.constructor?.name === 'JournalSheet'` string comparison and is safe. The real one is `:361`.
+      Verified by: the encounter injector still runs on a journal render under v14.
+
+- [ ] **Pin renderer leaks an element when an unplaced pin is deleted** (`scripts/manager-pins.js`,
+      the `loc.location === 'unplaced'` branch of `delete()`, around `:2310`). Confirmed: that branch
+      removes the data and returns, while the `scene` branch immediately below it calls
+      `PinRenderer.removePin(pinId)`. Squire cited `:2267`; the line has moved but the defect is
+      exactly as described. Fix the asymmetry regardless of whether it causes the symptom below.
+      Verified by: deleting an unplaced pin leaves no entry in `PinRenderer._pins`.
+
+- [ ] **Investigate a pin vanishing from a scene's flag list without its element being removed.**
+      Squire reproduced this live before dropping pins entirely: after a pin/unpin/re-pin cycle as GM,
+      `PinRenderer._pins` holds an element for an id present in neither the scene flags nor the
+      unplaced store, so `loadScenePins` logs `updateAllPositions: No pin data for <id>` forever and
+      the new pin flickers and disappears. They verified with before/after console dumps that the
+      scene list is byte-identical and every id in it resolves, so the leak is renderer-side. Their
+      suspicion, unproven: a read-modify-write race on `scene.setFlag(FLAG_KEY, ...)`, since both
+      `unplace()` and `delete()` read the list, filter, and write it back -- a stale read would
+      clobber a concurrently-added pin. Root cause UNCONFIRMED. Affects any consumer that unplaces.
+
+- [ ] **A throwing card action handler is logged and swallowed** (`bindCardActions`). Continuing is
+      right for card robustness, but a handler that retires the card and then throws leaves the card
+      asserting success, and that is how a broken GM-approval leg went silent in Squire. Either
+      surface the throw or give consumers a "this action failed" path. Verified by: a handler that
+      throws after mutating leaves the card showing failure rather than success.
+
+- [ ] **Promote the shared tool-window row and section components out of Squire and Curator.** The
+      vocabulary now exists three times: Curator's Loot window, Squire's `styles/window-tool-shared.css`,
+      and partially our own `styles/window-list.css`. Squire's copy matches Loot's measurements by
+      hand, which is the interim step -- two files that agree because somebody copied numbers will
+      disagree the first time either is touched. `.blacksmith-list` already covers the plain row and
+      `.blacksmith-entity` the selectable one. Missing: the **section** (bordered box, uppercase accent
+      heading, optional count pill, head-actions slot), the **height chain** that lets a capped
+      resizable tool window scroll rather than grow, and a **drawn checkbox** so multi-select rows stop
+      inheriting Foundry's theming of bare inputs. Less clearly general, decide separately: `-note` /
+      `-banner` copy styles, the coin strip (may belong to whoever owns currency), and the totals rule.
+      Verified by: Squire's `window-tool-shared.css` shrinks to nothing and is deleted.
+
+- [ ] **Co-sign the dnd5e `updateEncumbrance` upstream report after the v14 migration.**
+      `Actor5e#updateEncumbrance` is an unguarded check-then-create against a fixed effect id, so any
+      two writes to one actor can collide. The prepared report is below in this file; filing was
+      deferred because a report against a system version this world cannot run earns "upgrade and
+      retry". Squire has offered to co-sign. `enableEncumbranceGuard` mitigates it meanwhile.
+
+---
+
 ## Documentation: who decides
 
 **One session owns the documentation standard and the publishing tooling at a time, and arbitrates
