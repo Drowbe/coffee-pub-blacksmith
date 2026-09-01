@@ -3,8 +3,9 @@
 **Audience:** anyone deciding whether to install or contribute to a Coffee Pub module.
 
 The suite's disclosure about how it is built. This is the canonical copy: every module's `README.md`
-carries the same text verbatim between its `global:ai-assistance` markers, and
-`tools/check-docs-structure.mjs` fails if a copy drifts from this file. Edit it here, nowhere else.
+should carry the same text verbatim between its `global:ai-assistance` markers, and
+`tools/check-docs-structure.mjs` fails if a copy drifts from this file and reports how many modules
+carry it at all. Edit it here, nowhere else.
 
 <!-- global:ai-assistance -->
 ## AI Assistance and the Illusion of Good Code

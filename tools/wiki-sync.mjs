@@ -236,6 +236,17 @@ function build() {
 
   checkHold();
 
+  // A satellite adopting the standard copies this file before it has written home.md, and an
+  // unhandled ENOENT stack trace is a terrible way to learn that. Say what is missing and why.
+  if (!fs.existsSync(path.join(DOCS, HOME_SRC))) {
+    console.error(`
+Missing documentation/${HOME_SRC} -- the wiki has no front door without it.`);
+    console.error('Write it before running the publisher: a paragraph on what this module is, then');
+    console.error('links to the user guides, the API, and the architecture. See the documentation');
+    console.error('standard on the hub wiki, page global-documentation-standard.');
+    process.exit(1);
+  }
+
   const downgrades = [];
   for (const rel of PUBLISH) downgrades.push(...readRewriteWrite(rel, `${pageName(rel)}.md`));
   downgrades.push(...readRewriteWrite(HOME_SRC, 'Home.md'));

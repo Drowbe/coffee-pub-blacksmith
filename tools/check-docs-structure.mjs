@@ -24,6 +24,7 @@ const DOCS = path.join(ROOT, 'documentation');
 const ASSETS = path.join(DOCS, 'assets');
 
 const problems = [];
+const notes = [];
 const fail = (rule, detail) => problems.push({ rule, detail });
 
 // The standard states the rules it enforces, so it necessarily contains the strings this checker
@@ -185,36 +186,87 @@ if (fs.existsSync(ASSETS)) {
   }
 }
 
-// ---- 7. Shared README blocks match their canonical source. -----------------------------------
-// The AI-assistance disclosure is identical in all fifteen READMEs. A README does not publish, so the
+// ---- 7. Shared README blocks. -----------------------------------------------------------------
+// The AI-assistance disclosure is meant to be identical in every module's README. A README does not
+// publish, so the
 // publisher cannot enforce "link, never copy" there -- and fifteen hand-maintained copies of the same
-// paragraphs is precisely how five satellites ended up with five diverging forks of the hub's API
-// notes. So the copy is allowed and the drift is not: one canonical file, and this check.
+// paragraphs is how five satellites ended up with five diverging forks of the hub's API notes. So the
+// copy is allowed and the drift is not.
+//
+// WHERE THE COMPARISON CAN RUN: only in the hub. The canonical file lives in global/, and a satellite
+// is forbidden to carry global/ -- so off the hub there is nothing to compare against, and demanding
+// one made this check and the global/ rule mutually exclusive on every satellite. (Found by
+// coffee-pub-minstrel on first adoption, which is what a first adopter is for.) A satellite therefore
+// verifies only that its markers are present and non-empty; the hub owns drift detection, and sweeps
+// any sibling repositories it can see.
 const MARKED = [{ canon: 'global/global-ai-assistance.md', marker: 'global:ai-assistance' }];
+
+function sliceBlock(text, marker) {
+  const a = text.indexOf(`<!-- ${marker} -->`);
+  const b = text.indexOf(`<!-- /${marker} -->`);
+  if (a === -1 || b === -1 || b < a) return null;
+  return text.slice(a + `<!-- ${marker} -->`.length, b).trim();
+}
+
 for (const { canon, marker } of MARKED) {
-  const canonAbs = path.join(DOCS, canon);
   const readme = path.join(ROOT, 'README.md');
+  const own = fs.existsSync(readme) ? sliceBlock(fs.readFileSync(readme, 'utf8'), marker) : null;
+
+  if (own === null) {
+    fail('shared-block', `README.md is missing the ${marker} markers, or they are malformed`);
+  } else if (!own) {
+    fail('shared-block', `README.md's ${marker} block is empty`);
+  }
+
+  if (!IS_HUB) continue;  // a satellite has no canonical copy by design; nothing more to check
+
+  const canonAbs = path.join(DOCS, canon);
   if (!fs.existsSync(canonAbs)) {
-    fail('shared-block', `${canon} is missing; it is the canonical source for the ${marker} block`);
+    fail('shared-block', `${canon} is missing; the hub owns the canonical ${marker} text`);
     continue;
   }
-  const slice = (text, where) => {
-    const open = `<!-- ${marker} -->`;
-    const close = `<!-- /${marker} -->`;
-    const a = text.indexOf(open);
-    const b = text.indexOf(close);
-    if (a === -1 || b === -1 || b < a) {
-      fail('shared-block', `${where} is missing the ${marker} markers`);
-      return null;
-    }
-    return text.slice(a + open.length, b).trim();
-  };
-  const want = slice(fs.readFileSync(canonAbs, 'utf8'), canon);
-  if (!fs.existsSync(readme)) continue;
-  const got = slice(fs.readFileSync(readme, 'utf8'), 'README.md');
-  if (want !== null && got !== null && want !== got) {
-    fail('shared-block', `README.md's ${marker} block has drifted from ${canon}; edit the canonical file and copy it back`);
+  const want = sliceBlock(fs.readFileSync(canonAbs, 'utf8'), marker);
+  if (want === null || !want) {
+    fail('shared-block', `${canon} has no usable ${marker} block`);
+    continue;
   }
+  if (own !== null && own && own !== want) {
+    fail('shared-block', `README.md's ${marker} block has drifted from ${canon}; edit the canonical file and copy it out`);
+  }
+
+  // Opportunistic sibling sweep. The author's machine carries every module side by side, and that is
+  // where a README gets hand-edited; CI has one repo and simply finds nothing here. Silence when a
+  // sibling has no markers at all -- it has not adopted the standard yet, which is not drift.
+  const parent = path.dirname(ROOT);
+  let siblings = [];
+  try {
+    siblings = fs.readdirSync(parent, { withFileTypes: true })
+      .filter((e) => e.isDirectory() && e.name.startsWith('coffee-pub-') && path.join(parent, e.name) !== ROOT)
+      .map((e) => path.join(parent, e.name));
+  } catch { /* no parent to read: nothing to sweep */ }
+
+  // Counted and reported, never failed on. Staying silent about a sibling that carries no markers is
+  // right -- a checker must not fail on a repo it knows nothing about -- but silence and success then
+  // produce identical output, so the check reads green across a suite where the block exists almost
+  // nowhere. It is strictest on the repos that already complied and mute on the ones that did not.
+  // The count is what makes the gap visible without inventing a failure. (Raised by coffee-pub-
+  // artificer, relayed by coffee-pub-blacksmith-61.)
+  let carried = 0;
+  let seen = fs.existsSync(readme) ? 1 : 0;
+  if (own !== null) carried += 1;
+
+  for (const dir of siblings) {
+    const sib = path.join(dir, 'README.md');
+    if (!fs.existsSync(sib)) continue;
+    seen += 1;
+    const got = sliceBlock(fs.readFileSync(sib, 'utf8'), marker);
+    if (got === null) continue;              // has not adopted the block yet: reported, not failed
+    carried += 1;
+    if (got !== want) {
+      fail('shared-block', `${path.basename(dir)}/README.md's ${marker} block has drifted from the hub's ${canon}`);
+    }
+  }
+  notes.push(`shared block: ${carried} of ${seen} module READMEs carry the ${marker} disclosure`);
 }
 
 // ---- 7. No video committed under documentation/. ---------------------------------------------
@@ -223,6 +275,7 @@ for (const f of allFiles) {
 }
 
 // ---- Report ----------------------------------------------------------------------------------
+for (const n of notes) console.log(`check-docs-structure: ${n}`);
 if (!problems.length) {
   console.log(`check-docs-structure: OK (${allMd.length} documents, ${published.size} published)`);
   process.exit(0);

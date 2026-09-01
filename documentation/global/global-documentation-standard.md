@@ -59,8 +59,11 @@ rule, and nothing else belongs there. This is stated because the root is where a
 satellites today carry `BLACKSMITH_API_REVIEW.md`, `SOCKET_API_TESTING.md`, `SOCKET_SYNC_PLAN.md` and
 `getting-started.md` loose at that level.
 
-**Every folder in the table below exists in every module, even when it is empty**, with one
-exception: `global/` exists in the hub alone. An empty folder makes missing work visible; a missing
+**Every folder in the table below exists in every module, even when it is empty**, with two
+exceptions. `global/` exists in the hub alone. And `api/` exists only in a module that exposes a
+public surface: a leaf consumer -- one that calls the hub and is called by nobody -- has no API, and
+an empty `api/` there advertises missing work that does not exist. The rule is that an empty folder
+makes real gaps visible, not that every module owes every kind. An empty folder makes missing work visible; a missing
 folder makes it invisible. Git cannot track an empty directory, so "exists" means it holds either its
 first real document or a `.gitkeep` until it does. Prefer the first -- every module owes a
 `userguides/userguide-getting-started.md` regardless, so start there rather than with a placeholder.
@@ -194,9 +197,23 @@ it and somebody says so. On a satellite whose wiki nobody reads yet, a wrongly p
 as invisible as an unpublished one, and now wrong in public. The rule still stands -- silence about a
 finished document is the worse failure -- but on a satellite HOLD carries more weight, not less.
 
-**The publish set is a contract with the other modules, not a local preference.** A satellite links
-into the hub's wiki by page name. A hub page that is renamed, or dropped into HOLD, silently 404s
-every inbound link in the suite.
+**Renaming a published document is a breaking change for every module that links into this wiki.**
+A page name is its filename, so a rename is a rename of the page, and every inbound link 404s. This is
+a larger hazard than the publish list it replaced, not a smaller one: editing a list was a ceremony
+that at least prompted a thought, and renaming a file is one of the most ordinary things anyone does.
+Dropping a document into HOLD does the same thing. Announce either to the satellites before it lands.
+
+**Nothing on the producer's side fails.** The hub renames, the satellite breaks, and only the
+satellite can see it -- so it is discovered by a reader, or not at all. That asymmetry is why this is
+a coordination rule rather than a checker rule: a tool in this repository cannot see the damage, and a
+tool in the satellite cannot distinguish a dead cross-module link from one it merely cannot resolve.
+Fourteen dead links sat in one satellite for months before a relay found them.
+
+**Folder publishing removes the ceremony to publish, so guard the other end.** A file created in
+`api/` is live the moment it exists. `api/` is the public surface other modules code against and
+nothing else: not notes toward a surface, not a design sketch, not a review of somebody else's API.
+Those are a plan, or architecture, or they do not exist. The header check catches a malformed
+document; nothing catches a misplaced one.
 
 **The wiki is a pure mirror, and the repository is law.** Nothing is authored wiki-first. A wiki page
 with no repository source is a bug, not content, and gets deleted rather than back-ported. This runs
@@ -532,11 +549,13 @@ nothing more.
 
 ## The publisher
 
-Each module carries two files, copied from the hub and changed in no way:
+Each module carries four files, copied from the hub and changed in no way:
 
 | File | What it does |
 |---|---|
 | `tools/wiki-sync.mjs` | Builds flat wiki pages from `documentation/`, rewrites links, writes the sidebar |
+| `tools/check-docs-structure.mjs` | Enforces this standard; imports the publish rules from the publisher rather than restating them |
+| `tools/.gitignore` | Keeps `.wiki-build/` and `.wiki-repo/` out of the repository. Easy to miss, because it is not the root `.gitignore`; without it a module commits its own wiki build output |
 | `.github/workflows/sync-wiki.yml` | Runs the build and pushes to the module's wiki on every commit to the default branch that touches `documentation/` |
 
 **Nothing in either file is edited per module.** Everything module-specific is derived at run time:
@@ -648,7 +667,7 @@ In order, because each step depends on the one before:
    pitch.
 6. **Write `userguide-getting-started.md`.** Add `userguide-settings.md` too, unless the module's
    settings are being reworked, in which case it waits for the rework.
-7. **Copy in the two publisher files and the structure checker, and push.** The first run publishes
+7. **Copy in the four publisher files, and push.** The first run publishes
    everything at once.
 
 ---
