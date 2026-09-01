@@ -59,11 +59,28 @@ rule, and nothing else belongs there. This is stated because the root is where a
 satellites today carry `BLACKSMITH_API_REVIEW.md`, `SOCKET_API_TESTING.md`, `SOCKET_SYNC_PLAN.md` and
 `getting-started.md` loose at that level.
 
-**Every folder in the table below exists in every module, even when it is empty**, with two
-exceptions. `global/` exists in the hub alone. And `api/` exists only in a module that exposes a
-public surface: a leaf consumer -- one that calls the hub and is called by nobody -- has no API, and
-an empty `api/` there advertises missing work that does not exist. The rule is that an empty folder
-makes real gaps visible, not that every module owes every kind. An empty folder makes missing work visible; a missing
+**Three folders exist in every module even when empty: `architecture/`, `userguides/`, and
+`assets/`.** Every module has internals, has users, and owes screenshots, so an empty one there is a
+real gap made visible. An empty folder makes a gap visible; it does not follow that every module owes
+every kind.
+
+**`api/`, `designsystem/`, and `plans/` exist only when the module has something to put in them.** A
+leaf consumer -- one that calls the hub and is called by nobody -- exposes no API and publishes no
+tokens for anyone else, and having no work in flight is a state rather than an omission. Requiring
+those folders advertises work that does not exist, and pushes a maintainer into creating an empty
+folder purely to satisfy the checker, which is the opposite of the point.
+
+**`global/` and `TODO-GLOBAL.md` are the hub's alone.** A satellite carrying either is documenting
+other modules, which the boundary rule refuses. Of everything in this section that is the one worth
+checking by hand, because it is the only one that fails quietly: a folder wrongly required breaks
+loudly and gets noticed in the first minute, whereas a satellite carrying a `TODO-GLOBAL.md` passes
+every check while tracking cross-module work in a file it is not allowed to have. It would have
+created, silently, exactly the coupling the boundary rule exists to prevent.
+
+**A rule that is true of the hub is not automatically true of a satellite.** That mistake has now been
+made three times -- the shared-block check, the `api/` requirement, and `TODO-GLOBAL.md` at the root --
+and each time the satellite could satisfy the rule only by doing the wrong thing. Before adding a
+check, ask whether it holds off the hub. An empty folder makes missing work visible; a missing
 folder makes it invisible. Git cannot track an empty directory, so "exists" means it holds either its
 first real document or a `.gitkeep` until it does. Prefer the first -- every module owes a
 `userguides/userguide-getting-started.md` regardless, so start there rather than with a placeholder.
@@ -549,16 +566,52 @@ nothing more.
 
 ## The publisher
 
-Each module carries four files, copied from the hub and changed in no way:
+Each module carries five files, copied from the hub and changed in no way:
 
 | File | What it does |
 |---|---|
+| `.gitattributes` | Pins line endings, so the four files below stay byte-identical to the hub's. **Copy this one first** |
 | `tools/wiki-sync.mjs` | Builds flat wiki pages from `documentation/`, rewrites links, writes the sidebar |
 | `tools/check-docs-structure.mjs` | Enforces this standard; imports the publish rules from the publisher rather than restating them |
 | `tools/.gitignore` | Keeps `.wiki-build/` and `.wiki-repo/` out of the repository. Easy to miss, because it is not the root `.gitignore`; without it a module commits its own wiki build output |
 | `.github/workflows/sync-wiki.yml` | Runs the build and pushes to the module's wiki on every commit to the default branch that touches `documentation/` |
 
-**Nothing in either file is edited per module.** Everything module-specific is derived at run time:
+**`.gitattributes` comes first, and the reason is not obvious.** The suite is developed on Windows
+with `core.autocrlf=true`. Without the pinned line endings, a copied tool file is LF only until the
+next checkout converts it to CRLF -- at which point `diff` against the hub reports every line of both
+tools as changed. Nothing errors and the checker still passes, because it reads its own local files
+and does not care. The only thing that breaks is the byte-identity comparison, and it breaks looking
+exactly like a local edit: a maintainer diffing after a fresh clone concludes somebody patched the
+tools and goes hunting for a change that was never made. Copy it after the tools and the first
+checkout normalises them, so the copy that follows also looks like a change.
+
+This is the second defect of its kind, after `TODO-GLOBAL.md` at the root: it fails silently, in a
+place nobody is watching, and the symptom points away from the cause. It also cannot be found by
+copying and diffing in one sitting -- only by a second session, or by reading git's warning during
+`git add`.
+
+**`.gitattributes` cannot protect itself on the first pass, and the ordering instruction should not
+pretend otherwise.** Its rules apply from the commit that introduces them, so the copy sitting in a
+working tree before that commit is subject to whatever `core.autocrlf` already says. Copying it first
+is still the best available order, but the guarantee starts one commit later -- a maintainer who diffs
+between the copy and the commit sees a real difference that is also harmless. Diff again after
+committing, not before.
+
+**A module that already has a `.gitattributes` gets the hub's rules ADDED, not the file replaced.**
+Everything the standard needs is additive -- `text=auto` plus `eol=lf` on the text kinds -- and it
+never requires removing a rule a module added for itself. Diff the two, add what is missing, keep what
+is extra. This matters because `.gitattributes` decides whether a file is text or binary, and marking
+a genuinely binary format as text corrupts it on checkout, silently, with the damage baked into the
+working tree where no check will find it. Artificer is the live case: it declares eight compendium
+packs and carries `packs/** binary`, which is the only thing standing between its LevelDB files and
+line-ending conversion. Copying the hub's file over it would have destroyed them.
+
+Of the fifteen modules, eleven carry no `.gitattributes` at all -- the loud, easy case, where a
+verbatim copy is correct. The other four are the ones needing a human to look, and a count of "has
+one" makes them look like the modules that are nearly fine when they are the two that need the most
+care.
+
+**Nothing in any of these files is edited per module.** Everything module-specific is derived at run time:
 
 - **Module identity comes from `module.json`.** The publisher reads `id` and derives both the wiki
   URL and its own answer to "am I the hub?". Nothing is hardcoded. Holding the module id in a
@@ -654,6 +707,18 @@ releases on a tag.
 In order, because each step depends on the one before:
 
 1. **Create the folders** and move what already exists into them, using `git mv` so history follows.
+   On Windows -- which is where this suite is developed -- renaming `todo.md` to `TODO.md` fails with
+   "destination exists", because the filesystem is case-insensitive and git sees a collision. Rename
+   through a temporary name: `git mv documentation/todo.md documentation/todo-tmp.md`, then
+   `git mv documentation/todo-tmp.md documentation/TODO.md`.
+   **Decide `api/` and `designsystem/` deliberately, here, rather than by default.** Two questions,
+   answered out loud: does anything outside this module call into it, and does anything style against
+   it? Making those folders optional moved the decision from a failing check to an unasked question,
+   which is the right trade and a quieter one -- a leaf consumer is easy to be right about, and a
+   larger module may genuinely have surfaces it has never written down.
+   **Put a `.gitkeep` in any required folder you leave empty.** Git does not track an empty directory,
+   so a tree that passes locally arrives at a fresh clone missing the folder and fails there instead --
+   the one place nobody is watching.
 2. **Rename files to match their folder's prefix.** Anything already published keeps its old page
    name until step 7, so do the renames before the publisher goes live rather than after.
 3. **Delete the forks outright.** A satellite's own copy of the hub's API notes -- typically named
@@ -662,13 +727,24 @@ In order, because each step depends on the one before:
    most common stray in the suite. The same goes for any local copy of a `global/` document.
 4. **Fold the remaining strays.** Anything that is not one of the kinds either folds into a kind that
    exists or is deleted.
-5. **Write `home.md`** and rewrite `README.md` as the product page. Write `home.md` from scratch;
+5. **Check that the existing user guide is one before moving it.** The first module to adopt this had
+   a `user-guide.md` whose sections were "Recommended Data Model", "Fastest High-Value Features", and
+   "Product Direction" -- a product plan wearing a user guide's filename. Moving it to `userguides/`
+   would have published a design document to the wiki as though it told a GM how to play. It went to
+   `plans/` and a real guide was written from scratch. A filename is not evidence of a kind.
+6. **Write `home.md`** and rewrite `README.md` as the product page. Write `home.md` from scratch;
    never seed it from the wiki. Without them the wiki has no front door and the repository has no
    pitch.
-6. **Write `userguide-getting-started.md`.** Add `userguide-settings.md` too, unless the module's
+7. **Write `userguide-getting-started.md`.** Add `userguide-settings.md` too, unless the module's
    settings are being reworked, in which case it waits for the rework.
-7. **Copy in the four publisher files, and push.** The first run publishes
-   everything at once.
+8. **Copy in the five publisher files, `.gitattributes` first, and push.** If the module already has
+   a `.gitattributes`, add the hub's rules to it rather than replacing it -- see the warning above.
+   The first run publishes everything at once.
+9. **Do not silence git's warnings, and run the checker once more before committing** rather than only
+   after each step. Two of the defects found on the first adoption surfaced no other way: one from
+   reading a `git add` warning instead of scrolling past it, one from running the check again on a
+   later day. Neither survives an adoption done in one sitting by someone working down a checklist,
+   which is how every remaining module will be done.
 
 ---
 

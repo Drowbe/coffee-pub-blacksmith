@@ -40,7 +40,9 @@ const PREFIX = {
   global: 'global-',
   plans: 'plan-',
 };
-const ROOT_FILES = ['home.md', 'known-issues.md', 'TODO.md', 'TODO-GLOBAL.md'];
+// TODO-GLOBAL.md is the hub's alone -- it tracks cross-module work, and a satellite carrying one is
+// documenting other modules, which the boundary rule refuses.
+const ROOT_FILES = ['home.md', 'known-issues.md', 'TODO.md', ...(IS_HUB ? ['TODO-GLOBAL.md'] : [])];
 const VIDEO = /\.(mp4|mov|avi|webm|mkv|m4v)$/i;
 const IMAGE_LINK = /!\[[^\]]*\]\(([^)]+)\)/g;
 const ANY_LINK = /\[[^\]]*\]\(([^)]+)\)/g;
@@ -57,10 +59,21 @@ const relDocs = (f) => path.relative(DOCS, f).split(path.sep).join('/');
 const allFiles = walk(DOCS);
 const allMd = allFiles.filter((f) => f.endsWith('.md'));
 
-// ---- 1. Folders exist. global/ is the hub's alone. -------------------------------------------
-for (const dir of ['api', 'architecture', 'designsystem', 'userguides', 'plans', 'assets']) {
+// ---- 1. Folders. --------------------------------------------------------------------------------
+// REQUIRED everywhere, because every module genuinely owes these: it has internals, it has users, and
+// it needs screenshots. An empty folder here is a real gap made visible.
+//
+// OPTIONAL: api/ and designsystem/. A leaf consumer exposes no API and publishes no tokens for anyone
+// else, so requiring those folders advertises work that does not exist -- and pushes a maintainer into
+// creating an empty folder purely to get a green run, which is the opposite of the point. plans/ is
+// optional for the same reason: having no work in flight is a state, not an omission.
+//
+// This distinction was found the hard way, twice: a rule true of the hub was enforced unconditionally
+// on satellites, and the satellite could satisfy it only by doing the wrong thing. If you add a check
+// here, ask first whether it is true off the hub. (Raised by coffee-pub-minstrel on adoption.)
+for (const dir of ['architecture', 'userguides', 'assets']) {
   if (!fs.existsSync(path.join(DOCS, dir))) {
-    fail('folders', `documentation/${dir}/ does not exist (an empty folder makes missing work visible)`);
+    fail('folders', `documentation/${dir}/ does not exist -- every module owes it (an empty folder makes a real gap visible)`);
   }
 }
 const hasGlobal = fs.existsSync(path.join(DOCS, 'global'));
@@ -218,7 +231,17 @@ for (const { canon, marker } of MARKED) {
     fail('shared-block', `README.md's ${marker} block is empty`);
   }
 
-  if (!IS_HUB) continue;  // a satellite has no canonical copy by design; nothing more to check
+  // A satellite cannot compare against a canonical copy it is forbidden to carry, but it can say
+  // whether it has the block at all -- and it must, because the number exists to make a suite-wide
+  // gap visible and the modules that have not adopted are exactly the ones that need telling. Printing
+  // only on the hub nudges the one repository that does not need nudging. (Raised by
+  // coffee-pub-minstrel.)
+  if (!IS_HUB) {
+    notes.push(own === null
+      ? `shared block: this README does NOT carry the ${marker} disclosure (the hub holds the canonical text)`
+      : `shared block: this README carries the ${marker} disclosure; drift against the canonical text is checked in the hub`);
+    continue;
+  }
 
   const canonAbs = path.join(DOCS, canon);
   if (!fs.existsSync(canonAbs)) {

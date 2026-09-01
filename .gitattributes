@@ -16,6 +16,15 @@
 *.md text eol=lf
 *.txt text eol=lf
 
+# The files every module copies from the hub unchanged. Without these, `text=auto` plus
+# core.autocrlf=true turns them CRLF in the working tree on the next checkout while the hub's stay LF,
+# and a byte-identity diff then reports every line changed -- looking exactly like a local edit.
+# .yml and the two dotfiles are the three of the five copied files that no extension rule reaches.
+*.yml text eol=lf
+*.yaml text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
 # Images should be treated as binary
 *.png binary
 *.jpg binary
@@ -27,4 +36,4 @@
 *.ttf binary
 *.eot binary
 *.woff binary
-*.woff2 binary 
+*.woff2 binary
