@@ -105,6 +105,16 @@ before any satellite took them. They now are.
    `api-window.md` from linking to that example. So the example lives in the prototype as runnable proof,
    and the API doc points at a real Blacksmith window for the contract. Neither points at the other.
 
+- [ ] **Write Blacksmith's user guides AFTER the satellites migrate** (decided by the author
+      2026-08-31). Blacksmith's are the weakest in the suite and the job is large, so it does not
+      block the rollout. A user guide says how to USE the module, not what it is: how to work the
+      combat bar and what each action does, that initiative can be dragged to reorder, how encounter
+      CR is calculated and where it shows on the canvas, how a vote runs and what players see, how
+      the movement modes change what a player can do, and what every control in the roll window is
+      for. `userguide-getting-started.md` exists but is an inventory of the interface written from
+      source, never walked in a running world, and the product screenshot already contradicts its
+      central table -- the bar's labelled buttons are not the six tools it lists, and it omits the
+      combat readout row entirely. Treat it as a draft to be replaced, not a base to extend.
 - [ ] **Write `userguide-settings.md` after the settings rebuild, not before.** Deferred by the author
       2026-08-31: a guide to 260 controls that are about to change is waste that reads as authoritative.
       It documents the on-screen labels and never edits them — `lang/en.json` is product copy, not doc

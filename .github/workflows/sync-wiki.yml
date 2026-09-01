@@ -8,7 +8,10 @@ name: Sync Wiki
 
 on:
   push:
-    branches: [master]
+    # Both, because this file is copied to every module unchanged and the suite is split across
+    # main and master. A single-branch trigger on the wrong one does not fail -- it never fires, and
+    # the module simply has no wiki. Listing both is correct everywhere and needs no per-module edit.
+    branches: [main, master]
     paths:
       - 'documentation/**'
       - 'tools/wiki-sync.mjs'

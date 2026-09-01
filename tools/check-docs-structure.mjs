@@ -45,6 +45,8 @@ const PREFIX = {
 const ROOT_FILES = ['home.md', 'known-issues.md', 'TODO.md', ...(IS_HUB ? ['TODO-GLOBAL.md'] : [])];
 const VIDEO = /\.(mp4|mov|avi|webm|mkv|m4v)$/i;
 const IMAGE_LINK = /!\[[^\]]*\]\(([^)]+)\)/g;
+const NEWLINE = /\r?\n/;
+const FENCE = /^\s*```/;
 const ANY_LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 
 function walk(dir) {
@@ -143,6 +145,28 @@ for (const rel of published) {
     }
     if (KNOWN_ISSUES.test(line) && /^(api|architecture)\//.test(rel)) {
       fail('transient', `${rel}:${i + 1} -- a spec states behaviour, not fix status; leave known-issues to the reader`);
+    }
+  });
+}
+
+// ---- 4b. No wiki page names in source documents. ----------------------------------------------
+// A source document links by repo-relative path; the publisher rewrites those to page names on the
+// way out. Writing the page name directly -- [Artificer](architecture-artificer) -- publishes fine,
+// because the publisher resolves it happily, and breaks only the repository-side view, where nobody
+// looks. The standard warns against seeding a document from the wiki for this reason, and an author
+// who wrote home.md from scratch made the same mistake by hand anyway, with the built sidebar open
+// beside them. A rule people violate while trying to follow it wants a check.
+// (Raised by coffee-pub-artificer on adoption.)
+const WIKI_NAME_LINK = /\[[^\]]*\]\(([^)\s]+)\)/g;
+for (const f of allMd) {
+  const rel = relDocs(f);
+  fs.readFileSync(f, "utf8").split(NEWLINE).forEach((line, i) => {
+    if (FENCE.test(line)) return;
+    for (const m of line.matchAll(WIKI_NAME_LINK)) {
+      const t = m[1];
+      if (/^(https?:|mailto:|#|\/)/i.test(t)) continue;   // external, anchor, absolute
+      if (t.includes("/") || t.includes(".")) continue;    // a path or a file: fine
+      fail("wiki-link", `${rel}:${i + 1} -- "(${t})" is a wiki page name; link the repo path (../folder/${t}.md) and let the publisher rewrite it`);
     }
   });
 }

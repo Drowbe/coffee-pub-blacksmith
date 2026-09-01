@@ -288,6 +288,20 @@ The gap this standard exists to close. A user guide is written for a person at a
 installed the module and wants to do something with it. They are not reading code, they do not know
 what a hook is, and they will not find a feature that is not described in terms of what they can see.
 
+**A user guide says how to USE the thing, not what the thing IS.** This is the distinction the first
+two attempts in this suite both missed, in the same way: they described the interface -- here is a
+bar, here is what sits on it, here is what the module adds -- and never told anyone how to do
+anything with it. A reader who has already installed the module can see that a bar exists. What they
+cannot see is that initiative can be dragged to reorder it, what the actions on the combat bar
+actually do, how encounter difficulty is calculated and where it shows on the canvas, how to run a
+vote and what the players see while it is open, how the movement modes change what a player can do,
+or what each control in the roll window is for.
+
+Write from the verb. Every section is something a person does, and the test is whether a reader
+finishes it able to do that thing. An inventory of the interface is not a user guide -- it is a
+screenshot with more words, and it is what you produce by writing from the source instead of from
+the table.
+
 **Every module owes these:**
 
 | File | Required | Contents |
@@ -613,6 +627,12 @@ a genuinely binary format as text corrupts it on checkout, silently, with the da
 working tree where no check will find it. Artificer is the live case: it declares eight compendium
 packs and carries `packs/** binary`, which is the only thing standing between its LevelDB files and
 line-ending conversion. Copying the hub's file over it would have destroyed them.
+
+**Order matters inside the file, and getting it wrong is silent.** Git takes the LAST matching rule,
+and most files inside a LevelDB pack -- `LOG`, `CURRENT`, `MANIFEST-000123` -- have no extension, so
+`* text=auto` is the only other rule that reaches them. A `binary` rule therefore has to come after
+`text=auto`, never before. Appending the hub's rules to the end of an existing file would invert
+exactly this protection while appearing to do the safe, additive thing.
 
 Of the fifteen modules, eleven carry no `.gitattributes` at all -- the loud, easy case, where a
 verbatim copy is correct. The other four are the ones needing a human to look, and a count of "has

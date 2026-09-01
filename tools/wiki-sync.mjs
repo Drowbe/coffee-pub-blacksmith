@@ -212,14 +212,22 @@ function readRewriteWrite(rel, outName) {
 }
 
 function buildSidebar() {
+  // Stripping the folder prefix collides whenever two folders hold a document named for the module:
+  // userguide-artificer and architecture-artificer both reduce to "Artificer", in adjacent groups.
+  // A label used more than once falls back to the full page name, which is always unique because it
+  // is the filename. (Raised by coffee-pub-artificer on adoption.)
+  const labelCounts = new Map();
+  for (const rel of PUBLISH) labelCounts.set(label(rel), (labelCounts.get(label(rel)) || 0) + 1);
+  const uniqueLabel = (rel) => (labelCounts.get(label(rel)) > 1 ? pageName(rel) : label(rel));
+
   const linksIn = (prefix) =>
     PUBLISH.filter((p) => p.startsWith(prefix))
-      .map((rel) => `- [${label(rel)}](${pageName(rel)})`);
+      .map((rel) => `- [${uniqueLabel(rel)}](${pageName(rel)})`);
   // A group whose every document is held renders as a bare heading with nothing under it, which reads
   // as a broken sidebar rather than an empty category. Emit the heading only when it has links.
   const section = (title, links) => (links.length ? [`### ${title}`, links.join('\n'), ''] : []);
   const topLevel = PUBLISH.filter((p) => !p.includes('/'))
-    .map((rel) => `- [${label(rel)}](${pageName(rel)})`);
+    .map((rel) => `- [${uniqueLabel(rel)}](${pageName(rel)})`);
   return [
     ...section('Getting started', ['- [Home](Home)', ...topLevel]),
     ...section('User guides', linksIn('userguides/')),
