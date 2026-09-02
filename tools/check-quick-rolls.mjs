@@ -78,6 +78,20 @@ function slice(src, name, file) {
     return null;
 }
 
+/**
+ * Compare a value against what it should be, reporting through `problems`.
+ *
+ * Silent on success, like every other section here: a passing check prints one line at
+ * the end and nothing before it.
+ */
+function check(name, actual, expected) {
+    const a = JSON.stringify(actual);
+    const e = JSON.stringify(expected);
+    if (a !== e) problems.push(`${name}
+    got      ${a}
+    expected ${e}`);
+}
+
 // ===== THE ROW AND ITS READER ======================================
 
 const rowSrc = slice(dialog, '_quickRollRow(roll)', DIALOG);
@@ -290,6 +304,135 @@ if (parseSrc && normalizeSrc && sideSrc && idSrc && typesMatch && iconMatch && v
     }
 }
 
+// ===== A QUICK ROLL FIRES WITHOUT A WINDOW =========================
+//
+// `resolveQuickRollActors` decides whether a quick roll posts straight to chat or opens
+// the dialog. Every quick roll used to open one, drive its DOM, and close it again -- a
+// window flashing open and shut on the way to a chat card -- and the two cases that
+// must STILL open one are judgements a person has to make, not defaults to fall into.
+//
+// Sliced out and run against a stubbed canvas, because the whole function is about the
+// canvas and the party and there is no way to reach it from Node otherwise.
+
+const resolveSliced = slice(dialog, 'static resolveQuickRollActors(roll)', DIALOG);
+const optionsSliced = slice(dialog, 'static quickRollRequestOptions(roll)', DIALOG);
+
+if (resolveSliced && optionsSliced) {
+    const Dialog = new Function('canvas', 'game', `
+        class SkillCheckDialog {
+            ${resolveSliced}
+            ${optionsSliced}
+        }
+        return SkillCheckDialog;
+    `);
+
+    const checkResolve = (name, actual, expected) => check(`quick roll resolution -- ${name}`, actual, expected);
+
+    const token = (id, name, hasPlayerOwner, type = 'character') =>
+        ({ id, name, actor: { id: `a-${id}`, name, hasPlayerOwner, type } });
+
+    function world({ placeables = [], controlled = [], actors = [] } = {}) {
+        return Dialog(
+            { tokens: { placeables, controlled } },
+            { actors: { filter: (fn) => actors.filter(fn) } }
+        );
+    }
+
+
+    const pcs = [token('t1', 'Favia', true), token('t2', 'Cyrus', true)];
+    const npcs = [token('n1', 'Guard', false, 'npc'), token('n2', 'Thug', false, 'npc')];
+
+    // --- normal rolls ---
+    let D = world({ placeables: pcs, controlled: [], actors: [] });
+    checkResolve('party roll resolves the party with nothing selected',
+        D.resolveQuickRollActors({ mode: 'normal', targets: 'party' }).map((a) => [a.name, a.group]),
+        [['Favia', 1], ['Cyrus', 1]]);
+
+    D = world({ placeables: [...pcs, ...npcs], controlled: [npcs[0]] });
+    checkResolve('selected roll resolves only what is selected',
+        D.resolveQuickRollActors({ mode: 'normal', targets: 'selected' }).map((a) => [a.name, a.group]),
+        [['Guard', 1]]);
+
+    D = world({ placeables: pcs, controlled: [] });
+    checkResolve('selected roll with nothing selected returns null (the window opens)',
+        D.resolveQuickRollActors({ mode: 'normal', targets: 'selected' }), null);
+
+    // A party member with no token on this scene still rolls -- theatre of the mind.
+    D = world({
+        placeables: [pcs[0]],
+        controlled: [],
+        actors: [{ id: 'a-t1', name: 'Favia', type: 'character', hasPlayerOwner: true },
+                 { id: 'off', name: 'Kar-ahn', type: 'character', hasPlayerOwner: true }]
+    });
+    checkResolve('party roll includes a party member with no token',
+        D.resolveQuickRollActors({ mode: 'normal', targets: 'party' }).map((a) => a.name),
+        ['Favia', 'Kar-ahn']);
+
+    // --- contested ---
+    D = world({ placeables: [...pcs, ...npcs], controlled: npcs });
+    checkResolve('contested party roll makes the party challengers and the selection defenders',
+        D.resolveQuickRollActors({ mode: 'contested', targets: 'party' }).map((a) => [a.name, a.group]),
+        [['Favia', 1], ['Cyrus', 1], ['Guard', 2], ['Thug', 2]]);
+
+    D = world({ placeables: [...pcs, ...npcs], controlled: [] });
+    checkResolve('contested party roll with no opposition selected returns null',
+        D.resolveQuickRollActors({ mode: 'contested', targets: 'party' }), null);
+
+    D = world({ placeables: [...pcs, ...npcs], controlled: [...pcs, ...npcs] });
+    checkResolve('contested roll targeting the SELECTION always returns null -- a selection cannot be split without a person',
+        D.resolveQuickRollActors({ mode: 'contested', targets: 'selected' }), null);
+
+    // A selected party member must not end up defending against the party.
+    D = world({ placeables: [...pcs, ...npcs], controlled: [pcs[0], npcs[0]] });
+    checkResolve('a selected party member stays a challenger, not a defender',
+        D.resolveQuickRollActors({ mode: 'contested', targets: 'party' }).map((a) => [a.name, a.group]),
+        [['Favia', 1], ['Cyrus', 1], ['Guard', 2]]);
+
+    // --- options ---
+    D = world({ placeables: pcs, controlled: [] });
+    checkResolve('a normal roll carries its dc and group success',
+        (({ actors, ...rest }) => rest)(D.quickRollRequestOptions({
+            mode: 'normal', targets: 'party', success: 'group', dc: '12',
+            challenger: { type: 'skill', value: 'prc' }, isCinematic: false, rollTitle: 'Party Perception'
+        })),
+        { initialType: 'skill', initialValue: 'prc', groupRoll: true, dc: '12', isCinematic: false, title: 'Party Perception' });
+
+    D = world({ placeables: [...pcs, ...npcs], controlled: npcs });
+    checkResolve('a contest carries its defender and drops dc and group success',
+        (({ actors, ...rest }) => rest)(D.quickRollRequestOptions({
+            mode: 'contested', targets: 'party', success: 'group', dc: '12',
+            challenger: { type: 'skill', value: 'ste' }, defender: { type: 'skill', value: 'prc' },
+            isCinematic: true, rollTitle: 'Stealth vs Perception'
+        })),
+        { initialType: 'skill', initialValue: 'ste', defenderType: 'skill', defenderValue: 'prc', isCinematic: true, title: 'Stealth vs Perception' });
+
+    D = world({ placeables: pcs, controlled: [] });
+    checkResolve('unresolvable options are null, not a half-built request',
+        D.quickRollRequestOptions({ mode: 'normal', targets: 'selected', challenger: { type: 'skill', value: 'prc' } }), null);
+}
+
+// ===== THE SILENT PATH CAN EXPRESS A CONTEST =======================
+//
+// `createRequestRoll` hardcoded `hasMultipleGroups: false` and three null defender
+// fields, so a contest could not be posted without the window. Reverting any of them
+// does not throw: the card posts, both sides roll, and the message simply never carries
+// a contest -- so nobody wins, and the only clue is a verdict that never appears.
+
+const createSrc = slice(dialog, 'static async createRequestRoll(options = {})', DIALOG);
+if (createSrc) {
+    for (const [pattern, what] of [
+        [/const isContested = hasChallengers && hasDefenders;/, 'decides contested from the actors it was given'],
+        [/hasMultipleGroups: isContested,/, 'sets hasMultipleGroups from that decision'],
+        [/defenderRollType: isContested \? defenderType : null,/, 'carries the defender roll type'],
+        [/defenderSkillAbbr: isContested \? \(defenderValue \?\? rollValue\) : null,/, "carries the defender roll value, defaulting to the challenger's"],
+        [/isGroupRoll: isContested \? false : groupRoll,/, 'refuses group success on a contest, whose comparison IS the outcome']
+    ]) {
+        if (!pattern.test(createSrc)) {
+            problems.push(`${DIALOG}: createRequestRoll no longer ${what} -- a contested request posts as an ordinary one, both sides roll, and no verdict ever appears`);
+        }
+    }
+}
+
 // ===== THE BUILDER IS A TOOL WINDOW ================================
 //
 // `documentation/api/api-window.md` is the contract: a small utility opened from an
@@ -377,11 +520,32 @@ if (menuSrc) {
 
 // `runQuickRoll` opens the window with the roll pending, because a quick roll selects
 // contestants in the dialog's own list and has no headless equivalent.
-if (!/static runQuickRoll\(id\)/.test(dialog)) {
+if (!/static (?:async )?runQuickRoll\(id\)/.test(dialog)) {
     problems.push(`${DIALOG}: SkillCheckDialog.runQuickRoll is missing -- the menu has no way to fire a quick roll`);
 }
 if (!/pendingQuickRollId/.test(dialog)) {
-    problems.push(`${DIALOG}: the dialog must accept pendingQuickRollId -- runQuickRoll opens the window with the roll pending and nothing else runs it`);
+    problems.push(`${DIALOG}: the dialog must accept pendingQuickRollId -- it is runQuickRoll's fallback when a roll cannot be resolved without a person`);
+}
+// A quick roll fires WITHOUT the window wherever it can. It used to open one every
+// time, drive its DOM, and close it again -- a window flashing open and shut on the way
+// to a chat card. Losing the silent route would not error; it would just start flashing
+// again, which reads as a rendering glitch rather than as a regression.
+if (!/static quickRollRequestOptions\(roll\)/.test(dialog)) {
+    problems.push(`${DIALOG}: quickRollRequestOptions is missing -- without it every quick roll goes back to opening the window and closing it again`);
+}
+if (!/static resolveQuickRollActors\(roll\)/.test(dialog)) {
+    problems.push(`${DIALOG}: resolveQuickRollActors is missing -- it is what lets a quick roll name its contestants without a window to read them from`);
+}
+const runSrc = slice(dialog, 'static async runQuickRoll(id)', DIALOG);
+if (runSrc && !runSrc.includes('_openRequestRollSilent')) {
+    problems.push(`${DIALOG}: runQuickRoll no longer tries the silent path -- every quick roll would open a window and immediately close it`);
+}
+
+// A contest whose two sides cannot be told apart from the selection MUST fall back.
+// Guessing which half of a selection is the opposition is worse than opening the window.
+const resolveSrc = slice(dialog, 'static resolveQuickRollActors(roll)', DIALOG);
+if (resolveSrc && !/roll\.targets !== 'party'\) return null/.test(resolveSrc)) {
+    problems.push(`${DIALOG}: resolveQuickRollActors must refuse a contested roll targeting the selection -- there is nothing to split the selection BY, and a guess would send half the party against the other half`);
 }
 
 // --- the tool that carries it ---

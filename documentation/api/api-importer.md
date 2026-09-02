@@ -37,6 +37,7 @@ Register during your module's `ready`. There is no `waitForReady()` on the API r
 | `validateEntryDeep(kindId, profileId, entry)` | Shape validation plus a dry conversion. Returns the assembled data on `data`. Nothing created. |
 | `buildDocumentData(kindId, profileId, entry)` | Document source data for one entry, ready for `createDocuments`. Nothing created. |
 | `buildDocumentUpdate(kindId, profileId, entry)` | A partial document from the fields the entry supplies, ready for `Document#update`. Nothing created. |
+| `declarationFromModel(schema, options)` | A declaration derived from a Foundry DataModel schema, so a module that already has a `TypeDataModel` does not transcribe it a second time. |
 
 `buildDocumentData` is the primitive that lets a module stop maintaining its own builder, and it is **not only for JSON import**. Any surface that collects friendly fields -- a form in your own window, a macro, a generator -- can map them to an entry and get the same document data the importer produces, from the same declaration. Declaring a shape once is the point; a second builder beside it is what the model exists to remove.
 
@@ -80,6 +81,44 @@ A profile declares how its fields reach the document.
 | `passthrough` | The payload already is document source data, plus declared envelope fields consumed into it. |
 
 On a `passthrough` profile the payload is the seed: every key reaches the document unless a declaration claims it, which is the inverse of `mapped`. Declare only the envelope -- the keys an author writes that are not document data -- and a `role: 'envelope'` field is consumed by a derivation and removed. Undeclared keys are not reported, because on this form they are the content rather than a mistake, and the authoring guide says so rather than saying the opposite.
+
+### The document descriptor
+
+`document` says what to build and where it goes. `documentName` is required; everything else depends on what
+you are building.
+
+| Key | Meaning |
+|---|---|
+| `documentName` | The Foundry document class: `Item`, `Actor`, `JournalEntry`, `JournalEntryPage`, `RollTable`. |
+| `type` | The document subtype. **Yours may be namespaced** -- `coffee-pub-librarian.codex` -- and Blacksmith will build it. |
+| `pageType` | For a profile whose `documentName` is `JournalEntry`: the subtype stamped on the pages a derivation produces. Defaults to `text`. |
+| `containerName` | For a `JournalEntryPage` profile: a constant naming the entry the page files into. |
+| `containerNameFrom` | The same, read from a declared field instead of fixed. Exactly one of the two. |
+| `containerNameTransform` | A named Blacksmith transform applied to that value. Untransformed by default. |
+| `containerNameMap` | A lookup from the field's value to a container name, as data. Alternative to a transform. |
+| `folderName` | A constant naming the folder the entry files under. |
+| `folderNameFrom` | The same, read from a declared field. Exactly one of the two. |
+
+**Foundry namespaces the DECLARATION of a subtype, not its creation.** Your module declares
+`coffee-pub-yours.thing` in its own `module.json`; Blacksmith can then build pages of that type without
+knowing anything about it. That is the seam -- every journal builder used to hardcode `type: "text"`, which
+is what blocked module-owned page types entirely.
+
+**Two shapes, and picking the wrong one fails quietly.** A profile whose `documentName` is `JournalEntry`
+builds an entry and its derivations produce the pages. A profile whose `documentName` is `JournalEntryPage`
+**is** the page -- its fields land on the page itself, and `containerName`/`containerNameFrom` says which
+entry receives it. Declaring `JournalEntry` when you meant the page produces an entry named after your
+record, carrying a stray `system` object and no pages at all, reporting success.
+
+**A destination value is yours and is not reshaped.** Container names are untransformed unless you name a
+transform, because only you know whether the entry you have to match is spelled the way your enum is. Folder
+names match case-insensitively and are created verbatim, so an existing `Injuries` is found by `injuries`
+without a second folder appearing and without yours being renamed.
+
+Declaring a folder is optional -- the root is a legitimate destination, and Blacksmith's own profiles take
+theirs from the import dialog. But if your pages must not land at the root, declare it: a folder supplied by
+naming a field `foldername` by convention is not checkable, and the first module to write a profile without
+knowing that convention existed imported every page to the world root while every import reported success.
 
 ### Fields
 
@@ -175,6 +214,32 @@ The group's `option` gates the whole group in authoring output -- declare the ga
 A profile's own fields win a name collision. The host owns its schema.
 
 `preamble` exists so a module's prompt text has a home in its own declaration. A module should not need to host prompt files, and Blacksmith should not host another module's.
+
+## Checking a declaration before you ship it
+
+Three entry points under `api/` run in **Node, offline, with no Foundry and no Blacksmith runtime**, so your
+build can gate on them. Import these paths and not the implementation behind them.
+
+| Path | Answers |
+|---|---|
+| `api/declaration-from-model.mjs` | Build a declaration from your DataModel schema. |
+| `api/validate-declaration.mjs` | Will the registry accept it? The real registration rules, not an approximation. |
+| `api/check-declaration-mirrors-model.mjs` | Does it still describe your model? Pairs fields both ways and rejects a declared constraint stricter than the model's. |
+
+```javascript
+import { validateDeclaration } from '../coffee-pub-blacksmith/api/validate-declaration.mjs';
+
+try { validateDeclaration(declaration); }
+catch (error) { console.error(error.message); process.exit(1); }
+```
+
+**Use all three, because they answer different questions.** A declaration can mirror your model exactly and
+still be rejected at registration -- that happened: a walked declaration carried an `ArrayField`'s
+element-count `min` on an array-typed field, the mirror check passed, and the registry refused it in a live
+world with every profile unregistered.
+
+**Your DataModel is the senior schema.** The declaration describes it and can drift from it; the model
+cannot be wrong about itself. When they disagree, the model wins and the declaration is the thing to fix.
 
 ## What Blacksmith owns, and what you own
 

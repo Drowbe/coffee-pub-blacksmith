@@ -363,6 +363,38 @@ observation, and mark plainly which part you saw and which part you inferred.** 
 reporter's explanation of it does not need to be right, and pretending otherwise is what makes a wrong
 diagnosis expensive instead of merely incomplete.
 
+## A prompt is a third reader, and `guidance` is the wrong size for it
+
+The generation prompts read the same contract the template and the guide do, and deriving them was attempted
+in step 8. It produced a finding rather than a feature.
+
+`buildPromptSchemaText` was fixed in passing: it described only the top level and omitted `min`/`max`
+entirely while `guideLine` described nested shapes and bounds both -- two derived outputs of one declaration
+disagreeing about what that declaration says. It mattered most in this output of the three, because the
+prompt is what a generator is TOLD the schema is, so a field it never mentions is a field the generator never
+emits.
+
+**But a prompt's SCHEMA LOCK is not a field list, and swapping one for the other would be a downgrade.**
+`prompt-journal-profile-area.txt` spends 96 of its 294 lines on it; the derived equivalent is about 40 lines
+of `FIELD: (TYPE) guidance`. The difference is not verbosity:
+
+- **Anti-patterns.** "Never use `text`, `body`, or `content` instead of `description`." A declaration can say
+  what a field IS. It has no way to say what a generator wrongly reaches for.
+- **Relationships between fields.** That `scenetitle` is the page label and may carry an ordering prefix,
+  while `blocks.area.title` is the same name with the prefix stripped, and the envelope `area` is the clean
+  geographic name. Three fields, one paragraph; no single field's `guidance` can hold it.
+- **Worked negative examples** -- which is what caught the bare-string `narrative` the declaration got wrong.
+
+`guidance` is ONE sentence by design, and that design is right for a template comment and a guide line. A
+prompt wants a paragraph. **The gap is in the model, not the wiring.** Field groups already carry a
+`preamble` for exactly this reason -- profile-level prose that does not reduce to per-field guidance -- and
+the same affordance at profile level is the shape that would let a SCHEMA LOCK derive without losing what
+makes it work.
+
+Deliberately not built. An affordance with no user is the defect that got `rendered` deleted, and this one
+cannot be judged without a generation run, because the only measure of a prompt is what a generator produces
+from it.
+
 ## Two readers of one contract is the recurring defect
 
 Almost every bug this migration surfaced has one shape: two implementations of the same question, maintained separately, with nothing comparing them.

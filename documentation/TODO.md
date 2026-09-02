@@ -140,13 +140,16 @@ recipes and Bibliosoph's injuries is gone -- Bibliosoph imports through it today
 What remains, in order, each leaving the module working: **9.** fragments, `tags` first. **10.** export
 derivation and the three completeness layers. **11.** the parity check, then a consumer.
 
-**Step 8 is DONE, verified live on 2026-09-02.** Headless is 1411/1411 across 19 suites with Importer
+**Step 8's declaration and seam work is DONE, verified live on 2026-09-02. Its geography requirements are
+NOT** -- see "Geography and the journal importer" below, where all three remain unmet. That entry names them
+as requirements ON step 8, so step 8 is not closed until they land or are deliberately re-scoped out of it. Headless is 1411/1411 across 19 suites with Importer
 Declarations at 307. In a running world: an injury imported end to end through Bibliosoph's own declaration,
 landing a `coffee-pub-bibliosoph.injury` page with a null `treatmentdc`, appended into an existing journal
 and updated in place on re-import; folder matching case-insensitive with verbatim creation; and the
 same-name-different-folder warning firing. `testing/importer-journal.md` is deleted, per its own rule.
 
-**Steps 9-11 remain and are the next block**, not release blockers.
+**Steps 9-11 remain and are the next block**, not release blockers. Neither are the geography items -- they
+are pre-existing gaps the rewrite was going to absorb, not regressions it introduced.
 
 There were three profile forms when this was written and there are now two. `rendered` was deleted: Area
 was the case that justified it, and Area turned out to be `mapped` plus a derivation, so the third form was
@@ -154,6 +157,25 @@ a second way to say something the first two already said.
 
 **Verify:** a field added to a declaration appears in the template, the guide, the prompt and the export
 with no other edit. That single check is the whole point of the model.
+
+### Derive the prompts' SCHEMA LOCK, and give a profile a `preamble`
+
+The generation prompts hand-write a SCHEMA LOCK section stating the field list in prose -- a third reader of
+the declaration's contract, alongside the template and the guide, and the one where drift is most expensive:
+a field the prompt never mentions is a field the generator never emits.
+
+It does not derive as things stand, and the reason is a model gap rather than missing wiring. `guidance` is
+one sentence, which is right for a template comment and a guide line and too small for a prompt. What a
+SCHEMA LOCK carries beyond a field list is anti-patterns, relationships between fields, and worked negative
+examples -- none of which reduce to per-field guidance. Field groups already have a `preamble` for exactly
+this; a profile needs the same affordance.
+
+Sequenced after a real generation run, because the only measure of a prompt is what a generator produces from
+it, and an affordance with no user is what got `rendered` deleted. Full reasoning in
+`architecture-importer.md`, "A prompt is a third reader".
+
+**Verify:** a profile's derived prompt carries its anti-patterns and cross-field prose, and a generator
+produces a valid payload from the derived prompt alone.
 
 ### Five suite groups assert construction without validating the same shape
 
@@ -490,17 +512,23 @@ Also raised there and worth keeping together: **profile-level guidance prose.** 
 design, because it feeds the template comment, the guide line and the prompt line alike. Bibliosoph's schema
 needs a paragraph -- that `damage` is a PERCENTAGE of max HP rather than flat, and why -- and Blacksmith's own
 Area prompt already carries 96 lines of exactly that. Field groups already have a `preamble`; the same at
-profile level is the shape. See `plans/plan-importer-journal.md`.
+profile level is the shape. See "Derive the prompts' SCHEMA LOCK" above, and
+`architecture-importer.md`, "A prompt is a third reader".
 
 **Verify:** a declaration expressing a severity-scoped band rejects `damage: 12` on a minor injury and accepts
 it on a major one.
 
 ### Geography and the journal importer: three changes owed by importer step 8 (opened 2026-08-31)
 
-Scene geography shipped its data model, API and Scene Config tab, but the importer half is deliberately
-NOT done, because every call site sits in `registry-json-import-journals.js` inside the `area` and
-`location` builders that `plans/plan-importer-journal.md` re-founds. Doing it now would conflict with
-that rewrite and be absorbed by it. **These are requirements on step 8, not separate work:**
+Scene geography shipped its data model, API and Scene Config tab; the importer half did not, and was held
+because every call site sat inside the `area` and `location` builders the declaration rewrite was about to
+re-found.
+
+**That rewrite has now landed and these were not absorbed by it.** Verified against the code on 2026-09-02:
+`saveCampaignGeography` still writes all four world settings unconditionally, `api.geography.get` is called
+nowhere in `registry-json-import-journals.js`, and `locationUuid` is never written -- the `scenetitle` string
+match is still the only join. The hold has expired, so these are now simply owed, and they are the reason
+step 8 is not closed:
 
 - **`saveCampaignGeography()` (`:694`) loses its unconditional write-back.** An import records geography
   onto the scene flag it was launched from; the four world settings are written only by the settings UI.

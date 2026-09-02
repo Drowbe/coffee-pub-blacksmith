@@ -311,7 +311,12 @@ if (prepareStart < 0) {
 const executeSrc = slice('static async _executeFavoriteFromRecord(rec)');
 if (executeSrc) {
     const silentCalls = (executeSrc.match(/_openRequestRollSilent\(/g) ?? []).length;
-    const flagged = (executeSrc.match(/\.\.\.cinematic/g) ?? []).length;
+    // TWO WAYS TO CARRY IT, both counted. Most branches spread the `cinematic` object;
+    // the contested branch hands its options to `quickRollRequestOptions`, which sets
+    // `isCinematic` from the record itself. Counting only the spread called the second
+    // one a bug, which it is not -- the flag arrives either way.
+    const flagged = (executeSrc.match(/\.\.\.cinematic/g) ?? []).length
+        + (executeSrc.match(/isCinematic: !!rec\.isCinematic/g) ?? []).length;
     if (silentCalls === 0) {
         problems.push(`${SOURCE}: _executeFavoriteFromRecord makes no _openRequestRollSilent call -- favourites are dispatched some other way now, and this check is measuring nothing`);
     } else if (flagged !== silentCalls) {

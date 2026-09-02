@@ -264,6 +264,13 @@ before any satellite took them. They now are.
       source, never walked in a running world, and the product screenshot already contradicts its
       central table -- the bar's labelled buttons are not the six tools it lists, and it omits the
       combat readout row entirely. Treat it as a draft to be replaced, not a base to extend.
+
+      **`userguide-gm.md` owes a JSON import section**, added here 2026-09-02 so the guides do not get
+      written without it. The importer is GM-only and has no user-facing documentation of any kind: what
+      the Import window does, that Validate and Import are separate steps and why, what a template and a
+      prompt are for, that a re-import UPDATES rather than duplicates, and that a page goes to the world
+      first and the compendium second. That last one is not obvious and cost a sibling real confusion --
+      pages looked missing because they were in the world and the picker reads the compendium.
 - [ ] **Write `userguide-settings.md` after the settings rebuild, not before.** Deferred by the author
       2026-08-31: a guide to 260 controls that are about to change is waste that reads as authoritative.
       It documents the on-screen labels and never edits them — `lang/en.json` is product copy, not doc
@@ -810,10 +817,17 @@ campaign tags rather than pin ids.
 
 ## Importer step 8 — Journal, and the three siblings it gates (raised 2026-08-31)
 
-Blacksmith's journal importer is the last kind on a parser. The blocker for everyone is the same: pages are
-created with a hardcoded `type: "text"`, so Blacksmith cannot construct a module-owned `JournalEntryPage`
-subtype. Step 8 builds that seam. **Nothing below starts until it lands** -- the author's decision, so that
-holding does not mean each sibling discovers the dependency separately.
+**THE SEAM HAS LANDED, verified live 2026-09-02.** A profile declares `document.pageType` (entry-building) or
+`documentName: 'JournalEntryPage'` with a `type` and a container (page-building), and Blacksmith constructs a
+module-owned subtype it knows nothing about. Bibliosoph imports injuries through it today: correct subtype,
+append into an existing journal, update-in-place on re-import. Headless 1411/1411, Importer Declarations 307.
+
+**The hold below is lifted. Librarian, Artificer and Regent can start.** The contract is in
+`api/api-importer.md`, "The document descriptor"; the three build-time gates under `api/` let a module check
+its declaration against its own DataModel offline, before shipping.
+
+The original blocker, for the record: pages were created with a hardcoded `type: "text"`, so Blacksmith could
+not construct a module-owned `JournalEntryPage` subtype at all.
 
 ### Bibliosoph — injuries (the seam's first real consumer)
 

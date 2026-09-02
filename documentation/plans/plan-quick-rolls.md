@@ -77,6 +77,28 @@ This was the one attribute the migration lost. The contested branch touched no c
 saved contested roll fired against whatever was selected, or refused with "select at least one actor" —
 indistinguishable from the GM forgetting to select anybody.
 
+## Firing without the window
+
+`runQuickRoll` tries `quickRollRequestOptions` first and only opens the dialog when that
+returns null. `resolveQuickRollActors` is where the decision lives:
+
+| Roll | Resolves to |
+|---|---|
+| normal + party | every player character, tokened or not |
+| normal + selected | the controlled tokens |
+| contested + party | party as challengers, other controlled tokens as defenders |
+| contested + selected | **null** — a selection cannot be split without a person |
+
+The last row is the point: in the window a GM marks defenders by right-clicking them,
+which is a judgement rather than data. Guessing would send half the party against the
+other half.
+
+`createRequestRoll` gained `defenderType` / `defenderValue` and decides `hasMultipleGroups`
+from the actors it was handed rather than from an option — two groups among them is what a
+contest *is*. It refuses group success on a contest, because
+`handleSkillRollUpdate` runs the group and contest calculations as independent blocks and
+would put two verdicts on one card.
+
 ## The builder is a Tool window
 
 `BlacksmithToolWindowBaseV2` rendering into the shared `templates/window-tool-template.hbs`, per

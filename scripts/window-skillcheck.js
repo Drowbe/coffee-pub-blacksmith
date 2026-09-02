@@ -350,6 +350,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // absent from `_computeFavoriteId`, so toggling it edits the favourite in
             // place instead of orphaning it and creating a second one.
             isCinematic: item.dataset.cinematic === 'true',
+            // WHO ROLLS, and what the defender rolls. Both carried for the same reason
+            // as `isCinematic` and kept out of the id for the same reason: they say how
+            // a favourite RUNS, not which roll it is. Without them a contested favourite
+            // has no way to fire silently and has to open the window -- which is what
+            // one saved before this existed still does, correctly, since it defaults to
+            // the selection and a selection cannot be split without a person.
+            targets: item.dataset.targets ?? '',
+            defenderType: item.dataset.defenderType ?? '',
             label: labelEl?.textContent?.trim() ?? '',
             description: descEl?.textContent?.trim() ?? '',
             iconClass: iconEl?.className ?? 'fas fa-dice-d20'
@@ -1095,6 +1103,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         div.dataset.toolName = rec.toolName ?? '';
         div.dataset.common = rec.common ?? '';
         div.dataset.cinematic = String(!!rec.isCinematic);
+        div.dataset.targets = rec.targets ?? '';
+        div.dataset.defenderType = rec.defenderType ?? '';
         if (rec.actorTools) div.dataset.actorTools = rec.actorTools;
         if (rec.tooltip) div.dataset.tooltip = rec.tooltip;
         return div;
@@ -1125,6 +1135,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             row.dataset.toolName = rec.toolName ?? '';
             row.dataset.common = rec.common ?? '';
             row.dataset.cinematic = String(!!rec.isCinematic);
+            row.dataset.targets = rec.targets ?? '';
+            row.dataset.defenderType = rec.defenderType ?? '';
             if (rec.actorTools) row.dataset.actorTools = rec.actorTools;
             if (rec.tooltip) row.dataset.tooltip = rec.tooltip;
 
@@ -3512,22 +3524,113 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     }
 
     /**
+     * The contestants a quick roll names, without a window to read them from.
+     *
+     * This used to be impossible, which is why every quick roll fired from the menubar
+     * opened the dialog, drove its DOM, and closed it again -- a window flashing open
+     * and shut on the way to a chat card. The DOM was never the source of any of this:
+     * the contestant list comes from the canvas and the party, the groups come from the
+     * roll's own `targets`, and both are here.
+     *
+     * Returns null when the answer genuinely is not knowable without a person -- see
+     * the contested case below -- and the caller opens the window instead.
+     *
+     * @param {object} roll - a normalized `QuickRollsManager` record
+     * @returns {Array<object>|null} actors for `createRequestRoll`, or null
+     */
+    static resolveQuickRollActors(roll) {
+        const placeables = canvas?.tokens?.placeables ?? [];
+        const controlled = canvas?.tokens?.controlled ?? [];
+        const asActor = (t, group) => ({ id: t.id, actorId: t.actor.id, name: t.name, group });
+
+        // The party: every player character, tokened or not. The second half is what
+        // makes a party roll work in theatre of the mind, and it is the same list the
+        // window's own contestant column builds.
+        const partyActors = () => {
+            const actors = placeables
+                .filter((t) => t.actor?.hasPlayerOwner && t.actor.type === 'character')
+                .map((t) => asActor(t, 1));
+            const seen = new Set(actors.map((a) => a.actorId));
+            for (const actor of game.actors.filter((a) => a.type === 'character' && a.hasPlayerOwner)) {
+                if (seen.has(actor.id)) continue;
+                seen.add(actor.id);
+                actors.push({ id: actor.id, actorId: actor.id, name: actor.name, group: 1 });
+            }
+            return actors;
+        };
+
+        if (roll.mode !== 'contested') {
+            const actors = roll.targets === 'party'
+                ? partyActors()
+                : controlled.filter((t) => t.actor).map((t) => asActor(t, 1));
+            return actors.length ? actors : null;
+        }
+
+        // A CONTEST NEEDS TWO SIDES, and only "whole party" says where the line falls:
+        // the party challenge and whatever else is selected defends. With "selected
+        // tokens" there is nothing to split them BY -- in the window a GM marks
+        // defenders by right-clicking them, and that is a judgement, not data. So this
+        // returns null and the window opens, which is the honest answer rather than a
+        // guess about which half of a selection is the opposition.
+        if (roll.targets !== 'party') return null;
+
+        const challengers = partyActors();
+        const defenders = controlled
+            .filter((t) => t.actor && !t.actor.hasPlayerOwner)
+            .map((t) => asActor(t, 2));
+        return challengers.length && defenders.length ? [...challengers, ...defenders] : null;
+    }
+
+    /** A quick roll as options for {@link SkillCheckDialog.createRequestRoll}, or null if it needs the window. */
+    static quickRollRequestOptions(roll) {
+        const actors = SkillCheckDialog.resolveQuickRollActors(roll);
+        if (!actors) return null;
+
+        return {
+            initialType: roll.challenger.type,
+            initialValue: roll.challenger.value,
+            ...(roll.mode === 'contested' && roll.defender?.value
+                ? { defenderType: roll.defender.type, defenderValue: roll.defender.value }
+                : {}),
+            actors,
+            // A contest carries no DC: `createRequestRoll` would keep one, and the
+            // window has never sent one on a contested quick roll. Group success is
+            // refused there too, so it is not passed either.
+            ...(roll.mode === 'contested' ? {} : { groupRoll: roll.success === 'group' }),
+            ...(roll.mode !== 'contested' && roll.dc ? { dc: roll.dc } : {}),
+            isCinematic: !!roll.isCinematic,
+            title: roll.rollTitle
+        };
+    }
+
+    /**
      * Fire one quick roll by id, from outside the window.
      *
-     * Opens the dialog with the roll pending rather than translating it into a silent
-     * API call. A quick roll's defining behaviour is selecting the contestants -- the
-     * whole party for a party roll, both sides for a contest -- and that reads the
-     * dialog's own list, so there is nothing to translate it into.
+     * Silent when it can be. The window opens only when the roll genuinely needs a
+     * person: a contest whose two sides cannot be told apart from the selection, or
+     * nobody to roll at all. It used to open every time, flash, and close.
      *
      * @param {string} id - a `QuickRollsManager` roll id
      */
-    static runQuickRoll(id) {
+    static async runQuickRoll(id) {
         const roll = QuickRollsManager.get(id);
         if (!roll) {
             ui.notifications.warn('That quick roll is no longer in the library.');
             return null;
         }
-        return new SkillCheckDialog({ pendingQuickRollId: id }).render(true);
+
+        const options = SkillCheckDialog.quickRollRequestOptions(roll);
+        if (!options) return new SkillCheckDialog({ pendingQuickRollId: id }).render(true);
+
+        try {
+            return await SkillCheckDialog._openRequestRollSilent(options);
+        } catch (error) {
+            // The window is the fallback for anything the silent path refuses -- a
+            // roll that cannot post is still a roll the GM asked for, and dropping it
+            // with a toast would be worse than handing them the window they used to get.
+            postConsoleAndNotification(MODULE.NAME, `Quick Roll "${roll.label}" fell back to the window`, error, true, false);
+            return new SkillCheckDialog({ pendingQuickRollId: id }).render(true);
+        }
     }
 
     /**
@@ -3579,7 +3682,22 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (type === 'quick') {
             const rt = rec.rollType || '';
             if (rt === 'contested') {
-                ui.notifications.info('Contested rolls require the full Request a Roll window.');
+                // A CONTEST CAN GO SILENT NOW, when the favourite says the party
+                // challenge -- that is the one answer which says where the line between
+                // the two sides falls. Saved against a selection, it still opens the
+                // window, because splitting a selection into challengers and defenders
+                // is a judgement rather than data.
+                const contested = SkillCheckDialog.quickRollRequestOptions({
+                    mode: 'contested',
+                    targets: rec.targets === 'party' ? 'party' : 'selected',
+                    challenger: { type: 'skill', value: rec.value },
+                    defender: { type: rec.defenderType || 'skill', value: rec.defenderSkill },
+                    isCinematic: !!rec.isCinematic,
+                    rollTitle: rec.rollTitle || rec.label || 'Contested Roll'
+                });
+                if (contested) return SkillCheckDialog._openRequestRollSilent(contested);
+
+                ui.notifications.info('Select the defenders for this contested roll.');
                 new SkillCheckDialog({ pendingFavoriteRec: rec }).render(true);
                 return { openedDialog: true };
             }
@@ -3768,6 +3886,31 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         const rollMode = options.rollMode ?? 'roll';
         const title = (options.title != null && options.title !== '') ? options.title : null;
 
+        // A CONTEST, WITHOUT THE WINDOW.
+        //
+        // This path could not express one: `hasMultipleGroups` was hardcoded false and
+        // the three defender fields were hardcoded null, so every contested request had
+        // to open the dialog and drive it through the DOM -- which is why a contested
+        // favourite flashed a window open and shut.
+        //
+        // Contested is decided by the ACTORS, not by an option. Two groups among them is
+        // what a contest IS, and a caller who says `defenderValue` while handing over one
+        // group has described a roll with nobody to make it.
+        const hasChallengers = processedActors.some((a) => a.group === 1);
+        const hasDefenders = processedActors.some((a) => a.group === 2);
+        const isContested = hasChallengers && hasDefenders;
+
+        const defenderType = options.defenderType ?? rollType;
+        const defenderValueRaw = options.defenderValue ?? null;
+        const defenderValue = defenderValueRaw
+            ? SkillCheckDialog._resolveRollTypeValueStatic(defenderType, defenderValueRaw)
+            : null;
+        // Both sides roll the same thing unless the caller says otherwise -- the same
+        // rule the window follows when only one side has a roll chosen.
+        const defenderLabel = isContested
+            ? SkillCheckDialog._getRollLabelForType(defenderType, defenderValue ?? rollValue, showRollExplanation)
+            : null;
+
         const rollLabel = SkillCheckDialog._getRollLabelForType(rollType, rollValue, showRollExplanation);
         const messageData = {
             skillName: rollLabel.name,
@@ -3775,25 +3918,28 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // the formula is carried separately and shown in its own right, so a title
             // repeating it says the same thing twice and names nothing.
             rollTitle: title ?? (rollType === 'dice' ? SkillCheckDialog.DICE_DEFAULT_TITLE : rollLabel.name),
-            defenderSkillName: null,
+            defenderSkillName: isContested ? defenderLabel.name : null,
             skillAbbr: rollValue,
             rollFormula: rollType === 'dice' ? SkillCheckDialog.diceFormulaDisplay(rollValue) : null,
-            defenderSkillAbbr: null,
+            defenderSkillAbbr: isContested ? (defenderValue ?? rollValue) : null,
             actors: processedActors,
             requesterId: game.user.id,
             currentUserId: game.user.id,
             type: 'skillCheck',
             dc: dc,
             showDC: showDC,
-            isGroupRoll: groupRoll,
+            // A contest has no group success to speak of: the comparison IS the
+            // outcome, and the two calculations are independent blocks that would both
+            // run and put two verdicts in one message.
+            isGroupRoll: isContested ? false : groupRoll,
             skillDescription: rollLabel.desc,
-            defenderSkillDescription: null,
+            defenderSkillDescription: isContested ? defenderLabel.desc : null,
             skillLink: rollLabel.link,
-            defenderSkillLink: null,
+            defenderSkillLink: isContested ? defenderLabel.link : null,
             rollMode,
             rollType,
-            defenderRollType: null,
-            hasMultipleGroups: false,
+            defenderRollType: isContested ? defenderType : null,
+            hasMultipleGroups: isContested,
             showRollExplanation: showRollExplanation,
             isCinematic: isCinematic,
             isGM: game.user.isGM
