@@ -73,6 +73,8 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options.silent` | `boolean` | If `true`, the dialog is not opened; the roll request is created immediately and posted to chat. Requires `initialValue` or `initialSkill`. Actors come from `initialFilter` ('party' \| 'selected') or from `options.actors`. Returns a Promise resolving to `{ message, messageId }` (module API returns that Promise; drop-in API resolves with it). **If no actors are found** (e.g. no tokens on the scene or none matching the filter), the API falls back to opening the dialog instead of throwing, and the Promise resolves with `{ message: null, messageId: null, fallbackDialog }` so callers can detect the fallback. |
 | `options.title` | `string` | Override the dialog window title (e.g. `"Spot the trap"`). |
 | `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, `'save'`, or `'dice'`. |
+| `options.defenderType` | `string` | **Silent mode only.** The defenders' roll type in a contested request. Defaults to `initialType`. |
+| `options.defenderValue` | `string` | **Silent mode only.** The defenders' roll value. Omit to have both sides roll the same thing. Only takes effect when the actors carry two groups — see *Contested requests* below. |
 | `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system's CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`; dice: a formula such as `'2d6+10'`. |
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
 | `options.dc` | `number` or `string` | Default DC value shown in the dialog's DC field. |
@@ -157,6 +159,39 @@ const dialog = await BlacksmithAPI.openRequestRollDialog({
     initialFilter: 'selected'
 });
 ```
+
+### Contested requests
+
+A contested request is one where the **actors carry two groups**: `group: 1` challenges,
+`group: 2` defends. That is what makes a contest, not an option — a caller naming a
+defender roll while handing over one group has described a roll with nobody to make it,
+and gets an ordinary request.
+
+```javascript
+api.openRequestRollDialog({
+    silent: true,
+    initialType: 'skill',
+    initialValue: 'ste',          // the challengers roll Stealth
+    defenderType: 'skill',
+    defenderValue: 'prc',         // the defenders roll Perception
+    actors: [
+        { tokenId: 'abc', actorId: '111', group: 1 },
+        { tokenId: 'def', actorId: '222', group: 2 }
+    ]
+});
+```
+
+Omit `defenderValue` and both sides roll the challengers' roll, which is what the window
+does when only one side has a roll chosen.
+
+**A contest is decided by the highest roll on each side**, and the card reports
+*Challengers Win* / *Defenders Win* / *Stalemate*. Two consequences follow:
+
+- **`groupRoll` is ignored.** Group success counts how many rollers beat a DC, and a
+  contest has no threshold to count against — the comparison *is* the outcome. Passing
+  both would otherwise put two verdicts on one card.
+- **A `dc` is a floor, not a target.** If both sides' highest rolls miss it, the result
+  is a Stalemate rather than a winner.
 
 ### Silent mode: create roll request without opening the dialog
 

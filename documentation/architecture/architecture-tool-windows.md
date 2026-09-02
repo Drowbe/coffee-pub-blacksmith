@@ -20,6 +20,18 @@ exist here.
 | Macros | `scripts/window-macros.js` | `macros` | `blacksmith-macros` |
 | Health | `scripts/window-health.js` | `health` | `blacksmith-health` |
 
+**The `dice-tray` menubar tool is no longer only a dice tray opener.** It is the single menubar entry for
+everything to do with rolling: a player's left click opens the Dice Tray, a GM's opens Request a Roll, and
+its context menu carries both plus the manual-rolls toggle and the quick roll library. Its icon also reports
+whether Foundry's manual rolls are on. The WINDOW in the table above is unchanged; the tool that opens it is
+not. See `architecture-rolls.md`, "One menubar entry for rolling".
+
+**A fourth Tool window exists that is not in this table:** the Roll Builder
+(`scripts/window-rollbuilder.js`). It is deliberately absent, because it is ephemeral rather than
+persistent — opened from an in-flow action, unregistered, a distinct id per instance and
+`rememberPosition: false`, per the "Ephemeral tools" rules in `../api/api-window.md`. Nothing here assumes a
+Tool window is registered, and it is the worked example of that.
+
 Registration happens explicitly from `ready` in `scripts/blacksmith.js`, not from each file's own `ready`
 hook, so ordering against settings registration is decided in one place. Each `register*` function imports
 `registerWindow` from `api-windows.js` and `MenuBar` directly rather than going through `module.api` --

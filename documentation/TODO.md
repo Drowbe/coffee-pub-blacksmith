@@ -23,6 +23,31 @@ nobody reads.
 
 ---
 
+## Request a Roll
+
+### Decide which quick rolls ship as defaults
+
+All twenty-four built-ins seed a new world today. The seed flag
+(`requestRollQuickRollsSeeded`) means this can change without disturbing a table that has
+already built its own library, so the decision is deferrable — but it should be made
+deliberately rather than by default. Touches `QuickRollsManager.DEFAULTS` and the counts
+table in `tools/check-quick-rolls.mjs`, which asserts them. Verified by creating a fresh
+world and reading the QUICK tab.
+
+### Quick rolls cannot be reordered
+
+Categories render in first-seen order and rolls in insertion order. There is no way to
+move either, so a library built over several sessions reads in the order it was built.
+Touches `QuickRollsManager.byCategory()` and the Roll Builder. Verified by dragging or
+promoting a roll and reopening the window.
+
+### A quick roll cannot be a tool check or a dice formula
+
+The builder offers skill, ability and save — the three where a roll is fully described by
+a type and a CONFIG id. Tools are per-actor and dice are a whole formula, and neither
+collapses to the two fields a quick roll stores. Both would need a wider record and a
+wider builder. Verified by building one of each and firing it.
+
 ## Now - stack ranked
 
 The order the author would pick work up in today, and **the only place priority is expressed** -- the

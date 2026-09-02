@@ -274,9 +274,10 @@ Registers a new tool with the Blacksmith menubar system.
 
 #### Changing a registered tool
 
-There is no general update-in-place. `updateMenubarToolActive` below covers
-`active` on a toggleable tool and nothing else; to change anything else --
-icon, colour, title, order, visibility -- **unregister the tool and register it
+There is no general update-in-place. Two fields have a method of their own --
+`updateMenubarToolActive` for `active` on a toggleable tool, and
+`updateMenubarToolIconColor` for `iconColor` on any tool. To change anything
+else -- icon, title, order, visibility -- **unregister the tool and register it
 again** with the new values.
 
 ```javascript
@@ -331,6 +332,40 @@ Updates the active state of a toggleable tool.
 // Update a toggleable tool's active state programmatically
 blacksmith.updateMenubarToolActive('my-toggle-tool', true);
 ```
+
+#### `updateMenubarToolIconColor(toolId, iconColor)`
+
+Recolours a registered tool's icon in place.
+
+**Parameters:**
+- `toolId` (string): Unique identifier for the tool
+- `iconColor` (string | null): Any valid CSS colour, or `null` to clear it
+
+**Returns:** `boolean` — Success status
+
+For a tool that reports a state it does not own. `active` is the wrong instrument for
+that: it is for `toggleable` tools, and a tool can perfectly well be a plain button that
+opens a window while still needing to say whether something is switched on somewhere
+else. Blacksmith's own dice tool is the case — it goes orange while Foundry's manual
+rolls are enabled, and manual rolls are a core setting anyone can change from anywhere.
+
+Unchanged values cost nothing: the call returns early rather than re-rendering, which
+matters because this is the sort of thing called from a settings-change hook.
+
+```javascript
+// Follow a setting that anything on any client might change.
+Hooks.on('updateSetting', () => {
+    blacksmith.updateMenubarToolIconColor(
+        'my-module-recorder',
+        isRecording() ? 'rgba(231, 91, 1, 0.9)' : null
+    );
+});
+```
+
+The alternative — unregister and re-register — still works and is what you need for the
+icon itself, the title, or visibility. This exists because colour alone is the common
+case and the round trip is easy to get wrong: register only succeeds if the id is free,
+so a re-register over a live id returns `false` and silently leaves the old tool up.
 
 #### `invokeMenubarTool(toolId, context?)`
 

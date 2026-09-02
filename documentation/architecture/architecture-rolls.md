@@ -112,6 +112,121 @@ The GM is authoritative for group and contested *calculations* only. Individual 
 
 `showCinematicOverlay` and `closeCinematicOverlay` appear only in the commented-out legacy block — they are not live events.
 
+## Quick Rolls: the library behind the QUICK tab
+
+The QUICK tab was twenty-four `<div class="cpb-check-item" data-type="quick" …>` rows written out by hand
+in `templates/window-skillcheck.hbs`. A GM could not add one, change one, or remove one. They are data now,
+in `scripts/manager-quick-rolls.js`, and the Roll Builder (`scripts/window-rollbuilder.js`) is what edits
+them.
+
+**World-scoped** (`requestRollQuickRolls`), because this is the table's roll library rather than one
+person's preferences: a second GM sees the same list and the rolls travel with the world. Favourites stay
+`user`, since a favourite is a personal shortcut to a shared thing. A separate `requestRollQuickRollsSeeded`
+flag records that the built-ins have been planted, so a GM who deletes all twenty-four does not find them
+back next launch — and so "which ones ship as defaults" can change later without disturbing a table's own
+list.
+
+`QuickRollsManager.normalize()` runs on **read**, not just on write. These are hand-editable world settings
+that outlive the shape that wrote them, and a missing field has to render as a sane row rather than as
+`undefined` in a label.
+
+### The generated rows keep the markup's `data-*` contract
+
+`_quickRollRow` emits the same attributes the hand-written rows had. That is load-bearing: four things read
+that dataset — `_handleQuickRollItem`, `_computeFavoriteId`, `_favoriteRecordFromItem`, and the search
+filter — and a different shape would have meant changing all four at once while orphaning every favourite
+saved before the change.
+
+Two attributes are subtler than they look:
+
+- **`data-dc` is set only when there is one.** The handler reads the attribute's *presence* as "override
+  the window's DC box", so an empty string blanks the DC on a roll that meant to inherit it.
+- **`data-targets` is on every row.** For a normal roll, who rolls folds into `data-roll-type`
+  (`party` / `individual`), which is the vocabulary the handler has always spoken; a contest spends
+  `rollType` on saying it is a contest, so the answer has to travel separately.
+
+Row selection listeners live in `_attachCheckItemListeners(root, scope)` and are idempotent
+(`data-cpb-selection-bound`). The rows are redrawn whenever the library changes, and a redraw that did not
+re-wire would leave rows that look right and do nothing.
+
+### Firing without the window
+
+Every quick roll used to open the dialog, drive its DOM, and close it again — a window flashing open and
+shut on the way to a chat card. None of that was necessary. `resolveQuickRollActors` decides:
+
+| Roll | Resolves to |
+|---|---|
+| normal + party | every player character, tokened or not |
+| normal + selected | the controlled tokens |
+| contested + party | party as challengers, other controlled tokens as defenders |
+| contested + selected | **null** — the window opens |
+
+The last row is the point. In the window a GM marks defenders by right-clicking them; that is a judgement,
+not data, and guessing would send half the party against the other half. `runQuickRoll` falls back to
+`pendingQuickRollId` for that case, for a roll with nobody to make it, and for anything the silent path
+refuses — a roll the GM asked for is worth a window rather than a toast.
+
+`createRequestRoll` gained `defenderType` / `defenderValue` and decides `hasMultipleGroups` **from the
+actors it was handed** rather than from an option: two groups among them is what a contest is. It refuses
+group success on a contest, because `handleSkillRollUpdate` runs the group and contest calculations as
+independent `if` blocks and would otherwise compute two verdicts for one card.
+
+### Marks, and why they are not decoration
+
+Each row shows contested / group / individual, the DC when there is one, and cinematic or chat card, in
+front of the description. The three facts that change what a click *does* were otherwise visible only if the
+GM had written them into the label, and the built-ins mostly had not — "DC 15 Perception Check" says nothing
+about group success or about taking over the table's screen. Two rows could look identical and behave
+differently, which is the one thing a list you fire from must not do.
+
+### One menubar entry for rolling
+
+Dice Tray and Request a Roll were two icons a pixel apart doing the same job, and Manual Rolls was a button
+under the sidebar's pin. All three are now the dice tool (`scripts/window-dicetray.js`):
+
+- **Left click** differs by role — a player gets the Dice Tray, a GM gets Request a Roll. Neither is shut
+  out of the other's tool; everything is one right-click away.
+- **Right click** carries Request a Roll (GM), Open Dice Tray, the manual-rolls toggle, then favourites and
+  the quick roll library as flyouts.
+- **The icon goes `rgba(231, 91, 1, 0.9)` while manual rolls are on**, through
+  `MenuBar.updateMenubarToolIconColor`. It has to be told, on three paths: at registration (manual rolls
+  survive a reload), on toggle, and from a `core.diceConfiguration` settings hook — that last one is the
+  single branch of the old sidebar button's hook that had to survive the move.
+- `requestRollShowInMenubar` now decides whether this tool *leads* with the request window, rather than
+  whether a second icon appears.
+
+`SidebarStyle` keeps the manual-rolls **engine** — rewriting core's `diceConfiguration` and coaxing Foundry
+into applying it is fiddly and version-sensitive — and exposes `canToggleManualRolls()`,
+`isManualRollsEnabled()`, `toggleManualRolls()`. The two `sidebarManualRolls*` settings still gate it and
+keep their keys: they gate the same capability, and only its home changed.
+
+**`window-dicetray.js` importing `window-skillcheck.js` closes an import cycle** that runs back through
+`blacksmith.js`. It is safe because nothing there touches either binding at module-evaluation time — every
+use is inside a click handler or a menu builder. Needing one at evaluation would break it silently, as
+`undefined` in whichever file the graph reaches second.
+
+### Portability
+
+Export writes an envelope — `{ type, version, exportedAt, world, rolls }` — so a reader can tell the file
+from the other JSON a Foundry user has lying around, and a future format has somewhere to say so.
+`parseImport` accepts a bare array too, since that is what somebody hand-assembling a file writes. Import
+asks merge-or-replace rather than choosing; merging matches on id, so re-importing your own export updates
+rather than doubles, and two worlds carrying the built-ins agree about them because those ids are derived
+from what the roll is (`qr-party-prc-group`) rather than generated per world.
+
+### The Roll Builder is a Tool window
+
+`BlacksmithToolWindowBaseV2` rendering into the shared `templates/window-tool-template.hbs`, per
+`../api/api-window.md` — the contract for a small utility opened from an in-flow action. The shell owns the
+root, the scrolling body, the footer, the theming, and every form control inside it;
+`styles/window-rollbuilder.css` carries **no colour literals**, because the Tool surfaces are per-theme
+custom properties and any literal is right in one theme and wrong in the other two. Ephemeral, so it takes a
+distinct `id` per instance and `rememberPosition: false`, per the documented rules for one.
+
+`node tools/check-quick-rolls.mjs` guards all of the above: the row/reader contract, the built-in roll
+counts, the export/import round trip, the resolution table, the contested wiring in the silent path, the
+Tool-window contract, and the menubar consolidation.
+
 ## The dice builder (Request a Roll, DICE tab)
 
 The DICE tab is not a list you pick one thing from. It is one row per die -- a count starting at zero and an optional label -- plus one flat modifier row, a name, and a list of remembered rolls. The sum of the non-zero rows is the request.
@@ -193,7 +308,11 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 ## Files
 
 - `scripts/manager-rolls.js` — the roll system (the three flow functions plus cinema and socket helpers).
-- `scripts/window-skillcheck.js` — the skill-check dialog, card creation, and cinema display.
+- `scripts/window-skillcheck.js` — the skill-check dialog, card creation, cinema display, the quick roll rows, and the silent request path.
+- `scripts/manager-quick-rolls.js` — the quick roll library: shape, storage, CRUD, the built-ins, export and import.
+- `scripts/window-rollbuilder.js` — the Roll Builder Tool window, with `templates/window-rollbuilder.hbs` and `styles/window-rollbuilder.css`.
+- `scripts/window-dicetray.js` — the dice menubar tool: its two left-click roles, its context menu, and the manual-rolls icon state.
+- `scripts/ui-sidebar-style.js` — the manual-rolls engine (`canToggleManualRolls`, `isManualRollsEnabled`, `toggleManualRolls`).
 - `scripts/blacksmith.js` — `openRequestRollDialog` (public entry) and `handleSkillRollUpdate` (GM group/contested processing).
 - `scripts/utility-roll-classification.js` — shared classification internals.
 - `scripts/api-rolls.js` — public `module.api.rolls` surface.
@@ -201,3 +320,4 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 - `scripts/manager-sockets.js` — socket transport.
 - `templates/skill-check-card.hbs`, `templates/window-roll-normal.hbs`, `templates/window-skillcheck.hbs` — card and window templates.
 - `styles/window-roll-cinematic.css` — cinema styling.
+- `tools/check-quick-rolls.mjs`, `tools/check-dice-builder.mjs` — the invariant checks for both features.
