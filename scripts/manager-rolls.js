@@ -1,5 +1,5 @@
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage, showDiceAnimation } from './api-core.js';
+import { postConsoleAndNotification, playSound, getSettingSafely, getPortraitImage, showDiceAnimation, getDiceIcon } from './api-core.js';
 import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import { handleSkillRollUpdate } from './blacksmith.js';
@@ -493,41 +493,6 @@ async function _playRollResultSound(roll) {
     if (resolvedIndividualSound) playSound(resolvedIndividualSound, COFFEEPUB.SOUNDVOLUMENORMAL);
 }
 
-/**
- * @param {string} rollFormula - The roll formula (e.g., "1d20", "2d6", "1d100", "d100")
- * @returns {string} FontAwesome icon class
- */
-function getDiceIcon(rollFormula) {
-    // Extract the dice type from the formula
-    // Handle both formats: "1d20" and "d20"
-    const diceMatch = rollFormula.match(/(\d*)d(\d+)/);
-    if (!diceMatch) {
-        return 'fas fa-dice-d20'; // Default to d20
-    }
-    
-    const diceType = parseInt(diceMatch[2]);
-    
-    switch (diceType) {
-        case 2:
-            return 'fas fa-coin';
-        case 4:
-            return 'fas fa-dice-d4';
-        case 6:
-            return 'fas fa-dice-d6';
-        case 8:
-            return 'fas fa-dice-d8';
-        case 10:
-            return 'fas fa-dice-d10';
-        case 12:
-            return 'fas fa-dice-d12';
-        case 20:
-            return 'fas fa-dice-d20';
-        case 100:
-            return 'fas fa-hundred-points';
-        default:
-            return 'fas fa-dice-d20'; // Default fallback
-    }
-}
 
 /**
  * Prepare roll data for templates

@@ -112,6 +112,19 @@ The GM is authoritative for group and contested *calculations* only. Individual 
 
 `showCinematicOverlay` and `closeCinematicOverlay` appear only in the commented-out legacy block — they are not live events.
 
+## The dice builder (Request a Roll, DICE tab)
+
+The DICE tab's tiles are **die pickers, not formulas**. A tile carries only `data-value="d6"`; how many of them and what flat modifier rides along live on the dialog (`_diceQuantity`, `_diceModifier`), and the formula is assembled from the two by `_composeDiceFormula` — at the moment a tile is clicked, and again on every change to the builder.
+
+The split is load-bearing and easy to undo by accident. **Do not write the composed formula back into a tile's `data-value`.** Three things key off it and all of them would break: `_computeFavoriteId` (a favourite's stable id), `_findCanonicalFavoriteTargetByDataset` (matching a favourite row back to its tile), and the restore-on-render lookup in `_attachLocalListeners`. Because the tile keeps its die, a favourited `d6` replays as a plain `d6` — the heart favourites the die, not the built formula.
+
+The composed value is stored on `this.selectedValue` for a single selection and on `challengerRoll.value` / `defenderRoll.value` for a contested one, alongside a `die` field holding the tile's own value so the formula can be rebuilt later. `_syncDiceBuilder` rebuilds all of them plus the readout; `_activeDie` decides which die the readout is showing, preferring the single selection and falling back to the contested pair.
+
+Nothing downstream knows any of this. `_executeBuiltInRoll`'s `dice` case hands the value straight to `new Roll`, which is why a composed `2d6+10` needed no change there. Two consequences worth knowing:
+
+- **Advantage on dice rolls is a string match.** `_executeBuiltInRoll` swaps in `2d20kh`/`2d20kl` only when the formula is exactly `1d20` or `d20`. One d20 with no modifier composes to `1d20`, so advantage still works; `2d20` or `1d20+3` does not get it, which is correct — there is no advantage on those.
+- **The dialog cannot import `manager-rolls.js`.** That module imports the dialog, so the edge only runs one way. `getDiceIcon` lives in `api-core.js` for exactly this reason, next to `showDiceAnimation`.
+
 ## System selection
 
 `processRoll` destructures a `system` value from the roll data, but currently always calls `_executeBuiltInRoll` — the Blacksmith roller. There is no Foundry execution path (no `_executeFoundryRoll` exists), so the `diceRollToolSystem` setting does not currently change behavior. `orchestrateRoll` reads and stores the setting (`:178,191`), but `processRoll` does not act on it.

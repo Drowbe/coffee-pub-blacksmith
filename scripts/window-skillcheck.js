@@ -1,6 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
-import { playSound, postConsoleAndNotification, getSettingSafely } from './api-core.js';
+import { playSound, postConsoleAndNotification, getSettingSafely, getDiceIcon } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
 import { resolveRequestRollCinematicBanner, resolveRequestRollSound, resolveRequestRollSetting } from './utility-theme-request-roll.js';
@@ -181,6 +181,25 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this.selectedValue = data.initialValue ?? data.initialSkill ?? null;
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
+        // Dice builder state. The DICE tab's tiles pick the die and nothing else; the
+        // count and the flat modifier live here, and the formula is only ever assembled
+        // from the three together -- see _composeDiceFormula.
+        this._diceQuantity = 1;
+        this._diceModifier = 0;
+        /** The die behind the current dice selection ("d6"), kept so the formula can be rebuilt when the builder changes. */
+        this._selectedDie = null;
+        // An API caller passes a whole formula ("2d6+10"), not a die. Split it back into
+        // the builder's three parts so the window opens showing what was asked for --
+        // and so nudging the stepper afterwards edits that formula rather than replacing it.
+        if (this.selectedType === 'dice') {
+            const parsed = SkillCheckDialog.parseDiceFormula(this.selectedValue);
+            if (parsed) {
+                this._selectedDie = parsed.die;
+                this._diceQuantity = parsed.quantity;
+                this._diceModifier = parsed.modifier;
+                this.selectedValue = this._composeDiceFormula(parsed.die);
+            }
+        }
         this.callback = data.callback || null;
         this.onRollComplete = data.onRollComplete || null;
         this._isQuickPartyRoll = false;
@@ -1009,10 +1028,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         }
 
         this._attachRequestRollFavoriteListeners(htmlElement);
+        this._attachDiceBuilderListeners(htmlElement);
         
         // Roll type filter (middle column): when API passed initialType/initialValue, show that tab first so selection is visible
         const secondColumn = htmlElement.querySelector('.cpb-dialog-column:nth-child(2)');
-        const rollTypeFilter = (this.selectedType && ['skill', 'ability', 'save'].includes(this.selectedType))
+        const rollTypeFilter = (this.selectedType && ['skill', 'ability', 'save', 'dice'].includes(this.selectedType))
             ? this.selectedType
             : 'quick';
         secondColumn?.querySelectorAll('.cpb-filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -1022,7 +1042,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         
         // If we have an initial roll type selection (skill, ability, or save), resolve value to CONFIG id then pre-select (v13: native DOM)
         if (this.selectedType && this.selectedValue) {
-            const resolvedValue = this._resolveRollTypeValue(this.selectedType, this.selectedValue);
+            // For dice the tiles are keyed by die ("d6") while the selection is a whole
+            // formula ("2d6+10"), so the lookup uses the die the builder parsed out.
+            const resolvedValue = this.selectedType === 'dice'
+                ? (this._selectedDie ?? this.selectedValue)
+                : this._resolveRollTypeValue(this.selectedType, this.selectedValue);
             const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${resolvedValue}"]`);
             if (item) {
                 item.classList.add('selected', 'cpb-skill-challenger');
@@ -1328,19 +1352,26 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     if (rollTypeIndicator) {
                         if (isRightClick) {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                            this.defenderRoll = { type, value };
+                            this.defenderRoll = this._diceSelectionState(type, value);
                             // Add defender styling
                             item.classList.add('cpb-skill-defender');
                             item.classList.remove('cpb-skill-challenger');
                         } else {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            this.challengerRoll = { type, value };
+                            this.challengerRoll = this._diceSelectionState(type, value);
                             // Add challenger styling
                             item.classList.add('cpb-skill-challenger');
                             item.classList.remove('cpb-skill-defender');
                         }
                     }
                     item.classList.add('selected');
+                    // The readout follows the contested selections too -- a dice roll
+                    // chosen as challenger or defender is still a formula somebody is
+                    // about to request. The single-selection die is cleared because in
+                    // contested mode it is not what gets rolled, and a stale one would
+                    // have the readout naming a die nobody chose.
+                    this._selectedDie = null;
+                    this._syncDiceBuilder(htmlElement);
                 } else {
                     // Check if we're deselecting the current selection
                     const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
@@ -1353,6 +1384,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
                         this.selectedType = null;
                         this.selectedValue = null;
+                        this._selectedDie = null;
+                        this._syncDiceBuilder(htmlElement);
                     } else {
                         // Check if trying to select defender roll without defenders (v13: native DOM)
                         if (isRightClick) {
@@ -1380,14 +1413,25 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         }
                     }
                     item.classList.add('selected');
-                    this.selectedType = type;
-                    this.selectedValue = value;
-                    
+                    const selection = this._diceSelectionState(type, value);
+                    this.selectedType = selection.type;
+                    this.selectedValue = selection.value;
+                    // The tile carries the die; the builder carries the rest. Held here so
+                    // the formula can be rebuilt when the count or modifier changes after
+                    // the tile was clicked.
+                    this._selectedDie = selection.die ?? null;
+
                     // Extract roll title for skill/ability/save rolls
                     const rollTitle = item.dataset.rollTitle || null;
                     if (rollTitle) {
                         this.selectedRollTitle = rollTitle;
                     }
+                    // A dice tile's own title names one die ("1d6 Dice Roll"), which is a
+                    // lie the moment the builder says otherwise -- the card would carry it.
+                    if (type === 'dice' && this.selectedValue) {
+                        this.selectedRollTitle = SkillCheckDialog._diceRollTitle(this.selectedValue);
+                    }
+                    this._syncDiceBuilder(htmlElement);
                 }
             }
 
@@ -1673,7 +1717,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         break;
                     case 'dice':
                         name = `${value} Roll`;
-                        desc = showExplanation ? `This is a standard ${value} dice roll. This is a straight-forward roll that does not include any modifiers or bonuses.` : null;
+                        desc = showExplanation ? `This is a straightforward ${value} dice roll -- exactly the formula shown, with no ability modifier or proficiency bonus added on top.` : null;
                         link = null; // Dice rolls don't have SRD links
                         break;
                     default:
@@ -2117,6 +2161,175 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             return entry ? entry[0] : value;
         }
         return value;
+    }
+
+    // ===== DICE BUILDER ===============================================
+    //
+    // The DICE tab used to request exactly what its tiles said: a single die, no
+    // modifier, because the tile's `data-value` WAS the formula. "Roll 2d6+10" had no
+    // way to be asked for.
+    //
+    // The split is the whole design. A tile still carries only its die ("d6") and that
+    // never changes, so the favourite heart on it, the id it is stored under, and the
+    // restore-on-render lookup all keep working unaltered. The count and the modifier
+    // live on the dialog, and the formula is composed from the two at the moment of
+    // selection and again on every change to the builder. Nothing downstream needed
+    // teaching: `_executeBuiltInRoll` already hands a dice value straight to `new Roll`,
+    // so a composed "2d6+10" rolls the same way "d6" always did.
+
+    /**
+     * Split a formula back into the builder's three parts.
+     *
+     * Accepts what actually turns up -- a bare die from a tile ("d6"), a formula from
+     * an API caller or a favourite ("2d6+10", "1d20 - 2") -- and returns null for
+     * anything more complicated than one die and one flat term, because the builder
+     * cannot represent it and pretending otherwise would silently rewrite the caller's
+     * formula.
+     *
+     * @param {string} formula
+     * @returns {{die: string, quantity: number, modifier: number}|null}
+     */
+    static parseDiceFormula(formula) {
+        if (formula == null) return null;
+        const match = String(formula).trim().match(/^(\d*)\s*d\s*(\d+)\s*(?:([+-])\s*(\d+))?$/i);
+        if (!match) return null;
+        const quantity = match[1] === '' ? 1 : parseInt(match[1], 10);
+        const modifier = match[4] ? parseInt(match[4], 10) * (match[3] === '-' ? -1 : 1) : 0;
+        return {
+            die: `d${match[2]}`,
+            quantity: Math.max(1, quantity),
+            modifier
+        };
+    }
+
+    /**
+     * The formula the request will carry, for a given die.
+     *
+     * Written without spaces ("2d6+10") because it is not only displayed -- it is the
+     * roll's stored value and the card's subtitle, and a compact form reads better in
+     * both. Foundry's Roll parser is indifferent either way.
+     *
+     * @param {string} die - "d6", or anything parseDiceFormula can read
+     * @returns {string|null}
+     */
+    _composeDiceFormula(die) {
+        const faces = SkillCheckDialog.parseDiceFormula(die)?.die ?? null;
+        if (!faces) return null;
+        const modifier = this._diceModifier;
+        const modifierPart = modifier === 0 ? '' : (modifier > 0 ? `+${modifier}` : `-${Math.abs(modifier)}`);
+        return `${this._diceQuantity}${faces}${modifierPart}`;
+    }
+
+    /** The card title for a composed dice formula, matching the tiles' own "1d6 Dice Roll" phrasing. */
+    static _diceRollTitle(formula) {
+        return `${formula} Dice Roll`;
+    }
+
+    /**
+     * The dice selection state for a tile click.
+     *
+     * Non-dice types are returned untouched, so the one call site can use this for
+     * every roll type rather than branching around it.
+     */
+    _diceSelectionState(type, value) {
+        if (type !== 'dice') return { type, value };
+        return { type, value: this._composeDiceFormula(value) ?? value, die: value };
+    }
+
+    /** Clamp and store one builder field. Kept in one place so the steppers and the typed input cannot disagree. */
+    _setDiceBuilderField(field, raw) {
+        const parsed = Math.trunc(Number(raw));
+        if (field === 'quantity') {
+            this._diceQuantity = Number.isFinite(parsed) ? Math.min(99, Math.max(1, parsed)) : 1;
+        } else {
+            this._diceModifier = Number.isFinite(parsed) ? Math.min(999, Math.max(-999, parsed)) : 0;
+        }
+    }
+
+    /** The die behind whichever dice selection is live, challenger or defender. */
+    _activeDie() {
+        if (this._selectedDie) return this._selectedDie;
+        if (this.challengerRoll?.type === 'dice' && this.challengerRoll.die) return this.challengerRoll.die;
+        if (this.defenderRoll?.type === 'dice' && this.defenderRoll.die) return this.defenderRoll.die;
+        return null;
+    }
+
+    /**
+     * Push the builder's state into the inputs, the readout, and every live dice
+     * selection.
+     *
+     * The recompose is the part that matters: a die can be chosen before the count is,
+     * and the selection stored at click time would otherwise still say "1d6" when the
+     * readout says "2d6+10". Both sides are rebuilt from the same die every time.
+     */
+    _syncDiceBuilder(html) {
+        const root = html ?? this._getElementForUpdate();
+        if (!root?.querySelector) return;
+
+        const quantityInput = root.querySelector('.cpb-dice-input[name="diceQuantity"]');
+        const modifierInput = root.querySelector('.cpb-dice-input[name="diceModifier"]');
+        if (quantityInput) quantityInput.value = String(this._diceQuantity);
+        if (modifierInput) modifierInput.value = String(this._diceModifier);
+
+        if (this.selectedType === 'dice' && this._selectedDie) {
+            this.selectedValue = this._composeDiceFormula(this._selectedDie);
+            this.selectedRollTitle = SkillCheckDialog._diceRollTitle(this.selectedValue);
+        }
+        for (const selection of [this.challengerRoll, this.defenderRoll]) {
+            if (selection?.type === 'dice' && selection.die) {
+                selection.value = this._composeDiceFormula(selection.die);
+            }
+        }
+
+        const readout = root.querySelector('.cpb-dice-formula');
+        if (!readout) return;
+        const die = this._activeDie();
+        const formula = die ? this._composeDiceFormula(die) : null;
+        readout.classList.toggle('cpb-dice-formula-empty', !formula);
+        const valueEl = readout.querySelector('.cpb-dice-formula-value');
+        if (valueEl) valueEl.textContent = formula ?? 'Select a die';
+        const iconEl = readout.querySelector('i');
+        if (iconEl) iconEl.className = formula ? getDiceIcon(formula) : 'fas fa-dice-d20';
+    }
+
+    /** Wire the two steppers, their typed inputs, and the reset. */
+    _attachDiceBuilderListeners(html) {
+        const root = html;
+        const builder = root?.querySelector?.('.cpb-dice-builder');
+        if (!builder) return;
+
+        builder.querySelectorAll('.cpb-dice-step').forEach((button) => {
+            button.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                const field = button.dataset.diceField;
+                const delta = Number(button.dataset.diceDelta) || 0;
+                const current = field === 'quantity' ? this._diceQuantity : this._diceModifier;
+                this._setDiceBuilderField(field, current + delta);
+                this._syncDiceBuilder(root);
+            });
+        });
+
+        builder.querySelectorAll('.cpb-dice-input').forEach((input) => {
+            const field = input.name === 'diceQuantity' ? 'quantity' : 'modifier';
+            // On `change` rather than `input`: clamping mid-keystroke turns a typed "12"
+            // into "1" the moment the first digit lands, and a typed "-3" into "-999".
+            input.addEventListener('change', () => {
+                this._setDiceBuilderField(field, input.value);
+                this._syncDiceBuilder(root);
+            });
+        });
+
+        const reset = builder.querySelector('.cpb-dice-reset');
+        if (reset) {
+            reset.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                this._diceQuantity = 1;
+                this._diceModifier = 0;
+                this._syncDiceBuilder(root);
+            });
+        }
+
+        this._syncDiceBuilder(root);
     }
 
     /**

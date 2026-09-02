@@ -192,8 +192,18 @@ function validateField(field, form, where, nested = false) {
     // explicit: a selector picks the profile, an envelope is consumed by a transform.
     // A NESTED field is exempt -- its parent owns the document path and the nesting
     // describes the shape of the value, not another place to write.
-    if (!nested && form === 'mapped' && !field.path && !field.role && !Array.isArray(field.fields)) {
-        throw new Error(`${at}: a mapped profile requires a path, a role, or nested fields`);
+    //
+    // NESTED SHAPE DOES NOT EXEMPT A TOP-LEVEL FIELD. It used to: the condition also
+    // required `!Array.isArray(field.fields)`, so a top-level field whose value has a
+    // shape could omit its path and register cleanly -- and a field with no path is
+    // one construction has nowhere to write, so it is dropped from every document in
+    // silence. That is the exact bug that cost a consumer's `modifiers` field, present
+    // on 135 of their 144 documents, and the registry was exempting it the whole time.
+    // A top-level field earns its exemption from a ROLE, which says it lands nowhere
+    // on purpose -- never from having a shape.
+    if (!nested && form === 'mapped' && !field.path && !field.role) {
+        throw new Error(`${at}: a mapped profile requires a path or a role. `
+            + `A field with neither is dropped from every document, silently.`);
     }
     if (field.absentMeans !== undefined && !ABSENT_MEANS.has(field.absentMeans)) {
         throw new Error(`${at}: absentMeans must be 'default' or 'preserve'`);

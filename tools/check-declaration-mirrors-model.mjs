@@ -31,6 +31,24 @@
 //   quietly. Without it the check only proves the profile agrees with itself, and
 //   a green run that proves less than it appears to is worse than a yellow one.
 //
+// THERE IS EXACTLY ONE OF THIS FILE, and consumers import it as
+// `api/check-declaration-mirrors-model.mjs`. That is not a "keep these in sync"
+// note, which is what a fork always says on its way to diverging -- it is that a
+// second copy has no supported way to be imported and so has no reason to exist.
+//
+// It forked once, and the manner is worth knowing. Two sessions improved two
+// copies through each other, and the file changed three times inside ninety
+// seconds; a grep, a sed and a diff run against it each read a different version,
+// and both parties reported a defect that had been fixed before the message
+// arrived. Neither report was careless. A file edited by one party and diffed by
+// another moves faster than a message round-trip, and the only fix is that edits
+// land where the other party already looks.
+//
+// EVERY CHECK HERE IS FOR A FAILURE THAT IS SILENT IN PRODUCTION. None of them
+// catch a crash; all of them catch a document that looks fine. That is the test
+// for whether a new check belongs here -- if the failure it describes would throw,
+// something else already catches it.
+//
 // Verified on adoption against a `declarationFromModel` output: passes with a
 // complete human layer, and goes red on a stricter bound and a dropped enum value.
 // ==================================================================
@@ -202,6 +220,32 @@ export function checkDeclarationMirrorsModel({
     const containerField = fields.find((f) => f.name === doc.containerNameFrom);
     const containerValues = containerField?.values ?? [];
 
+    // A NESTED field carries no document path: its parent owns the path and
+    // the nesting only describes the shape of the value. Registration
+    // enforces this, so a nested `path` is a registration failure rather
+    // than a harmless extra key.
+    //
+    // The converse is just as load-bearing and is the easier one to lose: a
+    // TOP-LEVEL field must have a path even when its value is nested, or the
+    // importer has nowhere to write it and the whole field is dropped from
+    // every imported document without complaint.
+    const walkPaths = (list, depth = 0, prefix = '') => {
+        for (const field of list) {
+            const label = prefix + field.name;
+            if (depth > 0 && field.path !== undefined) {
+                errors.push(`\`${label}\` is nested and carries a path; its parent owns the document path.`);
+            }
+            if (depth === 0 && !field.path && !isRoled(field)) {
+                errors.push(`\`${label}\` has no path: the importer would have nowhere to write it, and it would be dropped from every imported document.`);
+            }
+            if (depth === 0 && field.path && isRoled(field)) {
+                errors.push(`\`${label}\` has role \`${field.role}\` and a path; a roled field never lands on a document path of its own.`);
+            }
+            if (field.fields) walkPaths(field.fields, depth + 1, `${label}.`);
+        }
+    };
+    walkPaths(fields);
+
     // ---- The profile can be selected at all ----------------------
     //
     // A kind that routes by selector reaches a profile only through a declared
@@ -229,8 +273,14 @@ export function checkDeclarationMirrorsModel({
                 errors.push(`Selector is named \`${selector.name}\`, but the \`${declaration?.kind}\` `
                     + `kind routes on \`${expectedSelector}\`.`);
             }
-            const values = selector.values ?? [];
-            if (!values.includes(declaration?.id)) {
+            // Only when the selector ENUMERATES. An absent list is legitimate and
+            // documented -- Blacksmith's eight Item profiles share one `itemType`
+            // selector without restating the types -- so a missing list contradicts
+            // nothing. Without this guard the checker rejects all eight for doing the
+            // documented thing, which is the registry's own rule the checker beside
+            // it was failing to match.
+            const values = Array.isArray(selector.values) ? selector.values : null;
+            if (values && !values.includes(declaration?.id)) {
                 errors.push(`Selector \`${selector.name}\` lists ${values.join(', ') || '(nothing)'} `
                     + `and not \`${declaration?.id}\`, so no payload could select this profile.`);
             }

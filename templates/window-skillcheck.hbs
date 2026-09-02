@@ -404,6 +404,31 @@
                 <!-- Dice Roll Section -->
                 <div class="cpb-check-section" data-filter="dice">
                     <div class="cpb-section-header">Dice Roll</div>
+                    {{!-- The dice builder. The tiles below pick the DIE; this row picks how
+                          many of them and what flat modifier rides along, and the readout on
+                          the right is the formula that will actually be requested. The tiles
+                          keep their own labels because the heart on each one favorites the
+                          die, not the built formula -- the readout is the authority on what
+                          gets rolled. --}}
+                    <div class="cpb-dice-builder">
+                        <div class="cpb-dice-builder-field">
+                            <span class="cpb-dice-builder-label">Dice</span>
+                            <button type="button" class="cpb-dice-step" data-dice-field="quantity" data-dice-delta="-1" data-tooltip="One fewer die" aria-label="One fewer die"><i class="fas fa-minus"></i></button>
+                            <input type="number" class="cpb-dice-input" name="diceQuantity" value="1" min="1" max="99" step="1" data-tooltip="How many dice to roll">
+                            <button type="button" class="cpb-dice-step" data-dice-field="quantity" data-dice-delta="1" data-tooltip="One more die" aria-label="One more die"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div class="cpb-dice-builder-field">
+                            <span class="cpb-dice-builder-label">Modifier</span>
+                            <button type="button" class="cpb-dice-step" data-dice-field="modifier" data-dice-delta="-1" data-tooltip="Decrease the modifier" aria-label="Decrease the modifier"><i class="fas fa-minus"></i></button>
+                            <input type="number" class="cpb-dice-input" name="diceModifier" value="0" min="-999" max="999" step="1" data-tooltip="A flat bonus or penalty added to the total">
+                            <button type="button" class="cpb-dice-step" data-dice-field="modifier" data-dice-delta="1" data-tooltip="Increase the modifier" aria-label="Increase the modifier"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div class="cpb-dice-formula" data-tooltip="The formula this request will roll">
+                            <i class="fas fa-dice-d20"></i>
+                            <span class="cpb-dice-formula-value">Select a die</span>
+                        </div>
+                        <button type="button" class="cpb-dice-reset" data-tooltip="Reset to one die with no modifier" aria-label="Reset the dice builder"><i class="fas fa-rotate-left"></i></button>
+                    </div>
                     <div class="cpb-dice-grid">
                         <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
                             <i class="fas fa-coin" data-tooltip="d2"></i> 

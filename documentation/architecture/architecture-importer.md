@@ -173,6 +173,36 @@ source by parties who had not seen each other's. The value is in the independenc
 the technique is worth reaching for wherever a second derivation is cheap, and worth nothing where it is
 really one derivation checked twice.
 
+## Proving a check can fail, and the two ways that goes wrong
+
+A check that has only ever passed is indistinguishable from one that cannot fail, so every check here was
+proved by injecting the fault it claims to catch. Two failure modes showed up in doing that, and both
+produced a green result that meant nothing.
+
+**An assertion can exercise the broken path and ask the wrong question.** The test for the model walk had a
+nested `modifiers` field and asserted its CHILDREN carried no document path -- which was true, and which
+said nothing about the parent, whose missing path was the bug. It ran the defective branch every time and
+passed. A passing assertion that reads as coverage is worse than an absent one, because it forecloses the
+question.
+
+**An injected fault can be unexpressible in the data.** Injecting the wrong container transform produced no
+errors -- not because the check was broken, but because every category in that vocabulary is a single word,
+where the two transforms produce identical output. A true negative wearing a failed test's clothes. Injecting
+a transform that genuinely diverges produced fifteen errors, one per container.
+
+The two are the same error seen from opposite ends: in the first the test was too narrow to see a real fault,
+in the second the fault was too small for the data to show. Both are answered the same way -- when an
+injected fault produces nothing, establish that the fault is expressible before concluding the check is
+broken, or that the check works before concluding the fault was caught.
+
+### A checker cannot see an exemption it never exercises
+
+The registry exempted any top-level field with nested shape from needing a document path, so such a field
+registered cleanly and was then dropped from every document in silence. Two independent checkers missed it
+for the same reason: both were reading declarations that already carried the field. The hole was invisible
+from either side until two derivations of one schema disagreed about that specific field -- which is the
+argument for the section above, in its strongest form.
+
 ## Read the other tree; do not predict it
 
 The counterpart to the section above, and the cheaper half.

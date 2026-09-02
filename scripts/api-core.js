@@ -1118,6 +1118,38 @@ export async function playSound(sound = 'sound', volume = 0.7, loop = false, bro
 }
 
 /**
+ * The Font Awesome icon for a roll formula, chosen from the first die in it.
+ *
+ * One mapping, because the same die has to look the same everywhere it appears: the
+ * chat card's header, the Request a Roll dice builder's formula readout, and anything
+ * a sibling renders from a formula. A second copy is a second place for a d100 to
+ * quietly become a d20.
+ *
+ * Tolerant of the spellings that actually occur -- "d20", "1d20", "2d6+10" -- and
+ * falls back to the d20 for anything it cannot read, since a missing icon is worse
+ * than a generic one.
+ *
+ * @param {string} rollFormula - e.g. "1d20", "2d6+10", "d100"
+ * @returns {string} Font Awesome icon classes
+ */
+export function getDiceIcon(rollFormula) {
+    const diceMatch = String(rollFormula ?? '').match(/(\d*)d(\d+)/i);
+    if (!diceMatch) return 'fas fa-dice-d20';
+
+    switch (parseInt(diceMatch[2], 10)) {
+        case 2: return 'fas fa-coin';
+        case 4: return 'fas fa-dice-d4';
+        case 6: return 'fas fa-dice-d6';
+        case 8: return 'fas fa-dice-d8';
+        case 10: return 'fas fa-dice-d10';
+        case 12: return 'fas fa-dice-d12';
+        case 20: return 'fas fa-dice-d20';
+        case 100: return 'fas fa-hundred-points';
+        default: return 'fas fa-dice-d20';
+    }
+}
+
+/**
  * Roll dice on screen, without posting anything to chat.
  *
  * FOUNDRY HAS NO 3D DICE OF ITS OWN. Dice So Nice supplies them, and it normally

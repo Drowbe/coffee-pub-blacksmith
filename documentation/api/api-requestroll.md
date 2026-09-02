@@ -72,8 +72,8 @@ Opens the Request a Roll (Skill Check) dialog. Optionally pass an options object
 | `options` | `Object` | Optional. All properties are optional. |
 | `options.silent` | `boolean` | If `true`, the dialog is not opened; the roll request is created immediately and posted to chat. Requires `initialValue` or `initialSkill`. Actors come from `initialFilter` ('party' \| 'selected') or from `options.actors`. Returns a Promise resolving to `{ message, messageId }` (module API returns that Promise; drop-in API resolves with it). **If no actors are found** (e.g. no tokens on the scene or none matching the filter), the API falls back to opening the dialog instead of throwing, and the Promise resolves with `{ message: null, messageId: null, fallbackDialog }` so callers can detect the fallback. |
 | `options.title` | `string` | Override the dialog window title (e.g. `"Spot the trap"`). |
-| `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, or `'save'`. |
-| `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system's CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`. |
+| `options.initialType` | `string` | Pre-select the roll type: `'skill'`, `'ability'`, `'save'`, or `'dice'`. |
+| `options.initialValue` | `string` | Id or friendly name for that type. You can pass the system's CONFIG id (e.g. `'prc'` for Perception in D&D 5e) or a friendly/localized name (e.g. `'perception'`); the dialog resolves it automatically. Skills: `'perception'`, `'stealth'`, `'insight'`, etc.; abilities: `'str'`, `'dex'`, `'con'`, `'int'`, `'wis'`, `'cha'`; saves: same as abilities plus `'death'`; dice: a formula such as `'2d6+10'`. |
 | `options.initialSkill` | `string` | **Legacy.** Same as `initialType: 'skill'` with `initialValue` set to this (e.g. `'perception'`). |
 | `options.dc` | `number` or `string` | Default DC value shown in the dialog's DC field. |
 | `options.initialFilter` | `string` | Which actor list is active: `'selected'` (only selected tokens) or `'party'` (party filter). When `'party'`, all visible party actors are also pre-selected as challengers. |
@@ -293,6 +293,18 @@ Use ability ids: `str`, `dex`, `con`, `int`, `wis`, `cha`.
 ### Saves (`initialType: 'save'`)
 
 Use the same ability ids plus `death` for death saves: `str`, `dex`, `con`, `int`, `wis`, `cha`, `death`.
+
+### Dice (`initialType: 'dice'`)
+
+Pass a formula as `initialValue`. A dice roll is exactly its formula -- no ability modifier and no proficiency bonus are added:
+
+- One die: `d6`, `1d20`, `d100`
+- Several dice: `2d6`, `4d8`
+- With a flat modifier: `2d6+10`, `1d20-2`
+
+Anything Foundry's `Roll` can evaluate is rolled as given. The window's dice builder covers **one die type with one flat modifier**, so a value of that shape opens with the die highlighted and the builder's two steppers filled in; a more complex formula (`2d6+1d4`) is still rolled correctly but the builder cannot show it, and nudging a stepper would replace it.
+
+Advantage and disadvantage apply only to a plain `1d20`.
 
 ## Usage Examples
 
