@@ -409,6 +409,40 @@ consumers who must come through the API.
 live vocabulary, a payload outside it fails naming the field, and `values: 42` still throws at
 registration.
 
+### The authoring SURFACE does not read the registry (raised 2026-09-02) -- Phase 2
+
+**This is a consumer-zero violation, not a missing feature.** Blacksmith's three journal profiles -- `area`,
+`location`, `encounter` -- are ordinary declarations, registered exactly as a satellite's is. They get
+Realm/Region/Site, a folder field, image pickers and the Encounter/Conversations/Rewards dropdowns from
+KIND-level getters (`registry-json-import-journals.js:1438-1444`), and `registry-json-import.js:390` reads
+`promptFields` from the kind and from nowhere else. A registering module gets a guidance textarea.
+
+So Blacksmith enhances its own declared profiles through a side channel no declaration can reach, which is
+precisely what "Blacksmith is consumer zero" forbids. Called out by the author, and Bibliosoph supplied the cases: all three of
+their content types need the same thing, which is the test of whether it is general rather than theirs.
+
+**It is the second instance of one pattern**, and naming the pattern matters more than either instance:
+each subsystem honoured the declaration while the AUTHORING SURFACE stayed wired to Blacksmith's own
+hardcoded structures. Construction, validation, routing and (as of today) the template dropdown all read the
+registry. The prompt UI does not. A satellite can describe its data perfectly and cannot ask the author a
+single question about it.
+
+The shape that would fix it is the one `templateOptions` just took: declaration-level `promptFields`, unioned
+with the kind's. The natural form costs little because it reuses what a declaration already has -- a field
+that declares `values` can request that the author be asked for it once, with the answer constraining the
+whole generation rather than being authored per record. Bibliosoph's three cases are `category` (it decides
+the container, so without it a generation scatters across journals and the GM re-files by hand), `severity`
+(every numeric constraint they publish is severity-scoped, so fixing it up front collapses conditional
+guidance into fixed numbers), and a count.
+
+**Deferred deliberately.** The importer is frozen until the injury import is proven in a running world;
+adding an authoring surface on top of an import path that has never landed a page would be building on
+static verification. Recorded now so the kind-level getters are read as pre-declaration residue rather than
+as the intended design, which is what they start to look like the longer they are the only path.
+
+**Verify:** a satellite registering a declaration with a `values` field can have the author asked for it,
+and the answer reaches the generated prompt -- with no edit to any kind.
+
 ### Two constraints a declaration cannot express (raised 2026-09-02)
 
 Both found against Bibliosoph's injury page model, so both have a real consumer rather than being speculative.

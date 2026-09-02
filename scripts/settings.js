@@ -4594,6 +4594,34 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
+	// -- Quick Rolls: the table's own roll library --
+	//
+	// WORLD-scoped and config:false. It is content rather than a preference -- the
+	// rolls a table has built, edited through the Roll Builder rather than through
+	// the settings sheet, and shared so a second GM does not start from an empty
+	// tab. Favourites stay `user`, because a favourite is a personal shortcut to
+	// one of these.
+	game.settings.register(MODULE.ID, 'requestRollQuickRolls', {
+		name: 'Quick Rolls',
+		hint: "The Request a Roll window's quick roll library. Edited in the window, not here.",
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	// Records that the built-in rolls have been planted, so an empty library that a
+	// GM emptied on purpose is not refilled on the next launch. Without this there
+	// is no way to tell "never seeded" from "cleared".
+	game.settings.register(MODULE.ID, 'requestRollQuickRollsSeeded', {
+		name: 'Quick Rolls Seeded',
+		hint: 'Internal. Whether the built-in quick rolls have been added to this world.',
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
 	// -- Request Roll Theme File --
 	game.settings.register(MODULE.ID, 'requestRollThemeJson', {
 		name: MODULE.ID + '.requestRollThemeJson-Label',

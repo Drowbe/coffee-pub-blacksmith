@@ -11,6 +11,8 @@ import {
     BLACKSMITH_FULLSCREEN_ANIMATIONS
 } from './window-fullscreen-base.js';
 import { skillCheckMessageData } from './cards-skill-check.js';
+import { QuickRollsManager } from './manager-quick-rolls.js';
+import { RollBuilderWindow } from './window-rollbuilder.js';
 
 /**
  * The Cinematic mode surface for Request a Roll.
@@ -415,6 +417,450 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
      * @param {HTMLElement} htmlElement - Dialog root
      * @param {HTMLElement} item - Row with data-type="quick" and related data-* (canonical row or favorite clone)
      */
+    /**
+     * Wire selection onto check items, once each.
+     *
+     * Extracted from `_attachLocalListeners` and given a SCOPE, because the QUICK
+     * tab's rows are now rendered from data and redrawn whenever the library
+     * changes -- new elements with no listeners on them. A redraw that did not
+     * re-wire would leave rows that look exactly right and do nothing when clicked.
+     *
+     * `cpbSelectionBound` is what makes it safe to call twice: the whole-dialog pass
+     * at render and the per-list pass after a redraw overlap on every row that
+     * survived, and a second listener on those would fire the handler twice --
+     * selecting and then immediately deselecting.
+     */
+    // ===== QUICK ROLLS ================================================
+    //
+    // The QUICK tab's rolls were twenty-four rows of hand-written markup. They are
+    // now rendered from `QuickRollsManager`, which is what makes them addable,
+    // editable and removable -- but the ROWS THEY PRODUCE ARE THE SAME SHAPE the
+    // markup had, `data-*` for `data-*`.
+    //
+    // That is deliberate and load-bearing. `_handleQuickRollItem` reads the dataset,
+    // `_computeFavoriteId` hashes a fixed set of those attributes, the search filters
+    // on `.cpb-check-item`, and the favourites machinery round-trips rows through
+    // `_favoriteRecordFromItem`. Emitting a different shape would have meant changing
+    // all four at once, and a favourite saved before the change would no longer match
+    // the row it came from.
+
+    /** Every icon in the library, plus the row controls, drawn into the QUICK tab. */
+    _renderQuickRollsSection(htmlElement) {
+        const host = htmlElement?.querySelector?.('.cpb-quick-rolls-list');
+        if (!host) return;
+        host.innerHTML = '';
+
+        const groups = QuickRollsManager.byCategory();
+        const empty = htmlElement.querySelector('.cpb-quick-rolls-empty');
+        if (empty) empty.style.display = groups.length ? 'none' : '';
+
+        for (const { category, rolls } of groups) {
+            const heading = document.createElement('div');
+            heading.className = 'cpb-section-subheader';
+            heading.textContent = category;
+            host.appendChild(heading);
+            for (const roll of rolls) host.appendChild(this._quickRollRow(roll));
+        }
+    }
+
+    /**
+     * One quick roll as a check item.
+     *
+     * `data-value` carries a CONFIG id (`prc`). The old markup carried friendly names
+     * (`perception`) and leaned on a ten-entry lookup in `_handleQuickRollItem` to
+     * translate, which silently did nothing for any skill outside those ten -- so a
+     * quick roll for Arcana could never have worked. The lookup still runs and is now
+     * a no-op, which is the correct behaviour for an id it does not know.
+     */
+    _quickRollRow(roll) {
+        const row = document.createElement('div');
+        row.className = 'cpb-check-item cpb-quick-roll-row';
+        row.dataset.type = 'quick';
+        row.dataset.quickId = roll.id;
+        row.dataset.value = roll.challenger.value;
+        row.dataset.challengerType = roll.challenger.type;
+        row.dataset.rollTitle = roll.rollTitle;
+        row.dataset.tooltip = roll.description || roll.label;
+        row.dataset.cinematic = String(!!roll.isCinematic);
+
+        if (roll.mode === 'contested') {
+            row.dataset.rollType = 'contested';
+            row.dataset.defenderSkill = roll.defender?.value ?? '';
+            row.dataset.defenderType = roll.defender?.type ?? 'skill';
+        } else {
+            row.dataset.rollType = roll.targets === 'party' ? 'party' : 'individual';
+            row.dataset.group = String(roll.success === 'group');
+        }
+        // Only set when there IS one: `_handleQuickRollItem` treats the attribute's
+        // presence as "override the DC box", so an empty string would force a blank
+        // DC onto a roll that meant to inherit whatever the window had.
+        if (roll.dc) row.dataset.dc = roll.dc;
+
+        const icon = document.createElement('i');
+        icon.className = roll.icon;
+        icon.dataset.tooltip = roll.rollTitle;
+
+        const label = document.createElement('span');
+        label.className = 'cpb-roll-label';
+        label.textContent = roll.label;
+
+        const description = document.createElement('span');
+        description.className = 'cpb-roll-description';
+        description.textContent = roll.description;
+
+        const trailing = document.createElement('div');
+        trailing.className = 'cpb-check-item-trailing';
+
+        // Edit and delete sit BEFORE the heart, so the two controls that change the
+        // library are together and the two that fire or keep it are together.
+        const edit = document.createElement('button');
+        edit.type = 'button';
+        edit.className = 'cpb-quick-roll-edit';
+        edit.dataset.tooltip = 'Edit this roll';
+        edit.setAttribute('aria-label', `Edit ${roll.label}`);
+        edit.innerHTML = '<i class="fas fa-pen"></i>';
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'cpb-quick-roll-delete';
+        remove.dataset.tooltip = 'Delete this roll';
+        remove.setAttribute('aria-label', `Delete ${roll.label}`);
+        remove.innerHTML = '<i class="fas fa-trash"></i>';
+
+        const favorite = document.createElement('button');
+        favorite.type = 'button';
+        favorite.className = 'cpb-favorite-toggle';
+        favorite.dataset.tooltip = 'Favorite';
+        favorite.setAttribute('aria-label', 'Add to favorites');
+        favorite.innerHTML = '<i class="far fa-heart"></i>';
+
+        const auto = document.createElement('div');
+        auto.className = 'cpb-roll-type-auto';
+        auto.innerHTML = `<i class="fas ${roll.isCinematic ? 'fa-film' : 'fa-play'}"></i>`;
+
+        trailing.append(edit, remove, favorite, auto);
+        row.append(icon, label, description, trailing);
+        return row;
+    }
+
+    /** Open the builder, and rebuild the tab when it saves. */
+    _openRollBuilder(htmlElement, record = null) {
+        new RollBuilderWindow({
+            record,
+            onSave: () => this._refreshQuickRolls(htmlElement)
+        }).render(true);
+    }
+
+    /**
+     * Redraw the library and re-wire everything that hangs off its rows.
+     *
+     * All four calls matter. The rows are new elements, so their selection listeners,
+     * their favourite ids and their heart states all have to be established again --
+     * a redraw that skipped any of them would leave rows that look right and do
+     * nothing, which is the failure this whole section is most likely to produce.
+     */
+    _refreshQuickRolls(htmlElement) {
+        const root = htmlElement ?? this._getElementForUpdate();
+        if (!root?.querySelector) return;
+        this._renderQuickRollsSection(root);
+        this._attachCheckItemListeners(root, root.querySelector('.cpb-quick-rolls-list'));
+        this._assignFavoriteIdsToCheckItems(root);
+        this._syncFavoriteHeartStates(root);
+    }
+
+    /**
+     * Import a library from a file the GM picks.
+     *
+     * A hidden `<input type="file">` created per click rather than one left in the
+     * template: the element keeps the last file it was given, so a reused input will
+     * not fire `change` when the same file is chosen twice -- which reads exactly like
+     * the import silently failing.
+     */
+    _importQuickRolls(htmlElement) {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json,application/json';
+        input.style.display = 'none';
+
+        input.addEventListener('change', async (ev) => {
+            const file = ev.target.files?.[0];
+            input.remove();
+            if (!file) return;
+
+            let rolls;
+            try {
+                rolls = QuickRollsManager.parseImport(await file.text());
+            } catch (error) {
+                ui.notifications.error(`Quick Rolls: ${error.message}`);
+                return;
+            }
+
+            // ASKED, not assumed. Merging into a library somebody built and replacing
+            // it are both reasonable things to want from the same file, and guessing
+            // wrong in the replace direction destroys work with no way back.
+            const mode = await foundry.applications.api.DialogV2.wait({
+                window: { title: 'Import Quick Rolls' },
+                content: `<p>Found <strong>${rolls.length}</strong> roll${rolls.length === 1 ? '' : 's'}.</p>
+                          <p>Merge them into this world's library, or replace it entirely?</p>`,
+                buttons: [
+                    { action: 'merge', label: 'Merge', icon: 'fas fa-code-merge', default: true },
+                    { action: 'replace', label: 'Replace All', icon: 'fas fa-triangle-exclamation' },
+                    { action: 'cancel', label: 'Cancel', icon: 'fas fa-times' }
+                ],
+                modal: true,
+                rejectClose: false
+            });
+            if (mode !== 'merge' && mode !== 'replace') return;
+
+            const result = await QuickRollsManager.importRolls(rolls, { replace: mode === 'replace' });
+            this._refreshQuickRolls(htmlElement);
+            ui.notifications.info(mode === 'replace'
+                ? `Quick Rolls: replaced the library with ${result.total} roll${result.total === 1 ? '' : 's'}.`
+                : `Quick Rolls: ${result.added} added, ${result.updated} updated.`);
+        });
+
+        document.body.appendChild(input);
+        input.click();
+    }
+
+    /** Wire Add, export, import, and the per-row edit and delete. */
+    _attachQuickRollListeners(htmlElement) {
+        htmlElement.querySelector('.cpb-quick-rolls-add')?.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            this._openRollBuilder(htmlElement, null);
+        });
+
+        htmlElement.querySelector('.cpb-quick-rolls-export')?.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            const count = QuickRollsManager.exportToFile();
+            ui.notifications.info(`Quick Rolls: exported ${count} roll${count === 1 ? '' : 's'}.`);
+        });
+
+        htmlElement.querySelector('.cpb-quick-rolls-import')?.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            this._importQuickRolls(htmlElement);
+        });
+
+        // Delegated, because the list is rebuilt whenever it changes and per-row
+        // listeners would have to be re-attached every time.
+        const list = htmlElement.querySelector('.cpb-quick-rolls-list');
+        if (!list) return;
+        list.addEventListener('click', async (ev) => {
+            const row = ev.target.closest('.cpb-quick-roll-row');
+            if (!row) return;
+            const id = row.dataset.quickId;
+
+            if (ev.target.closest('.cpb-quick-roll-edit')) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                this._openRollBuilder(htmlElement, QuickRollsManager.get(id));
+                return;
+            }
+            if (ev.target.closest('.cpb-quick-roll-delete')) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const roll = QuickRollsManager.get(id);
+                // Confirmed, because the row IS the fire button: a misjudged click on a
+                // 22px target next to it would otherwise delete a roll silently, and
+                // nothing on this screen can bring it back.
+                const ok = await foundry.applications.api.DialogV2.confirm({
+                    window: { title: 'Delete Roll' },
+                    content: `<p>Delete <strong>${foundry.utils.escapeHTML(roll?.label ?? 'this roll')}</strong>?</p>`,
+                    modal: true
+                });
+                if (!ok) return;
+                await QuickRollsManager.remove(id);
+                this._refreshQuickRolls(htmlElement);
+            }
+        }, true);
+    }
+
+    _attachCheckItemListeners(htmlElement, scope = htmlElement) {
+        if (!scope?.querySelectorAll) return;
+        scope.querySelectorAll('.cpb-check-item, .check-item').forEach((item) => {
+            if (item.classList.contains('cpb-favorite-row')) return;
+            if (item.dataset.cpbSelectionBound === '1') return;
+            item.dataset.cpbSelectionBound = '1';
+            const handleCheckItemSelection = (ev) => {
+                ev.preventDefault();
+                const type = item.dataset.type;
+
+                // This handler should not manage tool selections as they have a dedicated handler.
+                if (type === 'tool') return;
+                
+                const value = item.dataset.value;
+                const isRightClick = ev.type === 'contextmenu';
+
+                if (type === 'quick') {
+                    this._resetDiceBuild(htmlElement);
+                    this._handleQuickRollItem(htmlElement, item);
+                    return;
+                }
+
+                // A build left behind on the DICE tab would still be the selection --
+                // it sets both contested sides -- and would quietly win over the tile
+                // just clicked. Clearing it here is the counterpart to the builder
+                // clearing everything else when a die goes above zero.
+                this._resetDiceBuild(htmlElement);
+
+            // If this is a non-common tool, prevent selection and show notification
+            if (type === 'tool' && item.dataset.common === 'false') {
+                const toolName = item.querySelector('span')?.textContent || 'selected tool';
+                ui.notifications.warn(`Not all selected players have ${toolName}.`);
+                return;
+            }
+
+                // Check if we have both challengers and defenders (v13: native DOM)
+                        const challengers = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-1');
+                const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                const hasChallengers = challengers.length > 0;
+                const hasDefenders = defenders.length > 0;
+                const isContestedRoll = hasChallengers && hasDefenders;
+
+                if (isContestedRoll) {
+                    // In contested mode, maintain two selections (v13: native DOM)
+                    let wasDeselected = false;
+                    htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i').forEach((el) => {
+                        const indicator = el.closest('.cpb-roll-type-indicator');
+                        const checkItem = indicator.closest('.cpb-check-item');
+                        
+                        // If clicking the same item, deselect it
+                        if (checkItem === item) {
+                            if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                (!isRightClick && el.classList.contains('fa-swords'))) {
+                                indicator.innerHTML = '';
+                                checkItem.classList.remove('selected');
+                                // Remove styling classes
+                                checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
+                                wasDeselected = true;
+                                // Clear the appropriate roll type
+                                if (isRightClick) {
+                                    this.defenderRoll = { type: null, value: null };
+                                } else {
+                                    this.challengerRoll = { type: null, value: null };
+                                }
+                            }
+                        }
+                        // Remove other selections of the same type
+                        else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
+                                (!isRightClick && el.classList.contains('fa-swords'))) {
+                            indicator.innerHTML = '';
+                            checkItem.classList.remove('selected');
+                            // Remove styling classes
+                            checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
+                        }
+                    });
+
+                    // Break early if deselected
+                    if (wasDeselected) return;
+
+                    // Check if trying to select defender roll without defenders (v13: native DOM)
+                    if (isRightClick) {
+                        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                        const hasDefenders = defenders.length > 0;
+                        if (!hasDefenders) {
+                            ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
+                            return;
+                        }
+                    }
+                    
+                    // Add the roll type indicator and selected state
+                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    if (rollTypeIndicator) {
+                        if (isRightClick) {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                            this.defenderRoll = { type, value };
+                            // Add defender styling
+                            item.classList.add('cpb-skill-defender');
+                            item.classList.remove('cpb-skill-challenger');
+                        } else {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            this.challengerRoll = { type, value };
+                            // Add challenger styling
+                            item.classList.add('cpb-skill-challenger');
+                            item.classList.remove('cpb-skill-defender');
+                        }
+                    }
+                    item.classList.add('selected');
+                } else {
+                    // Check if we're deselecting the current selection
+                    const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
+                    
+                    if (hasCurrentSelection) {
+                        // Clear selection (v13: native DOM)
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
+                        this.selectedType = null;
+                        this.selectedValue = null;
+                    } else {
+                        // Check if trying to select defender roll without defenders (v13: native DOM)
+                        if (isRightClick) {
+                            const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
+                            const hasDefenders = defenders.length > 0;
+                            if (!hasDefenders) {
+                                ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
+                                return;
+                            }
+                        }
+                        
+                        // New selection (v13: native DOM)
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
+                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
+                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
+                    
+                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
+                    if (rollTypeIndicator) {
+                        if (isRightClick) {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                            item.classList.add('cpb-skill-defender');
+                        } else {
+                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                            item.classList.add('cpb-skill-challenger');
+                        }
+                    }
+                    item.classList.add('selected');
+                    this.selectedType = type;
+                    this.selectedValue = value;
+
+                    // Extract roll title for skill/ability/save rolls
+                    const rollTitle = item.dataset.rollTitle || null;
+                    if (rollTitle) {
+                        this.selectedRollTitle = rollTitle;
+                    }
+                }
+            }
+
+            // If it's a skill, update the description
+            if (type === 'skill') {
+                const systemSkillData = CONFIG.DND5E.skills[value];
+                const customSkillData = this.getData().skills.find(s => s.id === value);
+                
+                if (systemSkillData && customSkillData) {
+                    const ability = CONFIG.DND5E.abilities[systemSkillData.ability]?.label || '';
+                    const abilityName = game.i18n.localize(ability);
+                    const skillName = game.i18n.localize(systemSkillData.label);
+                    const skillDesc = game.i18n.localize(systemSkillData.reference);
+                    
+                    const title = `${skillName} (${abilityName})`;
+                    const uuid = `${skillDesc}`;
+                    
+                    // Store the skill info and log it
+                    this.skillInfo = {
+                        description: customSkillData.description,
+                        link: `@UUID[${uuid}]{${title}}`
+                    };
+                    postConsoleAndNotification(MODULE.NAME, "Skill Info set:", this.skillInfo, true, false);
+                }
+            }
+            };
+            
+            item.addEventListener('click', handleCheckItemSelection);
+            item.addEventListener('contextmenu', handleCheckItemSelection);
+        });
+    }
+
     _handleQuickRollItem(htmlElement, item) {
         const rollType = item.dataset.rollType || null;
         const value = item.dataset.value;
@@ -422,6 +868,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         const dcAttr = item.dataset.dc;
         const defenderSkillAttr = item.dataset.defenderSkill;
         const rollTitle = item.dataset.rollTitle || null;
+        // A quick roll fires without the window's Cinematic switch ever being reached,
+        // so the switch cannot be what decides: the roll carries its own answer, and
+        // `null` means "whatever the window says", which is what a favourite executed
+        // through this path used to get by accident.
+        const isCinematic = item.dataset.cinematic === 'true' ? true : null;
         let isGroupRoll = null;
         if (groupAttr !== undefined) isGroupRoll = groupAttr === 'true';
         let dcOverride = dcAttr !== undefined ? dcAttr : null;
@@ -464,29 +915,31 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 'persuasion': 'per',
                 'intimidation': 'itm'
             };
+            const challengerType = item.dataset.challengerType || 'skill';
             const challengerSkillValue = quickRollMap[value] || value;
             if (challengerSkillValue) {
-                const challengerSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${challengerSkillValue}"]`);
+                const challengerSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="${challengerType}"][data-value="${challengerSkillValue}"]`);
                 if (challengerSkillItem) {
                     challengerSkillItem.classList.add('selected', 'cpb-skill-challenger');
                     const indicator = challengerSkillItem.querySelector('.cpb-roll-type-indicator');
                     if (indicator) {
                         indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                     }
-                    this.challengerRoll = { type: 'skill', value: challengerSkillValue };
+                    this.challengerRoll = { type: challengerType, value: challengerSkillValue };
                 }
             }
 
             if (defenderSkillAttr) {
+                const defenderType = item.dataset.defenderType || 'skill';
                 const defenderSkillValue = quickRollMap[defenderSkillAttr] || defenderSkillAttr;
-                const defenderSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${defenderSkillValue}"]`);
+                const defenderSkillItem = htmlElement.querySelector(`.cpb-check-item[data-type="${defenderType}"][data-value="${defenderSkillValue}"]`);
                 if (defenderSkillItem) {
                     defenderSkillItem.classList.add('selected', 'cpb-skill-defender');
                     const indicator = defenderSkillItem.querySelector('.cpb-roll-type-indicator');
                     if (indicator) {
                         indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
                     }
-                    this.defenderRoll = { type: 'skill', value: defenderSkillValue };
+                    this.defenderRoll = { type: defenderType, value: defenderSkillValue };
                 }
             }
 
@@ -495,6 +948,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 isGroupRoll: false,
                 dcOverride: null,
                 isContested: true,
+                isCinematic,
                 rollType: rollType,
                 rollTitle: rollTitle
             };
@@ -510,16 +964,17 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             'nature': 'nat',
             'stealth': 'ste'
         };
+        const challengerType = item.dataset.challengerType || 'skill';
         const skillValue = quickRollMap[value] || value;
         if (skillValue) {
-            const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="skill"][data-value="${skillValue}"]`);
+            const skillItem = htmlElement.querySelector(`.cpb-check-item[data-type="${challengerType}"][data-value="${skillValue}"]`);
             if (skillItem) {
                 skillItem.classList.add('selected', 'cpb-skill-challenger');
                 const indicator = skillItem.querySelector('.cpb-roll-type-indicator');
                 if (indicator) {
                     indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
                 }
-                this.selectedType = 'skill';
+                this.selectedType = challengerType;
                 this.selectedValue = skillValue;
             }
         }
@@ -528,6 +983,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this._quickRollOverrides = {
             isGroupRoll,
             dcOverride,
+            isCinematic,
             rollType: rollType,
             rollTitle: rollTitle
         };
@@ -1086,6 +1542,18 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             this._updateSkillKitState(htmlElement);
         }
 
+        // BEFORE the favourite listeners and before the selection pass below: those
+        // both walk the rows, and the quick rolls do not exist in the DOM until this
+        // has drawn them.
+        //
+        // `_refreshQuickRolls` rather than a bare render, because the favourite ids
+        // and heart states are assigned inside `_updateToolList`, which has already
+        // run by this point -- so a plain render would leave every quick row without
+        // an id, and its heart unable to light or to remove the favourite it made.
+        // Add and the delegated row listeners are bound once and survive every redraw.
+        this._attachQuickRollListeners(htmlElement);
+        this._refreshQuickRolls(htmlElement);
+
         this._attachRequestRollFavoriteListeners(htmlElement);
         this._attachDiceBuilderListeners(htmlElement);
         
@@ -1323,187 +1791,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             });
         }
 
-        // Handle check item selection (v13: native DOM)
-        htmlElement.querySelectorAll('.cpb-check-item, .check-item').forEach((item) => {
-            if (item.classList.contains('cpb-favorite-row')) return;
-            const handleCheckItemSelection = (ev) => {
-                ev.preventDefault();
-                const type = item.dataset.type;
-
-                // This handler should not manage tool selections as they have a dedicated handler.
-                if (type === 'tool') return;
-                
-                const value = item.dataset.value;
-                const isRightClick = ev.type === 'contextmenu';
-
-                if (type === 'quick') {
-                    this._resetDiceBuild(htmlElement);
-                    this._handleQuickRollItem(htmlElement, item);
-                    return;
-                }
-
-                // A build left behind on the DICE tab would still be the selection --
-                // it sets both contested sides -- and would quietly win over the tile
-                // just clicked. Clearing it here is the counterpart to the builder
-                // clearing everything else when a die goes above zero.
-                this._resetDiceBuild(htmlElement);
-
-            // If this is a non-common tool, prevent selection and show notification
-            if (type === 'tool' && item.dataset.common === 'false') {
-                const toolName = item.querySelector('span')?.textContent || 'selected tool';
-                ui.notifications.warn(`Not all selected players have ${toolName}.`);
-                return;
-            }
-
-                // Check if we have both challengers and defenders (v13: native DOM)
-                        const challengers = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-1');
-                const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
-                const hasChallengers = challengers.length > 0;
-                const hasDefenders = defenders.length > 0;
-                const isContestedRoll = hasChallengers && hasDefenders;
-
-                if (isContestedRoll) {
-                    // In contested mode, maintain two selections (v13: native DOM)
-                    let wasDeselected = false;
-                    htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator i').forEach((el) => {
-                        const indicator = el.closest('.cpb-roll-type-indicator');
-                        const checkItem = indicator.closest('.cpb-check-item');
-                        
-                        // If clicking the same item, deselect it
-                        if (checkItem === item) {
-                            if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                (!isRightClick && el.classList.contains('fa-swords'))) {
-                                indicator.innerHTML = '';
-                                checkItem.classList.remove('selected');
-                                // Remove styling classes
-                                checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
-                                wasDeselected = true;
-                                // Clear the appropriate roll type
-                                if (isRightClick) {
-                                    this.defenderRoll = { type: null, value: null };
-                                } else {
-                                    this.challengerRoll = { type: null, value: null };
-                                }
-                            }
-                        }
-                        // Remove other selections of the same type
-                        else if ((isRightClick && el.classList.contains('fa-shield-halved')) ||
-                                (!isRightClick && el.classList.contains('fa-swords'))) {
-                            indicator.innerHTML = '';
-                            checkItem.classList.remove('selected');
-                            // Remove styling classes
-                            checkItem.classList.remove('cpb-skill-challenger', 'cpb-skill-defender');
-                        }
-                    });
-
-                    // Break early if deselected
-                    if (wasDeselected) return;
-
-                    // Check if trying to select defender roll without defenders (v13: native DOM)
-                    if (isRightClick) {
-                        const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
-                        const hasDefenders = defenders.length > 0;
-                        if (!hasDefenders) {
-                            ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
-                            return;
-                        }
-                    }
-                    
-                    // Add the roll type indicator and selected state
-                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
-                    if (rollTypeIndicator) {
-                        if (isRightClick) {
-                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                            this.defenderRoll = { type, value };
-                            // Add defender styling
-                            item.classList.add('cpb-skill-defender');
-                            item.classList.remove('cpb-skill-challenger');
-                        } else {
-                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            this.challengerRoll = { type, value };
-                            // Add challenger styling
-                            item.classList.add('cpb-skill-challenger');
-                            item.classList.remove('cpb-skill-defender');
-                        }
-                    }
-                    item.classList.add('selected');
-                } else {
-                    // Check if we're deselecting the current selection
-                    const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
-                    const hasCurrentSelection = currentIndicator && currentIndicator.innerHTML !== '';
-                    
-                    if (hasCurrentSelection) {
-                        // Clear selection (v13: native DOM)
-                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
-                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
-                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
-                        this.selectedType = null;
-                        this.selectedValue = null;
-                    } else {
-                        // Check if trying to select defender roll without defenders (v13: native DOM)
-                        if (isRightClick) {
-                            const defenders = htmlElement.querySelectorAll('.cpb-actor-item.cpb-group-2');
-                            const hasDefenders = defenders.length > 0;
-                            if (!hasDefenders) {
-                                ui.notifications.warn("You must select at least one defender in the contestants column before selecting a defender roll.");
-                                return;
-                            }
-                        }
-                        
-                        // New selection (v13: native DOM)
-                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('selected'));
-                        htmlElement.querySelectorAll('.cpb-check-item .cpb-roll-type-indicator').forEach(ind => ind.innerHTML = '');
-                        htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
-                    
-                    const rollTypeIndicator = item.querySelector('.cpb-roll-type-indicator');
-                    if (rollTypeIndicator) {
-                        if (isRightClick) {
-                            rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                            item.classList.add('cpb-skill-defender');
-                        } else {
-                            rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            item.classList.add('cpb-skill-challenger');
-                        }
-                    }
-                    item.classList.add('selected');
-                    this.selectedType = type;
-                    this.selectedValue = value;
-
-                    // Extract roll title for skill/ability/save rolls
-                    const rollTitle = item.dataset.rollTitle || null;
-                    if (rollTitle) {
-                        this.selectedRollTitle = rollTitle;
-                    }
-                }
-            }
-
-            // If it's a skill, update the description
-            if (type === 'skill') {
-                const systemSkillData = CONFIG.DND5E.skills[value];
-                const customSkillData = this.getData().skills.find(s => s.id === value);
-                
-                if (systemSkillData && customSkillData) {
-                    const ability = CONFIG.DND5E.abilities[systemSkillData.ability]?.label || '';
-                    const abilityName = game.i18n.localize(ability);
-                    const skillName = game.i18n.localize(systemSkillData.label);
-                    const skillDesc = game.i18n.localize(systemSkillData.reference);
-                    
-                    const title = `${skillName} (${abilityName})`;
-                    const uuid = `${skillDesc}`;
-                    
-                    // Store the skill info and log it
-                    this.skillInfo = {
-                        description: customSkillData.description,
-                        link: `@UUID[${uuid}]{${title}}`
-                    };
-                    postConsoleAndNotification(MODULE.NAME, "Skill Info set:", this.skillInfo, true, false);
-                }
-            }
-            };
-            
-            item.addEventListener('click', handleCheckItemSelection);
-            item.addEventListener('contextmenu', handleCheckItemSelection);
-        });
+        // Selection on every check item currently in the DOM. The QUICK tab's rows
+        // are redrawn from the library later and re-wired by `_refreshQuickRolls`.
+        this._attachCheckItemListeners(htmlElement);
 
         // Handle the roll button (v13: native DOM)
         const rollButton = htmlElement.querySelector('button[data-button="roll"]');
@@ -1805,7 +2095,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 // dice, and the formula alone reads as a machine talking.
                 rollFormula: challengerRollType === 'dice' ? (this.selectedDiceDisplay || challengerRollValue) : null,
                 showRollExplanation: htmlElement.querySelector('input[name="showRollExplanation"]')?.checked || false,
-                isCinematic: htmlElement.querySelector('input[name="isCinematic"]')?.checked || false,
+                // A quick roll marked cinematic says so regardless of the switch, because
+                // it fires without the switch ever being seen. `null` from the override
+                // means the roll had no opinion and the window's setting stands.
+                isCinematic: (this._isQuickPartyRoll && this._quickRollOverrides?.isCinematic != null)
+                    ? !!this._quickRollOverrides.isCinematic
+                    : (htmlElement.querySelector('input[name="isCinematic"]')?.checked || false),
                 isGM: game.user.isGM
             };
             if (this.initialSituationalBonus != null) messageData.situationalBonus = this.initialSituationalBonus;
@@ -3730,6 +4025,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
 // Register menubar tool via API (same pattern as external modules)
 Hooks.once('ready', () => {
+    // Plant the built-in quick rolls on a world that has never had them. Fire and
+    // forget: a world with a library already, or a GM who cleared it, is left alone
+    // by the manager, and a failure here must not take the menubar tool with it --
+    // the window still opens on an empty QUICK tab with an Add button in it.
+    QuickRollsManager.seedIfNeeded().catch((error) => {
+        postConsoleAndNotification(MODULE.NAME, 'Quick Rolls: seeding failed', error, false, false);
+    });
+
     const api = game.modules.get(MODULE.ID)?.api;
     if (!api?.registerMenubarTool) return;
     api.registerMenubarTool('skillcheck', {

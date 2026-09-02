@@ -1,0 +1,189 @@
+/* ==================================================================
+   ROLL BUILDER (window-rollbuilder.css)
+   ==================================================================
+
+   The window that makes one quick roll. It reads top to bottom as the question
+   it asks -- what kind of roll, rolled by whom, against what, shown how, filed
+   where, called what -- and answers it in the preview at the bottom, drawn in
+   the same shape the QUICK tab will show.
+
+   It borrows the Request a Roll window's palette rather than defining its own:
+   the two are the same feature seen from two sides, and a builder that looked
+   like a different module would read as one. */
+
+.cpb-roll-builder {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    color: rgba(222, 211, 185, 0.95);
+}
+
+.cpb-builder-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 6px 10px 10px;
+}
+
+.cpb-builder-section {
+    margin-bottom: 10px;
+}
+
+/* A field is a label and its controls on one line. Stacked only where the
+   control is a grid that cannot share a line with anything. */
+.cpb-builder-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.cpb-builder-field-stacked {
+    flex-direction: column;
+    align-items: stretch;
+}
+.cpb-builder-field > label {
+    flex: 0 0 92px;
+    font-size: var(--font-size-11);
+    font-weight: 700;
+    text-transform: uppercase;
+    color: rgba(172, 159, 129, 0.9);
+}
+.cpb-builder-field-stacked > label {
+    flex: none;
+    margin-bottom: 4px;
+}
+.cpb-builder-field select,
+.cpb-builder-field input[type="text"],
+.cpb-builder-field input[type="number"] {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 26px;
+    padding: 0 6px;
+    font-size: var(--font-size-12);
+    color: rgba(222, 211, 185, 0.95);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(172, 159, 129, 0.35);
+    border-radius: 3px;
+}
+.cpb-builder-field input::placeholder {
+    color: rgba(172, 159, 129, 0.45);
+    font-style: italic;
+}
+
+/* A CHOICE IS A CARD, not a radio in a row.
+
+   Each option carries a hint saying what it does, because "Group" and
+   "Individual" are only obvious to somebody who already knows the answer. The
+   radio itself is hidden: the whole card is the target, which is both a bigger
+   click and a place to put the hint. */
+.cpb-builder-choices {
+    display: flex;
+    gap: 6px;
+}
+.cpb-builder-choice {
+    flex: 1 1 0;
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    grid-template-rows: auto auto;
+    gap: 2px 8px;
+    align-items: center;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.9);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.cpb-builder-choice:hover {
+    background: rgba(231, 91, 1, 0.35);
+}
+.cpb-builder-choice input {
+    display: none;
+}
+.cpb-builder-choice i {
+    grid-row: 1 / span 2;
+    font-size: var(--font-size-16);
+    text-align: center;
+    color: rgba(172, 159, 129, 0.9);
+}
+.cpb-builder-choice-label {
+    font-size: var(--font-size-12);
+    font-weight: 900;
+    text-transform: uppercase;
+}
+.cpb-builder-choice-hint {
+    font-size: var(--font-size-11);
+    color: rgba(128, 117, 96, 0.9);
+}
+/* Chosen wears the same green a selected contestant does. */
+.cpb-builder-choice:has(input:checked) {
+    background-color: rgba(40, 108, 24, 0.4);
+    border-color: rgba(0, 0, 0, 0.7);
+}
+.cpb-builder-choice:has(input:checked) i {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* THE ICON PALETTE.
+
+   A grid rather than a dropdown, because the thing being chosen is a picture:
+   reading "fa-person-walking-dashed-line-arrow-right" tells you nothing that
+   seeing it does not tell you faster. */
+.cpb-icon-palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+    gap: 3px;
+    padding: 5px;
+    margin-bottom: 5px;
+    max-height: 132px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(172, 159, 129, 0.25);
+    border-radius: 3px;
+}
+.cpb-icon-palette .cpb-icon-swatch {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(172, 159, 129, 0.85);
+    cursor: pointer;
+}
+.cpb-icon-palette .cpb-icon-swatch:hover {
+    background: rgba(231, 91, 1, 0.45);
+    color: rgba(222, 211, 185, 0.95);
+}
+.cpb-icon-palette .cpb-icon-swatch.cpb-icon-swatch-on {
+    background-color: rgba(40, 108, 24, 0.55);
+    border-color: rgba(172, 159, 129, 0.5);
+    color: rgba(255, 255, 255, 0.95);
+}
+.cpb-icon-palette .cpb-icon-swatch i {
+    font-size: var(--font-size-14);
+    pointer-events: none;
+}
+
+/* THE PREVIEW.
+
+   The same markup the QUICK tab renders, so what is checked here is the row
+   that will exist -- not an approximation of it. Not clickable: it is a
+   picture of a control, and one that responded to a click would invite one. */
+.cpb-builder-preview-row {
+    cursor: default;
+    pointer-events: none;
+}
+.cpb-builder-preview-row:hover {
+    background: rgba(0, 0, 0, 0.9);
+    box-shadow: none;
+}
+.cpb-builder-summary {
+    margin: 4px 2px 0;
+    font-size: var(--font-size-11);
+    font-style: italic;
+    color: rgba(128, 117, 96, 0.9);
+}

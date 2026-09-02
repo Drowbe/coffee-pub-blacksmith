@@ -337,9 +337,25 @@ function validateField(field, container, prefix, errors, warnings) {
 
     const raw = container[key];
     if (raw === undefined) return;
-    // null is only skipped when the field does not treat it as a value; a
-    // nullable field validates it like anything else.
-    if (raw === null && field.nullable !== true) return;
+    // NULL IS AN ABSENCE, never a value to be range-checked, and `nullable` is the
+    // field saying whether that absence is legal. The rule here used to be "a
+    // nullable field validates null like anything else", which is wrong in both
+    // directions and was wrong in both at once:
+    //
+    //   nullable: true + null   fell through to the bounds check, where `Number(null)`
+    //                           is 0 -- so the one field DECLARED to accept null was
+    //                           rejected for containing it. A consumer whose model
+    //                           says `nullable: true, initial: null, min: 1` could not
+    //                           import the value 144 of their shipped pages carry.
+    //   nullable absent + null  returned early with no error, so a field that does not
+    //                           permit null accepted it in silence.
+    if (raw === null) {
+        if (field.nullable !== true) {
+            errors.push(issue('VALUE_NOT_ALLOWED', label, `${label} may not be null.`,
+                { actual: null }));
+        }
+        return;
+    }
 
     if (field.type && !fieldAccepts(field, raw)) {
         errors.push(issue('TYPE_MISMATCH', label,
@@ -371,10 +387,18 @@ function validateField(field, container, prefix, errors, warnings) {
     // sentence and the validation come from the one place: a sidekick level and a
     // class level are both 1 to 20, and both were previously a thrown string deep
     // in construction with a hand-written guide line hoping to match it.
-    if (field.min !== undefined && Number(raw) < field.min) {
+    //
+    // COMPARED ONLY WHEN THE VALUE IS ACTUALLY A NUMBER. `Number()` coercion is what
+    // turns a type problem into a confident wrong answer: `Number(null)` is 0, which
+    // fails a `min: 1` as though it were too small, and `Number(undefined)` is NaN,
+    // where every comparison is false and an out-of-range value passes in silence.
+    // A non-number reaching here has already been reported by the type check above,
+    // so there is nothing to add and everything to get wrong by guessing.
+    const numeric = typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+    if (numeric !== null && field.min !== undefined && numeric < field.min) {
         errors.push(issue('VALUE_OUT_OF_RANGE', label,
             `${label} must be ${field.min} or more.`, { min: field.min, actual: raw }));
-    } else if (field.max !== undefined && Number(raw) > field.max) {
+    } else if (numeric !== null && field.max !== undefined && numeric > field.max) {
         errors.push(issue('VALUE_OUT_OF_RANGE', label,
             `${label} must be ${field.max} or less.`, { max: field.max, actual: raw }));
     }
