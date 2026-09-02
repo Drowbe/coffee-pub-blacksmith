@@ -402,104 +402,141 @@
                 </div>
 
                 <!-- Dice Roll Section -->
+                {{!-- The dice builder.
+
+                      Not a list of things to pick one of -- a formula being assembled.
+                      Every die has its own count, starting at zero, and an optional
+                      label saying what that die is FOR, so a request can read
+                      "2d10 Strength + 1d4 Bludgeoning + 10" rather than naming a
+                      quantity of anonymous dice. The readout at the bottom is the
+                      formula that will actually be requested, and the heart beside it
+                      favourites that whole formula rather than any one die.
+
+                      The rows are the state: the JS reads the counts and labels back
+                      out of these inputs in document order rather than keeping a
+                      parallel copy, so there is nothing here that can disagree with
+                      what is on screen. Clicking a row's name or icon is +1, which is
+                      what clicking a die used to do. --}}
                 <div class="cpb-check-section" data-filter="dice">
                     <div class="cpb-section-header">Dice Roll</div>
-                    {{!-- The dice builder. The tiles below pick the DIE; this row picks how
-                          many of them and what flat modifier rides along, and the readout on
-                          the right is the formula that will actually be requested. The tiles
-                          keep their own labels because the heart on each one favorites the
-                          die, not the built formula -- the readout is the authority on what
-                          gets rolled. --}}
                     <div class="cpb-dice-builder">
-                        <div class="cpb-dice-builder-field">
-                            <span class="cpb-dice-builder-label">Dice</span>
-                            <button type="button" class="cpb-dice-step" data-dice-field="quantity" data-dice-delta="-1" data-tooltip="One fewer die" aria-label="One fewer die"><i class="fas fa-minus"></i></button>
-                            <input type="number" class="cpb-dice-input" name="diceQuantity" value="1" min="1" max="99" step="1" data-tooltip="How many dice to roll">
-                            <button type="button" class="cpb-dice-step" data-dice-field="quantity" data-dice-delta="1" data-tooltip="One more die" aria-label="One more die"><i class="fas fa-plus"></i></button>
+                        <div class="cpb-dice-row" data-die="d2">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Simple coin flip. Click to add one.">
+                                <i class="fas fa-coin"></i>
+                                <span class="cpb-dice-row-name">D2</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d2" aria-label="One fewer d2"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d2" data-tooltip="How many d2 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d2" aria-label="One more d2"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d2" data-tooltip="What this die is for -- shown on the request. Optional.">
                         </div>
-                        <div class="cpb-dice-builder-field">
-                            <span class="cpb-dice-builder-label">Modifier</span>
-                            <button type="button" class="cpb-dice-step" data-dice-field="modifier" data-dice-delta="-1" data-tooltip="Decrease the modifier" aria-label="Decrease the modifier"><i class="fas fa-minus"></i></button>
-                            <input type="number" class="cpb-dice-input" name="diceModifier" value="0" min="-999" max="999" step="1" data-tooltip="A flat bonus or penalty added to the total">
-                            <button type="button" class="cpb-dice-step" data-dice-field="modifier" data-dice-delta="1" data-tooltip="Increase the modifier" aria-label="Increase the modifier"><i class="fas fa-plus"></i></button>
+                        <div class="cpb-dice-row" data-die="d4">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Four-sided die. Click to add one.">
+                                <i class="fas fa-dice-d4"></i>
+                                <span class="cpb-dice-row-name">D4</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d4" aria-label="One fewer d4"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d4" data-tooltip="How many d4 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d4" aria-label="One more d4"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d4" data-tooltip="What this die is for -- shown on the request. Optional.">
                         </div>
-                        <div class="cpb-dice-formula" data-tooltip="The formula this request will roll">
-                            <i class="fas fa-dice-d20"></i>
-                            <span class="cpb-dice-formula-value">Select a die</span>
+                        <div class="cpb-dice-row" data-die="d6">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Six-sided die. Click to add one.">
+                                <i class="fas fa-dice-d6"></i>
+                                <span class="cpb-dice-row-name">D6</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d6" aria-label="One fewer d6"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d6" data-tooltip="How many d6 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d6" aria-label="One more d6"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d6" data-tooltip="What this die is for -- shown on the request. Optional.">
                         </div>
-                        <button type="button" class="cpb-dice-reset" data-tooltip="Reset to one die with no modifier" aria-label="Reset the dice builder"><i class="fas fa-rotate-left"></i></button>
+                        <div class="cpb-dice-row" data-die="d8">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Eight-sided die. Click to add one.">
+                                <i class="fas fa-dice-d8"></i>
+                                <span class="cpb-dice-row-name">D8</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d8" aria-label="One fewer d8"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d8" data-tooltip="How many d8 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d8" aria-label="One more d8"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d8" data-tooltip="What this die is for -- shown on the request. Optional.">
+                        </div>
+                        <div class="cpb-dice-row" data-die="d10">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Ten-sided die. Click to add one.">
+                                <i class="fas fa-dice-d10"></i>
+                                <span class="cpb-dice-row-name">D10</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d10" aria-label="One fewer d10"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d10" data-tooltip="How many d10 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d10" aria-label="One more d10"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d10" data-tooltip="What this die is for -- shown on the request. Optional.">
+                        </div>
+                        <div class="cpb-dice-row" data-die="d12">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Twelve-sided die. Click to add one.">
+                                <i class="fas fa-dice-d12"></i>
+                                <span class="cpb-dice-row-name">D12</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d12" aria-label="One fewer d12"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d12" data-tooltip="How many d12 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d12" aria-label="One more d12"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d12" data-tooltip="What this die is for -- shown on the request. Optional.">
+                        </div>
+                        <div class="cpb-dice-row" data-die="d20">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Twenty-sided die. Click to add one.">
+                                <i class="fas fa-dice-d20"></i>
+                                <span class="cpb-dice-row-name">D20</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d20" aria-label="One fewer d20"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d20" data-tooltip="How many d20 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d20" aria-label="One more d20"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d20" data-tooltip="What this die is for -- shown on the request. Optional.">
+                        </div>
+                        <div class="cpb-dice-row" data-die="d100">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="Hundred-sided die. Click to add one.">
+                                <i class="fas fa-hundred-points"></i>
+                                <span class="cpb-dice-row-name">D100</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="One fewer d100" aria-label="One fewer d100"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="0" max="99" step="1" aria-label="Number of d100" data-tooltip="How many d100 to roll">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="One more d100" aria-label="One more d100"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the d100" data-tooltip="What this die is for -- shown on the request. Optional.">
+                        </div>
+                        {{!-- The flat modifier. Same row shape as a die deliberately --
+                              it is another term in the same sum -- but it goes negative,
+                              which no count does. --}}
+                        <div class="cpb-dice-row cpb-dice-row-modifier" data-die="modifier">
+                            <button type="button" class="cpb-dice-bump" data-tooltip="A flat bonus or penalty on the total. Click to add one.">
+                                <i class="fas fa-plus-minus"></i>
+                                <span class="cpb-dice-row-name">Modifier</span>
+                            </button>
+                            <div class="cpb-dice-stepper">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="-1" data-tooltip="Decrease the modifier" aria-label="Decrease the modifier"><i class="fas fa-minus"></i></button>
+                                <input type="number" class="cpb-dice-count" value="0" min="-999" max="999" step="1" aria-label="Flat modifier" data-tooltip="A flat bonus or penalty added to the total">
+                                <button type="button" class="cpb-dice-step" data-dice-delta="1" data-tooltip="Increase the modifier" aria-label="Increase the modifier"><i class="fas fa-plus"></i></button>
+                            </div>
+                            <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the modifier" data-tooltip="What this modifier is for -- shown on the request. Optional.">
+                        </div>
                     </div>
-                    <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d2" data-roll-title="1d2 Dice Roll">
-                            <i class="fas fa-coin" data-tooltip="d2"></i> 
-                            <span class="cpb-roll-label">1d2</span><span class="cpb-roll-description">Simple coin flip.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d4" data-roll-title="1d4 Dice Roll">
-                            <i class="fas fa-dice-d4" data-tooltip="d4"></i> 
-                            <span class="cpb-roll-label">1d4</span><span class="cpb-roll-description">Four-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d6" data-roll-title="1d6 Dice Roll">
-                            <i class="fas fa-dice-d6" data-tooltip="d6"></i> 
-                            <span class="cpb-roll-label">1d6</span><span class="cpb-roll-description">Six-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d8" data-roll-title="1d8 Dice Roll">
-                            <i class="fas fa-dice-d8" data-tooltip="d8"></i> 
-                            <span class="cpb-roll-label">1d8</span><span class="cpb-roll-description">Eight-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d10" data-roll-title="1d10 Dice Roll">
-                            <i class="fas fa-dice-d10" data-tooltip="d10"></i> 
-                            <span class="cpb-roll-label">1d10</span><span class="cpb-roll-description">Ten-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d12" data-roll-title="1d12 Dice Roll">
-                            <i class="fas fa-dice-d12" data-tooltip="d12"></i> 
-                            <span class="cpb-roll-label">1d12</span><span class="cpb-roll-description">Twelve-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="cpb-dice-grid">
-                        <div class="cpb-check-item" data-type="dice" data-value="d20" data-roll-title="1d20 Dice Roll">
-                            <i class="fas fa-dice-d20" data-tooltip="d20"></i> 
-                            <span class="cpb-roll-label">1d20</span><span class="cpb-roll-description">Twenty-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
-                        <div class="cpb-check-item" data-type="dice" data-value="d100" data-roll-title="1d100 Dice Roll">
-                            <i class="fas fa-hundred-points" data-tooltip="d100"></i> 
-                            <span class="cpb-roll-label">1d100</span><span class="cpb-roll-description">Hundred-sided die.</span>
-                            <div class="cpb-check-item-trailing">
-                            <button type="button" class="cpb-favorite-toggle" data-tooltip="Favorite" aria-label="Add to favorites"><i class="far fa-heart"></i></button>
-                            <div class="cpb-roll-type-indicator"></div>
-                        </div>
-                        </div>
+                    <div class="cpb-dice-summary">
+                        <i class="fas fa-dice-d20"></i>
+                        <span class="cpb-dice-formula" data-tooltip="The formula this request will roll">Add a die to build a roll</span>
+                        <button type="button" class="cpb-dice-favorite" data-tooltip="Favorite this formula" aria-label="Favorite this formula"><i class="far fa-heart"></i></button>
+                        <button type="button" class="cpb-dice-reset" data-tooltip="Clear every die, label, and modifier" aria-label="Clear the dice builder"><i class="fas fa-rotate-left"></i></button>
                     </div>
                 </div>
 

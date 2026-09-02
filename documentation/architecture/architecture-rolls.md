@@ -114,16 +114,31 @@ The GM is authoritative for group and contested *calculations* only. Individual 
 
 ## The dice builder (Request a Roll, DICE tab)
 
-The DICE tab's tiles are **die pickers, not formulas**. A tile carries only `data-value="d6"`; how many of them and what flat modifier rides along live on the dialog (`_diceQuantity`, `_diceModifier`), and the formula is assembled from the two by `_composeDiceFormula` — at the moment a tile is clicked, and again on every change to the builder.
+The DICE tab is not a list you pick one thing from. It is one row per die -- a count starting at zero and an optional label -- plus one flat modifier row, and the sum of the non-zero rows is the request.
 
-The split is load-bearing and easy to undo by accident. **Do not write the composed formula back into a tile's `data-value`.** Three things key off it and all of them would break: `_computeFavoriteId` (a favourite's stable id), `_findCanonicalFavoriteTargetByDataset` (matching a favourite row back to its tile), and the restore-on-render lookup in `_attachLocalListeners`. Because the tile keeps its die, a favourited `d6` replays as a plain `d6` — the heart favourites the die, not the built formula.
+**The rows are the state.** `_readDiceTerms` reads counts and labels back out of the inputs in document order; there is no parallel object mirroring them. A mirror would be a second thing to keep in step with the screen, and the failure when it drifts is silent: a request that rolls something other than what the summary said. Term order is therefore row order, which is why `2d10 + 1d4` passed in by an API caller comes back displayed as `1d4 + 2d10` — the sum is the same and the display order belongs to the builder.
 
-The composed value is stored on `this.selectedValue` for a single selection and on `challengerRoll.value` / `defenderRoll.value` for a contested one, alongside a `die` field holding the tile's own value so the formula can be rebuilt later. `_syncDiceBuilder` rebuilds all of them plus the readout; `_activeDie` decides which die the readout is showing, preferring the single selection and falling back to the contested pair.
+**Building is selecting.** There is no separate "which die is chosen" state, because a count above zero already says it. `_syncDiceBuilder` sets `selectedType`/`selectedValue`/`selectedRollTitle` **and both contested sides** when the build is non-empty, and clears all three when it empties. The corollary is load-bearing: choosing any other roll type must call `_resetDiceBuild`, which is why the check-item handler, the quick-roll handler, and the tool handler all do. A build sets *both* sides, so one left behind is still the defender's roll after a skill is clicked as challenger — a contested request rolling a formula that is no longer on screen.
 
-Nothing downstream knows any of this. `_executeBuiltInRoll`'s `dice` case hands the value straight to `new Roll`, which is why a composed `2d6+10` needed no change there. Two consequences worth knowing:
+`_composeDiceBuild` returns three strings from the same term list:
 
-- **Advantage on dice rolls is a string match.** `_executeBuiltInRoll` swaps in `2d20kh`/`2d20kl` only when the formula is exactly `1d20` or `d20`. One d20 with no modifier composes to `1d20`, so advantage still works; `2d20` or `1d20+3` does not get it, which is correct — there is no advantage on those.
-- **The dialog cannot import `manager-rolls.js`.** That module imports the dialog, so the edge only runs one way. `getDiceIcon` lives in `api-core.js` for exactly this reason, next to `showDiceAnimation`.
+| | | |
+|---|---|---|
+| `formula` | `2d10[Strength] + 1d4[Bludgeoning] + 10` | what gets rolled and what is stored |
+| `plainFormula` | `2d10 + 1d4 + 10` | the fallback, and what the icon is chosen from |
+| `title` | `2d10 Strength + 1d4 Bludgeoning + 10` | the request's title |
+
+The bracket convention is the one `RollWindow.parseModifierTerms` already uses for the roll window's modifier field, and it is also Foundry's own flavour syntax, so a label reaches the roll's tooltip. `Roll.validate` is asked before the labelled form is trusted — a label is user prose reaching a formula, and the cost of being wrong is a request nobody can roll — so a rejected label falls back to `plainFormula`. Brackets are stripped from label text because they are the delimiter: a `]` inside a label ends it early and the rest of the formula becomes garbage.
+
+The summary is built as DOM, not as an HTML string. The labels are the user's prose and `textContent` is the one way to put prose on a page that cannot also put markup there.
+
+Three couplings that are easy to break by accident:
+
+- **The favourite button must not carry `cpb-favorite-toggle`.** A capture-phase listener on the dialog claims that class for check items and calls `stopPropagation`, which would swallow the builder's own click. The dice heart favourites the whole formula through a synthetic check-item element (`_diceFavoriteElement`), so `_computeFavoriteId`, the favourites list, and `executeFavoriteSilent` handle it without knowing the builder exists. Favourites saved by the old per-die hearts still execute — they are `{type: 'dice', value: 'd6'}` and go down the silent path.
+- **Advantage on dice rolls is a string match.** `_executeBuiltInRoll` swaps in `2d20kh`/`2d20kl` only when the formula is exactly `1d20` or `d20`. One plain d20 composes to `1d20`, so it still works; a labelled or multiplied d20 does not.
+- **The dialog cannot import `manager-rolls.js`.** That module imports the dialog, so the edge runs one way only. `getDiceIcon` lives in `api-core.js` for exactly this reason, next to `showDiceAnimation`.
+
+`node tools/check-dice-builder.mjs` guards the compose/parse pair and the template rows the reader depends on. It slices the real functions out of the source rather than reimplementing them, so it cannot pass against a copy that has drifted.
 
 ## System selection
 

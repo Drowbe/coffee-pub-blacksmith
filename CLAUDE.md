@@ -96,6 +96,7 @@ behavior:
 | `node tools/check-harness-paths.mjs` | the test harness will load: paths resolve, every suite on disk is registered, imports resolve, and `expect()` calls pass their label first |
 | `node tools/check-styles-loaded.mjs` | every stylesheet is reachable from the load path, and every `@import` resolves — a CSS file nothing imports is silently dead |
 | `node tools/check-worldclock.mjs` | the clock's cross-file couplings: sky variables, the stop table, class names, the partial name, and the two coordinate spaces |
+| `node tools/check-dice-builder.mjs` | Request a Roll's dice builder: compose and parse are inverses, and the template rows the reader depends on exist. Slices the real functions out of the source, so it cannot pass against a drifted copy |
 | `node tools/check-rest-clients.mjs` | the rest flow across **two clients**: a player's rest reaches the GM, one card carries both phases, grouped rests move the clock once |
 | `node tools/check-dnd5e-citations.mjs` | our `dnd5e.mjs:NNNN` pointers still refer to the dnd5e version they were verified against |
 | `tools/check-declaration-mirrors-model.mjs` | a module's import declaration against the DataModel it describes: field sets pair both ways, no declared constraint stricter than the model's, every field carries guidance. A library rather than a runnable check -- the owning module calls it. Hosted here because it is generic and pairs with `api.importer.declarationFromModel` |

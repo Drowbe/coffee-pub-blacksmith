@@ -675,40 +675,83 @@ tor-item.selected {
 
 /* DICE BUILDER
 
-   Sits between the section header and the die tiles: the tiles pick the die, this
-   row picks the count and the flat modifier, and the readout on the right is the
-   formula that will be requested. The readout is deliberately the loudest thing in
-   the row -- it is the answer to "what am I about to ask for", and the two steppers
-   are only the way to change it. */
+   One row per die: what it is, how many, and what for. The row is not a thing you
+   select -- a count above zero already says the die is in the roll -- so it carries
+   no selected state, only an "in play" tint that separates the two or three rows
+   doing something from the six that are not.
+
+   The summary underneath is the loudest thing in the tab, because it answers the
+   question the whole tab exists to answer: what am I about to request. */
 
 .cpb-dice-builder {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 6px 8px;
+    flex-direction: column;
+    gap: 3px;
     margin-bottom: 6px;
+}
+.cpb-dice-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 6px;
     background: rgba(0, 0, 0, 0.9);
     border: 1px solid rgba(0, 0, 0, 0.9);
     border-radius: 4px;
 }
-.cpb-dice-builder-field {
+/* A row in play. Tinted rather than outlined: eight rows with borders that come and
+   go make the list jump, and the count beside it is already the precise statement. */
+.cpb-dice-row.cpb-dice-row-active {
+    background: rgba(231, 91, 1, 0.22);
+    border-color: rgba(231, 91, 1, 0.45);
+}
+.cpb-dice-row-modifier {
+    margin-top: 3px;
+    border-top: 1px solid rgba(172, 159, 129, 0.25);
+}
+
+/* The die itself, which is also the +1 button. */
+.cpb-dice-builder .cpb-dice-bump {
+    flex: 0 0 88px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    height: 24px;
+    padding: 0 4px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(222, 211, 185, 0.95);
+    text-align: left;
+    cursor: pointer;
 }
-.cpb-dice-builder-label {
-    font-size: var(--font-size-11);
+.cpb-dice-builder .cpb-dice-bump:hover {
+    background: rgba(231, 91, 1, 0.5);
+    border-color: rgba(0, 0, 0, 0.9);
+}
+.cpb-dice-builder .cpb-dice-bump i {
+    font-size: var(--font-size-14);
+    width: 16px;
+    text-align: center;
+    color: rgba(172, 159, 129, 0.9);
+}
+.cpb-dice-row-name {
+    font-size: var(--font-size-12);
     font-weight: 700;
     text-transform: uppercase;
-    color: rgba(172, 159, 129, 0.9);
-    margin-right: 2px;
+    white-space: nowrap;
+}
+
+.cpb-dice-stepper {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: 0 0 auto;
 }
 .cpb-dice-builder .cpb-dice-step {
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
     line-height: 1;
     padding: 0;
     border: 1px solid rgba(172, 159, 129, 0.35);
@@ -720,15 +763,14 @@ tor-item.selected {
 .cpb-dice-builder .cpb-dice-step:hover {
     background: rgba(231, 91, 1, 0.5);
     border-color: rgba(0, 0, 0, 0.9);
-    box-shadow: 0 0 5px var(--color-shadow-primary);
 }
 .cpb-dice-builder .cpb-dice-step i {
     font-size: var(--font-size-10);
     width: auto;
 }
-.cpb-dice-builder .cpb-dice-input {
-    width: 42px;
-    height: 22px;
+.cpb-dice-builder .cpb-dice-count {
+    width: 40px;
+    height: 20px;
     padding: 0 2px;
     text-align: center;
     font-size: var(--font-size-12);
@@ -738,31 +780,77 @@ tor-item.selected {
     border: 1px solid rgba(172, 159, 129, 0.35);
     border-radius: 3px;
 }
-.cpb-dice-formula {
+.cpb-dice-builder .cpb-dice-reason {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 20px;
+    padding: 0 6px;
+    font-size: var(--font-size-11);
+    color: rgba(222, 211, 185, 0.95);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(172, 159, 129, 0.25);
+    border-radius: 3px;
+}
+.cpb-dice-builder .cpb-dice-reason::placeholder {
+    color: rgba(172, 159, 129, 0.45);
+    font-style: italic;
+}
+
+/* THE ANSWER LINE. */
+.cpb-dice-summary {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    padding: 2px 8px;
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.5);
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.9);
     border: 1px solid rgba(172, 159, 129, 0.35);
-    color: rgba(222, 211, 185, 0.95);
-    font-size: var(--font-size-14);
-    font-weight: 900;
-    letter-spacing: 0.02em;
 }
-.cpb-dice-formula i {
-    font-size: var(--font-size-14);
+.cpb-dice-summary > i {
+    flex: 0 0 auto;
+    font-size: var(--font-size-16);
     color: rgba(172, 159, 129, 0.9);
 }
-/* No die chosen yet: the readout is a prompt, not a formula, so it stops shouting. */
-.cpb-dice-formula.cpb-dice-formula-empty {
+.cpb-dice-formula {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: var(--font-size-14);
+    font-weight: 900;
+    color: rgba(222, 211, 185, 0.95);
+}
+/* Nothing built yet: a prompt, not a formula, so it stops shouting. */
+.cpb-dice-summary-empty .cpb-dice-formula {
     font-weight: 400;
     font-size: var(--font-size-12);
+    font-style: italic;
     color: rgba(172, 159, 129, 0.6);
 }
-.cpb-dice-builder .cpb-dice-reset {
+.cpb-dice-term-op {
+    font-weight: 700;
+    color: rgba(172, 159, 129, 0.8);
+}
+.cpb-dice-term-value {
+    font-weight: 900;
+}
+/* The label is a TAG beside the value, not part of it -- the number stays the thing
+   you read and the reason sits next to it, the way the roll window shows a labelled
+   modifier. */
+.cpb-dice-term-label {
+    font-size: var(--font-size-10);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(172, 159, 129, 0.22);
+    color: rgba(222, 211, 185, 0.9);
+}
+.cpb-dice-summary .cpb-dice-favorite,
+.cpb-dice-summary .cpb-dice-reset {
     flex: 0 0 auto;
     width: 22px;
     height: 22px;
@@ -775,31 +863,22 @@ tor-item.selected {
     color: rgba(172, 159, 129, 0.7);
     cursor: pointer;
 }
-.cpb-dice-builder .cpb-dice-reset:hover {
+.cpb-dice-summary .cpb-dice-favorite:hover:not(:disabled),
+.cpb-dice-summary .cpb-dice-reset:hover {
     background: rgba(231, 91, 1, 0.5);
     color: rgba(222, 211, 185, 0.95);
-    box-shadow: 0 0 5px var(--color-shadow-primary);
 }
-.cpb-dice-builder .cpb-dice-reset i {
-    font-size: var(--font-size-10);
+.cpb-dice-summary .cpb-dice-favorite:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+.cpb-dice-summary .cpb-dice-favorite.cpb-favorite-is-active {
+    color: rgb(231, 91, 1);
+}
+.cpb-dice-summary .cpb-dice-favorite i,
+.cpb-dice-summary .cpb-dice-reset i {
+    font-size: var(--font-size-11);
     width: auto;
-}
-
-.cpb-dice-grid {
-    display: flex;
-    gap: 4px;
-    margin: 0px 0;
-}
-.cpb-dice-grid .cpb-check-item {
-    width: 100%;
-    min-height: 32px;
-    height: auto;
-    background: rgba(0, 0, 0, 0.9);
-}
-.cpb-dice-grid .cpb-check-item i {
-    padding-top: 2px;
-    font-size: 1.1em;
-    margin: 0;
 }
 
 /* CHECKS LIST */
@@ -944,7 +1023,6 @@ tor-item.selected {
 
 
 /* for indiviudal elections
-.cpb-dice-grid .cpb-check-item.selected,
 .cpb-check-item.selected,
 .cpb-skill-item.selected {
     background-color: rgba(40, 108, 24, 0.4);

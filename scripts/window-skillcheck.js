@@ -181,25 +181,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this.selectedValue = data.initialValue ?? data.initialSkill ?? null;
         this.challengerRoll = { type: null, value: null };
         this.defenderRoll = { type: null, value: null };
-        // Dice builder state. The DICE tab's tiles pick the die and nothing else; the
-        // count and the flat modifier live here, and the formula is only ever assembled
-        // from the three together -- see _composeDiceFormula.
-        this._diceQuantity = 1;
-        this._diceModifier = 0;
-        /** The die behind the current dice selection ("d6"), kept so the formula can be rebuilt when the builder changes. */
-        this._selectedDie = null;
-        // An API caller passes a whole formula ("2d6+10"), not a die. Split it back into
-        // the builder's three parts so the window opens showing what was asked for --
-        // and so nudging the stepper afterwards edits that formula rather than replacing it.
-        if (this.selectedType === 'dice') {
-            const parsed = SkillCheckDialog.parseDiceFormula(this.selectedValue);
-            if (parsed) {
-                this._selectedDie = parsed.die;
-                this._diceQuantity = parsed.quantity;
-                this._diceModifier = parsed.modifier;
-                this.selectedValue = this._composeDiceFormula(parsed.die);
-            }
-        }
+        /**
+         * A dice formula an API caller passed, split into rows and waiting for the DOM.
+         * The rows ARE the builder's state, so there is nowhere to put it until they exist.
+         * Null when the formula is one the rows cannot show -- it still rolls, unedited.
+         */
+        this._pendingDiceBuild = this.selectedType === 'dice'
+            ? SkillCheckDialog.parseDiceBuild(this.selectedValue)
+            : null;
         this.callback = data.callback || null;
         this.onRollComplete = data.onRollComplete || null;
         this._isQuickPartyRoll = false;
@@ -1041,12 +1030,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this._applyRollTypeFilter(htmlElement, rollTypeFilter);
         
         // If we have an initial roll type selection (skill, ability, or save), resolve value to CONFIG id then pre-select (v13: native DOM)
-        if (this.selectedType && this.selectedValue) {
-            // For dice the tiles are keyed by die ("d6") while the selection is a whole
-            // formula ("2d6+10"), so the lookup uses the die the builder parsed out.
-            const resolvedValue = this.selectedType === 'dice'
-                ? (this._selectedDie ?? this.selectedValue)
-                : this._resolveRollTypeValue(this.selectedType, this.selectedValue);
+        if (this.selectedType && this.selectedValue && this.selectedType !== 'dice') {
+            const resolvedValue = this._resolveRollTypeValue(this.selectedType, this.selectedValue);
             const item = htmlElement.querySelector(`.cpb-check-item[data-type="${this.selectedType}"][data-value="${resolvedValue}"]`);
             if (item) {
                 item.classList.add('selected', 'cpb-skill-challenger');
@@ -1282,9 +1267,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 const isRightClick = ev.type === 'contextmenu';
 
                 if (type === 'quick') {
+                    this._resetDiceBuild(htmlElement);
                     this._handleQuickRollItem(htmlElement, item);
                     return;
                 }
+
+                // A build left behind on the DICE tab would still be the selection --
+                // it sets both contested sides -- and would quietly win over the tile
+                // just clicked. Clearing it here is the counterpart to the builder
+                // clearing everything else when a die goes above zero.
+                this._resetDiceBuild(htmlElement);
 
             // If this is a non-common tool, prevent selection and show notification
             if (type === 'tool' && item.dataset.common === 'false') {
@@ -1352,26 +1344,19 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     if (rollTypeIndicator) {
                         if (isRightClick) {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
-                            this.defenderRoll = this._diceSelectionState(type, value);
+                            this.defenderRoll = { type, value };
                             // Add defender styling
                             item.classList.add('cpb-skill-defender');
                             item.classList.remove('cpb-skill-challenger');
                         } else {
                             rollTypeIndicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
-                            this.challengerRoll = this._diceSelectionState(type, value);
+                            this.challengerRoll = { type, value };
                             // Add challenger styling
                             item.classList.add('cpb-skill-challenger');
                             item.classList.remove('cpb-skill-defender');
                         }
                     }
                     item.classList.add('selected');
-                    // The readout follows the contested selections too -- a dice roll
-                    // chosen as challenger or defender is still a formula somebody is
-                    // about to request. The single-selection die is cleared because in
-                    // contested mode it is not what gets rolled, and a stale one would
-                    // have the readout naming a die nobody chose.
-                    this._selectedDie = null;
-                    this._syncDiceBuilder(htmlElement);
                 } else {
                     // Check if we're deselecting the current selection
                     const currentIndicator = item.querySelector('.cpb-roll-type-indicator');
@@ -1384,8 +1369,6 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         htmlElement.querySelectorAll('.cpb-check-item').forEach(el => el.classList.remove('cpb-skill-challenger', 'cpb-skill-defender'));
                         this.selectedType = null;
                         this.selectedValue = null;
-                        this._selectedDie = null;
-                        this._syncDiceBuilder(htmlElement);
                     } else {
                         // Check if trying to select defender roll without defenders (v13: native DOM)
                         if (isRightClick) {
@@ -1413,25 +1396,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         }
                     }
                     item.classList.add('selected');
-                    const selection = this._diceSelectionState(type, value);
-                    this.selectedType = selection.type;
-                    this.selectedValue = selection.value;
-                    // The tile carries the die; the builder carries the rest. Held here so
-                    // the formula can be rebuilt when the count or modifier changes after
-                    // the tile was clicked.
-                    this._selectedDie = selection.die ?? null;
+                    this.selectedType = type;
+                    this.selectedValue = value;
 
                     // Extract roll title for skill/ability/save rolls
                     const rollTitle = item.dataset.rollTitle || null;
                     if (rollTitle) {
                         this.selectedRollTitle = rollTitle;
                     }
-                    // A dice tile's own title names one die ("1d6 Dice Roll"), which is a
-                    // lie the moment the builder says otherwise -- the card would carry it.
-                    if (type === 'dice' && this.selectedValue) {
-                        this.selectedRollTitle = SkillCheckDialog._diceRollTitle(this.selectedValue);
-                    }
-                    this._syncDiceBuilder(htmlElement);
                 }
             }
 
@@ -1717,7 +1689,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         break;
                     case 'dice':
                         name = `${value} Roll`;
-                        desc = showExplanation ? `This is a straightforward ${value} dice roll -- exactly the formula shown, with no ability modifier or proficiency bonus added on top.` : null;
+                        desc = showExplanation ? `This is a straightforward dice roll of ${value} -- exactly the formula shown, with no ability modifier or proficiency bonus added on top.` : null;
                         link = null; // Dice rolls don't have SRD links
                         break;
                     default:
@@ -1955,6 +1927,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     try {
                         const item = ev.currentTarget;
                         const type = 'tool';
+                        // A tool is another roll type, so it clears the dice build the
+                        // same way the check-item handler does.
+                        this._resetDiceBuild(element);
                         // Parse the actor tools data back into a Map
                         const actorToolsData = JSON.parse(item.dataset.actorTools);
                         const actorTools = new Map(actorToolsData);
@@ -2165,171 +2140,424 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
     // ===== DICE BUILDER ===============================================
     //
-    // The DICE tab used to request exactly what its tiles said: a single die, no
-    // modifier, because the tile's `data-value` WAS the formula. "Roll 2d6+10" had no
-    // way to be asked for.
+    // The DICE tab used to be a list you picked one thing from, and the thing you
+    // picked WAS the formula -- a tile's `data-value` went straight to `new Roll`.
+    // "Roll 2d10 for Strength plus 1d4 bludgeoning plus 10" had no way to be asked
+    // for, and neither did two dice of anything.
     //
-    // The split is the whole design. A tile still carries only its die ("d6") and that
-    // never changes, so the favourite heart on it, the id it is stored under, and the
-    // restore-on-render lookup all keep working unaltered. The count and the modifier
-    // live on the dialog, and the formula is composed from the two at the moment of
-    // selection and again on every change to the builder. Nothing downstream needed
-    // teaching: `_executeBuiltInRoll` already hands a dice value straight to `new Roll`,
-    // so a composed "2d6+10" rolls the same way "d6" always did.
+    // It is now a builder. Every die has its own count starting at zero and its own
+    // optional label, there is one flat modifier at the end, and the sum of those is
+    // the request. Two consequences worth stating:
+    //
+    // 1. THE DOM IS THE STATE. Counts and labels are read back out of the rows in
+    //    document order rather than mirrored into a parallel object. A mirror is a
+    //    second thing to keep in step with the screen, and the failure when it drifts
+    //    is silent -- a request that rolls something other than what the readout said.
+    //
+    // 2. BUILDING IS SELECTING. A non-empty build sets `selectedType`/`selectedValue`
+    //    and both contested sides, exactly as clicking a tile used to; emptying it
+    //    clears them again, and picking any other roll type clears the build. There
+    //    is no separate "which die is selected" state, because a count above zero
+    //    already says it.
+    //
+    // The label convention is the one the roll window's modifier field already uses:
+    // `2d10[Strength]`, brackets and all. That is also Foundry's own flavour syntax,
+    // so the label survives into the roll's tooltip rather than being decoration --
+    // and `Roll.validate` is asked before the labelled form is trusted, so a label
+    // that would break the parser costs the flavour rather than the roll.
+
+    /** Row markers the builder reads. `modifier` is a term in the same sum, not a die. */
+    static DICE_MODIFIER_ROW = 'modifier';
 
     /**
-     * Split a formula back into the builder's three parts.
+     * A label as it may appear inside brackets.
      *
-     * Accepts what actually turns up -- a bare die from a tile ("d6"), a formula from
-     * an API caller or a favourite ("2d6+10", "1d20 - 2") -- and returns null for
-     * anything more complicated than one die and one flat term, because the builder
-     * cannot represent it and pretending otherwise would silently rewrite the caller's
-     * formula.
-     *
-     * @param {string} formula
-     * @returns {{die: string, quantity: number, modifier: number}|null}
+     * Brackets are stripped rather than escaped because they are the delimiter: a `]`
+     * inside a label ends it early and the rest of the formula becomes garbage. Also
+     * collapses whitespace, since the label is rendered inline.
      */
-    static parseDiceFormula(formula) {
-        if (formula == null) return null;
-        const match = String(formula).trim().match(/^(\d*)\s*d\s*(\d+)\s*(?:([+-])\s*(\d+))?$/i);
-        if (!match) return null;
-        const quantity = match[1] === '' ? 1 : parseInt(match[1], 10);
-        const modifier = match[4] ? parseInt(match[4], 10) * (match[3] === '-' ? -1 : 1) : 0;
+    static _sanitizeDiceLabel(raw) {
+        return String(raw ?? '').replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+    }
+
+    /** The builder's rows, in the order they are shown, which is the order terms appear. */
+    _diceRows(root) {
+        return Array.from(root?.querySelectorAll?.('.cpb-dice-row[data-die]') ?? []);
+    }
+
+    /**
+     * Read the rows into a term list.
+     *
+     * A die contributes a term only when its count is above zero. The modifier
+     * contributes only when non-zero, and only alongside at least one die -- a
+     * "request" that is a bare number is not a roll, and Foundry would happily
+     * evaluate it, which is worse than refusing.
+     *
+     * @returns {{op: string, value: string, label: string}[]}
+     */
+    _readDiceTerms(root) {
+        const terms = [];
+        let modifier = null;
+
+        for (const row of this._diceRows(root)) {
+            const die = row.dataset.die;
+            const count = Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
+            const label = SkillCheckDialog._sanitizeDiceLabel(row.querySelector('.cpb-dice-reason')?.value);
+
+            if (die === SkillCheckDialog.DICE_MODIFIER_ROW) {
+                if (count !== 0) modifier = { op: count < 0 ? '-' : '+', value: String(Math.abs(count)), label };
+                continue;
+            }
+            if (count > 0) terms.push({ op: '+', value: `${count}${die}`, label });
+        }
+
+        if (terms.length && modifier) terms.push(modifier);
+        return terms;
+    }
+
+    /**
+     * The build as the three strings the rest of the window needs.
+     *
+     * `formula` is what gets rolled and carries the labels as Foundry flavour;
+     * `plainFormula` is the same sum with the labels removed, used when the labelled
+     * form does not parse. `title` is the readable line -- "2d10 Strength + 1d4
+     * Bludgeoning + 10" -- and becomes the request's title.
+     *
+     * @returns {{terms: object[], formula: string, plainFormula: string, title: string}|null}
+     */
+    _composeDiceBuild(root) {
+        const terms = this._readDiceTerms(root);
+        if (!terms.length) return null;
+
+        const join = (render) => terms
+            .map((term, i) => (i === 0 ? '' : `${term.op} `) + render(term))
+            .join(' ')
+            .trim();
+
+        const plainFormula = join((t) => t.value);
+        const labelled = join((t) => (t.label ? `${t.value}[${t.label}]` : t.value));
+        // `Roll.validate` is Foundry's own parser saying yes. Asked because the label
+        // is user prose reaching a formula, and the cost of being wrong is a request
+        // nobody can roll.
+        const labelledIsRollable = typeof Roll === 'undefined'
+            || typeof Roll.validate !== 'function'
+            || Roll.validate(labelled);
+
         return {
-            die: `d${match[2]}`,
-            quantity: Math.max(1, quantity),
-            modifier
+            terms,
+            formula: labelledIsRollable ? labelled : plainFormula,
+            plainFormula,
+            title: join((t) => (t.label ? `${t.value} ${t.label}` : t.value))
         };
     }
 
     /**
-     * The formula the request will carry, for a given die.
+     * Split a formula back into rows, for an API caller who passed one.
      *
-     * Written without spaces ("2d6+10") because it is not only displayed -- it is the
-     * roll's stored value and the card's subtitle, and a compact form reads better in
-     * both. Foundry's Roll parser is indifferent either way.
+     * Understands what the builder can produce -- `NdX` terms with optional bracketed
+     * labels and one trailing number -- and returns null for anything else, so a
+     * formula too complex to show is rolled as given rather than silently rewritten
+     * into something the rows can display.
      *
-     * @param {string} die - "d6", or anything parseDiceFormula can read
-     * @returns {string|null}
+     * @returns {{counts: object, labels: object, modifier: number, modifierLabel: string}|null}
      */
-    _composeDiceFormula(die) {
-        const faces = SkillCheckDialog.parseDiceFormula(die)?.die ?? null;
-        if (!faces) return null;
-        const modifier = this._diceModifier;
-        const modifierPart = modifier === 0 ? '' : (modifier > 0 ? `+${modifier}` : `-${Math.abs(modifier)}`);
-        return `${this._diceQuantity}${faces}${modifierPart}`;
+    static parseDiceBuild(formula) {
+        const text = String(formula ?? '').trim();
+        if (!text) return null;
+        // Values run up to a space, sign, or bracket; a bracketed label may contain
+        // spaces, because its brackets say where it ends. Same shape as the roll
+        // window's modifier tokenizer, for the same reason.
+        const tokens = text.match(/[+-]|[^\s+\-\[]+(?:\[[^\]]*\])?/g) ?? [];
+
+        const counts = {};
+        const labels = {};
+        let modifier = 0;
+        let modifierLabel = '';
+        let pendingOp = '+';
+        let sawDie = false;
+
+        for (const token of tokens) {
+            if (token === '+' || token === '-') { pendingOp = token; continue; }
+
+            const split = /^(.*?)\[([^\]]*)\]$/.exec(token);
+            const value = (split ? split[1] : token).trim();
+            const label = split ? split[2].trim() : '';
+
+            const dieMatch = /^(\d*)d(\d+)$/i.exec(value);
+            if (dieMatch) {
+                if (pendingOp === '-') return null; // Subtracting dice is not a thing the rows can show.
+                const die = `d${dieMatch[2]}`;
+                counts[die] = (counts[die] ?? 0) + (dieMatch[1] === '' ? 1 : parseInt(dieMatch[1], 10));
+                if (label) labels[die] = label;
+                sawDie = true;
+                pendingOp = '+';
+                continue;
+            }
+
+            if (/^\d+$/.test(value)) {
+                if (modifier !== 0) return null; // One flat term is all there is a row for.
+                modifier = parseInt(value, 10) * (pendingOp === '-' ? -1 : 1);
+                modifierLabel = label;
+                pendingOp = '+';
+                continue;
+            }
+
+            return null;
+        }
+
+        return sawDie ? { counts, labels, modifier, modifierLabel } : null;
     }
 
-    /** The card title for a composed dice formula, matching the tiles' own "1d6 Dice Roll" phrasing. */
-    static _diceRollTitle(formula) {
-        return `${formula} Dice Roll`;
-    }
-
-    /**
-     * The dice selection state for a tile click.
-     *
-     * Non-dice types are returned untouched, so the one call site can use this for
-     * every roll type rather than branching around it.
-     */
-    _diceSelectionState(type, value) {
-        if (type !== 'dice') return { type, value };
-        return { type, value: this._composeDiceFormula(value) ?? value, die: value };
-    }
-
-    /** Clamp and store one builder field. Kept in one place so the steppers and the typed input cannot disagree. */
-    _setDiceBuilderField(field, raw) {
-        const parsed = Math.trunc(Number(raw));
-        if (field === 'quantity') {
-            this._diceQuantity = Number.isFinite(parsed) ? Math.min(99, Math.max(1, parsed)) : 1;
-        } else {
-            this._diceModifier = Number.isFinite(parsed) ? Math.min(999, Math.max(-999, parsed)) : 0;
+    /** Write a parsed build into the rows. */
+    _applyDiceBuild(root, build) {
+        if (!build) return;
+        for (const row of this._diceRows(root)) {
+            const die = row.dataset.die;
+            const countInput = row.querySelector('.cpb-dice-count');
+            const labelInput = row.querySelector('.cpb-dice-reason');
+            const isModifier = die === SkillCheckDialog.DICE_MODIFIER_ROW;
+            if (countInput) countInput.value = String(isModifier ? build.modifier : (build.counts[die] ?? 0));
+            if (labelInput) labelInput.value = isModifier ? (build.modifierLabel ?? '') : (build.labels[die] ?? '');
         }
     }
 
-    /** The die behind whichever dice selection is live, challenger or defender. */
-    _activeDie() {
-        if (this._selectedDie) return this._selectedDie;
-        if (this.challengerRoll?.type === 'dice' && this.challengerRoll.die) return this.challengerRoll.die;
-        if (this.defenderRoll?.type === 'dice' && this.defenderRoll.die) return this.defenderRoll.die;
-        return null;
+    /**
+     * Zero every row, and drop the selection the build was holding.
+     *
+     * This is also the "picked something else" path, which is why it clears rather
+     * than keeps: a build sets BOTH contested sides, so a stale one left behind would
+     * still be the defender's roll after a skill was clicked as challenger -- a
+     * contested request rolling a formula no longer on screen.
+     */
+    _resetDiceBuild(root) {
+        const element = root ?? this._getElementForUpdate();
+        if (!element?.querySelectorAll) return;
+        for (const row of this._diceRows(element)) {
+            const countInput = row.querySelector('.cpb-dice-count');
+            const labelInput = row.querySelector('.cpb-dice-reason');
+            if (countInput) countInput.value = '0';
+            if (labelInput) labelInput.value = '';
+        }
+        this._syncDiceBuilder(element);
     }
 
     /**
-     * Push the builder's state into the inputs, the readout, and every live dice
-     * selection.
+     * Recompute the build and make the rest of the window agree with it.
      *
-     * The recompose is the part that matters: a die can be chosen before the count is,
-     * and the selection stored at click time would otherwise still say "1d6" when the
-     * readout says "2d6+10". Both sides are rebuilt from the same die every time.
+     * `keepSelection` is for the reset that runs when another roll type is picked:
+     * the build is being cleared BECAUSE something else was selected, so clearing the
+     * selection too would undo the click that got us here.
      */
-    _syncDiceBuilder(html) {
+    _syncDiceBuilder(html, { keepSelection = false } = {}) {
         const root = html ?? this._getElementForUpdate();
         if (!root?.querySelector) return;
 
-        const quantityInput = root.querySelector('.cpb-dice-input[name="diceQuantity"]');
-        const modifierInput = root.querySelector('.cpb-dice-input[name="diceModifier"]');
-        if (quantityInput) quantityInput.value = String(this._diceQuantity);
-        if (modifierInput) modifierInput.value = String(this._diceModifier);
+        const build = this._composeDiceBuild(root);
 
-        if (this.selectedType === 'dice' && this._selectedDie) {
-            this.selectedValue = this._composeDiceFormula(this._selectedDie);
-            this.selectedRollTitle = SkillCheckDialog._diceRollTitle(this.selectedValue);
+        // A row at zero has nothing to say; one in play is worth seeing at a glance.
+        for (const row of this._diceRows(root)) {
+            const count = Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
+            row.classList.toggle('cpb-dice-row-active', count !== 0);
         }
-        for (const selection of [this.challengerRoll, this.defenderRoll]) {
-            if (selection?.type === 'dice' && selection.die) {
-                selection.value = this._composeDiceFormula(selection.die);
+
+        if (build) {
+            this.selectedType = 'dice';
+            this.selectedValue = build.formula;
+            this.selectedRollTitle = build.title;
+            // Both contested sides, because a contested dice roll is the same formula
+            // rolled by both -- there is no left-click/right-click split to make here.
+            this.challengerRoll = { type: 'dice', value: build.formula };
+            this.defenderRoll = { type: 'dice', value: build.formula };
+        } else if (!keepSelection) {
+            if (this.selectedType === 'dice') {
+                this.selectedType = null;
+                this.selectedValue = null;
+                this.selectedRollTitle = null;
             }
+            if (this.challengerRoll?.type === 'dice') this.challengerRoll = { type: null, value: null };
+            if (this.defenderRoll?.type === 'dice') this.defenderRoll = { type: null, value: null };
         }
 
-        const readout = root.querySelector('.cpb-dice-formula');
-        if (!readout) return;
-        const die = this._activeDie();
-        const formula = die ? this._composeDiceFormula(die) : null;
-        readout.classList.toggle('cpb-dice-formula-empty', !formula);
-        const valueEl = readout.querySelector('.cpb-dice-formula-value');
-        if (valueEl) valueEl.textContent = formula ?? 'Select a die';
-        const iconEl = readout.querySelector('i');
-        if (iconEl) iconEl.className = formula ? getDiceIcon(formula) : 'fas fa-dice-d20';
+        this._renderDiceFormula(root, build);
     }
 
-    /** Wire the two steppers, their typed inputs, and the reset. */
+    /**
+     * The readout.
+     *
+     * Built as DOM rather than a string: the labels are the user's own prose, and
+     * `textContent` is the one way to put prose on a page that cannot also put markup
+     * there. Each term renders as its value with the label beside it as a tag, which
+     * is how the roll window shows a labelled modifier -- the number stays the thing
+     * you read and the reason sits next to it.
+     */
+    _renderDiceFormula(root, build) {
+        const readout = root.querySelector('.cpb-dice-formula');
+        const summary = root.querySelector('.cpb-dice-summary');
+        const icon = summary?.querySelector(':scope > i');
+        if (!readout) return;
+
+        readout.innerHTML = '';
+        summary?.classList.toggle('cpb-dice-summary-empty', !build);
+
+        if (!build) {
+            readout.textContent = 'Add a die to build a roll';
+            if (icon) icon.className = 'fas fa-dice-d20';
+            this._syncDiceFavoriteHeart(root, null);
+            return;
+        }
+
+        build.terms.forEach((term, index) => {
+            if (index > 0) {
+                const op = document.createElement('span');
+                op.className = 'cpb-dice-term-op';
+                op.textContent = term.op;
+                readout.appendChild(op);
+            }
+            const value = document.createElement('span');
+            value.className = 'cpb-dice-term-value';
+            value.textContent = term.value;
+            readout.appendChild(value);
+            if (term.label) {
+                const label = document.createElement('span');
+                label.className = 'cpb-dice-term-label';
+                label.textContent = term.label;
+                readout.appendChild(label);
+            }
+        });
+
+        if (icon) icon.className = getDiceIcon(build.plainFormula);
+        this._syncDiceFavoriteHeart(root, build);
+    }
+
+    /**
+     * A favourite record for the WHOLE build.
+     *
+     * The heart used to sit on each die tile and favourite that die, which no longer
+     * means anything -- a die on its own is not a request. It now favourites the
+     * formula, and the record is shaped exactly like a check item's so that
+     * `_computeFavoriteId`, the favourites list, and `executeFavoriteSilent` all
+     * handle it without knowing the builder exists.
+     */
+    _diceFavoriteElement(build) {
+        const el = document.createElement('div');
+        el.className = 'cpb-check-item';
+        el.dataset.type = 'dice';
+        el.dataset.value = build.formula;
+        el.dataset.rollTitle = build.title;
+
+        const icon = document.createElement('i');
+        icon.className = getDiceIcon(build.plainFormula);
+        const label = document.createElement('span');
+        label.className = 'cpb-roll-label';
+        label.textContent = build.title;
+        const description = document.createElement('span');
+        description.className = 'cpb-roll-description';
+        description.textContent = 'Dice roll.';
+
+        el.appendChild(icon);
+        el.appendChild(label);
+        el.appendChild(description);
+        return el;
+    }
+
+    /** Fill or empty the heart, and disable it when there is no formula to favourite. */
+    _syncDiceFavoriteHeart(root, build) {
+        const button = root.querySelector('.cpb-dice-favorite');
+        if (!button) return;
+        const ids = new Set((this.userPreferences.requestRollFavorites || []).map((f) => f.id));
+        const id = build ? SkillCheckDialog._computeFavoriteId(this._diceFavoriteElement(build)) : null;
+        const active = !!(id && ids.has(id));
+        button.disabled = !build;
+        button.classList.toggle('cpb-favorite-is-active', active);
+        button.dataset.tooltip = !build
+            ? 'Add a die first'
+            : (active ? 'Remove this formula from favorites' : 'Favorite this formula');
+        const i = button.querySelector('i');
+        if (i) i.className = active ? 'fas fa-heart' : 'far fa-heart';
+    }
+
+    /** Wire the steppers, the typed counts, the labels, the row click, the heart, and the reset. */
     _attachDiceBuilderListeners(html) {
         const root = html;
         const builder = root?.querySelector?.('.cpb-dice-builder');
         if (!builder) return;
 
-        builder.querySelectorAll('.cpb-dice-step').forEach((button) => {
-            button.addEventListener('click', (ev) => {
-                ev.preventDefault();
-                const field = button.dataset.diceField;
-                const delta = Number(button.dataset.diceDelta) || 0;
-                const current = field === 'quantity' ? this._diceQuantity : this._diceModifier;
-                this._setDiceBuilderField(field, current + delta);
-                this._syncDiceBuilder(root);
+        const countFor = (row) => Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
+        const isModifierRow = (row) => row.dataset.die === SkillCheckDialog.DICE_MODIFIER_ROW;
+        // Only the modifier goes below zero. A negative count of dice is not a thing.
+        const clamp = (row, n) => isModifierRow(row)
+            ? Math.min(999, Math.max(-999, n))
+            : Math.min(99, Math.max(0, n));
+
+        const bump = (row, delta) => {
+            const input = row.querySelector('.cpb-dice-count');
+            if (!input) return;
+            input.value = String(clamp(row, countFor(row) + delta));
+            this._syncDiceBuilder(root);
+        };
+
+        builder.querySelectorAll('.cpb-dice-row[data-die]').forEach((row) => {
+            row.querySelectorAll('.cpb-dice-step').forEach((button) => {
+                button.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    bump(row, Number(button.dataset.diceDelta) || 0);
+                });
             });
+
+            // Clicking the die itself is +1 -- what clicking a die used to do, kept so
+            // the common case is still one click rather than a hunt for the stepper.
+            const bumpButton = row.querySelector('.cpb-dice-bump');
+            if (bumpButton) {
+                bumpButton.addEventListener('click', (ev) => {
+                    ev.preventDefault();
+                    bump(row, 1);
+                });
+            }
+
+            const countInput = row.querySelector('.cpb-dice-count');
+            if (countInput) {
+                // On `change` rather than `input`: clamping mid-keystroke turns a typed
+                // "12" into "1" the moment the first digit lands.
+                countInput.addEventListener('change', () => {
+                    countInput.value = String(clamp(row, Math.trunc(Number(countInput.value)) || 0));
+                    this._syncDiceBuilder(root);
+                });
+            }
+
+            const labelInput = row.querySelector('.cpb-dice-reason');
+            if (labelInput) {
+                // `input`, not `change`: the label changes nothing that needs clamping,
+                // and the readout is the only way to see what you are typing.
+                labelInput.addEventListener('input', () => this._syncDiceBuilder(root));
+            }
         });
 
-        builder.querySelectorAll('.cpb-dice-input').forEach((input) => {
-            const field = input.name === 'diceQuantity' ? 'quantity' : 'modifier';
-            // On `change` rather than `input`: clamping mid-keystroke turns a typed "12"
-            // into "1" the moment the first digit lands, and a typed "-3" into "-999".
-            input.addEventListener('change', () => {
-                this._setDiceBuilderField(field, input.value);
-                this._syncDiceBuilder(root);
-            });
-        });
-
-        const reset = builder.querySelector('.cpb-dice-reset');
-        if (reset) {
-            reset.addEventListener('click', (ev) => {
+        const favorite = root.querySelector('.cpb-dice-favorite');
+        if (favorite) {
+            favorite.addEventListener('click', (ev) => {
                 ev.preventDefault();
-                this._diceQuantity = 1;
-                this._diceModifier = 0;
-                this._syncDiceBuilder(root);
+                const build = this._composeDiceBuild(root);
+                if (!build) return;
+                this._toggleFavorite(root, this._diceFavoriteElement(build));
+                this._syncDiceFavoriteHeart(root, build);
             });
         }
 
-        this._syncDiceBuilder(root);
+        const reset = root.querySelector('.cpb-dice-reset');
+        if (reset) {
+            reset.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                this._resetDiceBuild(root);
+            });
+        }
+
+        // An API caller passed a formula rather than a build; show it in the rows so
+        // that nudging a stepper edits it instead of replacing it.
+        if (this._pendingDiceBuild) {
+            this._applyDiceBuild(root, this._pendingDiceBuild);
+            this._pendingDiceBuild = null;
+        }
+        this._syncDiceBuilder(root, { keepSelection: true });
     }
 
     /**

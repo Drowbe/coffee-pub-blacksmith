@@ -302,9 +302,17 @@ Pass a formula as `initialValue`. A dice roll is exactly its formula -- no abili
 - Several dice: `2d6`, `4d8`
 - With a flat modifier: `2d6+10`, `1d20-2`
 
-Anything Foundry's `Roll` can evaluate is rolled as given. The window's dice builder covers **one die type with one flat modifier**, so a value of that shape opens with the die highlighted and the builder's two steppers filled in; a more complex formula (`2d6+1d4`) is still rolled correctly but the builder cannot show it, and nudging a stepper would replace it.
+Terms may carry a label in brackets, which is Foundry's flavour syntax and reaches the roll's tooltip:
 
-Advantage and disadvantage apply only to a plain `1d20`.
+```javascript
+initialValue: '2d10[Strength] + 1d4[Bludgeoning] + 10'
+```
+
+Anything Foundry's `Roll` can evaluate is rolled as given. The window's dice builder covers **any mix of the eight standard dice plus one flat modifier**, each with an optional label, so a value of that shape opens with the rows filled in and the steppers edit it. A formula outside that shape -- roll data references (`@abilities.str.mod`), subtracted dice, more than one flat term -- is still rolled correctly, but the rows cannot show it, so the builder leaves it alone.
+
+Term order in the window follows the row order (d2 through d100, then the modifier), not the order they were written.
+
+Advantage and disadvantage apply only to a plain `1d20` -- `_executeBuiltInRoll` matches that string exactly. A single unlabelled d20 composes to it; `2d20` and `1d20+3` do not, which is correct, since there is no advantage on those.
 
 ## Usage Examples
 
