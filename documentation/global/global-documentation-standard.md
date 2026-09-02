@@ -397,13 +397,21 @@ guides.** Two modules independently reported reading that crowding as "this guid
 rather than "these are seven guides", and both were writing the sections that should have been the
 missing files. The symptom arrives before the realisation.
 
+**The ratio reads in both directions, and the inverted case is also worth hearing.** One module
+reports eight guides against one architecture document -- the reverse of what the report hunts, and
+honest: it genuinely has one architecture document covering half the module and none for the other
+half. The report was telling it something true about its ARCHITECTURE rather than its guides. Read
+whichever number is small.
+
 **No count can tell you whether the guides are any good.** Eight guides that each restate the
 settings window score identically to eight that each answer a different reader's questions. The
 coverage bar is about whether a question got answered, which is not countable -- so the checker's
 ratio is a prompt to run the coverage test by hand, never a target, and a module that games it has
-only lied to itself. The ratio also has the wrong denominator: architecture is organised by
-subsystem and guides by verb, so a module with two architecture documents can easily have eight
-user-facing features. The count that matters is features a user would name, and no tool can see it.
+only lied to itself. The ratio also has the wrong denominator, and it flatters the wrong
+modules: architecture is organised by subsystem and guides by verb, so a module with two architecture
+documents can easily have eight user-facing features, while a module writing seven guides against
+twenty architecture documents is doing more work for a worse-looking number. The count that matters
+is features a user would name, and no tool can see it.
 
 **The one-guide module is almost always wrong.** A module worth installing does more than one thing,
 and a reader who wants to do the second thing has nowhere to go. Before calling the set finished,
@@ -819,6 +827,21 @@ Every consequence below is that one fact seen from a different side.
 
    Say which side you compared against. "All five match" is a claim that goes stale without anyone
    editing it, which makes it worse than no claim, because the next person stops checking.
+   **A re-copy notice ends with the CHECK, never with a status claim.** "The hub says file X is
+   committed" and "file X is committed right now" are different claims, and only the second can be
+   verified -- only at the moment of copying, and only by the copier. So before copying, run
+   `git -C <hub> status --short -- <the five paths>` and `git -C <hub> log -1 -- <path>` yourself. If
+   a file is dirty, either wait or copy it knowingly and write down that you did. This shape occurred
+   three times in one day: a notice that a file was settled, a stale premise about that same file, and
+   then a fix for the stale premise that was itself uncommitted. A fourth followed within the hour, in
+   the opposite direction -- a notice saying all five were committed when one was not. None of them
+   careless; all of them the same confusion between a claim and a fact, and the notice is the
+   unreliable half in BOTH directions, which is the argument for the recipe over the message.
+   **The two errors do not cost the same.** Calling a committed file uncommitted costs a re-run.
+   Calling an uncommitted file committed invites a satellite to verify against `HEAD`, see DIFFER, and
+   conclude its own copy is bad -- so it is the expensive direction, and the one to be careful about.
+   **The table only works if the satellite runs all three comparisons.** With one, "the hub has not
+   committed yet" and "my copy is stale" are indistinguishable.
    **And compare every time, not only when you suspect drift.** A notice from the hub that a file is
    committed says nothing about whether YOUR copy predates its last change -- the file can be settled
    and your copy still stale. That is a TRUE difference arriving alongside a message implying there
@@ -889,8 +912,15 @@ What it does, in order:
    last. Alphabetical put getting-started third in one module and buried the settings reference among
    the features. The feature guides take their order from the links in `home.md` when it lists them,
    because that is the router the author wrote in the order that made sense to them; otherwise they
-   fall back to alphabetical. Nothing to configure: to reorder a module's guides, reorder the links
-   in its `home.md`. User guides sit directly under Home because they serve the largest
+   fall back to alphabetical.
+
+   **Only the middle is reorderable.** getting-started is pinned first and player, gm and settings are
+   pinned to the tail, in that order, regardless of what `home.md` says -- they are reference rather
+   than journey, and the tail is where a reader looks for them. So "reorder `home.md` to change the
+   order" is true of the feature guides and silently untrue of the other four. Stated because one
+   module's `home.md` listed gm before player, the sidebar disagreed with the front door, and the next
+   person to hit that edits `home.md`, rebuilds, sees no change and concludes the build is broken.
+   If the two disagree, `home.md` is the one to change. User guides sit directly under Home because they serve the largest
    audience; Getting started is `home.md` and `known-issues.md`.
 7. **Writes `Home.md`** from `documentation/home.md`.
 

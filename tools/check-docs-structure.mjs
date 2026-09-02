@@ -139,7 +139,17 @@ const published = new Set([...collect(), HOME_SRC, ...ROOT_PAGES]);
 // one of them, including four in Librarian's published architecture and one in Blacksmith's own.
 // (Raised by coffee-pub-librarian.)
 const NEVER_PUBLISHED = /(^|[^\w-])(TODOs?|TODO\.md|TODO-GLOBAL\.md|plans\/)([^\w-]|$)/;
-const WORK_HEADING = /^\s*#{1,6}\s+((open|remaining|future|planned|outstanding)\b|next steps|in progress|implementation status|roadmap|wishlist|to ?do\b)/i;
+// The ambiguous words need their NOUN. "Open" as an adjective heads a backlog ("Open work");
+// "Open" as a verb heads a task ("Open the window"), which is exactly the construction the
+// user-guide rules demand -- task headings, written from the verb. Matching the bare adjective made
+// the check fire hardest on the guides following the standard most literally, the same failure as
+// deduplicating sidebar labels globally. The unambiguous phrases stay as they are: none of them is
+// ever a task heading. (Raised by coffee-pub-bibliosoph.)
+const WORK_HEADING = new RegExp(
+  '^\\s*#{1,6}\\s+(' +
+  '(open|remaining|future|planned|outstanding|unresolved)\\s+(work|items?|issues?|questions?|features?|tasks?|enhancements?)\\b' +
+  '|next steps|in progress|implementation status|roadmap|wishlist|backlog|to ?do\\b' +
+  ')', 'i');
 const KNOWN_ISSUES = /(^|[^\w-])known-issues\.md/;
 
 for (const rel of published) {
