@@ -295,6 +295,12 @@ the incidents did:
 The practical form: when an injected fault produces nothing, establish that the fault is EXPRESSIBLE before
 concluding the check is broken -- and when a check passes, establish that the data could have made it fail.
 
+And a small companion habit, learned by getting it wrong twice in one evening: **predict a suite's assertion
+count from the last MEASURED number, never from a previous prediction.** A doc here said 299, measured 305,
+then correctly predicted 307 from that. The failure mode is not the arithmetic -- it is that a wrong expected
+count makes a genuine regression look like sloppy counting, so the next red gets explained away instead of
+read.
+
 ### A checker cannot see an exemption it never exercises
 
 The registry exempted any top-level field with nested shape from needing a document path, so such a field
@@ -333,6 +339,29 @@ So the honest form is "as of a few minutes ago that file declared X", never "you
 claim built on a read turns out to be contested, **re-run the read rather than re-quoting it**: the second
 reading costs a command and the first one has an expiry nobody can see. Every wrong claim exchanged during
 this migration was either a prediction instead of a read, or a read whose moment had passed.
+
+### Report the observation; label the inference separately
+
+A finding crossing a module boundary carries two things, and they have very different reliability. What was
+SEEN -- a value, a name, a log line -- and what the reporter thinks it MEANS. The second is a guess about
+somebody else's code, made without having read it.
+
+Both of this migration's best cross-module findings came in with the inference wrong and the observation
+right, and the observation was what mattered. A consumer reported "folder resolution may be case-sensitive",
+having seen a journal reporting `folder: "injuries"` beside a folder named `Injuries`. The inference was
+wrong. The real defect was `toSentenceCase` applied before BOTH matching and creation -- which is worse,
+because it renamed the caller's folder as well as failing to match it -- and it was found only because the
+observation was filed rather than withheld for lacking an explanation.
+
+The same instinct, unlabelled, nearly produced a false blocker in the other direction: a hardcoded
+journaltype list read as a bug by someone who had not checked that both callers return before reaching it.
+What prevented that was reading the call sites -- and what would have made it harmless either way was
+saying which half was observed.
+
+So the rule is not "file everything" and not "file only what you can explain". It is: **file the
+observation, and mark plainly which part you saw and which part you inferred.** The finding travels; the
+reporter's explanation of it does not need to be right, and pretending otherwise is what makes a wrong
+diagnosis expensive instead of merely incomplete.
 
 ## Two readers of one contract is the recurring defect
 

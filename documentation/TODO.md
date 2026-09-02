@@ -129,19 +129,24 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 
 Design, contract and build sequence: **`documentation/plans/plan-importer-api.md`**.
 
-### Finish the re-founding: steps 8-11
+### Finish the re-founding: steps 9-11
 
-Steps 0-7 are shipped and live: Item, Roll Table and Actor are declared and routing -- fourteen profiles --
-each asserted against the parser it replaced and round-tripped through Foundry itself. What remains,
-in order, each leaving the module working: **8.** Journal plus the subtype seam that lets us construct a
-module-owned page type -- the hardcoded `type: "text"` was what prevented it, and Librarian's codex and
-quests, Artificer's recipes and Bibliosoph's injuries were all waiting on it. **9.** fragments, `tags`
-first. **10.** export derivation and the three completeness layers. **11.** the parity check, then a
-consumer.
+Steps 0-8 are shipped and live: Item, Roll Table, Actor and Journal are declared and routing -- seventeen
+profiles, plus the page-subtype seam a satellite now imports through --
+each asserted against the parser it replaced and round-tripped through Foundry itself. The subtype seam
+shipped with step 8, so the hardcoded `type: "text"` that blocked Librarian's codex and quests, Artificer's
+recipes and Bibliosoph's injuries is gone -- Bibliosoph imports through it today.
 
-**Step 8 is code-complete and awaiting live verification, not done.** Two things are owed and both need a
-person in a world: a full Run All Headless (the last green predates six changes, including a blocking null
-fix) and one injury imported end to end by Bibliosoph. Both are itemised in `testing/importer-journal.md`.
+What remains, in order, each leaving the module working: **9.** fragments, `tags` first. **10.** export
+derivation and the three completeness layers. **11.** the parity check, then a consumer.
+
+**Step 8 is DONE, verified live on 2026-09-02.** Headless is 1411/1411 across 19 suites with Importer
+Declarations at 307. In a running world: an injury imported end to end through Bibliosoph's own declaration,
+landing a `coffee-pub-bibliosoph.injury` page with a null `treatmentdc`, appended into an existing journal
+and updated in place on re-import; folder matching case-insensitive with verbatim creation; and the
+same-name-different-folder warning firing. `testing/importer-journal.md` is deleted, per its own rule.
+
+**Steps 9-11 remain and are the next block**, not release blockers.
 
 There were three profile forms when this was written and there are now two. `rendered` was deleted: Area
 was the case that justified it, and Area turned out to be `mapped` plus a derivation, so the third form was
