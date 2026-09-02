@@ -149,6 +149,50 @@ Found against the same schema, and both now have a real consumer rather than bei
 Until those exist, a profile declares the widest legal envelope and states the scoping in `guidance` -- which
 validates the outside and documents the inside, and is at least honest about which is which.
 
+### Destination is declared, and never reshaped
+
+A declaration says what a document SAYS. Where it GOES is separate, and there are two levels of it:
+
+- **The container** -- which `JournalEntry` a page is filed into. `document.containerName` for a constant,
+  or `containerNameFrom` plus an optional `containerNameTransform` or `containerNameMap`.
+- **The folder** -- where that entry files in the sidebar. `document.folderName` for a constant, or
+  `folderNameFrom` naming a field.
+
+The folder half was, for a while, supplied by **convention**: a field named exactly `foldername`, written
+down nowhere. Blacksmith's own three journal profiles each declared it verbatim, which is what a kind-level
+constant looks like when it is wearing a per-profile costume -- and the first outside consumer did not know
+the key existed. Their profile registered clean, every import reported success, and every page landed at the
+world root. Forgetting a convention is indistinguishable from choosing the default, which is why the
+convention is now only the fallback and the declaration is the rule.
+
+It is deliberately **not required**. The root is a legitimate destination and Blacksmith's own profiles take
+their folder from the import dialog, so requiring it would make the honest case unwritable. Declaring it
+makes the intent sayable, and therefore checkable by a consumer's build gate -- which a convention never was.
+
+**A destination value belongs to the module that supplied it, and must not be transformed on the way
+through.** This rule was learned twice, one level apart. Container names were fixed first: a page carrying
+the enum `fire` files into a journal the owning module spells `Fire`, and only that module knows which, so
+the default is untransformed and a transform is named explicitly. Folders had exactly the same bug and kept
+it longer -- `ensureJournalFolder` sentence-cased the name before **both** matching and creating, so it
+compared a transformed needle against untransformed haystacks (a GM's `INJURIES` got a second folder called
+`Injuries`) and renamed the caller's folder on creation (`McDonald` files under `Mcdonald`).
+
+The resolution generalises past folders: **match loosely, write exactly.** Case-insensitive matching is what
+prevents the duplicate; verbatim creation is what respects the caller. Either alone is a bug.
+
+### Appending into an existing document is the destructive default
+
+Find-or-create matches on name AND folder together. Name alone collides across folders, which was the injury
+builder's bug. But the correct rule has a blind spot worth stating, because it was reached in review by
+advice that looked right: a payload naming a folder that holds a same-named journal will **append into it**,
+and there is no distinction between "add to the journal I mean" and "add to a journal that happens to share
+its name". A review of exactly this nearly put two test pages into nine pages of a GM's real content, and the
+only thing that prevented it was an unrelated defect sending the import to the root instead.
+
+So a creation beside an existing same-named journal warns, naming the other one's folder. It is not a
+rejection -- a payload naming a folder means that folder. What the warning buys is that the GM finds out
+now rather than when `game.journal.getName()` hands them the wrong entry.
+
 ## Composition: field groups
 
 A module whose fields are **orthogonal to the host's type** cannot register a profile. An Artificer item is a loot, or a consumable, or a tool, *with* their fields added -- so there is no profile id to register under, and declaring the block once per host duplicates it while still not being opt-in per import.
@@ -192,11 +236,11 @@ source by parties who had not seen each other's. The value is in the independenc
 the technique is worth reaching for wherever a second derivation is cheap, and worth nothing where it is
 really one derivation checked twice.
 
-## Proving a check can fail, and the two ways that goes wrong
+## Proving a check can fail, and the four ways that goes wrong
 
 A check that has only ever passed is indistinguishable from one that cannot fail, so every check here was
-proved by injecting the fault it claims to catch. Two failure modes showed up in doing that, and both
-produced a green result that meant nothing.
+proved by injecting the fault it claims to catch. Four failure modes showed up in doing that, and every
+one produced a green result that meant nothing.
 
 **An assertion can exercise the broken path and ask the wrong question.** The test for the model walk had a
 nested `modifiers` field and asserted its CHILDREN carried no document path -- which was true, and which
@@ -215,7 +259,20 @@ construction. Both this repo and the consuming module planned that check against
 each have reported a green that meant nothing. It took a second fixture, deliberately different, to make the
 append path expressible at all.
 
-All three are the same error in different clothes, and the consumer stated the principle better than any of
+**A fourth, and the most expensive: the assertion can test the far side of a gate it never opens.** The
+suite covered a `nullable: true, min: 1` field holding `null` -- the consumer's real shape, the exact field --
+and asserted the BUILT page kept it null. That passed while the importer rejected the value outright, because
+the assertion called `buildDocumentData` and the defect was in `validateEntry`. In a running world those are
+in series: construction is unreachable until validation passes. So the suite proved the second half of a path
+whose first half was closed, and the closure was the bug. A consumer's user found it by importing a file.
+
+This one generalises past the importer. Wherever two stages run in series and only the later one is
+interesting to assert, testing the later alone will report a system as working while the earlier one refuses
+every real input. **Construction is usually the interesting half, which is exactly why the validating half
+goes unwritten.** The rule that catches it is to assert both halves against ONE declaration, so the fixture
+that proves the build also has to get past the gate.
+
+All four are the same error in different clothes, and the consumer stated the principle better than any of
 the incidents did:
 
 > A test that cannot distinguish success from the failure it was written for is worse than no test,

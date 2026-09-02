@@ -183,6 +183,33 @@ if (existsSync(suitesOnDisk)) {
     }
 }
 
+// ==================================================================
+// EVERY SHIPPED FIXTURE IS CLAIMED BY A SUITE
+// ==================================================================
+// `shipped-fixtures-validate` walks a hand-written FIXTURES list, and a fixture
+// added to testing/import-json/ that nobody adds to that list is not reported --
+// it is simply never checked. That is the defect the wiki publish list had: a
+// register somebody must remember to extend, where forgetting looks exactly like
+// having nothing to do.
+//
+// Checked HERE rather than in the harness because the harness fetches over HTTP
+// and cannot enumerate a directory; Node can. The split is deliberate: this
+// proves the list is COMPLETE, the suite proves each entry WORKS.
+const fixturesDir = join(REPO, 'testing/import-json');
+if (existsSync(fixturesDir)) {
+    const declarationSuite = join(suitesOnDisk, 'suite-importer-declarations.js');
+    if (existsSync(declarationSuite)) {
+        const suiteText = readFileSync(declarationSuite, 'utf-8');
+        for (const name of readdirSync(fixturesDir).filter(f => f.endsWith('.json'))) {
+            checked++;
+            if (!suiteText.includes(`'${name}'`)) {
+                problems.push(`testing/import-json/${name} is shipped but no suite names it`
+                    + ' - it is never validated, and a broken example looks identical to a missing one');
+            }
+        }
+    }
+}
+
 if (problems.length) {
     console.error('check-harness-paths: the harness would not work as written.\n');
     for (const problem of problems) console.error(`  ${problem}`);

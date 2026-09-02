@@ -22,6 +22,12 @@
  *    disagree the GM finds out at the far end, in another world, with the file that
  *    was supposed to carry their work.
  *
+ * 4. THE ROLL BUILDER MUST STAY A TOOL WINDOW. It was written once as a bare window
+ *    with its own root and its own painted fields, which looked like a different
+ *    module and ignored the user's Light/Dark/Glass choice. Nothing errors when a
+ *    window opts out of the shell -- it just renders, wrong, in two themes out of
+ *    three, and only a person looking at it can tell.
+ *
  *   node tools/check-quick-rolls.mjs
  *
  * Exits non-zero on a violation.
@@ -96,6 +102,19 @@ if (rowSrc && handlerSrc) {
                 problems.push(`${DIALOG}: _computeFavoriteId hashes item.dataset.${key} but _quickRollRow does not set it -- a favourited quick roll would get an id its own row cannot reproduce`);
             }
         }
+    }
+
+    // WHO ROLLS must reach the handler in BOTH modes. For a normal roll it is folded
+    // into `rollType` (`party` / `individual`); a contest spends `rollType` on saying it
+    // is a contest, so the answer travels separately in `data-targets`. Dropping either
+    // half gives a contested quick roll that fires against whatever happens to be
+    // selected -- or refuses with "select at least one actor" -- which is what it did
+    // before the attribute existed and is not distinguishable from a GM's own mistake.
+    if (!/row\.dataset\.targets\s*=/.test(rowSrc)) {
+        problems.push(`${DIALOG}: _quickRollRow must write data-targets on every row -- a contested roll has no other way to say who rolls it`);
+    }
+    if (!/item\.dataset\.targets/.test(handlerSrc)) {
+        problems.push(`${DIALOG}: _handleQuickRollItem must read item.dataset.targets -- without it a contested quick roll cannot select its own challengers, and fires against whatever was already selected`);
     }
 
     // `data-dc` is set CONDITIONALLY and must stay that way: the handler treats the
@@ -244,6 +263,52 @@ if (parseSrc && normalizeSrc && sideSrc && idSrc && typesMatch && iconMatch && v
     }
 }
 
+// ===== THE BUILDER IS A TOOL WINDOW ================================
+//
+// `documentation/api/api-window.md` is the contract: a small utility opened from an
+// in-flow action extends `BlacksmithToolWindowBaseV2` and renders into the shared
+// `window-tool-template.hbs`, which owns the root, the scrolling body, the footer,
+// and every `input`, `select` and `textarea` inside it.
+//
+// The stylesheet check is the one that matters most and is the easiest to lose: the
+// Tool shell's surfaces are per-theme custom properties, so ANY colour literal in a
+// consumer's stylesheet is correct in one theme and wrong in the other two. That is
+// invisible to everything except a person who has switched theme.
+
+const BUILDER = 'scripts/window-rollbuilder.js';
+const BUILDER_CSS = 'styles/window-rollbuilder.css';
+const BUILDER_HBS = 'templates/window-rollbuilder.hbs';
+
+const builder = read(BUILDER);
+const builderCss = read(BUILDER_CSS);
+const builderHbs = read(BUILDER_HBS);
+
+if (!/extends\s+BlacksmithToolWindowBaseV2/.test(builder)) {
+    problems.push(`${BUILDER}: the Roll Builder must extend BlacksmithToolWindowBaseV2 -- a bare window draws its own frame and fields and stops following the user's Light/Dark/Glass choice`);
+}
+if (!builder.includes('templates/window-tool-template.hbs')) {
+    problems.push(`${BUILDER}: PARTS must render the shared templates/window-tool-template.hbs -- that template owns the root, the scrolling body and the footer`);
+}
+if (!/static ROOT_CLASS = 'blacksmith-window-tool-root'/.test(builder)) {
+    problems.push(`${BUILDER}: ROOT_CLASS must be 'blacksmith-window-tool-root' to match the shared shell`);
+}
+
+// The body renders INTO the shell, so it must not bring a root or a footer of its own.
+for (const [pattern, what] of [
+    [/class="blacksmith-window-tool-root"/, 'a duplicate tool root'],
+    [/<footer/, 'its own footer -- the shell renders one from toolFooterLeft/Right'],
+    [/cpb-dialog-buttons|blacksmith-window-btn-/, "the standard window's action-bar classes, which belong to a dark window and would paint onto the parchment shell"]
+]) {
+    if (pattern.test(builderHbs)) {
+        problems.push(`${BUILDER_HBS}: the body carries ${what}`);
+    }
+}
+
+const literals = [...builderCss.matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)|\bhsla?\([^)]*\)/g)].map((m) => m[0]);
+if (literals.length) {
+    problems.push(`${BUILDER_CSS}: ${literals.length} colour literal(s) -- ${[...new Set(literals)].slice(0, 4).join(', ')}${literals.length > 4 ? ', …' : ''}. A Tool window's surfaces are per-theme custom properties, so a literal is right in one theme and wrong in the other two. Use the --blacksmith-tool-* family; window-compendium-search.css is the reference`);
+}
+
 // ===== THE TEMPLATE'S SIDE =========================================
 
 // The rolls left the template and must not creep back: a hand-written row is not in
@@ -264,4 +329,4 @@ if (problems.length) {
     for (const problem of problems) console.error(`  - ${problem}`);
     process.exit(1);
 }
-console.log('check-quick-rolls: rows carry everything their readers want, the built-in rolls are all present, and a library survives its own export/import round trip.');
+console.log('check-quick-rolls: rows carry everything their readers want, the built-in rolls are all present, the builder is a Tool window with no colour literals, and a library survives its own export/import round trip.');

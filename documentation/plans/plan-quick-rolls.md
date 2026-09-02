@@ -63,6 +63,38 @@ writer does not set (every reader treats `undefined` as a legitimate "not set"),
 to a typo in the terse `flatMap` that builds them — which no existing world would report, because a world
 seeds exactly once.
 
+## Who rolls, in both modes
+
+`targets` (`party` / `selected`) applies to a contest as well as a normal roll. For a normal roll it folds
+into `data-roll-type` (`party` / `individual`), which is the vocabulary `_handleQuickRollItem` has always
+spoken; a contest spends `rollType` on saying it is a contest, so the answer travels separately in
+`data-targets` and the contested branch reads it.
+
+`party` on a contest means the party are the CHALLENGERS and anything else already selected becomes the
+defence. Anything unselected is left alone: the opposition is situational and the GM has just picked it.
+
+This was the one attribute the migration lost. The contested branch touched no contestant at all, so a
+saved contested roll fired against whatever was selected, or refused with "select at least one actor" —
+indistinguishable from the GM forgetting to select anybody.
+
+## The builder is a Tool window
+
+`BlacksmithToolWindowBaseV2` rendering into the shared `templates/window-tool-template.hbs`, per
+`documentation/api/api-window.md` — the contract for a small utility opened from an in-flow action. The
+shell owns the root, the scrolling body, the footer, the theming, and every form control inside it; the
+body template owns only its content and `styles/window-rollbuilder.css` carries **no colour literals**,
+because the Tool surfaces are per-theme custom properties and any literal is right in one theme and wrong
+in the other two.
+
+Ephemeral, so it follows the documented rules for one: a distinct `id` per instance (two Application V2
+windows sharing an id collide in the DOM) and `rememberPosition: false` (`windowPositionKey` defaults to
+the class name, so siblings would overwrite each other's saved position). The theme still persists — that
+is gated by its own flag.
+
+The first version of this window did none of that: it extended the standard base, drew its own root, and
+painted its own fields. It rendered, and it looked like a different module. `check-quick-rolls.mjs` now
+fails on all four halves of that mistake.
+
 ## Portability
 
 Export writes an envelope -- `{ type, version, exportedAt, world, rolls }` -- rather than a bare array, so

@@ -25,17 +25,35 @@
 // either one carrying folder logic.
 // ==================================================================
 
-import { toSentenceCase } from './api-core.js';
+import { postConsoleAndNotification } from './api-core.js';
+import { MODULE } from './const.js';
 
 /**
  * The Journal folder of that name, created at the root if it does not exist.
+ *
+ * MATCHED CASE-INSENSITIVELY, CREATED VERBATIM. This used to run the name through
+ * `toSentenceCase` before doing either, which is the same defect the container
+ * model was fixed for one level down: a folder name is the OWNING MODULE'S
+ * vocabulary, and reshaping it uninvited is how a lookup silently stops matching.
+ * It did two wrong things at once. A GM whose folder is `INJURIES` got a second
+ * folder called `Injuries`, because the search compared a transformed needle to
+ * untransformed haystacks; and a module asking for `injuries` had its folder
+ * renamed on creation, along with anything else the transform mangled -- it
+ * lowercases every character after the first of each word, so `McDonald` files
+ * under `Mcdonald` and a proper noun quietly loses its spelling.
+ *
+ * Case-insensitive matching is the half that prevents duplicates; creating
+ * verbatim is the half that respects the caller. Neither works alone.
+ *
  * @param {string} folderName
  * @returns {Promise<Folder|null>} null when no name was given.
  */
 export async function ensureJournalFolder(folderName) {
-    const name = toSentenceCase(String(folderName ?? '').trim());
+    const name = String(folderName ?? '').trim();
     if (!name) return null;
-    const existing = game.folders.find(folder => folder.name === name && folder.type === 'JournalEntry');
+    const wanted = name.toLocaleLowerCase();
+    const existing = game.folders.find(folder =>
+        folder.type === 'JournalEntry' && String(folder.name).toLocaleLowerCase() === wanted);
     if (existing) return existing;
     return await Folder.create({ name, type: 'JournalEntry', parent: null });
 }
@@ -66,6 +84,25 @@ export async function upsertJournalEntry(data, { folderName } = {}) {
         entry.name === name && (entry.folder?.id ?? null) === (folder?.id ?? null));
 
     if (!existing) {
+        // A JOURNAL OF THIS NAME ELSEWHERE IS WORTH SAYING OUT LOUD. Matching on name
+        // AND folder is correct and stays -- name alone collides across folders, which
+        // was the injury builder's bug. But the correct rule has a blind spot: the
+        // world gains a second journal with the same name and no signal at all, and
+        // the GM finds out when `game.journal.getName()` hands them the other one.
+        //
+        // It is not a rejection, because a payload naming a folder means that folder.
+        // The distinction the warning draws is between "add to the journal I mean" and
+        // "add to a journal that happens to share its name" -- invisible otherwise, and
+        // the wrong answer is the destructive one: appending into a GM's real content.
+        const elsewhere = game.journal.filter(entry => entry.name === name
+            && (entry.folder?.id ?? null) !== (folder?.id ?? null));
+        if (elsewhere.length) {
+            const where = elsewhere.map(entry => entry.folder?.name ?? 'the root').join(', ');
+            postConsoleAndNotification(MODULE.NAME,
+                `Creating a second journal named "${name}" in ${folder?.name ?? 'the root'} -- `
+                + `one already exists in ${where}. Pages were NOT added to the existing entry.`,
+                '', false, true);
+        }
         return await JournalEntry.create({ ...data, name, folder: folder?.id ?? null });
     }
 

@@ -133,13 +133,39 @@ Design, contract and build sequence: **`documentation/plans/plan-importer-api.md
 
 Steps 0-7 are shipped and live: Item, Roll Table and Actor are declared and routing -- fourteen profiles --
 each asserted against the parser it replaced and round-tripped through Foundry itself. What remains,
-in order, each leaving the module working: **8.** Journal, the `rendered` form plus the passthrough seam
-that lets us construct a module-owned subtype -- today's hardcoded `type: "text"` is what prevents it, and
-Librarian's codex and quests and Artificer's recipes are all waiting on it. **9.** fragments, `tags` first.
-**10.** export derivation and the three completeness layers. **11.** the parity check, then a consumer.
+in order, each leaving the module working: **8.** Journal plus the subtype seam that lets us construct a
+module-owned page type -- the hardcoded `type: "text"` was what prevented it, and Librarian's codex and
+quests, Artificer's recipes and Bibliosoph's injuries were all waiting on it. **9.** fragments, `tags`
+first. **10.** export derivation and the three completeness layers. **11.** the parity check, then a
+consumer.
+
+**Step 8 is code-complete and awaiting live verification, not done.** Two things are owed and both need a
+person in a world: a full Run All Headless (the last green predates six changes, including a blocking null
+fix) and one injury imported end to end by Bibliosoph. Both are itemised in `testing/importer-journal.md`.
+
+There were three profile forms when this was written and there are now two. `rendered` was deleted: Area
+was the case that justified it, and Area turned out to be `mapped` plus a derivation, so the third form was
+a second way to say something the first two already said.
 
 **Verify:** a field added to a declaration appears in the template, the guide, the prompt and the export
 with no other edit. That single check is the whole point of the model.
+
+### Five suite groups assert construction without validating the same shape
+
+`construction-parity`, `construction-errors`, `roundtrip-fixtures`, `field-group-value-gate`,
+`actor-construction` and `rolltable-parity` all call `buildDocumentData` and never `validateEntry`. In a
+real import the two run in series, so a payload that builds correctly but would be REJECTED by validation
+proves a parity or behaviour claim about a path no author can reach. That is not hypothetical: it is
+exactly how the `nullable` null bug survived -- its construction was asserted green while validation
+refused the value.
+
+`shipped-fixtures-validate` has been fixed, because its payloads are real artefacts we ship. These five use
+hand-written probe entries and need a judgement each rather than a sweep -- **`construction-errors`
+deliberately builds invalid entries**, so adding validation there would assert the opposite of what the
+group means. Work through them one at a time and ask, per group, whether the entry it builds could survive
+an import.
+
+**Verify:** for each group kept as-is, a comment saying why validation does not belong there.
 
 ### Blacksmith is consumer zero, and it must be checkable
 

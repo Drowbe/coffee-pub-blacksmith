@@ -1363,6 +1363,22 @@ async function importJournalEntry(journalData) {
         // record filed under it -- Bibliosoph's injuries are the first, where the
         // entry is a damage type and the page is one injury.
         const data = outcome.data;
+
+        // WHERE IT FILES. A profile may declare its folder as a constant or name the
+        // field carrying it; failing both, the historical convention applies -- a field
+        // literally named `foldername`, which is how Blacksmith's own three profiles
+        // and the import dialog supply it.
+        //
+        // The convention is kept because the dialog writes that key and a payload
+        // authored from any shipped template carries it. It is the FALLBACK rather than
+        // the rule because a convention cannot be checked: the first consumer to declare
+        // a journal profile did not know the key existed, and every page they imported
+        // landed at the world root while the import reported success.
+        const folderName = declaration.document?.folderName
+            ?? (declaration.document?.folderNameFrom
+                ? journalData?.[declaration.document.folderNameFrom]
+                : journalData.foldername);
+
         if (String(declaration.document?.documentName ?? '') === 'JournalEntryPage') {
             const document = declaration.document;
             // A CONSTANT container short-circuits everything below: there is no field
@@ -1370,7 +1386,7 @@ async function importJournalEntry(journalData) {
             if (document.containerName !== undefined) {
                 return await upsertJournalEntry(
                     { name: document.containerName, pages: [outcome.data] },
-                    { folderName: journalData.foldername });
+                    { folderName });
             }
             const container = String(journalData?.[document.containerNameFrom] ?? '').trim();
             if (!container) {
@@ -1397,7 +1413,7 @@ async function importJournalEntry(journalData) {
                         { allowed: Object.keys(document.containerNameMap), actual: container }));
                 }
                 return await upsertJournalEntry({ name: mapped, pages: [outcome.data] },
-                    { folderName: journalData.foldername });
+                    { folderName });
             }
 
             const nameTransform = document.containerNameTransform;
@@ -1407,9 +1423,9 @@ async function importJournalEntry(journalData) {
                 name = await applyTransform(nameTransform, container, { declaration });
             }
             return await upsertJournalEntry({ name, pages: [data] },
-                { folderName: journalData.foldername });
+                { folderName });
         }
-        return await upsertJournalEntry(data, { folderName: journalData.foldername });
+        return await upsertJournalEntry(data, { folderName });
     }
 
     validateJournalEntry(journalData);

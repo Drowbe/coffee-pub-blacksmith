@@ -1377,6 +1377,22 @@ export default {
                         log(`${file}: ${outcome.errors.map(one => `${one.code} ${one.path}`).join(', ')}`);
                     }
                     expect(`${file} validates as ${kind}.${profile}`, outcome.errors, []);
+
+                    // AND THEN BUILDS. Validation and construction run in series in a real
+                    // import, and asserting either alone reports a working system while the
+                    // other half refuses every input. A `nullable` field whose null was
+                    // rejected by validation had its CONSTRUCTION asserted green for weeks,
+                    // because construction is the interesting half and therefore the half
+                    // that gets written. Both, against one fixture, or neither means much.
+                    if (outcome.errors.length) continue;
+                    try {
+                        const built = await manager.buildDocumentData(kind, profile, entry);
+                        expect.ok(`${file} then builds a document`,
+                            !!built && typeof built === 'object' && typeof built.name === 'string');
+                    } catch (error) {
+                        log(`${file} build threw: ${error.message}`);
+                        expect.ok(`${file} then builds a document`, false);
+                    }
                 }
             }
         },
@@ -1708,6 +1724,29 @@ export default {
                 expect.ok('and the profile builds a page, not an entry with no pages',
                     page?.pages === undefined);
 
+                // THE OTHER HALF OF THE SAME FIELD. Everything above builds; nothing above
+                // VALIDATES, and construction is not reachable in a world until validation
+                // passes. This exact fixture -- treatmentdc, nullable, min 1, null -- sat
+                // here green while `validateEntry` rejected that null with "must be 1 or
+                // more", because the null guard fell through to a bounds check where
+                // `Number(null)` is 0. The suite could not fail the way the importer did.
+                const check = (entry) => manager.validateEntry(kind, 'injury', entry).errors;
+                const base = { title: 'Seared Flesh', category: 'fire', severity: 'minor' };
+                expect('a nullable field ACCEPTS null through validation, not just construction',
+                    check({ ...base, treatmentdc: null }), []);
+                expect.ok('a non-nullable field rejects null rather than accepting it silently',
+                    check({ ...base, severity: null }).some(one => one.code === 'VALUE_NOT_ALLOWED'));
+                expect.ok('a nullable field still enforces its bounds on a real number',
+                    check({ ...base, treatmentdc: 0 }).some(one => one.code === 'VALUE_OUT_OF_RANGE'));
+                expect.ok('and an omitted nullable field is an absence, not a bounds violation',
+                    check(base).length === 0);
+                // A non-number must report the TYPE. Coercing it to compare bounds turns a
+                // legible type error into a confident wrong one -- `Number(undefined)` is
+                // NaN, where every comparison is false and an illegal value passes.
+                const mistyped = check({ ...base, treatmentdc: 'high' });
+                expect.ok('a mistyped value reports its type and invents no range error',
+                    mistyped.length === 1 && mistyped[0].code === 'TYPE_MISMATCH');
+
                 // The container NAME is produced by a named transform, not a casing
                 // enum. Asserting that a second, unrelated transform is accepted is
                 // what proves the mechanism is general rather than one consumer's need
@@ -1731,6 +1770,58 @@ export default {
                 expect.ok('titleCase is accepted', named('titleCase') === null);
                 expect.ok('and so is slug, an unrelated transform', named('slug') === null);
                 expect.ok('omitting it is accepted, leaving the value untouched', named(null) === null);
+            }
+        },
+
+        {
+            id: 'journal-folder-destination',
+            label: 'A profile can declare where it files, rather than naming a field by convention',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The first outside consumer imported every page to the world root and was told nothing.',
+            run: async ({ expect }) => {
+                const { registry } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-journal.js`);
+
+                // The convention still works -- the import dialog writes `foldername` and
+                // every shipped template carries it -- so the three profiles that rely on
+                // it must keep registering.
+                expect('the shipped journal profiles still register',
+                    registry.getDeclarationsForKind('journal').length, 3);
+
+                const fields = [{ name: 'title', path: 'name', type: 'string' },
+                                { name: 'destination', role: 'input', type: 'string' }];
+                const reg = (document) => {
+                    try {
+                        registry.registerDeclaration({
+                            kind: `probe-folder-${foundry.utils.randomID(6)}`, id: 'x', label: 'X',
+                            schemaVersion: 1, form: 'mapped', document, fields
+                        });
+                        return null;
+                    } catch (error) { return error.message; }
+                };
+
+                expect.ok('a constant folder is accepted',
+                    reg({ documentName: 'JournalEntry', folderName: 'Injuries' }) === null);
+                expect.ok('so is a field naming it',
+                    reg({ documentName: 'JournalEntry', folderNameFrom: 'destination' }) === null);
+                // Root is a legitimate destination and Blacksmith's own profiles take the
+                // folder from the dialog, so requiring one here would make the honest case
+                // unwritable. Declaring it is what makes the intent checkable.
+                expect.ok('declaring neither is still legal',
+                    reg({ documentName: 'JournalEntry' }) === null);
+                expect.ok('both together are rejected as alternatives',
+                    (reg({ documentName: 'JournalEntry', folderName: 'A',
+                           folderNameFrom: 'destination' }) ?? '').includes('alternatives'));
+                expect.ok('a folder field that does not exist is rejected by name',
+                    (reg({ documentName: 'JournalEntry',
+                           folderNameFrom: 'nope' }) ?? '').includes('not a declared field'));
+                expect.ok('an empty constant is rejected',
+                    (reg({ documentName: 'JournalEntry',
+                           folderName: '   ' }) ?? '').includes('non-empty string'));
+                expect.ok('and a misspelled folder key still fails the allow-list',
+                    (reg({ documentName: 'JournalEntry',
+                           folderNam: 'X' }) ?? '').includes('unknown document.'));
             }
         },
 

@@ -1,184 +1,194 @@
-<div class="cpb-roll-builder">
-    {{!-- The builder reads top to bottom as the question it is asking: what kind of
-          roll, rolled by whom, against what, shown how, filed where, called what.
-          The preview at the bottom is the answer, in the shape the QUICK tab will
-          show it -- so the row is checked here rather than after saving. --}}
+{{!-- The Roll Builder's BODY ONLY.
 
-    <div class="cpb-builder-body">
+      Rendered into `bodyContent` of the shared `window-tool-template.hbs`, which owns
+      the root, the scrolling body, and the footer the Cancel/Save buttons sit in. There
+      is deliberately no root element, no footer and no <button> chrome here: those
+      belong to the Tool shell, and a window that draws its own stops following the
+      user's Light/Dark/Glass choice.
 
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Roll Type</div>
-            <div class="cpb-builder-choices">
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="mode" value="normal" {{#unless isContested}}checked{{/unless}}>
-                    <i class="fas fa-dice-d20"></i>
-                    <span class="cpb-builder-choice-label">Normal</span>
-                    <span class="cpb-builder-choice-hint">Everyone rolls the same check.</span>
-                </label>
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="mode" value="contested" {{#if isContested}}checked{{/if}}>
-                    <i class="fas fa-people-arrows"></i>
-                    <span class="cpb-builder-choice-label">Contested</span>
-                    <span class="cpb-builder-choice-hint">Challengers roll against defenders.</span>
-                </label>
-            </div>
+      The fields are bare `input` and `select`. The Tool shell repaints every one of
+      them from its `--blacksmith-tool-field-*` family, so they need no classes and no
+      colours of their own.
+
+      It reads top to bottom as the question it is asking: what kind of roll, rolled by
+      whom, against what, shown how, filed where, called what. The preview at the bottom
+      is the answer, in the shape the QUICK tab will render. --}}
+
+<div class="cpb-builder">
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Roll Type</h3>
+        <div class="cpb-builder-choices">
+            <label class="cpb-builder-choice">
+                <input type="radio" name="mode" value="normal" {{#unless isContested}}checked{{/unless}}>
+                <i class="fas fa-dice-d20"></i>
+                <span class="cpb-builder-choice-label">Normal</span>
+                <span class="cpb-builder-choice-hint">Everyone rolls the same check.</span>
+            </label>
+            <label class="cpb-builder-choice">
+                <input type="radio" name="mode" value="contested" {{#if isContested}}checked{{/if}}>
+                <i class="fas fa-people-arrows"></i>
+                <span class="cpb-builder-choice-label">Contested</span>
+                <span class="cpb-builder-choice-hint">Challengers roll against defenders.</span>
+            </label>
         </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">What Is Rolled</div>
-            <div class="cpb-builder-field">
-                <label>Challenger</label>
-                <select name="challengerType">
-                    {{#each challengerTypes}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
-                </select>
-                <select name="challengerValue">
-                    {{#each challengerValues}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
-                </select>
-            </div>
-            <div class="cpb-builder-field" data-when="contested">
-                <label>Defender</label>
-                <select name="defenderType">
-                    {{#each defenderTypes}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
-                </select>
-                <select name="defenderValue">
-                    {{#each defenderValues}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
-                </select>
-            </div>
-        </div>
-
-        {{!-- Both of these are questions a contest does not have: it names two sides
-              explicitly, and the comparison IS the outcome. --}}
-        <div class="cpb-builder-section" data-when="normal">
-            <div class="cpb-section-header">Who Rolls</div>
-            <div class="cpb-builder-choices">
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="targets" value="selected" {{#unless (eq record.targets 'party')}}checked{{/unless}}>
-                    <i class="fas fa-user-group-crown"></i>
-                    <span class="cpb-builder-choice-label">Selected Tokens</span>
-                    <span class="cpb-builder-choice-hint">Whoever is chosen when it fires.</span>
-                </label>
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="targets" value="party" {{#if (eq record.targets 'party')}}checked{{/if}}>
-                    <i class="fas fa-helmet-battle"></i>
-                    <span class="cpb-builder-choice-label">Whole Party</span>
-                    <span class="cpb-builder-choice-hint">Every player character, selected or not.</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="cpb-builder-section" data-when="normal">
-            <div class="cpb-section-header">Success</div>
-            <div class="cpb-builder-choices">
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="success" value="individual" {{#unless (eq record.success 'group')}}checked{{/unless}}>
-                    <i class="fas fa-user-check"></i>
-                    <span class="cpb-builder-choice-label">Individual</span>
-                    <span class="cpb-builder-choice-hint">Each roller passes or fails alone.</span>
-                </label>
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="success" value="group" {{#if (eq record.success 'group')}}checked{{/if}}>
-                    <i class="fas fa-users"></i>
-                    <span class="cpb-builder-choice-label">Group</span>
-                    <span class="cpb-builder-choice-hint">Half the party passing carries it.</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Difficulty</div>
-            <div class="cpb-builder-field">
-                <label>DC</label>
-                {{!-- Optional, and empty is a real answer: a roll with no DC reports a
-                      total and nothing else, which is what a contest and a plain
-                      "roll me Perception" both want. --}}
-                <input type="number" name="dc" min="1" max="50" step="1" value="{{record.dc}}" placeholder="None" data-tooltip="Leave empty for a roll with no target number">
-            </div>
-        </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Flavor</div>
-            <div class="cpb-builder-choices">
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="isCinematicChoice" value="chat" {{#unless record.isCinematic}}checked{{/unless}}>
-                    <i class="fas fa-comment"></i>
-                    <span class="cpb-builder-choice-label">Chat Card</span>
-                    <span class="cpb-builder-choice-hint">Posts quietly to chat.</span>
-                </label>
-                <label class="cpb-builder-choice">
-                    <input type="radio" name="isCinematicChoice" value="cinematic" {{#if record.isCinematic}}checked{{/if}}>
-                    <i class="fas fa-film"></i>
-                    <span class="cpb-builder-choice-label">Cinematic</span>
-                    <span class="cpb-builder-choice-hint">Takes over the screen for the table.</span>
-                </label>
-            </div>
-            {{!-- The radios above are the control; this carries the value the record
-                  actually stores, kept in step by the builder. Two radios are clearer
-                  to click than a lone checkbox labelled "cinematic". --}}
-            <input type="checkbox" name="isCinematic" {{#if record.isCinematic}}checked{{/if}} hidden>
-        </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Category</div>
-            <div class="cpb-builder-field">
-                <label>File under</label>
-                <select name="categorySelect">
-                    {{#each categories}}<option value="{{this}}" {{#if (eq this ../record.category)}}selected{{/if}}>{{this}}</option>{{/each}}
-                    <option value="__new__">New category…</option>
-                </select>
-            </div>
-            <div class="cpb-builder-field" data-category-new hidden>
-                <label>New name</label>
-                <input type="text" name="categoryNew" maxlength="60" placeholder="e.g. Chase Rolls" value="">
-            </div>
-        </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Details</div>
-            <div class="cpb-builder-field">
-                <label>Label</label>
-                <input type="text" name="label" maxlength="80" placeholder="e.g. DC 12 Athletics vs Acrobatics" value="{{record.label}}">
-            </div>
-            <div class="cpb-builder-field">
-                <label>Description</label>
-                <input type="text" name="description" maxlength="160" placeholder="What this roll is for" value="{{record.description}}">
-            </div>
-            <div class="cpb-builder-field">
-                <label>Card title</label>
-                <input type="text" name="rollTitle" maxlength="80" placeholder="Heads the chat card and the cinematic plate" value="{{record.rollTitle}}">
-            </div>
-            {{!-- The palette covers what these rolls actually use plus the obvious
-                  neighbours; the field beneath takes any Font Awesome class, because a
-                  fixed grid is a guess about what a table will want. --}}
-            <div class="cpb-builder-field cpb-builder-field-stacked">
-                <label>Icon</label>
-                <div class="cpb-icon-palette">
-                    {{#each iconPalette}}
-                    <button type="button" class="cpb-icon-swatch{{#if this.selected}} cpb-icon-swatch-on{{/if}}" data-icon="{{this.icon}}" data-tooltip="{{this.name}}" aria-label="{{this.name}}"><i class="{{this.icon}}"></i></button>
-                    {{/each}}
-                </div>
-                <input type="text" name="icon" maxlength="60" placeholder="fas fa-dice-d20" value="{{record.icon}}" data-tooltip="Any Font Awesome class. Pick above, or type one.">
-            </div>
-        </div>
-
-        <div class="cpb-builder-section">
-            <div class="cpb-section-header">Preview</div>
-            <div class="cpb-check-item cpb-builder-preview-row">
-                <i class="{{record.icon}}"></i>
-                <span class="cpb-roll-label">{{record.label}}</span><span class="cpb-roll-description">{{record.description}}</span>
-            </div>
-            <p class="cpb-builder-summary"></p>
-        </div>
-
     </div>
 
-    <div class="cpb-dialog-buttons blacksmith-actions-fill">
-        <button class="blacksmith-window-btn-secondary" data-button="cancel">
-            <i class="fas fa-times"></i>
-            Cancel
-        </button>
-        <button class="blacksmith-window-btn-primary" data-button="save">
-            <i class="fas fa-floppy-disk"></i>
-            Save Roll
-        </button>
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">What Is Rolled</h3>
+        <div class="cpb-builder-field">
+            <label for="cpb-challenger-value">Challenger</label>
+            <select name="challengerType" aria-label="Challenger roll type">
+                {{#each challengerTypes}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+            </select>
+            <select name="challengerValue" id="cpb-challenger-value">
+                {{#each challengerValues}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+            </select>
+        </div>
+        <div class="cpb-builder-field" data-when="contested">
+            <label for="cpb-defender-value">Defender</label>
+            <select name="defenderType" aria-label="Defender roll type">
+                {{#each defenderTypes}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+            </select>
+            <select name="defenderValue" id="cpb-defender-value">
+                {{#each defenderValues}}<option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>{{/each}}
+            </select>
+        </div>
     </div>
+
+    {{!-- WHO ROLLS APPLIES TO BOTH MODES.
+
+          It used to be hidden for a contest, on the reasoning that a contest names its
+          two sides explicitly. It does name the two ROLLS explicitly -- it does not name
+          who makes them, and a contested quick roll with no answer here fired against
+          whatever happened to be selected, or refused with "select at least one actor".
+          "Party Stealth vs the guards I have selected" is the ordinary case and there
+          was no way to save it. --}}
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Who Rolls</h3>
+        <div class="cpb-builder-choices">
+            <label class="cpb-builder-choice">
+                <input type="radio" name="targets" value="selected" {{#unless (eq record.targets 'party')}}checked{{/unless}}>
+                <i class="fas fa-user-group-crown"></i>
+                <span class="cpb-builder-choice-label">Selected Tokens</span>
+                <span class="cpb-builder-choice-hint">Whoever is chosen when it fires.</span>
+            </label>
+            <label class="cpb-builder-choice">
+                <input type="radio" name="targets" value="party" {{#if (eq record.targets 'party')}}checked{{/if}}>
+                <i class="fas fa-helmet-battle"></i>
+                <span class="cpb-builder-choice-label">Whole Party</span>
+                <span class="cpb-builder-choice-hint cpb-builder-hint-normal">Every player character, selected or not.</span>
+                <span class="cpb-builder-choice-hint cpb-builder-hint-contested" hidden>The party challenge; anything else selected defends.</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="cpb-builder-section" data-when="normal">
+        <h3 class="cpb-builder-heading">Success</h3>
+        <div class="cpb-builder-choices">
+            <label class="cpb-builder-choice">
+                <input type="radio" name="success" value="individual" {{#unless (eq record.success 'group')}}checked{{/unless}}>
+                <i class="fas fa-user-check"></i>
+                <span class="cpb-builder-choice-label">Individual</span>
+                <span class="cpb-builder-choice-hint">Each roller passes or fails alone.</span>
+            </label>
+            <label class="cpb-builder-choice">
+                <input type="radio" name="success" value="group" {{#if (eq record.success 'group')}}checked{{/if}}>
+                <i class="fas fa-users"></i>
+                <span class="cpb-builder-choice-label">Group</span>
+                <span class="cpb-builder-choice-hint">Half the party passing carries it.</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Difficulty</h3>
+        <div class="cpb-builder-field">
+            <label for="cpb-dc">DC</label>
+            {{!-- Optional, and empty is a real answer: a roll with no DC reports a total
+                  and nothing else, which is what a contest and a plain "roll me
+                  Perception" both want. --}}
+            <input type="number" name="dc" id="cpb-dc" min="1" max="50" step="1" value="{{record.dc}}" placeholder="None" data-tooltip="Leave empty for a roll with no target number">
+        </div>
+    </div>
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Flavor</h3>
+        <div class="cpb-builder-choices">
+            <label class="cpb-builder-choice">
+                <input type="radio" name="isCinematicChoice" value="chat" {{#unless record.isCinematic}}checked{{/unless}}>
+                <i class="fas fa-comment"></i>
+                <span class="cpb-builder-choice-label">Chat Card</span>
+                <span class="cpb-builder-choice-hint">Posts quietly to chat.</span>
+            </label>
+            <label class="cpb-builder-choice">
+                <input type="radio" name="isCinematicChoice" value="cinematic" {{#if record.isCinematic}}checked{{/if}}>
+                <i class="fas fa-film"></i>
+                <span class="cpb-builder-choice-label">Cinematic</span>
+                <span class="cpb-builder-choice-hint">Takes over the screen for the table.</span>
+            </label>
+        </div>
+        {{!-- The radios above are the control; this carries the value the record stores,
+              kept in step by the builder. Two radios are clearer to click than a lone
+              checkbox labelled "cinematic". --}}
+        <input type="checkbox" name="isCinematic" {{#if record.isCinematic}}checked{{/if}} hidden>
+    </div>
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Category</h3>
+        <div class="cpb-builder-field">
+            <label for="cpb-category">File under</label>
+            <select name="categorySelect" id="cpb-category">
+                {{#each categories}}<option value="{{this}}" {{#if (eq this ../record.category)}}selected{{/if}}>{{this}}</option>{{/each}}
+                <option value="__new__">New category…</option>
+            </select>
+        </div>
+        <div class="cpb-builder-field" data-category-new hidden>
+            <label for="cpb-category-new">New name</label>
+            <input type="text" name="categoryNew" id="cpb-category-new" maxlength="60" placeholder="e.g. Chase Rolls" value="">
+        </div>
+    </div>
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Details</h3>
+        <div class="cpb-builder-field">
+            <label for="cpb-label">Label</label>
+            <input type="text" name="label" id="cpb-label" maxlength="80" placeholder="e.g. DC 12 Athletics vs Acrobatics" value="{{record.label}}">
+        </div>
+        <div class="cpb-builder-field">
+            <label for="cpb-description">Description</label>
+            <input type="text" name="description" id="cpb-description" maxlength="160" placeholder="What this roll is for" value="{{record.description}}">
+        </div>
+        <div class="cpb-builder-field">
+            <label for="cpb-roll-title">Card title</label>
+            <input type="text" name="rollTitle" id="cpb-roll-title" maxlength="80" placeholder="Heads the chat card and the cinematic plate" value="{{record.rollTitle}}">
+        </div>
+        {{!-- The palette covers what these rolls actually use plus the obvious
+              neighbours; the field beneath takes any Font Awesome class, because a fixed
+              grid is a guess about what a table will want. --}}
+        <div class="cpb-builder-field cpb-builder-field-stacked">
+            <label for="cpb-icon">Icon</label>
+            <div class="cpb-icon-palette">
+                {{#each iconPalette}}
+                <button type="button" class="cpb-icon-swatch{{#if this.selected}} cpb-icon-swatch-on{{/if}}" data-icon="{{this.icon}}" data-tooltip="{{this.name}}" aria-label="{{this.name}}"><i class="{{this.icon}}"></i></button>
+                {{/each}}
+            </div>
+            <input type="text" name="icon" id="cpb-icon" maxlength="60" placeholder="fas fa-dice-d20" value="{{record.icon}}" data-tooltip="Any Font Awesome class. Pick above, or type one.">
+        </div>
+    </div>
+
+    <div class="cpb-builder-section">
+        <h3 class="cpb-builder-heading">Preview</h3>
+        {{!-- Its own markup rather than a borrowed `.cpb-check-item`: that class belongs
+              to the Request a Roll window, which is a dark standard window, and dragging
+              it in here would paint a black row onto a parchment shell. This is the same
+              SHAPE -- icon, label, description -- drawn in the Tool shell's own tones. --}}
+        <div class="cpb-builder-preview">
+            <i class="{{record.icon}}"></i>
+            <span class="cpb-builder-preview-label">{{record.label}}</span>
+            <span class="cpb-builder-preview-description">{{record.description}}</span>
+        </div>
+        <p class="cpb-builder-summary"></p>
+    </div>
+
 </div>

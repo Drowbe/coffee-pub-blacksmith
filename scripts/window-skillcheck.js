@@ -483,6 +483,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         row.dataset.tooltip = roll.description || roll.label;
         row.dataset.cinematic = String(!!roll.isCinematic);
 
+        // WHO ROLLS, on every row. For a normal roll it is folded into `rollType`,
+        // which is the vocabulary `_handleQuickRollItem` has always spoken; a contest
+        // needs it separately, because `rollType` is spent saying the roll is a contest.
+        row.dataset.targets = roll.targets;
         if (roll.mode === 'contested') {
             row.dataset.rollType = 'contested';
             row.dataset.defenderSkill = roll.defender?.value ?? '';
@@ -902,6 +906,32 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             });
         } else if (rollType === 'contested') {
             postConsoleAndNotification(MODULE.NAME, 'CPB | Setting up contested roll:', { value, defenderSkillAttr }, true, false);
+
+            // A CONTEST CAN NAME ITS CHALLENGERS. This branch used to touch no
+            // contestant at all, so a saved contested roll fired against whatever was
+            // selected -- or refused outright with "select at least one actor" -- and
+            // "Party Stealth vs the guards" could not be saved as one click.
+            //
+            // The party become challengers and everything else already selected becomes
+            // the defence, which is the only reading of "whole party" that leaves a
+            // contest with two sides. Anything not selected is left alone: the opposition
+            // is situational and the GM has just picked it.
+            if (item.dataset.targets === 'party') {
+                htmlElement.querySelectorAll('.cpb-actor-item').forEach((actorItem) => {
+                    const { actor } = this._resolveContestantFromElement(actorItem);
+                    if (!actor) return;
+                    const indicator = actorItem.querySelector('.cpb-group-indicator');
+                    if (actor.hasPlayerOwner) {
+                        actorItem.classList.remove('cpb-group-2');
+                        actorItem.classList.add('selected', 'cpb-group-1');
+                        if (indicator) indicator.innerHTML = '<i class="fas fa-swords" title="Challenger Roll"></i>';
+                    } else if (actorItem.classList.contains('selected')) {
+                        actorItem.classList.remove('cpb-group-1');
+                        actorItem.classList.add('cpb-group-2');
+                        if (indicator) indicator.innerHTML = '<i class="fas fa-shield-halved" title="Defender Roll"></i>';
+                    }
+                });
+            }
 
             const quickRollMap = {
                 'perception': 'prc',
@@ -1840,7 +1870,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             if (!isRoller) return;
             
             if (selectedActors.length === 0) {
-                ui.notifications.warn("Please select at least one actor.");
+                // "Contestant" rather than "actor": it is what the column is called, what
+                // the hint under it says, and what the subtitle counts.
+                ui.notifications.warn('Select at least one contestant on the left before requesting a roll.');
                 return;
             }
             
@@ -1894,13 +1926,34 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         challengerRollValue = defenderRollValue = this.defenderRoll.value;
                     }
                 } else {
-                    ui.notifications.warn("Please select at least one roll type.");
+                    // Both groups are marked, so the contest is set up; what is missing is
+                    // the roll itself. Says which click does which, because the two are
+                    // not guessable and the hint that explains them is at the foot of a
+                    // column that may be scrolled away.
+                    ui.notifications.warn('Choose what the challengers roll: left-click a roll on the right. Right-click one to give the defenders a different roll.');
                     return;
                 }
             } else {
                 // For non-contested rolls, use the primary selection
                 if (!this.selectedType || !this.selectedValue) {
-                    ui.notifications.warn("Please select a check type.");
+                    // THIS WAS A CATCH-ALL AND IT CAUGHT THE WRONG THING MOST OF THE TIME.
+                    //
+                    // A contested roll only counts as contested when BOTH groups are
+                    // marked. Choose a contested roll and forget to mark a defender and
+                    // the request is not contested, so it arrives here -- where
+                    // `selectedType` is empty, because a contested roll is stored in
+                    // `challengerRoll`/`defenderRoll` and never touches it. The GM had
+                    // picked a roll and was told to pick a roll.
+                    //
+                    // The roll state says which half is actually missing, so it says so.
+                    const wantsContest = !!(this.challengerRoll?.type || this.defenderRoll?.type);
+                    if (wantsContest && !hasDefenders) {
+                        ui.notifications.warn('This is a contested roll, but no defenders are marked. Right-click a contestant on the left to make them a defender.');
+                    } else if (wantsContest && !hasChallengers) {
+                        ui.notifications.warn('This is a contested roll, but no challengers are marked. Left-click a contestant on the left to make them a challenger.');
+                    } else {
+                        ui.notifications.warn('Choose a roll on the right — a skill, ability, save, tool, or a dice formula.');
+                    }
                     return;
                 }
                 challengerRollType = defenderRollType = this.selectedType;
@@ -2393,8 +2446,13 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                             }
                         }
                     } catch (error) {
+                        // Names the tool and the reason. The old text said neither, so a
+                        // GM whose actor data had one malformed tool was told only that
+                        // "something" had gone wrong with "the tool selection" -- with no
+                        // way to tell which of a dozen rows was the bad one.
                         console.error('Error in tool selection', error);
-                        ui.notifications.error('There was an error processing the tool selection.');
+                        const toolName = item.dataset.toolName || item.querySelector('.cpb-roll-label')?.textContent?.trim() || 'that tool';
+                        ui.notifications.error(`Could not select ${toolName}: ${error?.message ?? error}. See the console for details.`);
                     }
                 };
                 
@@ -3016,7 +3074,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (!record) return;
         const parsed = SkillCheckDialog.parseDiceBuild(record.formula);
         if (!parsed) {
-            ui.notifications.warn(`"${record.name}" cannot be shown in the builder.`);
+            // Says WHY, because the roll is not broken -- it is one the rows cannot
+            // draw, and it still fires correctly from Favorites. Without the reason this
+            // reads as a corrupt saved roll.
+            ui.notifications.warn(`"${record.name}" uses a formula the builder's rows cannot show (${record.display || record.formula}). It still rolls from Favorites; the builder handles one flat modifier and no subtracted dice.`);
             return;
         }
         this._resetDiceBuild(root);
@@ -3335,8 +3396,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         try {
             return await SkillCheckDialog._executeFavoriteFromRecord(rec);
         } catch (e) {
-            const msg = e?.message ?? String(e);
-            ui.notifications.error(msg);
+            // Prefixed with WHICH favourite. A bare `e.message` arriving as a toast with
+            // no subject reads as a module-wide failure rather than as one saved roll
+            // that no longer works -- and the whole point of favourites is that you fire
+            // them without looking.
+            const name = rec.rollTitle || rec.label || 'That favorite';
+            ui.notifications.error(`${name} could not be rolled: ${e?.message ?? String(e)}`);
             return null;
         }
     }
@@ -3375,7 +3440,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const skillValue = quickValueToSkillId[raw] || rec.value;
 
             if (!skillValue) {
-                ui.notifications.warn('Favorite is missing a skill value.');
+                ui.notifications.warn(`"${rec.label || rec.rollTitle || 'That favorite'}" has no skill saved on it. Remove it and favorite the roll again.`);
                 return null;
             }
 
@@ -3430,7 +3495,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             });
         }
 
-        ui.notifications.warn('Unknown favorite type.');
+        // Names the type it did not recognise, and says what to do. A favourite reaches
+        // this only if it was saved by a newer version or hand-edited in settings, and
+        // neither is diagnosable from "Unknown favorite type."
+        ui.notifications.warn(`This favorite is a "${type ?? 'blank'}" roll, which this version cannot run. Remove it, or update Blacksmith.`);
         return null;
     }
 

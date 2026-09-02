@@ -12,27 +12,44 @@
 // writes through `QuickRollsManager` and calls back so the list behind it can
 // re-render. Nothing here reads or writes the setting directly, which is what
 // keeps the normalization in one place.
+//
+// A TOOL WINDOW, on `BlacksmithToolWindowBaseV2` and the shared
+// `window-tool-template.hbs`. That is the framework's contract for a small utility
+// opened from an in-flow action, and taking it means the shell -- frame, title bar,
+// theming, position, and the whole `input`/`select`/`textarea` family -- is the
+// system's rather than this file's. The first version of this window rendered its own
+// root and painted its own fields, which is exactly the thing the base exists to stop:
+// it looked like a different module and it ignored the user's Light/Dark/Glass choice.
+//
+// EPHEMERAL, so it follows the documented rules for one: a distinct id per instance,
+// because two Application V2 windows sharing an id collide in the DOM, and
+// `rememberPosition: false`, because `windowPositionKey` defaults to the class name
+// and siblings would overwrite each other's saved position. The theme is remembered
+// regardless -- that is gated by its own flag.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { BlacksmithWindowBaseV2 } from './window-base.js';
+import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { QuickRollsManager } from './manager-quick-rolls.js';
 
-export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
-    static ROOT_CLASS = 'cpb-roll-builder';
+export class RollBuilderWindow extends BlacksmithToolWindowBaseV2 {
+    static ROOT_CLASS = 'blacksmith-window-tool-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
         {
-            id: 'cpb-roll-builder',
-            classes: ['coffee-pub-blacksmith', 'cpb-roll-builder'],
-            position: { width: 560, height: 720 },
-            window: { title: 'Roll Builder', resizable: true, minimizable: true }
+            id: 'blacksmith-roll-builder',
+            classes: ['blacksmith-rollbuilder-tool-window'],
+            position: { width: 520, height: 700 },
+            window: { title: 'Roll Builder', resizable: true, minimizable: true },
+            windowSizeConstraints: { minWidth: 420, maxWidth: 720 },
+            rememberPosition: false
         }
     );
 
+    /** The shared tool shell. The body below is rendered into its `bodyContent`. */
     static PARTS = {
-        body: { template: `modules/${MODULE.ID}/templates/window-rollbuilder.hbs` }
+        body: { template: `modules/${MODULE.ID}/templates/window-tool-template.hbs` }
     };
 
     /**
@@ -41,7 +58,12 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
      * @param {Function} [data.onSave] - called with the saved record once it is written
      */
     constructor(data = {}) {
-        super({ window: { title: data.record ? 'Edit Roll' : 'New Roll' } });
+        super({
+            // Distinct per instance: opening Edit while a New Roll is still open would
+            // otherwise put two windows on one DOM id.
+            id: `blacksmith-roll-builder-${foundry.utils.randomID(8)}`,
+            window: { title: data.record ? 'Edit Roll' : 'New Roll' }
+        });
         this.record = data.record ? QuickRollsManager.normalize(data.record) : null;
         this.onSave = typeof data.onSave === 'function' ? data.onSave : null;
     }
@@ -116,7 +138,7 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
         };
     }
 
-    getData() {
+    async getData() {
         const record = this.record ?? QuickRollsManager.normalize({
             category: QuickRollsManager.categories()[0] ?? 'Quick Rolls'
         });
@@ -127,20 +149,30 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
         // this module registers is for `{{#if}}`.
         const withSelection = (list, value) => list.map((o) => ({ ...o, selected: o.key === value }));
 
+        const bodyContent = await foundry.applications.handlebars.renderTemplate(
+            `modules/${MODULE.ID}/templates/window-rollbuilder.hbs`,
+            {
+                isEdit: !!this.record,
+                record,
+                challengerTypes: QuickRollsManager.ROLL_TYPES.map((t) => ({ ...t, selected: t.key === record.challenger.type })),
+                defenderTypes: QuickRollsManager.ROLL_TYPES.map((t) => ({ ...t, selected: t.key === (record.defender?.type ?? 'skill') })),
+                challengerValues: withSelection(choices[record.challenger.type] ?? choices.skill, record.challenger.value),
+                defenderValues: withSelection(choices[record.defender?.type ?? 'skill'] ?? choices.skill, record.defender?.value),
+                categories: QuickRollsManager.categories(),
+                iconPalette: RollBuilderWindow.ICON_PALETTE.map((entry) => ({ ...entry, selected: entry.icon === record.icon })),
+                isContested: record.mode === 'contested'
+            }
+        );
+
+        // Cancel and Save go in the SHELL'S FOOTER rather than in the body, so they
+        // stay put while the form scrolls and wear the frame's own divider. The shell
+        // owns the bar; this owns what is in it.
         return {
-            isEdit: !!this.record,
-            record,
-            rollTypes: QuickRollsManager.ROLL_TYPES.map((t) => ({ ...t, selected: false })),
-            challengerTypes: QuickRollsManager.ROLL_TYPES.map((t) => ({ ...t, selected: t.key === record.challenger.type })),
-            defenderTypes: QuickRollsManager.ROLL_TYPES.map((t) => ({ ...t, selected: t.key === (record.defender?.type ?? 'skill') })),
-            challengerValues: withSelection(choices[record.challenger.type] ?? choices.skill, record.challenger.value),
-            defenderValues: withSelection(choices[record.defender?.type ?? 'skill'] ?? choices.skill, record.defender?.value),
-            allValues: choices,
-            categories: QuickRollsManager.categories(),
-            iconPalette: RollBuilderWindow.ICON_PALETTE.map((entry) => ({ ...entry, selected: entry.icon === record.icon })),
-            isContested: record.mode === 'contested',
-            showOptionBar: false,
-            showTools: false
+            appId: this.id,
+            bodyContent,
+            showToolFooter: true,
+            toolFooterLeft: '<button type="button" class="cpb-builder-cancel" data-button="cancel"><i class="fas fa-times"></i> Cancel</button>',
+            toolFooterRight: `<button type="button" class="cpb-builder-save" data-button="save"><i class="fas fa-floppy-disk"></i> ${this.record ? 'Save Changes' : 'Save Roll'}</button>`
         };
     }
 
@@ -261,6 +293,11 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
         const contested = root.querySelector('[name="mode"]:checked')?.value === 'contested';
         root.querySelectorAll('[data-when="contested"]').forEach((el) => { el.hidden = !contested; });
         root.querySelectorAll('[data-when="normal"]').forEach((el) => { el.hidden = contested; });
+        // "Whole party" means something different in a contest -- the party are the
+        // challengers rather than simply everyone who rolls -- so the hint swaps while
+        // the control itself stays put.
+        root.querySelectorAll('.cpb-builder-hint-normal').forEach((el) => { el.hidden = contested; });
+        root.querySelectorAll('.cpb-builder-hint-contested').forEach((el) => { el.hidden = !contested; });
         this._syncPreview();
     }
 
@@ -276,15 +313,15 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
     /** The row as it will appear in the QUICK tab, drawn from the fields as they stand. */
     _syncPreview() {
         const root = this.element;
-        const preview = root?.querySelector?.('.cpb-builder-preview-row');
+        const preview = root?.querySelector?.('.cpb-builder-preview');
         if (!preview) return;
         const draft = this._readForm();
 
         const icon = preview.querySelector('i');
         if (icon) icon.className = draft.icon || QuickRollsManager.DEFAULT_ICON;
-        const label = preview.querySelector('.cpb-roll-label');
+        const label = preview.querySelector('.cpb-builder-preview-label');
         if (label) label.textContent = draft.label || 'Untitled Roll';
-        const description = preview.querySelector('.cpb-roll-description');
+        const description = preview.querySelector('.cpb-builder-preview-description');
         if (description) description.textContent = draft.description || '';
 
         const summary = root.querySelector('.cpb-builder-summary');
@@ -313,6 +350,7 @@ export class RollBuilderWindow extends BlacksmithWindowBaseV2 {
         const parts = [];
         if (roll.mode === 'contested') {
             parts.push(`${name(roll.challenger)} vs ${name(roll.defender)}`);
+            parts.push(roll.targets === 'party' ? 'party challenges' : 'selected tokens');
         } else {
             parts.push(name(roll.challenger));
             parts.push(roll.targets === 'party' ? 'whole party' : 'selected tokens');

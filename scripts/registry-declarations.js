@@ -150,7 +150,8 @@ const AUTHORING_MODES = new Set(['json', 'prompt']);
 /** Every key a `document` descriptor may carry. Anything else is rejected by name. */
 const DOCUMENT_KEYS = new Set([
     'documentName', 'type', 'pageType',
-    'containerName', 'containerNameFrom', 'containerNameTransform', 'containerNameMap'
+    'containerName', 'containerNameFrom', 'containerNameTransform', 'containerNameMap',
+    'folderName', 'folderNameFrom'
 ]);
 
 /** @type {Map<string, Declaration>} */
@@ -424,6 +425,38 @@ export function validateDeclaration(declaration) {
                 + `${[...DOCUMENT_KEYS].join(', ')}`);
         }
     }
+    // WHERE THE DOCUMENT FILES, declared once rather than conventionally re-declared.
+    // The folder was previously read from a field that had to be NAMED `foldername`,
+    // by convention and nowhere written down. Blacksmith's own three journal profiles
+    // each declared that field verbatim, which is what a kind-level constant looks like
+    // when it is wearing a per-profile costume -- and the first outside consumer simply
+    // did not know to declare it. Their profile registered clean, imported clean, and
+    // every page landed at the world root.
+    //
+    // That is the quietest failure this registry can produce, and it is the same shape
+    // as the container rules below: a destination the code needs, supplied by naming
+    // convention, where forgetting is indistinguishable from choosing the default.
+    //
+    // NOT REQUIRED, deliberately. The root is a legitimate destination, and Blacksmith's
+    // own profiles take their folder from the import dialog rather than the payload, so
+    // requiring it here would make the honest case unwritable. What it does is make the
+    // intent SAYABLE -- and a consumer's build gate can then assert that a profile which
+    // must not land at root declares one of these, which is not checkable about a
+    // convention.
+    const folderConstant = declaration.document.folderName;
+    const folderFrom = String(declaration.document.folderNameFrom || '').trim();
+    if (folderConstant !== undefined && folderFrom) {
+        throw new Error(`${where}: document.folderName and document.folderNameFrom are `
+            + `alternatives; declare one`);
+    }
+    if (folderConstant !== undefined
+        && (typeof folderConstant !== 'string' || !folderConstant.trim())) {
+        throw new Error(`${where}: document.folderName must be a non-empty string`);
+    }
+    if (folderFrom && !(declaration.fields ?? []).some(field => field?.name === folderFrom)) {
+        throw new Error(`${where}: document.folderNameFrom "${folderFrom}" is not a declared field`);
+    }
+
     // A profile that builds a PAGE must say which entry the page is filed into, or
     // the page has nowhere to go. Rejected here because the failure otherwise is the
     // quietest kind there is: the page is built correctly, lands nowhere, and the
