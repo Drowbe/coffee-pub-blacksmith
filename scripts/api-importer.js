@@ -36,6 +36,7 @@ import {
     getFieldGroupsFor,
     listFieldGroups
 } from './registry-declarations.js';
+import { declarationFromModel } from './manager-declaration-from-model.js';
 import {
     buildTemplateText,
     buildTemplateObject,
@@ -109,6 +110,34 @@ export class ImporterAPI {
     /** The derived authoring guide for a profile: every field, every rule, and the template. */
     static getAuthoringGuide(kindId, profileId, options = {}) {
         return buildGuideText(kindId, profileId, options);
+    }
+
+    /**
+     * Build a declaration by WALKING a Foundry DataModel schema.
+     *
+     * A module that declares a document subtype already has a `TypeDataModel`, and
+     * Foundry's field instances carry everything a declaration needs -- `required`,
+     * `nullable`, `blank`, `initial`, `choices`, `integer`, `min`, `max`, and the
+     * nested fields of a SchemaField or ArrayField. Transcribing that by hand into a
+     * second format produces the failure this model exists to end: a copied enum that
+     * goes stale the first time you add a value.
+     *
+     * What you still supply is the HUMAN layer, keyed by dotted path -- one sentence
+     * of `guidance` per field, an `example` -- plus `extraFields` for anything the
+     * model has no opinion about, such as the page name or a container selector.
+     * Machine shape is introspectable; intent is not.
+     *
+     * Returns a plain declaration. Pass it to `registerDeclaration`, where it meets
+     * exactly the same validation as any other profile -- this is a builder, not a
+     * second way in.
+     *
+     * @param {object|Function} schema - `defineSchema()` output, or a model class.
+     * @param {object} options - kind, id, label, module, document, pathPrefix,
+     *        guidance, examples, extraFields, rules, derive.
+     * @returns {object} A declaration.
+     */
+    static declarationFromModel(schema, options) {
+        return declarationFromModel(schema, options);
     }
 
     // ---------- Validation and construction ----------

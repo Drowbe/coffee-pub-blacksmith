@@ -233,6 +233,44 @@ function slug(value) {
 }
 
 /**
+ * Sentence case: the FIRST character uppercased, everything after it UNTOUCHED.
+ *
+ * The rest is deliberately not lowered, and the distinction is not pedantry. A
+ * consumer matching this against its own display function needs the two to agree
+ * by construction rather than by coincidence: lowering the remainder agrees with
+ * `charAt(0).toUpperCase() + slice(1)` on every single-word lowercase input and
+ * diverges the moment a value carries an interior capital. Agreeing on today's
+ * inputs is exactly the kind of accord that breaks silently later.
+ *
+ * NAMING TRAP: `toSentenceCase` in `api-core.js` does NOT do this -- it title-cases
+ * every word and lowers each remainder, so it matches `titleCase` below rather than
+ * this. The function name there is wrong and the behaviour is relied upon, so it is
+ * not being changed; this note exists so nobody wires the two together expecting
+ * them to agree.
+ * @param {*} value
+ * @returns {string}
+ */
+function sentenceCase(value) {
+    const text = String(value ?? '');
+    return text ? text.charAt(0).toUpperCase() + text.slice(1) : '';
+}
+
+/**
+ * Title case: every word capitalised, the rest lowered.
+ *
+ * A display transform rather than an identity one -- `fire` becomes `Fire`. It
+ * exists because a container name is a name a person reads, while the value it
+ * comes from is usually a machine vocabulary, and only the owning module knows
+ * which of the two its own lookups use.
+ * @param {*} value
+ * @returns {string}
+ */
+function titleCase(value) {
+    return String(value ?? '').replace(/\w\S*/g,
+        word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+}
+
+/**
  * Attunement, written ONLY for a magical item.
  *
  * Distinct from `attunement` above, which always writes and is what a weapon
@@ -423,7 +461,7 @@ function consumableRecharge(_value, { entry }) {
 
 /** @type {Record<string, Function>} */
 const TRANSFORMS = {
-    slug, attunementIfMagical, limitedUses,
+    slug, titleCase, sentenceCase, attunementIfMagical, limitedUses,
     consumableUses, consumeOnEmpty, consumableRecharge,
     spellPreparation, castingActivation, spellRange, spellDuration, spellTarget, spellMaterials,
     price, gmNotes, itemIcon, magicalProperty,

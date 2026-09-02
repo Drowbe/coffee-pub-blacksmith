@@ -61,6 +61,75 @@ Every satellite that has asked -- Librarian's codex and quests, Artificer's reci
 
 A kind may support more than one form; the Item kind is mapped or passthrough depending on whether the payload is already document-shaped.
 
+## A foreign subtype's DataModel is the validator, not the declaration
+
+Blacksmith can construct a page subtype another module declares -- Foundry namespaces the declaration of a
+subtype, not its creation -- and a profile says which one through `document.pageType`.
+
+**What that does not mean is that our declaration decides the shape.** Foundry runs the registered
+`DataModel.defineSchema()` against whatever is created, so for a foreign subtype there are two schemas in
+play and ours is the junior one. A declaration that describes fewer fields than the model does not fail
+loudly: the document lands, and every undescribed field is silently set to the model's `initial`.
+
+Raised by Bibliosoph on 2026-09-02, and the numbers are what make it concrete. Their injury page model
+declares **sixteen** fields; the five Blacksmith had been working from were the five their *picker* reads for
+a summary row -- a display projection mistaken for a schema. A profile built on those five would have
+imported successfully and written eleven defaulted fields, including a `treatmentdc` of 0 where null means
+"use the severity ladder" and an empty `modifiers` array where the injury's whole mechanical effect lives.
+
+So the rule for any module-owned subtype: **the declaration must mirror the model, and where they disagree
+the model wins silently.** The safest construction is to derive the declaration from the model itself, which
+`api.importer.declarationFromModel` does -- and `api/declaration-from-model.mjs` is the stable path a module
+can import in its own build tooling, offline, to do it before shipping.
+
+**The part that cannot self-heal is the field SET, not the enums.** A well-built profile already imports its
+own vocabularies, so an added enum value flows through. A seventeenth field added to a model simply never
+appears in a hand-written declaration, and nobody knows it is missing -- where a stale enum is at least a bad
+value someone eventually sees. Bounds, defaults and nullability duplicate the same way.
+
+### Two shapes, and the second was missing
+
+A journal profile builds one of two things, and conflating them is silent:
+
+- **An entry with pages.** `documentName: 'JournalEntry'`, a derivation composes the pages, and
+  `document.pageType` is stamped onto each. Area, Location and Encounter.
+- **A page filed into a container entry.** `documentName: 'JournalEntryPage'`, the declaration's own fields
+  are the page, `document.type` is the subtype, and `document.containerNameFrom` names the declared field
+  whose VALUE names the entry it joins. This is the satellite shape -- the entry is a category, each page is
+  one record under it.
+
+The second did not exist until 2026-09-02 and its absence did not throw: a profile declaring the first shape
+while meaning the second produced an entry named after the record, carrying a stray `system` object, and no
+pages. `containerNameFrom` is therefore required and validated at registration, since a page with nowhere to
+go is built correctly, lands nowhere, and reports success.
+
+Paths are verbatim in both shapes: nothing is prefixed.
+
+The container name is untransformed by default, and a profile that needs otherwise names a
+**Blacksmith transform** through `document.containerNameTransform` -- the same vocabulary a field's
+`transform` uses. The first consumer needed title case, and a two-value casing enum would have covered it,
+which is precisely why it would have been wrong: the second consumer wanting a slug would have had to widen
+a mechanism existing nowhere else. Transforms are already the extension point for "Blacksmith owns the
+operation, the profile selects it", so a future need is a transform someone adds rather than a shape someone
+invents.
+
+Untransformed is the default because a container value is the owning module's key, and reshaping one
+uninvited is how a lookup silently stops matching. Which way that cuts is the module's to declare: the first
+consumer's page carries the lowercase enum `fire` while the journal its own picker looks for is `Fire`.
+
+### Two constraints the vocabulary cannot express
+
+Found against the same schema, and both now have a real consumer rather than being hypothetical:
+
+- **A bound that depends on a sibling field.** `damage` is 0-5 when `severity` is minor, 6-10 when moderate,
+  11-18 when major. `min`/`max` are static per field, and `requiresWhen` gates a field's PRESENCE on another
+  field's value rather than its RANGE.
+- **A conditional emptiness.** `flavor` is ignored whenever `statuseffect` is not `none`. `mustBeEmpty` is
+  unconditional.
+
+Until those exist, a profile declares the widest legal envelope and states the scoping in `guidance` -- which
+validates the outside and documents the inside, and is at least honest about which is which.
+
 ## Composition: field groups
 
 A module whose fields are **orthogonal to the host's type** cannot register a profile. An Artificer item is a loot, or a consumable, or a tool, *with* their fields added -- so there is no profile id to register under, and declaring the block once per host duplicates it while still not being opt-in per import.
@@ -80,6 +149,48 @@ The reason is not tidiness. Blacksmith derives the validation, the guide line an
 The rule vocabulary is **closed**, and keeping extension expensive is doing work rather than obstructing it. A consumer needing a scalar equality test wrote down why they wanted a new operator before asking for one, at which point the existing `field:value` notation turned out to already mean it and to be only half-implemented. A cheap extension point would have bolted an operator beside a rule that could never fire, and the never-firing rule would have survived.
 
 Where the vocabulary genuinely cannot reach, a **named rule** carries its own sentence, so the prompt stays derivable. `weaponRangeRequired` is the first: ranged-ness is derived from the weapon subtype through a lookup table, so it is a rule about a value the author never wrote.
+
+## Two derivations of one schema, built independently
+
+The counterpart to the section below, and the only technique that has actually caught a bug neither author
+could see in their own work.
+
+While adopting the seam, Bibliosoph wrote a declaration by hand and Blacksmith wrote one by walking the same
+`DataModel`. Comparing them found **two** bugs in one exchange: the hand-written nested descriptors carried
+document paths that registration would have rejected, and the walk dropped the path from a top-level field
+with nested shape -- which would have silently stripped `modifiers` from 135 of their 144 shipped injuries.
+
+Neither author found their own. Both had read their own version several times. Reviewing harder would not
+have worked, and neither would testing harder in isolation: this repo's own test for the walk exercised the
+broken branch every run and asserted the wrong half of it, checking that the CHILDREN carried no path while
+never asking whether the parent had one. **An assertion about a container's children is not an assertion
+about the container** -- and a passing assertion that reads as coverage is worse than an absent one.
+
+**The boundary, which is what stops this being over-applied.** It works only when the two derivations are
+genuinely INDEPENDENT. Had the hand list been generated from the walk, or the walk sanity-checked against the
+list, the comparison would have agreed and proven nothing. What did the work was two answers built from one
+source by parties who had not seen each other's. The value is in the independence, not the diligence -- so
+the technique is worth reaching for wherever a second derivation is cheap, and worth nothing where it is
+really one derivation checked twice.
+
+## Read the other tree; do not predict it
+
+The counterpart to the section above, and the cheaper half.
+
+Adopting the seam across two modules produced a run of confident, wrong statements about code the speaker
+had not just looked at. Blacksmith described a consumer's five-field picker projection as their sixteen-field
+schema. Blacksmith told them their registration was inert against a key they had already renamed. A consumer
+reported both test stubs as flat when one was not. Another cited an accepted-values list as evidence a path
+was wired, when that list belonged to the path that had failed. Every one was reasoning from a model of
+someone else's code rather than from the code.
+
+Every fix came from opening the file. That is the whole finding, and it is worth stating plainly because the
+cost of checking is a single `grep` and the cost of not checking was, in one case, a bug that would have
+stripped the mechanical effect from 135 of 144 shipped documents.
+
+It joins the note above rather than repeating it: independence is what makes a second derivation worth
+having, and reading rather than predicting is what keeps the second derivation independent. A review
+conducted from memory is not a second derivation at all.
 
 ## Two readers of one contract is the recurring defect
 

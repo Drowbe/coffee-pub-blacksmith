@@ -7,11 +7,12 @@ import { CampaignManager } from './manager-campaign.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { createJournalEntry, buildInjuryJournalEntry } from './utility-common.js';
 import { GEOGRAPHY_FIELD_LIST } from './manager-geography.js';
-import { getDeclaration } from './registry-declarations.js';
+import { getDeclaration, getDeclarationsForKind } from './registry-declarations.js';
 import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
 // Side-effect import: registers the declared Journal profiles.
 import './declarations/declaration-journal.js';
 import { upsertJournalEntry } from './utility-journal-destination.js';
+import { issue } from './utility-import-issues.js';
 import { registerJsonImportKind } from './registry-json-import.js';
 import {
     fetchPromptText,
@@ -1277,14 +1278,34 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
     return prompt;
 }
 
+/**
+ * Every profile a payload could name, declared or legacy.
+ *
+ * Listed in the error rather than left to be guessed: an author who omits
+ * `journaltype` is told what they left out and, without this, nothing about what
+ * to put there -- and a module that has just registered a profile has no way to
+ * discover that the payload must name it. The first satellite to register one hit
+ * exactly that, and the message it got named a field it had never heard of.
+ * @returns {string[]}
+ */
+function knownJournalProfiles() {
+    const declared = getDeclarationsForKind(JOURNAL_JSON_IMPORT_KIND_ID).map(one => one.id);
+    const legacy = ['injury'].filter(one => !declared.includes(one));
+    return [...declared, ...legacy].sort();
+}
+
 function validateJournalEntry(journalData) {
     const journalType = String(journalData?.journaltype || '').trim().toUpperCase();
-    if (!journalType) throw new Error("Missing 'journaltype' field in JSON data");
+    if (!journalType) {
+        throw new Error(`Missing 'journaltype' field in JSON data. `
+            + `Set it to one of: ${knownJournalProfiles().join(', ')}.`);
+    }
     if (journalType === 'NARRATIVE') {
         throw new Error('Legacy narrative import is not supported. Use journaltype "area" with blocks.*.');
     }
     if (!['AREA', 'ENCOUNTER', 'LOCATION', 'INJURY'].includes(journalType)) {
-        throw new Error(`Unsupported journaltype "${journalData.journaltype}".`);
+        throw new Error(`Unsupported journaltype "${journalData.journaltype}". `
+            + `Known profiles: ${knownJournalProfiles().join(', ')}.`);
     }
     return true;
 }
@@ -1324,7 +1345,38 @@ async function importJournalEntry(journalData) {
         // The declaration says what the page SAYS; the destination says where it
         // goes. One find-or-create for every profile, rather than the four that
         // disagreed -- see utility-journal-destination.js for what each did.
-        return await upsertJournalEntry(outcome.data, { folderName: journalData.foldername });
+        //
+        // A profile whose documentName is JournalEntryPage built a PAGE, not an
+        // entry, so it is wrapped in the entry its `containerNameFrom` field names.
+        // That is the satellite shape: the entry is a category and each page is one
+        // record filed under it -- Bibliosoph's injuries are the first, where the
+        // entry is a damage type and the page is one injury.
+        const data = outcome.data;
+        if (String(declaration.document?.documentName ?? '') === 'JournalEntryPage') {
+            const container = String(journalData?.[declaration.document.containerNameFrom] ?? '').trim();
+            if (!container) {
+                throw errorFromIssue(issue('REQUIRED_FIELD_MISSING',
+                    declaration.document.containerNameFrom,
+                    `${declaration.document.containerNameFrom} names the journal this page is filed `
+                    + `into and cannot be blank.`));
+            }
+            // Untransformed unless the profile names a transform. The container value
+            // is the owning module's vocabulary, and only that module knows whether the
+            // entry it has to match is spelled the same way -- Bibliosoph's page carries
+            // the lowercase enum `fire` while the journal their picker looks for is
+            // `Fire`, so an untransformed default would have produced two journals per
+            // category. Declared by them, and through the same named-transform
+            // vocabulary a field uses rather than a mechanism of its own.
+            const nameTransform = declaration.document.containerNameTransform;
+            let name = container;
+            if (nameTransform) {
+                const { applyTransform } = await import('./manager-declaration-transforms.js');
+                name = await applyTransform(nameTransform, container, { declaration });
+            }
+            return await upsertJournalEntry({ name, pages: [data] },
+                { folderName: journalData.foldername });
+        }
+        return await upsertJournalEntry(data, { folderName: journalData.foldername });
     }
 
     validateJournalEntry(journalData);

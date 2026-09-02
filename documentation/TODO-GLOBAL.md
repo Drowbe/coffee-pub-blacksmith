@@ -829,11 +829,53 @@ carry `system.severity`, `.image`, `.odds`, `.tick` and `.statuseffect` -- skipp
 creates is skipped by their reader today.** Their `module.json` declares
 `JournalEntryPage: { injury, outcome, inspiration }`.
 
-Two questions worth asking them BEFORE step 8, because both change what gets built:
+**Destination is settled and was never open** (2026-09-02). Import creates in the WORLD and the GM exports
+to a compendium, which is what every kind already does and what Artificer does for items and recipes --
+`createArtificerItem` creates in world and `throw`s on compendium creation as not implemented. No Blacksmith
+importer references a pack for any kind. So their picker reading a compendium while we write to the world is
+the normal two-step rather than a gap, and the injury profile needs no compendium destination.
 
-- Their picker reads a **compendium**; the importer creates in the **world**. Does the injury profile need a
-  compendium destination, or does a GM move them by hand? Undecided by anyone so far.
-- Are the five system fields final? They become the declaration.
+One question remains, and it is the one that matters:
+
+- **Are the five page fields final?** `severity`, `image`, `odds`, `tick`, `statuseffect`. They become the
+  declaration, and changing them afterwards is a schema migration rather than an edit. Two sub-decisions
+  come with it, both from reading their picker: `odds` and `tick` are read as `Number(x) || fallback` and so
+  tolerate strings today, which declaring them `integer` would stop; and `statuseffect` uses `'none'` as a
+  sentinel, so a declared `values` list must say whether blank, `'none'`, or both are legal.
+
+**No migration is needed: production holds no injury journals at all.** Checked read-only across all four
+worlds at `F:\Data\worlds` on 2026-09-02 -- burden-of-knowledge, beagle-boys, coffee-pub-elegant-eight,
+coffee-pub-smite-force. Zero pages of type `coffee-pub-bibliosoph.injury`, zero journals named for any of
+the thirteen damage-type categories, zero occurrences of our injury template's markup. The instrument was
+verified before the zeros were trusted, since a LevelDB store can compress blocks and "found nothing" reads
+identically to "cannot read anything": `grep` pulls real journal names out of those files (394, 231, 653 and
+383 respectively), so the zeros are real.
+
+That fits what the code says. Our injury pages were invisible to their picker for two reasons at once -- the
+wrong page type AND the world/compendium two-step -- so there was never a working path to produce data with.
+`buildInjuryJournalEntry` is therefore dead code rather than a deprecation, and goes without a migration.
+
+Dev worlds may hold text-shaped injury journals from testing; those are not production data and both sessions
+agree they should rot rather than be migrated, since recovering sixteen structured fields out of compiled
+HTML is the thing this migration exists to stop doing.
+
+**What Blacksmith deletes when this lands**, counted across file types rather than swept in `.js`. Injury
+appears in 73 files, but nearly all of them are Blacksmith's own injury MECHANIC -- combat bar, token
+indicators, health thresholds, blood splatter -- which stays. The IMPORT half is eight sites:
+
+| Site | What |
+|---|---|
+| `utility-common.js:703` | `buildInjuryJournalEntry`, including the EmbeddedCollection defect |
+| `registry-json-import-journals.js:8` | its import |
+| `registry-json-import-journals.js:1332` | the `INJURY` dispatch |
+| `registry-json-import-journals.js:1235` | the `prompt-injuries.txt` fetch |
+| `registry-json-import-journals.js:1350` | the `Injury (Legacy)` template option |
+| `const.js:51` | `JOURNAL_INJURY_TEMPLATE` |
+| `templates/journal-injury.hbs` | the template |
+| `prompts/prompt-injuries.txt` | the generation prompt |
+
+`validateJournalEntry` also accepts `INJURY` as a journaltype and stops needing to. **Nothing in `lang/en.json`
+moves**: every injury key there belongs to the health mechanic, not the importer.
 
 ### Regent — encounter and narrative generators
 

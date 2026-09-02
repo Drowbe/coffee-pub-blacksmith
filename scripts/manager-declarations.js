@@ -886,15 +886,39 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
     const composed = effectiveDeclaration(declaration);
     const shown = composed.fields.filter(field => isAuthorable(field) && isShown(field, options));
 
-    const describe = (field) => {
+    // Nested fields, bounds and accepted spellings, all of them. This described only
+    // the TOP level and omitted `min`/`max` entirely, while `guideLine` described
+    // both -- two derived outputs of one declaration disagreeing about what the
+    // declaration says, which is the defect this model exists to end, appearing one
+    // level in from where it usually does.
+    //
+    // It matters most in this output of the three: the prompt is what a generator is
+    // TOLD the schema is, so a field it never mentions is a field the generator never
+    // emits, and an undescribed nested shape is one it guesses at.
+    const describe = (field, prefix = '') => {
         const type = String(field.type ?? 'string').toUpperCase();
         const required = field.required ? ' (REQUIRED)' : '';
-        const bits = [`${field.name.toUpperCase()}: (${type})${required} ${field.guidance ?? ''}`.trim()];
+        const label = `${prefix}${field.name}`.toUpperCase();
+        const bits = [`${label}: (${type})${required} ${field.guidance ?? ''}`.trim()];
         if (Array.isArray(field.values) && field.values.length) {
             bits.push(`  Allowed: ${field.values.map(one => (one === '' ? '""' : String(one))).join(', ')}.`);
         }
+        if (field.min !== undefined && field.max !== undefined) {
+            bits.push(`  ${field.min} to ${field.max}.`);
+        } else if (field.min !== undefined) {
+            bits.push(`  ${field.min} or more.`);
+        } else if (field.max !== undefined) {
+            bits.push(`  ${field.max} or less.`);
+        }
+        if (field.acceptsKeys?.length) {
+            bits.push(`  Also accepted: ${field.acceptsKeys.join(', ')}.`);
+        }
         if (field.requiresWhen) {
             bits.push(`  Include only when ${field.requiresWhen.replace(':', ' is ')}.`);
+        }
+        if (Array.isArray(field.fields)) {
+            const inner = `${prefix}${field.name}${field.type === 'array' ? '[]' : ''}.`;
+            bits.push(...field.fields.filter(isAuthorable).map(nested => describe(nested, inner)));
         }
         return bits.join('\n');
     };
@@ -909,7 +933,7 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         '',
         'FIELDS',
         '',
-        ...shown.map(describe)
+        ...shown.map(field => describe(field))
     ];
 
     const sentences = authoringRuleSentences(declaration, options);

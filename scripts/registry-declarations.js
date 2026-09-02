@@ -67,7 +67,13 @@
  * @property {number} schemaVersion
  * @property {'mapped'|'passthrough'} form
  * @property {string} [module] - Owning module id. Absent means Blacksmith.
- * @property {object} document - { documentName, type, pageType }. `pageType` is the
+ * @property {object} document - { documentName, type, pageType, containerNameFrom }. A profile whose
+ *                             `documentName` is 'JournalEntryPage' builds a PAGE: its field paths are the
+ *                             page's own, `type` is the page subtype, and `containerNameFrom` names the
+ *                             declared field whose VALUE names the JournalEntry the page is filed into.
+ *                             `containerNameTransform` optionally names a Blacksmith transform applied to
+ *                             that value to produce the entry name; untransformed by default.
+ *                             `pageType` is the
  *                             JournalEntryPage subtype a journal profile creates, defaulting to
  *                             'text'. A module-owned subtype is namespaced `<module.id>.<subtype>`;
  *                             Foundry namespaces the DECLARATION of one, not its creation, so
@@ -133,6 +139,10 @@ export function fieldAccepts(field, value) {
 const FORMS = new Set(['mapped', 'passthrough']);
 const ROLES = new Set(['selector', 'envelope', 'input']);
 const ABSENT_MEANS = new Set(['default', 'preserve']);
+/** Every key a `document` descriptor may carry. Anything else is rejected by name. */
+const DOCUMENT_KEYS = new Set([
+    'documentName', 'type', 'pageType', 'containerNameFrom', 'containerNameTransform'
+]);
 
 /** @type {Map<string, Declaration>} */
 const declarations = new Map();
@@ -167,6 +177,16 @@ function validateField(field, form, where, nested = false) {
 
     if (field.role !== undefined && !ROLES.has(field.role)) {
         throw new Error(`${at}: role must be one of ${[...ROLES].join(', ')}`);
+    }
+    // A ROLED field never lands on a path of its own -- construction skips all three
+    // roles before it reaches the write. A path declared beside one is therefore
+    // inert, and worse than inert: it reads as the field's destination, so anyone
+    // debugging where the value went is told a location it never reaches. The
+    // typedef has always said this; nothing enforced it until a consumer's own gate
+    // started checking it and asked why the registry did not.
+    if (field.role && field.path) {
+        throw new Error(`${at}: has role "${field.role}" and a path. A roled field is `
+            + `read by a transform or a derivation and never lands on a document path.`);
     }
     // A mapped profile lands every top-level field somewhere. The exceptions are
     // explicit: a selector picks the profile, an envelope is consumed by a transform.
@@ -351,6 +371,85 @@ export function registerDeclaration(declaration) {
     if (!String(declaration.document.documentName || '').trim()) {
         throw new Error(`${where}: document.documentName is required`);
     }
+    // An UNKNOWN key in `document` is rejected, not ignored.
+    //
+    // A misspelled or stale key is otherwise the quietest failure the registry can
+    // produce: the profile registers, validates, imports, and simply does not do the
+    // thing the key was asking for. It happened during this API's own development --
+    // `containerNameFormat` was renamed to `containerNameTransform` and a consumer
+    // registered against the old spelling in the window between; nothing threw, and
+    // the container name silently went untransformed.
+    //
+    // Rejecting by name means a consumer built against any earlier shape of this
+    // contract finds out at registration instead of in their data.
+    for (const key of Object.keys(declaration.document)) {
+        if (!DOCUMENT_KEYS.has(key)) {
+            throw new Error(`${where}: unknown document.${key}. Expected one of `
+                + `${[...DOCUMENT_KEYS].join(', ')}`);
+        }
+    }
+    // A profile that builds a PAGE must say which entry the page is filed into, or
+    // the page has nowhere to go. Rejected here because the failure otherwise is the
+    // quietest kind there is: the page is built correctly, lands nowhere, and the
+    // import reports success.
+    if (String(declaration.document.documentName).trim() === 'JournalEntryPage') {
+        const container = String(declaration.document.containerNameFrom || '').trim();
+        if (!container) {
+            throw new Error(`${where}: a JournalEntryPage profile requires document.containerNameFrom, `
+                + `naming the field whose value names the containing JournalEntry`);
+        }
+        const names = new Set((declaration.fields ?? []).map(field => field?.name));
+        if (!names.has(container)) {
+            throw new Error(`${where}: document.containerNameFrom "${container}" is not a declared field`);
+        }
+        // How the container VALUE becomes an entry NAME: a NAMED TRANSFORM, the same
+        // vocabulary a field uses, rather than a casing enum of its own.
+        //
+        // The first consumer needed title case and an enum of two would have covered
+        // it, which is exactly why it would have been wrong -- a second consumer
+        // wanting a slug, or trimming, or anything else, would have had to widen a
+        // mechanism that exists nowhere else. Transforms are already the extension
+        // point for "Blacksmith owns the operation, the profile selects it", so a
+        // future need is a transform someone adds rather than a shape someone invents.
+        //
+        // Untransformed is the default: a container value is the owning module's key,
+        // and reshaping one uninvited is how a lookup silently stops matching.
+        const nameTransform = declaration.document.containerNameTransform;
+        if (nameTransform !== undefined && !hasTransform(nameTransform)) {
+            throw new Error(`${where}: no transform named "${nameTransform}" is registered `
+                + `for document.containerNameTransform`);
+        }
+    }
+    // A SELECTOR is how a payload says which profile it is, and the importer routes
+    // on it. Two things go wrong quietly without a check here, and both did.
+    //
+    // A profile that declares NO selector cannot be routed to at all: the payload
+    // reaches the kind, nothing matches, and it falls through to whatever the kind
+    // did before declarations -- so the author sees a stale error about a field they
+    // never heard of rather than "this is not a profile I know". That is what
+    // happened to the first satellite to register one.
+    //
+    // A selector whose `values` do not include the profile's own id is worse: it
+    // registers, appears in the template, and matches nothing, so the profile is
+    // permanently unreachable while looking entirely correct.
+    const selectors = (declaration.fields ?? []).filter(field => field?.role === 'selector');
+    if (selectors.length > 1) {
+        throw new Error(`${where}: more than one selector field `
+            + `(${selectors.map(one => one.name).join(', ')}); a profile is chosen by exactly one`);
+    }
+    // Only when the selector ENUMERATES its values. A selector with no `values` is
+    // legitimate and common -- the Item profiles share one `itemType` selector and
+    // do not each restate the eight types -- so an absent list contradicts nothing.
+    // The check is for a list that exists and omits the profile it belongs to.
+    for (const selector of selectors) {
+        if (!Array.isArray(selector.values)) continue;
+        if (!selector.values.includes(declaration.id)) {
+            throw new Error(`${where}: selector "${selector.name}" lists `
+                + `${selector.values.join(', ') || '(nothing)'} and not "${declaration.id}", `
+                + `so no payload could select this profile`);
+        }
+    }
+
     validateFields(declaration.fields, declaration.form, where);
     validateRules(declaration, where);
     if (declaration.derive !== undefined) {
@@ -368,7 +467,13 @@ export function registerDeclaration(declaration) {
     if (declarations.has(key)) {
         // Reject rather than replace, for the same reason two contributions claiming
         // one entry is an error: a silent last-one-wins is a race nobody can see.
-        throw new Error(`${where}: a declaration is already registered for this profile`);
+        // Naming the incumbent turns "why won't mine register" into a lookup. Two
+        // modules claiming one id is a real prospect in a shared registry -- `injury`
+        // and `encounter` are ordinary words -- and the useful half of the error is
+        // who already holds it.
+        const holder = declarations.get(key)?.module ?? 'Blacksmith';
+        throw new Error(`${where}: already registered by ${holder}. `
+            + `Profile ids are unique per kind; choose another id.`);
     }
     declarations.set(key, declaration);
     return key;

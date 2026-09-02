@@ -145,6 +145,38 @@ Two smaller items the count surfaced:
   doc table. Counting across file types is half of it; the other half is not searching for the shape the
   code happens to take.
 
+## The SCHEMA LOCK does not derive mechanically, and that is a model finding
+
+The prompt files are a third reader of the declaration's contract, and deriving them was added to this
+step's scope on 2026-08-31. Attempting it produced a better answer than the plan assumed.
+
+`buildPromptSchemaText` now describes NESTED fields, bounds and accepted spellings. It described only the
+top level and omitted `min`/`max` entirely, while `guideLine` described both -- two derived outputs of one
+declaration disagreeing about what that declaration says. That was the same defect this model exists to end,
+one level in from where it usually appears, and it mattered most in this output of the three: the prompt is
+what a generator is TOLD the schema is, so a field it never mentions is a field the generator never emits.
+
+**But the prompt's SCHEMA LOCK is not a field list, and swapping one for the other would be a downgrade.**
+`prompt-journal-profile-area.txt` gives it 96 lines of a 294-line file. The derived equivalent is roughly 40
+lines of `FIELD: (TYPE) guidance`. The difference is not verbosity:
+
+- **Anti-patterns.** "Never use `text`, `body`, or `content` instead of `description`." A declaration can say
+  what a field IS; it has no way to say what a generator wrongly reaches for.
+- **Relationships between fields.** The explanation that `scenetitle` is the page label and may carry an
+  ordering prefix, while `blocks.area.title` is the same name with that prefix stripped, and the envelope
+  `area` is the clean geographic name. Three fields, one paragraph, no single field's `guidance` can hold it.
+- **Worked negative examples**, which is what stopped the bare-string `narrative` the declaration got wrong.
+
+`guidance` is ONE sentence by design, and that design is right for a template comment and a guide line. A
+prompt wants a paragraph. **That is the gap, and it is in the model rather than in the wiring.** Field groups
+already carry a `preamble` for exactly this reason -- profile-level prose that does not reduce to per-field
+guidance -- and the same affordance at profile level is the shape that would let the SCHEMA LOCK derive
+without losing what makes it work.
+
+Not built, deliberately: an affordance with no user is the defect this plan has already deleted once
+(`rendered`). It lands when the SCHEMA LOCK migration is actually done, and that migration needs a generation
+run to judge, because the only measure of a prompt is what a generator produces from it.
+
 ## Sequence
 
 1. ~~Verify the injury page-write defect.~~ Done 2026-08-31: `Array.isArray(j.pages)` is `false`,

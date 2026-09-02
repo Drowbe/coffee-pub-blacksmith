@@ -409,6 +409,27 @@ consumers who must come through the API.
 live vocabulary, a payload outside it fails naming the field, and `values: 42` still throws at
 registration.
 
+### Two constraints a declaration cannot express (raised 2026-09-02)
+
+Both found against Bibliosoph's injury page model, so both have a real consumer rather than being speculative.
+Neither blocks the injury handover -- a profile declares the widest legal envelope and states the scoping in
+`guidance` -- but that validates the outside while only documenting the inside.
+
+- **A bound conditional on a sibling field.** `damage` is 0-5 when `severity` is minor, 6-10 when moderate,
+  11-18 when major; `modifiers[].value` caps at +/-1, +/-2, +/-5 the same way. `min`/`max` are static per
+  field. `requiresWhen` gates a field's PRESENCE on another field's value, never its RANGE.
+- **A conditional emptiness.** `flavor` is ignored whenever `statuseffect` is not `none`. `mustBeEmpty` exists
+  and is unconditional -- confirmed by reading the evaluator, not assumed.
+
+Also raised there and worth keeping together: **profile-level guidance prose.** `guidance` is one sentence by
+design, because it feeds the template comment, the guide line and the prompt line alike. Bibliosoph's schema
+needs a paragraph -- that `damage` is a PERCENTAGE of max HP rather than flat, and why -- and Blacksmith's own
+Area prompt already carries 96 lines of exactly that. Field groups already have a `preamble`; the same at
+profile level is the shape. See `plans/plan-importer-journal.md`.
+
+**Verify:** a declaration expressing a severity-scoped band rejects `damage: 12` on a minor injury and accepts
+it on a major one.
+
 ### Geography and the journal importer: three changes owed by importer step 8 (opened 2026-08-31)
 
 Scene geography shipped its data model, API and Scene Config tab, but the importer half is deliberately

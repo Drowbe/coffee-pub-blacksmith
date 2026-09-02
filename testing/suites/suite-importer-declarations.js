@@ -111,6 +111,7 @@ export default {
                     // model exists to end -- and Blacksmith reaching them internally
                     // while a sibling could not was the consumer-zero violation.
                     'validateEntry', 'validateEntryDeep', 'buildDocumentData', 'buildDocumentUpdate',
+                    'declarationFromModel',
                     'registerFieldGroup', 'getFieldGroupsFor', 'listFieldGroups'
                 ]) {
                     expect.ok(`api.importer.${method} is a function`,
@@ -1381,6 +1382,39 @@ export default {
         },
 
         {
+            id: 'prompt-schema-depth',
+            label: 'The generation prompt describes nested fields, bounds and aliases',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The prompt is what a generator is TOLD the schema is; an undescribed field is never emitted.',
+            run: async ({ expect }) => {
+                const { manager } = await loadDeclarations();
+                await import(`${MODULE_PATH}/declarations/declaration-journal.js`);
+                await import(`${MODULE_PATH}/declarations/declaration-actor.js`);
+
+                // Three levels deep. This described only the top level, so every nested
+                // shape in every profile was something the generator had to guess at.
+                const area = manager.buildPromptSchemaText('journal', 'area');
+                for (const path of ['BLOCKS.AREA.NARRATIVE.DESCRIPTION',
+                                    'BLOCKS.CONVERSATIONS[].THEYKNOW',
+                                    'BLOCKS.AREA.NARRATIVECARD.IMAGE']) {
+                    expect.ok(`the prompt describes ${path}`, area.includes(path));
+                }
+
+                // A declared bound was stated in the guide and not in the prompt, so a
+                // generator was never told it. Sidekick level is the case.
+                const sidekick = manager.buildPromptSchemaText('actor', 'sidekick');
+                expect.ok('the prompt states a declared bound', sidekick.includes('1 to 20'));
+
+                // An accepted spelling is worth telling a generator about: it is what
+                // stops a consumer's existing payload shape being treated as unknown.
+                const encounter = manager.buildPromptSchemaText('journal', 'encounter');
+                expect.ok('the prompt states an accepted spelling',
+                    encounter.includes('Also accepted: scenelocation'));
+            }
+        },
+
+        {
             id: 'journal-encounter-regent',
             label: 'Encounter accepts the spellings Regent emits instead of dropping them',
             tier: 'headless',
@@ -1421,6 +1455,159 @@ export default {
                 const area = manager.buildTemplateObject('journal', 'area');
                 expect.ok('and so does the area conversations block',
                     'theyknow' in (area.blocks?.conversations?.[0] ?? {}));
+            }
+        },
+
+        {
+            id: 'declaration-from-model',
+            label: 'A declaration walked from a DataModel keeps every path',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'A shaped top-level field losing its path is a field dropped from every document.',
+            run: async ({ expect, log }) => {
+                const { declarationFromModel } =
+                    await import(`${MODULE_PATH}/manager-declaration-from-model.js`);
+                const field = (cls, options = {}) => ({ constructor: { name: cls }, ...options });
+                const choices = (values) => Object.fromEntries(values.map(one => [one, one]));
+
+                const schema = {
+                    severity: field('StringField',
+                        { required: true, blank: false, initial: 'minor', choices: choices(['minor', 'major']) }),
+                    optional: field('StringField', { required: true, blank: true, initial: '' }),
+                    damage: field('NumberField',
+                        { required: true, integer: true, min: 0, max: 100, initial: 0 }),
+                    treatmentdc: field('NumberField',
+                        { required: false, integer: true, min: 1, initial: null, nullable: true }),
+                    modifiers: field('ArrayField', { initial: [], element: field('SchemaField', {
+                        fields: {
+                            stat: field('StringField',
+                                { required: true, blank: false, choices: choices(['attack', 'ac']) }),
+                            value: field('NumberField',
+                                { required: true, integer: true, min: -5, max: 5, initial: 0 })
+                        }
+                    }) })
+                };
+
+                const declaration = declarationFromModel(schema, {
+                    kind: 'journal', id: 'walked', label: 'Walked', module: 'probe-module',
+                    document: { documentName: 'JournalEntryPage', type: 'probe-module.thing' },
+                    guidance: { severity: 'How bad it is.', 'modifiers.value': 'The bonus.' },
+                    extraFields: [{ name: 'title', path: 'name', type: 'string', required: true }]
+                });
+                const by = Object.fromEntries(declaration.fields.map(one => [one.name, one]));
+
+                // The path is decided by whether a field IS a nested child, never by
+                // whether it HAS nested shape. Conflating the two cost `modifiers` its
+                // path, so the importer had nowhere to write it and dropped it from
+                // every document with no error -- caught by a consumer feeding real
+                // schema output where the earlier tests had asserted only the children.
+                expect('a shaped top-level field keeps its path', by.modifiers?.path, 'system.modifiers');
+                expect.ok('and its children carry none',
+                    by.modifiers?.fields?.every(one => one.path === undefined));
+
+                expect('a plain field is prefixed once', by.severity?.path, 'system.severity');
+                expect('choices become values', JSON.stringify(by.severity?.values), '["minor","major"]');
+                expect('integer is detected from the field', by.damage?.type, 'integer');
+                expect('bounds are lifted', `${by.damage?.min}-${by.damage?.max}`, '0-100');
+                expect.ok('nullable with a null initial survives as a value, not an absence',
+                    by.treatmentdc?.nullable === true && by.treatmentdc?.default === null);
+                // `required` alone is not enough for a string: `blank: true` means an
+                // empty value satisfies it, so it is not required in the authoring sense.
+                expect.ok('required honours blank', by.severity?.required === true
+                    && by.optional?.required === undefined);
+                expect('guidance is keyed by dotted path', by.modifiers?.fields
+                    ?.find(one => one.name === 'value')?.guidance, 'The bonus.');
+                if (!by.title) log('extraFields missing from the walked declaration');
+                expect('a module-supplied field comes first', declaration.fields[0]?.name, 'title');
+            }
+        },
+
+        {
+            id: 'journal-page-profile',
+            label: 'A profile can build a PAGE and be filed into its container entry',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The satellite shape: the entry is a category, each page is one record under it.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                const kind = `probe-page-${foundry.utils.randomID(6)}`;
+
+                // A page with nowhere to go is built correctly, lands nowhere, and
+                // reports success -- so both of these are rejected at REGISTRATION.
+                const bare = {
+                    kind, id: 'no-container', label: 'Probe', schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntryPage', type: 'coffee-pub-bibliosoph.injury' },
+                    fields: [{ name: 'severity', path: 'system.severity', type: 'string' }]
+                };
+                let threw = '';
+                try { registry.registerDeclaration(bare); } catch (error) { threw = error.message; }
+                expect.ok('a page profile without containerNameFrom is rejected',
+                    threw.includes('containerNameFrom'));
+
+                threw = '';
+                try {
+                    registry.registerDeclaration({ ...bare, id: 'bad-container',
+                        document: { ...bare.document, containerNameFrom: 'nope' } });
+                } catch (error) { threw = error.message; }
+                expect.ok('and one naming an undeclared field is rejected',
+                    threw.includes('not a declared field'));
+
+                registry.registerDeclaration({
+                    kind, id: 'injury', label: 'Probe Injury', schemaVersion: 1, form: 'mapped',
+                    module: 'coffee-pub-bibliosoph',
+                    document: {
+                        documentName: 'JournalEntryPage',
+                        type: 'coffee-pub-bibliosoph.injury',
+                        containerNameFrom: 'category'
+                    },
+                    fields: [
+                        { name: 'title', path: 'name', type: 'string', required: true, example: 'Seared Flesh' },
+                        { name: 'category', role: 'input', type: 'string', values: ['fire', 'cold'], example: 'fire' },
+                        { name: 'severity', path: 'system.severity', type: 'string',
+                          values: ['minor', 'major'], example: 'minor' },
+                        // Null is the norm here and means "use the severity ladder". It must
+                        // not become 0, which is what an omit-and-default would produce.
+                        { name: 'treatmentdc', path: 'system.treatmentdc', type: 'integer',
+                          nullable: true, default: null, min: 1 }
+                    ]
+                });
+
+                const page = await manager.buildDocumentData(kind, 'injury',
+                    { title: 'Seared Flesh', category: 'fire', severity: 'minor', treatmentdc: null });
+                if (!page) log('nothing built');
+                expect('the page carries the declared subtype', page?.type, 'coffee-pub-bibliosoph.injury');
+                expect('a page-level path sets the page name', page?.name, 'Seared Flesh');
+                // Paths are written VERBATIM. Prefixing would produce system.system.severity,
+                // which does not throw -- it lands a page of defaults the owner then skips.
+                expect('a system path lands verbatim', page?.system?.severity, 'minor');
+                expect.ok('a nullable field stays null rather than defaulting to 0',
+                    page?.system?.treatmentdc === null);
+                expect.ok('and the profile builds a page, not an entry with no pages',
+                    page?.pages === undefined);
+
+                // The container NAME is produced by a named transform, not a casing
+                // enum. Asserting that a second, unrelated transform is accepted is
+                // what proves the mechanism is general rather than one consumer's need
+                // wearing a general name.
+                const named = (transform) => {
+                    try {
+                        registry.registerDeclaration({
+                            kind, id: `fmt-${transform ?? 'none'}`, label: 'P', schemaVersion: 1,
+                            form: 'mapped',
+                            document: { documentName: 'JournalEntryPage', type: 'x.y',
+                                        containerNameFrom: 'category',
+                                        ...(transform ? { containerNameTransform: transform } : {}) },
+                            fields: [{ name: 'category', role: 'input', type: 'string' },
+                                     { name: 'title', path: 'name', type: 'string' }]
+                        });
+                        return null;
+                    } catch (error) { return error.message; }
+                };
+                expect.ok('an unknown container transform is rejected by name',
+                    (named('shouty') ?? '').includes('no transform named'));
+                expect.ok('titleCase is accepted', named('titleCase') === null);
+                expect.ok('and so is slug, an unrelated transform', named('slug') === null);
+                expect.ok('omitting it is accepted, leaving the value untouched', named(null) === null);
             }
         },
 
