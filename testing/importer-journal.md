@@ -87,15 +87,17 @@ Results go to the **Verified** line of the relevant `CHANGELOG.md` entry, not ba
 
 ## Owed jointly with Bibliosoph
 
-The injury handover is complete on both sides in code and **static verification only**. Neither session has
-imported an injury in a running world, and neither is calling it working. Bibliosoph's session will ask their
-user for this run once Blacksmith's harness is green.
+Bibliosoph ran the import in a live world on 2026-09-02 and the core of it passed: correct page subtype, both
+pages present, append into an existing journal, update-in-place on re-import, and a null `treatmentdc`
+surviving. What that run did NOT cover is below -- it was made with `treatmentdc` deleted from the payload to
+get past the null bug, and it exposed three folder defects that are now fixed and unverified.
 
-- [ ] **Re-run Run All Headless.** Before anything below. The Importer Declarations suite should be at **280**
+- [ ] **Re-run Run All Headless, before any live check in this file.** The Importer Declarations suite should
   ```
-  **299** -- 275, plus five null and bounds assertions, eleven that build each shipped fixture rather than
-  only validating it, and eight for the declared folder destination. The total should be above 1379. A failure here outranks every live check, and
-  the NUMBER is the thing to report: "all green" cannot be compared against a stale figure.
+  read **299** -- 275, plus five null and bounds assertions, eleven that build each shipped fixture rather
+  than only validating it, and eight for the declared folder destination. The total should be above 1379.
+  A failure here outranks every live check, and the NUMBER is the thing to report: "all green" cannot be
+  compared against a stale figure.
 
   The eleven build assertions are new and have never run, so they are the likeliest source of a red. If one
   fails, the log line carries the thrown message; that is a real defect in the profile it names rather than
@@ -110,7 +112,6 @@ user for this run once Blacksmith's harness is green.
   live once. Bibliosoph has been told to restore it.
 
   The page should land in the TITLE-CASED journal named for its
-  ```
   category -- `Fire`, not `fire` -- carrying `system.severity`, as a page of type
   `coffee-pub-bibliosoph.injury` rather than `text`. Then export to the compendium and confirm their
   injury picker lists it.
@@ -120,8 +121,4 @@ user for this run once Blacksmith's harness is green.
   type is fixed; the two-step is normal and still required.
   ```
 
-- [ ] **Delete Blacksmith's injury import.** Eight sites, inventoried in `TODO-GLOBAL.md`. Only after the
-  ```
-  above passes, since it is the evidence the replacement works.
-  ```
 

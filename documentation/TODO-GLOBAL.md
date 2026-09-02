@@ -859,7 +859,7 @@ Dev worlds may hold text-shaped injury journals from testing; those are not prod
 agree they should rot rather than be migrated, since recovering sixteen structured fields out of compiled
 HTML is the thing this migration exists to stop doing.
 
-**What Blacksmith deletes when this lands**, counted across file types rather than swept in `.js`. Injury
+**DONE -- all eight sites are deleted** (verified 2026-09-02: no reference to `buildInjuryJournalEntry`, `JOURNAL_INJURY_TEMPLATE`, `journal-injury.hbs` or `prompt-injuries.txt` survives anywhere in `scripts/`, `templates/` or `prompts/`). Kept as the record of what was counted, because the counting method was the point: across file types rather than swept in `.js`. Injury
 appears in 73 files, but nearly all of them are Blacksmith's own injury MECHANIC -- combat bar, token
 indicators, health thresholds, blood splatter -- which stays. The IMPORT half is eight sites:
 
