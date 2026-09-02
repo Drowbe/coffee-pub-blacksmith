@@ -112,6 +112,16 @@ verification backlog cannot leak to the wiki by accident.
 This table is the authority. Do not derive the prefix from the folder name -- `designsystem/` takes
 `design-`, and that irregularity is deliberate: the files were named before the folder was.
 
+**Basenames after the prefix must be unique across ALL published folders, not just within one.**
+`userguide-drawing.md` and `architecture-drawing.md` both reduce to "drawing", and the sidebar then
+qualifies both by kind -- which works, but degrades the entry of the document that was there first
+and did nothing wrong. `api-pins.md` against `architecture-pins.md` is the likeliest pair. The
+checker reports collisions; the moment to fix one is before the first push, because afterwards it is
+a rename of a published page and therefore a breaking change. Renaming is usually the right fix and
+usually improves the name: one module's `architecture-drawing.md` became `architecture-toolbar-
+discovery.md`, and another's guide became `userguide-sketching.md`, both more accurate than what they
+replaced.
+
 **A file whose prefix disagrees with its folder is misfiled.** The structure checker reports it as an
 error rather than guessing which half is right, because both halves have been wrong before.
 
@@ -343,15 +353,64 @@ finishes it able to do that thing. An inventory of the interface is not a user g
 screenshot with more words, and it is what you produce by writing from the source instead of from
 the table.
 
-**Every module owes these:**
+**The bar is COMPLETE COVERAGE, not a file count.** Together, a module's user guides must let a
+person understand what it does, set it up, and use every part of it. That is the test. A single
+getting-started guide has never met it for any module in this suite, and stopping at one is the most
+common failure of this section -- five of the first nine modules to adopt did exactly that, and each
+had to be sent back. If a feature is visible to a user and no guide says how to use it, the set is
+incomplete, however many files it contains.
 
-| File | Required | Contents |
+**Work out the list from the module, not from this table.** Open the settings window and the module's
+own interface, list what a person can actually do, and write until every item is covered. The table
+below is a floor and a naming convention, not a scope:
+
+| File | When | Contents |
 |---|---|---|
-| `userguide-getting-started.md` | always | What the module does, what it needs installed, and what changes on screen the moment it is enabled. The first five minutes. |
-| `userguide-settings.md` | unless the settings are being reworked | Every setting, by its on-screen name: what it does, who it affects, what happens if you change it. See the note below. |
-| `userguide-gm.md` | if the module has GM-only behaviour | The GM's workflows, in the order a session actually runs. |
-| `userguide-player.md` | if players see anything at all | What a player sees and can do, and what they cannot. |
-| `userguide-<feature>.md` | as needed | One per feature large enough that the guides above would otherwise swallow it. |
+| `userguide-getting-started.md` | always | What the module does, what it needs installed, and what changes on screen the moment it is enabled. The first five minutes -- and ONLY the first five minutes. It is the shallowest guide, not a summary of the others. |
+| `userguide-settings.md` | always, unless the settings are being reworked | Every setting, by its on-screen name: what it does, who it affects, what happens if you change it. |
+| `userguide-gm.md` | whenever the module has GM-only behaviour | The GM's workflows, in the order a session actually runs. |
+| `userguide-player.md` | whenever players see anything at all | What a player sees and can do, and what they cannot. |
+| `userguide-<feature>.md` | one per feature a user would name | Not "as needed" -- if a user would call it a thing, it gets a guide. A module with six features has six of these, or a very good reason. |
+
+**Splitting by audience is what exposes mechanism errors.** A guide written for "GMs and players"
+together is where they hide, because neither reader's questions get asked. One module's single page
+said a setting was "the usual way to keep a monster's hit points off the table" -- true about the
+outcome and wrong about the mechanism, since a card is posted once and read by everyone, so the
+setting means the card never had a health bar rather than that the party cannot see one. Writing the
+GM guide separately forced the precise statement and exposed it. The one-pager would have taught a
+model that breaks the moment a GM wonders why there is no per-player version.
+
+**Err toward coverage, not toward certainty.** Writing eight guides you have not walked multiplies
+the unverified surface eightfold, and the question is fair: is that better than one guide you have
+walked? Yes. A missing guide gives a reader nothing, while an unverified one gives them something
+mostly right plus a recorded note saying which parts to distrust -- and the unverified surface is
+discoverable and fixable, where absence is neither. Write the coverage, record what is unwalked in
+`TODO.md` per guide rather than as one blanket line, and name the guide most likely to be wrong. That
+is usually the player guide, because its claims are read off permission checks rather than seen from
+a player's client, and it is the one a player actually reads.
+
+**Architecture length is not feature size.** A feature with a short architecture document can be a
+large thing to a user, and the reverse is common. One module nearly omitted a guide for a toolbar
+button any player can press that writes to their character sheet, because its architecture document
+was brief. Judge the guide list by what a user does, never by how much was written for developers.
+
+**The cheap diagnostic: if getting-started is growing a section per feature, those features want
+guides.** Two modules independently reported reading that crowding as "this guide is a bit long"
+rather than "these are seven guides", and both were writing the sections that should have been the
+missing files. The symptom arrives before the realisation.
+
+**No count can tell you whether the guides are any good.** Eight guides that each restate the
+settings window score identically to eight that each answer a different reader's questions. The
+coverage bar is about whether a question got answered, which is not countable -- so the checker's
+ratio is a prompt to run the coverage test by hand, never a target, and a module that games it has
+only lied to itself. The ratio also has the wrong denominator: architecture is organised by
+subsystem and guides by verb, so a module with two architecture documents can easily have eight
+user-facing features. The count that matters is features a user would name, and no tool can see it.
+
+**The one-guide module is almost always wrong.** A module worth installing does more than one thing,
+and a reader who wants to do the second thing has nowhere to go. Before calling the set finished,
+name every feature aloud and point at the guide that covers it; the gaps are the remaining work.
+The module that got this right first wrote seven guides for seven features.
 
 **Nine rules, all checkable:**
 
@@ -363,6 +422,12 @@ the table.
    `settingCombatTimerEnabled` finds nothing. **Quote those labels; never edit them.** They are the
    product's own copy, and a documentation task is not a licence to reword the interface. A label
    that is missing or wrong is a bug to report, not a string to fix in passing.
+   **This covers HINTS as much as labels, and hints are where the rot is.** A label names a thing; a
+   hint makes a CLAIM about what happens, so it can go stale while the label stays correct. Every
+   wrong string found across nine adoptions was a hint, not a label. One shipped hint still described
+   a design its module had abandoned -- the same false claim its architecture document carried, and
+   visible to every GM in the settings window. Do not repeat a claim you have found to be false, do
+   not reword it, and file it as product copy for the author.
 3. **Task headings, not subsystem headings.** "Roll initiative for the whole party" tells a reader
    whether to keep reading; "Combat Timer Manager" does not.
 4. **Say who can do it.** GM only, any player, or the owner of the token. This is the single most
@@ -380,6 +445,10 @@ the table.
    scratch world. This is a second, independent reason to delete a stale capture and does not depend
    on the image being wrong: three of one module's four retired screenshots showed real players'
    real names.
+   **"Check the frame" is easy to read as "check the chat log", and that is not where it hides.** In
+   the clearest case found so far, six real players' names and their character names sat in a
+   RECIPIENT PICKER -- interface chrome nobody thinks of as content. Player lists, target selectors,
+   permission dialogs and combat trackers all carry names.
    **No screenshot beats a wrong one.** A stale product image is replaced or deleted, never
    republished -- and this rule overrides both the instruction below and the README's "show it".
    An image is believed harder than a document, and a reader who sees five tabs in a capture and two
@@ -752,6 +821,11 @@ Every consequence below is that one fact seen from a different side.
 
    Say which side you compared against. "All five match" is a claim that goes stale without anyone
    editing it, which makes it worse than no claim, because the next person stops checking.
+   **And compare every time, not only when you suspect drift.** A notice from the hub that a file is
+   committed says nothing about whether YOUR copy predates its last change -- the file can be settled
+   and your copy still stale. That is a TRUE difference arriving alongside a message implying there
+   is none, which is the one variant of this that a reassurance actively conceals. The satellite that
+   caught it did so by running the comparison instead of taking "safe to verify" at face value.
 4. **A tool comparing raw bytes across repositories manufactures drift.** The shared-block check
    reported a satellite's disclosure as drifted when it was character-for-character identical: their
    README was CRLF, the canonical file LF. This is the nastiest of the four, because the other three

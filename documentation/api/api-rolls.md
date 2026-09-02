@@ -114,7 +114,9 @@ comes from `dnd5e.calculateDamage` and the final amount from `dnd5e.applyDamage`
 actor uuid, so consumers get one normalized event instead of that two-hook dance. Delivery
 matches the attack lane: the hook fires on the GM client (a player applying to their own sheet
 forwards over the socket). Damage is not a roll, so this event does **not** also fire
-`'resolved'`.
+`'resolved'`. The event does not carry attacker or item attribution: a consumer that
+needs to know who dealt the damage, or with what, must correlate it against a preceding
+`attackResolved` itself.
 
 ```javascript
 {
@@ -264,18 +266,6 @@ if (outcome?.kind === 'attack' && outcome.hitTargets?.length) {
     console.log('Hit', outcome.hitTargets);
 }
 ```
-
-## Implementation status
-
-| Capability | Status |
-|---|---|
-| `classify()` for skill checks, attacks, rolls, MIDI workflow | Shipped |
-| `extractActiveD20` | Shipped |
-| `skillCheckResolved` / `groupResolved` hooks from Request Roll | Shipped (GM client) |
-| `attackResolved` hook from core dnd5e chat + optional MIDI | Shipped — `manager-roll-outcomes.js` |
-| `initiativeResolved` hook from core initiative chat messages | Shipped — `manager-roll-outcomes.js` |
-| `damageResolved` hook from dnd5e damage application | Shipped — `manager-roll-outcomes.js` (attacker/item attribution not yet carried) |
-| Internal sites fully migrated off duplicated logic | Phase 2 done — `manager-rolls.js`, `blacksmith.js` |
 
 ## Related documentation
 

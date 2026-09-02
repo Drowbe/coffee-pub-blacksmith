@@ -230,7 +230,17 @@ function buildSidebar() {
   // is the filename. (Raised by coffee-pub-artificer on adoption.)
   const labelCounts = new Map();
   for (const rel of PUBLISH) labelCounts.set(label(rel), (labelCounts.get(label(rel)) || 0) + 1);
-  const uniqueLabel = (rel) => (labelCounts.get(label(rel)) > 1 ? pageName(rel) : label(rel));
+  // On a collision, qualify by KIND rather than falling back to the full page name. A module that
+  // documents one feature for users and for developers -- the normal case, and the case the coverage
+  // bar actively encourages -- would otherwise get the two ugliest entries in its sidebar precisely
+  // where it did the right thing. (Raised by coffee-pub-scribe.)
+  const KIND_SUFFIX = { api: 'API', architecture: 'architecture', designsystem: 'design',
+                        userguides: 'guide', global: 'global', plans: 'plan' };
+  const uniqueLabel = (rel) => {
+    if (labelCounts.get(label(rel)) <= 1) return label(rel);
+    const kind = KIND_SUFFIX[rel.split('/')[0]];
+    return kind ? `${label(rel)} (${kind})` : pageName(rel);
+  };
 
   const linksIn = (prefix) =>
     PUBLISH.filter((p) => p.startsWith(prefix))

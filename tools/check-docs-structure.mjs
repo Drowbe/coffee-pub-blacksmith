@@ -139,6 +139,7 @@ const published = new Set([...collect(), HOME_SRC, ...ROOT_PAGES]);
 // one of them, including four in Librarian's published architecture and one in Blacksmith's own.
 // (Raised by coffee-pub-librarian.)
 const NEVER_PUBLISHED = /(^|[^\w-])(TODOs?|TODO\.md|TODO-GLOBAL\.md|plans\/)([^\w-]|$)/;
+const WORK_HEADING = /^\s*#{1,6}\s+((open|remaining|future|planned|outstanding)\b|next steps|in progress|implementation status|roadmap|wishlist|to ?do\b)/i;
 const KNOWN_ISSUES = /(^|[^\w-])known-issues\.md/;
 
 for (const rel of published) {
@@ -155,8 +156,13 @@ for (const rel of published) {
   if (rel === SELF || rel === 'known-issues.md') continue;
 
   lines.forEach((line, i) => {
-    if (/^\s*#{1,6}\s+(Open|Remaining) work\b/i.test(line)) {
-      fail('transient', `${rel}:${i + 1} -- an "Open work" section belongs in TODO.md`);
+    // A backlog inside a published document usually announces itself in a HEADING rather than the
+    // word TODO. One module carried ~150 lines under "Outstanding Questions to Resolve" and
+    // "Implementation Status / In Progress / Next Steps" without the word appearing once. Prose
+    // work-words have no bounded list; headings do, because a heading is a deliberate structural act.
+    // (Raised by coffee-pub-artificer.)
+    if (WORK_HEADING.test(line)) {
+      fail("transient", `${rel}:${i + 1} -- a work-shaped section heading; that content belongs in TODO.md`);
     }
     if (NEVER_PUBLISHED.test(line)) {
       fail('transient', `${rel}:${i + 1} -- references TODO or a plan; those never publish, so the pointer rots`);
@@ -210,6 +216,46 @@ if (IS_HUB) {
   }
 }
 
+// ---- 4d. User-guide coverage. -------------------------------------------------------------------
+// Reported, never failed on: no tool can know how many features a module has. But a module with eight
+// architecture documents and one user guide has almost certainly stopped at getting-started, which is
+// the most common failure of that section -- five of the first nine adopters did it. Putting the two
+// counts side by side makes the gap visible without inventing a threshold.
+{
+  const count = (dir) => {
+    const abs = path.join(DOCS, dir);
+    return fs.existsSync(abs) ? fs.readdirSync(abs).filter((f) => f.endsWith('.md')).length : 0;
+  };
+  const guides = count('userguides');
+  const arch = count('architecture');
+  notes.push(`user guides: ${guides} against ${arch} architecture document(s)`);
+  if (guides <= 1) {
+    notes.push('  ^ one guide for a multi-part module is almost always incomplete -- name every feature');
+    notes.push('    aloud and point at the guide that covers it. The standard: complete coverage, not a file count.');
+  }
+}
+
+// ---- 4e. Basename collisions across published folders. ------------------------------------------
+// Reported, not failed: the publisher qualifies a collision by kind so the links still work. But the
+// cheap moment to notice is the first build, and the symptom lives only in _Sidebar.md, which nobody
+// reads because the publisher writes it. By the time anyone looks, both pages are live and renaming
+// one is a breaking change. api-pins.md against architecture-pins.md is the likely pair.
+// (Raised by coffee-pub-cartographer and coffee-pub-scribe, independently.)
+{
+  const stems = new Map();
+  for (const rel of published) {
+    if (!rel.includes('/')) continue;
+    const stem = path.basename(rel, '.md').replace(/^(api|architecture|design|userguide|global)-/, '');
+    if (!stems.has(stem)) stems.set(stem, []);
+    stems.get(stem).push(rel);
+  }
+  for (const [stem, rels] of stems) {
+    if (rels.length > 1) {
+      notes.push(`basename collision on "${stem}": ${rels.join(', ')} -- sidebar entries are qualified by kind; rename now if that reads badly, because renaming a published page is a breaking change`);
+    }
+  }
+}
+
 // ---- 5. No emoji or dingbats, anywhere in the tree. -------------------------------------------
 const isPictographic = (cp) =>
   (cp >= 0x1f300 && cp <= 0x1faff) ||
@@ -238,6 +284,7 @@ for (const f of [...allMd, ...testingDocs, path.join(ROOT, 'README.md'), path.jo
 
 // ---- 6. Assets: every link resolves, and every asset is referenced. ---------------------------
 const referenced = new Set();
+const reportedMissing = new Set();
 // The README lives outside documentation/ but the standard explicitly blesses it drawing on assets/,
 // so an asset used only by the README is not an orphan. Scanning documentation/ alone reported every
 // one of them as unreferenced. (Raised by coffee-pub-crier.)
@@ -259,6 +306,9 @@ for (const f of assetScanned) {
       if (!/\.(webp|png|jpg|jpeg|gif|svg)$/i.test(target)) continue;
       const abs = path.resolve(dir, target);
       if (!fs.existsSync(abs)) {
+        const seenKey = `${f}|${target}`;
+        if (reportedMissing.has(seenKey)) continue;   // an image link matches two of the three regexes
+        reportedMissing.add(seenKey);
         fail('assets', `${path.relative(ROOT, f)} links ${target}, which is not committed`);
       } else if (abs.startsWith(ASSETS)) {
         referenced.add(path.basename(abs));
