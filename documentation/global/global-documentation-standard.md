@@ -112,15 +112,13 @@ verification backlog cannot leak to the wiki by accident.
 This table is the authority. Do not derive the prefix from the folder name -- `designsystem/` takes
 `design-`, and that irregularity is deliberate: the files were named before the folder was.
 
-**Basenames after the prefix must be unique across ALL published folders, not just within one.**
-`userguide-drawing.md` and `architecture-drawing.md` both reduce to "drawing", and the sidebar then
-qualifies both by kind -- which works, but degrades the entry of the document that was there first
-and did nothing wrong. `api-pins.md` against `architecture-pins.md` is the likeliest pair. The
-checker reports collisions; the moment to fix one is before the first push, because afterwards it is
-a rename of a published page and therefore a breaking change. Renaming is usually the right fix and
-usually improves the name: one module's `architecture-drawing.md` became `architecture-toolbar-
-discovery.md`, and another's guide became `userguide-sketching.md`, both more accurate than what they
-replaced.
+**The same stem may appear in two folders, and usually should.** `userguide-gathering.md` beside
+`architecture-gathering.md` is one feature documented for the user and for whoever changes it, which
+is the standard working rather than two files carelessly named -- and the better a module documents a
+topic, the more such pairs it has. Sidebar labels are deduplicated WITHIN a group, never across the
+whole publish set, because the sidebar prints the group heading above them: "Gathering" under
+"Architecture" is unambiguous to a reader. An earlier version deduplicated globally and fired hardest
+on the modules doing it right.
 
 **A file whose prefix disagrees with its folder is misfiled.** The structure checker reports it as an
 error rather than guessing which half is right, because both halves have been wrong before.
@@ -886,7 +884,13 @@ What it does, in order:
    the wiki while the source document keeps a relative path that renders everywhere else.
 5. **Enforces the boundary rule in code**, in all three directions -- see below.
 6. **Writes `_Sidebar.md`** with groups in a fixed order: Getting started, User guides, Global, API,
-   Architecture, Design system. User guides sit directly under Home because they serve the largest
+   Architecture, Design system. **User guides render in READING order, never alphabetically** --
+   getting-started, then the feature guides, then player, gm, settings. Shallowest first, reference
+   last. Alphabetical put getting-started third in one module and buried the settings reference among
+   the features. The feature guides take their order from the links in `home.md` when it lists them,
+   because that is the router the author wrote in the order that made sense to them; otherwise they
+   fall back to alphabetical. Nothing to configure: to reorder a module's guides, reorder the links
+   in its `home.md`. User guides sit directly under Home because they serve the largest
    audience; Getting started is `home.md` and `known-issues.md`.
 7. **Writes `Home.md`** from `documentation/home.md`.
 

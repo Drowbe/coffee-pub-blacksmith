@@ -235,27 +235,6 @@ if (IS_HUB) {
   }
 }
 
-// ---- 4e. Basename collisions across published folders. ------------------------------------------
-// Reported, not failed: the publisher qualifies a collision by kind so the links still work. But the
-// cheap moment to notice is the first build, and the symptom lives only in _Sidebar.md, which nobody
-// reads because the publisher writes it. By the time anyone looks, both pages are live and renaming
-// one is a breaking change. api-pins.md against architecture-pins.md is the likely pair.
-// (Raised by coffee-pub-cartographer and coffee-pub-scribe, independently.)
-{
-  const stems = new Map();
-  for (const rel of published) {
-    if (!rel.includes('/')) continue;
-    const stem = path.basename(rel, '.md').replace(/^(api|architecture|design|userguide|global)-/, '');
-    if (!stems.has(stem)) stems.set(stem, []);
-    stems.get(stem).push(rel);
-  }
-  for (const [stem, rels] of stems) {
-    if (rels.length > 1) {
-      notes.push(`basename collision on "${stem}": ${rels.join(', ')} -- sidebar entries are qualified by kind; rename now if that reads badly, because renaming a published page is a breaking change`);
-    }
-  }
-}
-
 // ---- 5. No emoji or dingbats, anywhere in the tree. -------------------------------------------
 const isPictographic = (cp) =>
   (cp >= 0x1f300 && cp <= 0x1faff) ||

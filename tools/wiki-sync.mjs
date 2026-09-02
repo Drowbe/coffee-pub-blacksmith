@@ -117,7 +117,9 @@ function label(rel) {
   if (rel === 'architecture/architecture-ownership.md') return 'Module ownership';
   const base = pageName(rel).replace(/^(api|architecture|design|global|userguide)-/, '');
   const spaced = base.replace(/-/g, ' ');
-  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  const titled = spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  // Sentence case mangles the acronyms that appear in guide names -- "Gm", "Api", "Ui".
+  return titled.replace(/\b(Gm|Api|Ui|Npc|Css|Json|Uuid|Dc)\b/g, (m) => m.toUpperCase());
 }
 
 // ---- Fence-aware link rewriting ----
@@ -228,28 +230,62 @@ function buildSidebar() {
   // userguide-artificer and architecture-artificer both reduce to "Artificer", in adjacent groups.
   // A label used more than once falls back to the full page name, which is always unique because it
   // is the filename. (Raised by coffee-pub-artificer on adoption.)
-  const labelCounts = new Map();
-  for (const rel of PUBLISH) labelCounts.set(label(rel), (labelCounts.get(label(rel)) || 0) + 1);
-  // On a collision, qualify by KIND rather than falling back to the full page name. A module that
-  // documents one feature for users and for developers -- the normal case, and the case the coverage
-  // bar actively encourages -- would otherwise get the two ugliest entries in its sidebar precisely
-  // where it did the right thing. (Raised by coffee-pub-scribe.)
+  // Labels need only be unique WITHIN a group, because the sidebar prints the group heading above
+  // them: "Gathering" under "Architecture" is unambiguous to a reader in a way it is not to a Set.
+  // Deduping globally fired hardest on compliance -- a feature documented once for users and once for
+  // whoever changes it is the standard working, not two files carelessly named, and the better a
+  // module documents a topic the more such pairs it has. (Raised by coffee-pub-artificer.)
   const KIND_SUFFIX = { api: 'API', architecture: 'architecture', designsystem: 'design',
                         userguides: 'guide', global: 'global', plans: 'plan' };
-  const uniqueLabel = (rel) => {
-    if (labelCounts.get(label(rel)) <= 1) return label(rel);
+  const labelsIn = (prefix) => {
+    const counts = new Map();
+    for (const rel of PUBLISH.filter((p) => p.startsWith(prefix))) {
+      counts.set(label(rel), (counts.get(label(rel)) || 0) + 1);
+    }
+    return counts;
+  };
+  const uniqueLabelIn = (rel, counts) => {
+    if ((counts.get(label(rel)) || 0) <= 1) return label(rel);
     const kind = KIND_SUFFIX[rel.split('/')[0]];
     return kind ? `${label(rel)} (${kind})` : pageName(rel);
   };
 
-  const linksIn = (prefix) =>
-    PUBLISH.filter((p) => p.startsWith(prefix))
-      .map((rel) => `- [${uniqueLabel(rel)}](${pageName(rel)})`);
+  // User guides render in READING order, not alphabetically. Alphabetical put getting-started third
+  // in one module and buried the settings reference in the middle of the features. The order is:
+  // getting-started, then the feature guides, then player, gm, and settings -- shallowest first,
+  // reference last. Feature guides take their order from the links in home.md when that document
+  // lists them, because home.md is the router the author wrote in the order that made sense to them;
+  // otherwise they fall back to alphabetical. Nothing to configure, and no new file.
+  const homeOrder = (() => {
+    try {
+      const home = fs.readFileSync(path.join(DOCS, HOME_SRC), 'utf8');
+      return [...home.matchAll(/userguide-[a-z0-9-]+/g)].map((m) => m[0]);
+    } catch { return []; }
+  })();
+  const guideRank = (rel) => {
+    const name = pageName(rel);
+    if (name === 'userguide-getting-started') return [0, 0, name];
+    const tail = { 'userguide-player': 1, 'userguide-gm': 2, 'userguide-settings': 3 }[name];
+    if (tail) return [2, tail, name];
+    const i = homeOrder.indexOf(name);
+    return [1, i === -1 ? Number.MAX_SAFE_INTEGER : i, name];
+  };
+  const cmp = (a, b) => {
+    const [ax, ay, az] = guideRank(a), [bx, by, bz] = guideRank(b);
+    return ax - bx || ay - by || az.localeCompare(bz);
+  };
+  const linksIn = (prefix) => {
+    const rels = PUBLISH.filter((p) => p.startsWith(prefix));
+    if (prefix === 'userguides/') rels.sort(cmp);
+    const counts = labelsIn(prefix);
+    return rels.map((rel) => `- [${uniqueLabelIn(rel, counts)}](${pageName(rel)})`);
+  };
   // A group whose every document is held renders as a bare heading with nothing under it, which reads
   // as a broken sidebar rather than an empty category. Emit the heading only when it has links.
   const section = (title, links) => (links.length ? [`### ${title}`, links.join('\n'), ''] : []);
+  const rootCounts = labelsIn('');
   const topLevel = PUBLISH.filter((p) => !p.includes('/'))
-    .map((rel) => `- [${uniqueLabel(rel)}](${pageName(rel)})`);
+    .map((rel) => `- [${uniqueLabelIn(rel, rootCounts)}](${pageName(rel)})`);
   return [
     ...section('Getting started', ['- [Home](Home)', ...topLevel]),
     ...section('User guides', linksIn('userguides/')),
