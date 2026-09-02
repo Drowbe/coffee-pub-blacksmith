@@ -3761,9 +3761,18 @@ Hooks.once('ready', () => {
                     onClick: () => ui.notifications.info('Add favorites using the heart on a roll row in Request a Roll.')
                 }];
             }
+            // THE ICON SAYS WHICH ONES TAKE OVER THE SCREEN.
+            //
+            // Every row carried the same die, so the menu gave no warning that one of
+            // these was about to drop a full-screen cinematic on the whole table -- a
+            // thing you very much want to know BEFORE clicking, and the only place a
+            // favourite is fired from without the Request a Roll window open.
+            //
+            // The same film icon as the toggle that set the flag, so the two halves of
+            // the feature share one symbol rather than each inventing its own.
             return favs.map((rec) => ({
                 name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
-                icon: 'fa-solid fa-dice',
+                icon: rec.isCinematic ? 'fa-solid fa-film' : 'fa-solid fa-dice',
                 onClick: () => {
                     SkillCheckDialog.executeFavoriteSilent(rec);
                 }
