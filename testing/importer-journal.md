@@ -6,26 +6,25 @@ Scope: importer step 8, which has shipped and is not yet proven in a running wor
 document -- see the testing rules in the documentation standard. **Remove an item when it passes rather than
 ticking it, and delete this file when it is empty.**
 
-**Status: the last full green is STALE, and should not be read as current.** Run All Headless passed
-**1379/1379** across 19 suites on 2026-09-02, but that run predates the container model, `validateDeclaration`,
-the `templateOptions` union, the ArrayField bounds fix, the legacy injury deletion, and the null-handling fix
-below. The suite has grown since and nothing has re-run it. **Re-running it is the first item, not a
-formality** -- every number quoted anywhere else in this file is from the stale run.
+**Status: headless is green and current.** Run All Headless passes **1411/1411** across 19 suites as of
+2026-09-02, with Importer Declarations at **307**. That run includes everything from the null-handling fix
+onward: the declared folder destination, the composed template options, the fixture build assertions, the
+container model, `validateDeclaration` and the legacy injury deletion. Nothing below has been proven by it --
+what remains is what a harness cannot reach.
 
-A live blocking bug was found by Bibliosoph's user on 2026-09-02, after that run, in the part of the engine the
-suite covered most heavily. `validateEntry` rejected a legal `null` and accepted an illegal one: the guard read
-`if (raw === null && field.nullable !== true) return;`, so a `nullable: true` field fell through to a bounds
-check where `Number(null)` is 0 and failed its own `min: 1`, while a field that forbade null returned early
-with no error at all. Fixed in both directions, and the bounds check no longer coerces -- `Number(undefined)`
-is NaN, where every comparison is false and an out-of-range value passed in silence.
+Two things that run found are worth keeping, because neither was found by the suite passing:
 
-**The suite could not have caught it, and that is the part worth keeping.** The `journal-page-profile` group
-already carried the exact fixture -- `treatmentdc`, `nullable: true`, `min: 1`, value `null` -- and asserted the
-built page kept it null. That assertion passed throughout, because it called `buildDocumentData` while the bug
-was in `validateEntry`, and in a running world construction is never reached until validation passes. It tested
-the second half of a path that could not reach it. This is the fourth instance of one pattern: a test that
-cannot distinguish success from the failure the code actually has. The validating half has been added against
-the same declaration (five assertions, verified offline against the real registry and validator).
+- **A declared profile was invisible to the registry.** `getJsonImportKind(kind).templateOptions` returns
+  what was REGISTERED -- the static half -- while declared profiles are unioned in at window-render time.
+  The profile appeared correctly in the window and nothing that asked the registry could see it. Two readers
+  of one contract. `getTemplateOptions(kindId)` is now the composed answer.
+- **An assertion that could not pass.** `getDeclarationsForKind('journal').length === 3` is a claim about the
+  whole world, and any installed satellite declaring a journal profile falsifies it -- Bibliosoph's injury
+  profile does. It failed *because the mechanism works*, which trains a reader to expect a red and explain it
+  away. Asserted by id now. See the fifth failure mode in `architecture-importer.md`.
+
+Predict a suite count from the last MEASURED number, never from a previous prediction. This file said 299,
+measured 305, then correctly predicted 307 from it.
 
 Results go to the **Verified** line of the relevant `CHANGELOG.md` entry, not back into this file.
 
@@ -91,18 +90,6 @@ Bibliosoph ran the import in a live world on 2026-09-02 and the core of it passe
 pages present, append into an existing journal, update-in-place on re-import, and a null `treatmentdc`
 surviving. What that run did NOT cover is below -- it was made with `treatmentdc` deleted from the payload to
 get past the null bug, and it exposed three folder defects that are now fixed and unverified.
-
-- [ ] **Re-run Run All Headless, before any live check in this file.** The Importer Declarations suite should
-  ```
-  read **299** -- 275, plus five null and bounds assertions, eleven that build each shipped fixture rather
-  than only validating it, and eight for the declared folder destination. The total should be above 1379.
-  A failure here outranks every live check, and the NUMBER is the thing to report: "all green" cannot be
-  compared against a stale figure.
-
-  The eleven build assertions are new and have never run, so they are the likeliest source of a red. If one
-  fails, the log line carries the thrown message; that is a real defect in the profile it names rather than
-  a flaky test, since the fixture beside it validates.
-  ```
 
 - [ ] **Import an injury JSON end to end.** Steps 1-5 of this ran on 2026-09-02 and passed -- parse, routing on
   ```

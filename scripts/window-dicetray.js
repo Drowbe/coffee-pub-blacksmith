@@ -15,12 +15,23 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { setToolWindowState } from './manager-tool-windows.js';
+// BOTH OF THESE CLOSE AN IMPORT CYCLE, and both are safe because nothing here touches
+// them at module-evaluation time -- every use is inside a click handler or a menu
+// builder. The cycle runs window-dicetray -> window-skillcheck -> manager-sockets ->
+// api-menubar -> ui-journal-encounter -> blacksmith -> window-dicetray, which is the
+// same shape manager-rolls and window-skillcheck have had for a long time.
+//
+// If you ever need one of these AT EVALUATION -- to extend a class, or to read a static
+// into a module-level constant -- this breaks, silently, as `undefined` in whichever
+// file the graph happens to reach second. Keep the uses deferred.
+import { SkillCheckDialog } from './window-skillcheck.js';
+import { SidebarStyle } from './ui-sidebar-style.js';
 
 export const DICE_TRAY_WINDOW_ID = 'blacksmith-dice-tray';
 
@@ -675,6 +686,107 @@ export async function openDiceTray() {
 }
 
 /** Register the window and its menubar tool. */
+/**
+ * Whether this user's dice tool leads with Request a Roll.
+ *
+ * A GM, unless they have turned the menubar entry off. `requestRollShowInMenubar` used
+ * to decide whether a SECOND icon appeared; with the two tools merged it decides
+ * whether this one leads with the request window, which is the same question asked of
+ * the surface that survived.
+ */
+function isRequestRollAvailable() {
+    return !!game.user?.isGM && getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true);
+}
+
+function openRequestRoll() {
+    new SkillCheckDialog().render(true);
+}
+
+/** The dice tool's id in the menubar registry. */
+const DICE_TOOL_ID = 'dice-tray';
+
+/** The icon's colour while manual rolls are on. Off, it inherits the menubar's own. */
+const MANUAL_ROLLS_COLOR = 'rgba(231, 91, 1, 0.9)';
+
+/**
+ * Colour the menubar icon to say whether manual rolls are on.
+ *
+ * MANUAL ROLLS CHANGE EVERY ROLL AT THE TABLE and nothing else on screen says so. It
+ * used to be a lit sidebar button; with the control moved into a context menu, the
+ * state went with it -- and a state you can only see by opening the menu that changes
+ * it is a state you will forget is on.
+ *
+ * Pushed rather than computed at render: `iconColor` is a plain string the template
+ * draws straight, deliberately, so a tool cannot report state by handing the menubar a
+ * function.
+ */
+function syncDiceToolIcon() {
+    MenuBar.updateMenubarToolIconColor(
+        DICE_TOOL_ID,
+        SidebarStyle.isManualRollsEnabled() ? MANUAL_ROLLS_COLOR : null
+    );
+}
+
+/**
+ * The dice tool's right-click menu.
+ *
+ * Everything to do with rolling, in one place, in the order a hand reaches for it: the
+ * windows first, then the toggle that changes how every roll behaves, then -- for a GM
+ * -- the saved rolls that fire without opening anything.
+ */
+function buildDiceToolMenu() {
+    const items = [];
+
+    if (isRequestRollAvailable()) {
+        items.push({
+            name: 'Request a Roll',
+            icon: 'fa-solid fa-dice-d20',
+            description: 'Ask the table for a roll',
+            onClick: () => openRequestRoll()
+        });
+    }
+
+    items.push({
+        name: 'Open Dice Tray',
+        icon: 'fa-solid fa-dice-six',
+        description: 'Build a formula and roll it yourself',
+        onClick: () => openDiceTray()
+    });
+
+    // Gated by the same two settings that used to decide whether the sidebar button
+    // appeared: the user's own preference, and the GM's permission for players.
+    if (SidebarStyle.canToggleManualRolls()) {
+        const on = SidebarStyle.isManualRollsEnabled();
+        items.push({ separator: true });
+        items.push({
+            name: on ? 'Disable Manual Rolls' : 'Enable Manual Rolls',
+            // A CHECKMARK when it is on, which is how this menu marks an active state
+            // everywhere else. The label says which way the click goes, so the icon is
+            // free to say which way things currently stand.
+            icon: on ? 'fa-solid fa-check' : 'fa-solid fa-hand-pointer',
+            description: on
+                ? 'Every die is entered by hand'
+                : 'Enter every die roll by hand instead of rolling it',
+            onClick: async () => {
+                await SidebarStyle.toggleManualRolls();
+                syncDiceToolIcon();
+            }
+        });
+    }
+
+    // The favourites and the quick roll library, as flyouts. GM only: they request
+    // rolls FROM other people, which is not a thing a player does.
+    if (isRequestRollAvailable()) {
+        const rollMenu = SkillCheckDialog.requestRollMenuItems();
+        if (rollMenu.length) {
+            items.push({ separator: true });
+            items.push(...rollMenu);
+        }
+    }
+
+    return items;
+}
+
 export function registerDiceTray() {
     // Registry and menubar are imported directly rather than reached through
     // `module.api`, which attaches its window methods from an async dynamic import
@@ -687,19 +799,55 @@ export function registerDiceTray() {
         open: async () => openDiceTray()
     });
 
+    // ONE MENUBAR ENTRY FOR ROLLING.
+    //
+    // This and Request a Roll used to be two icons a pixel apart doing the same job --
+    // "I want to roll something" -- with no relationship between them, and a third
+    // control, Manual Rolls, sat under the sidebar's pin button where nothing else had
+    // anything to do with dice. All three are here now.
+    //
+    // The left click differs by role because the two roles want different things from
+    // it: a player wants their own dice, and a GM almost always wants to ask somebody
+    // else for a roll. Everything either of them might want instead is one right-click
+    // away, so neither is shut out of the other's tool.
     MenuBar.registerMenubarTool('dice-tray', {
-        icon: 'fa-solid fa-dice-d20',
+        icon: 'fa-solid fa-dice',
+        // The state as it stands at registration -- manual rolls survive a reload, so
+        // the icon has to open already lit rather than waiting for the first change.
+        iconColor: SidebarStyle.isManualRollsEnabled() ? MANUAL_ROLLS_COLOR : null,
         name: 'dice-tray',
         title: null,
-        tooltip: 'Dice Tray',
-        onClick: () => openDiceTray(),
+        tooltip: () => (isRequestRollAvailable() ? 'Request a Roll' : 'Dice Tray'),
+        onClick: () => {
+            if (isRequestRollAvailable()) openRequestRoll();
+            else openDiceTray();
+        },
         zone: 'left',
         group: 'general',
         order: 200,
         moduleId: MODULE.ID,
         gmOnly: false,
         leaderOnly: false,
-        visible: true
+        visible: true,
+        contextMenuItems: () => buildDiceToolMenu()
+    });
+
+    // MANUAL ROLLS CAN CHANGE FROM ANYWHERE: another client, Foundry's own Dice
+    // Configuration sheet, or a macro. The icon is persistent, so unlike the context
+    // menu -- which is built fresh every time it opens -- it has to be told.
+    //
+    // This is the one branch of the sidebar button's old settings hook that had to
+    // survive the move. The other three watched settings that only decided whether the
+    // button existed, and a menu reads those when it opens.
+    HookManager.registerSettingChangeCallback({
+        description: 'Dice tool: colour the menubar icon while manual rolls are on',
+        context: 'dice-tool-manual-rolls',
+        priority: 4,
+        callback: (moduleId, settingKey) => {
+            // --- BEGIN - HOOKMANAGER CALLBACK ---
+            if (moduleId === 'core' && settingKey === 'diceConfiguration') syncDiceToolIcon();
+            // --- END - HOOKMANAGER CALLBACK ---
+        }
     });
 
     return true;

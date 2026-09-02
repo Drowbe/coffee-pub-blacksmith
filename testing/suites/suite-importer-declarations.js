@@ -1501,7 +1501,11 @@ export default {
                     templateOptions: [{ value: 'shadowed', label: 'Static Wins', authoringModes: 'prompt' }]
                 });
 
-                const options = importer.getJsonImportKind(kind)?.templateOptions ?? [];
+                // The COMPOSED list, not the registration. `getJsonImportKind` returns
+                // what was registered, which is the static half only -- reading that here
+                // asserted against a list the window never renders, and reported a broken
+                // union as a broken profile.
+                const options = importer.getTemplateOptions(kind);
                 const by = Object.fromEntries(options.map(one => [one.value, one]));
                 if (!by.alpha) log(`options were: ${JSON.stringify(options)}`);
 
@@ -1786,8 +1790,14 @@ export default {
                 // The convention still works -- the import dialog writes `foldername` and
                 // every shipped template carries it -- so the three profiles that rely on
                 // it must keep registering.
-                expect('the shipped journal profiles still register',
-                    registry.getDeclarationsForKind('journal').length, 3);
+                // BY ID, NOT BY COUNT. A count is a claim about the whole world: any
+                // installed sibling that declares a journal profile makes it wrong, and
+                // Bibliosoph's injury profile does exactly that. The assertion failed in
+                // a live world for a correct reason, which is the least useful kind of red.
+                const journalIds = new Set(registry.getDeclarationsForKind('journal').map(one => one.id));
+                for (const id of ['area', 'encounter', 'location']) {
+                    expect.ok(`the shipped ${id} profile still registers`, journalIds.has(id));
+                }
 
                 const fields = [{ name: 'title', path: 'name', type: 'string' },
                                 { name: 'destination', role: 'input', type: 'string' }];

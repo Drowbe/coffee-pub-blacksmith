@@ -236,11 +236,12 @@ source by parties who had not seen each other's. The value is in the independenc
 the technique is worth reaching for wherever a second derivation is cheap, and worth nothing where it is
 really one derivation checked twice.
 
-## Proving a check can fail, and the four ways that goes wrong
+## Proving a check can fail, and the five ways that goes wrong
 
 A check that has only ever passed is indistinguishable from one that cannot fail, so every check here was
-proved by injecting the fault it claims to catch. Four failure modes showed up in doing that, and every
-one produced a green result that meant nothing.
+proved by injecting the fault it claims to catch. Five failure modes showed up in doing that. Four produced
+a green result that meant nothing; the fifth produced a red one that meant nothing, which is rarer and
+teaches a worse habit.
 
 **An assertion can exercise the broken path and ask the wrong question.** The test for the model walk had a
 nested `modifiers` field and asserted its CHILDREN carried no document path -- which was true, and which
@@ -272,7 +273,20 @@ every real input. **Construction is usually the interesting half, which is exact
 goes unwritten.** The rule that catches it is to assert both halves against ONE declaration, so the fixture
 that proves the build also has to get past the gate.
 
-All four are the same error in different clothes, and the consumer stated the principle better than any of
+**A fifth, pointing the other way: a test that cannot PASS.** An assertion read
+`getDeclarationsForKind('journal').length === 3`, meaning "Blacksmith's own three still register". That is a
+claim about the whole world rather than about Blacksmith, and it became false the moment a satellite declared
+a journal profile -- which is the entire point of the registry. It failed in a live world **because the
+mechanism works**, which is close to the worst signal a suite can produce: it trains the reader to expect a
+red and explain it away, so the day a profile genuinely goes missing the failure looks identical to the noise.
+Asserted by id instead, which also names *which* profile went missing when it legitimately fails, where a
+count only ever says a number moved.
+
+The first four could not fail; this one could not pass. Both are the same underlying error -- a test encoding
+an assumption about its ENVIRONMENT rather than the behaviour it means to check -- and the fifth is the
+easier one to spot, because it announces itself.
+
+All five are the same error in different clothes, and the consumer stated the principle better than any of
 the incidents did:
 
 > A test that cannot distinguish success from the failure it was written for is worse than no test,

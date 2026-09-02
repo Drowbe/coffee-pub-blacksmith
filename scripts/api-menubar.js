@@ -840,6 +840,44 @@ class MenuBar {
     }
 
     /**
+     * Recolour a registered tool's icon.
+     *
+     * For a tool that reports a STATE it does not own -- the dice tool goes orange while
+     * manual rolls are on, and manual rolls are a core setting anyone can change from
+     * anywhere. `active` is the wrong instrument for that: it is for toggleable tools,
+     * and this one is not a toggle, it is a button that opens a window.
+     *
+     * `renderMenubar(true)` is a full rebuild rather than the lightweight refresh,
+     * because the lightweight path does not touch tool icons at all. The fingerprint
+     * already includes `iconColor`, so a rebuild triggered from here actually redraws.
+     *
+     * @param {string} toolId
+     * @param {string|null} iconColor - any CSS colour, or null to clear
+     * @returns {boolean} Success status
+     */
+    static updateMenubarToolIconColor(toolId, iconColor) {
+        try {
+            const tool = this.toolbarIcons.get(toolId);
+            if (!tool) {
+                postConsoleAndNotification(MODULE.NAME, "Menubar API: Tool not found", { toolId }, false, false);
+                return false;
+            }
+
+            const next = iconColor || null;
+            // Nothing to do is not a failure, but it must not cost a rebuild either:
+            // this is called from a settings hook that can fire several times a second.
+            if ((tool.iconColor || null) === next) return true;
+
+            tool.iconColor = next;
+            this.renderMenubar(true);
+            return true;
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Menubar API: Error updating tool icon color", { toolId, error }, false, false);
+            return false;
+        }
+    }
+
+    /**
      * Update a tool's active state (for toggleable tools)
      * @param {string} toolId - The tool ID to update
      * @param {boolean} active - The active state

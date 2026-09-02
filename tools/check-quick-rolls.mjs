@@ -52,16 +52,19 @@ const manager = read(MANAGER);
 const template = read(TEMPLATE);
 
 /**
- * One method's source, from its class-body signature to its matching brace.
+ * One method or function's source, from its signature to its matching brace.
  *
  * The walk starts at the brace the SIGNATURE ENDS WITH, not at the first `{` after
  * the name. A default-object parameter -- `normalize(raw = {})` -- puts a brace
  * inside the signature, and a walk started there closes on the parameter and returns
  * a fragment that parses into nonsense.
+ *
+ * Class methods sit at four spaces and a top-level function at none; both are tried,
+ * so a caller names the thing rather than its indentation.
  */
 function slice(src, name, file) {
-    const signature = `\n    ${name} {`;
-    const start = src.indexOf(signature);
+    const signature = [`\n    ${name} {`, `\n${name} {`].find((candidate) => src.includes(candidate));
+    const start = signature === undefined ? -1 : src.indexOf(signature);
     if (start < 0) {
         problems.push(`${file}: method not found: ${name} -- renamed, or the section was rewritten`);
         return null;
@@ -333,28 +336,34 @@ if (literals.length) {
     problems.push(`${BUILDER_CSS}: ${literals.length} colour literal(s) -- ${[...new Set(literals)].slice(0, 4).join(', ')}${literals.length > 4 ? ', …' : ''}. A Tool window's surfaces are per-theme custom properties, so a literal is right in one theme and wrong in the other two. Use the --blacksmith-tool-* family; window-compendium-search.css is the reference`);
 }
 
-// ===== THE MENUBAR MENU REACHES THE LIBRARY ========================
+// ===== ONE MENUBAR ENTRY FOR ROLLING ===============================
 //
-// The right-click menu on the Request Roll tool is the only way to fire a roll without
-// opening the window, and for a long time it listed favourites and nothing else -- a
-// table's whole quick roll library was invisible from it. A menu that silently offers
-// less than it should looks exactly like a menu that is complete.
+// The dice tool is the single menubar entry for everything to do with rolling: the
+// dice tray, Request a Roll, the manual-rolls toggle, and the saved rolls. Request a
+// Roll had its own icon a pixel away and Manual Rolls was a button under the sidebar's
+// pin; a regression that revives either is not an error, it is a duplicate control
+// that looks deliberate.
+//
+// The right-click menu is also the only way to fire a roll without opening a window,
+// and it listed favourites and nothing else for a long time -- a menu that silently
+// offers less than it should looks exactly like a menu that is complete.
 
-const menuStart = dialog.indexOf('contextMenuItems: () => {');
-if (menuStart < 0) {
-    problems.push(`${DIALOG}: the Request Roll menubar tool has no contextMenuItems`);
-} else {
-    // The menu literal runs to the close of the registerMenubarTool call.
-    const menuSrc = dialog.slice(menuStart);
+const DICETRAY = 'scripts/window-dicetray.js';
+const SIDEBAR = 'scripts/ui-sidebar-style.js';
+const dicetray = read(DICETRAY);
+const sidebar = read(SIDEBAR);
+
+// --- the menu's contents, wherever it is built from ---
+const menuSrc = slice(dialog, 'static requestRollMenuItems()', DIALOG);
+if (menuSrc) {
     if (!menuSrc.includes('QuickRollsManager.byCategory()')) {
-        problems.push(`${DIALOG}: the menubar context menu must list the quick roll library by category -- it is the only way to fire a roll without opening the window`);
+        problems.push(`${DIALOG}: requestRollMenuItems must list the quick roll library by category -- it is the only way to fire a roll without opening the window`);
     }
     if (!menuSrc.includes('requestRollFavorites')) {
-        problems.push(`${DIALOG}: the menubar context menu must still list favourites`);
+        problems.push(`${DIALOG}: requestRollMenuItems must still list favourites`);
     }
-    // Anchored to the CATEGORY LOOP, not to `submenu:` anywhere. A bare test passed
-    // while the categories rendered flat, because the favourites block above them has
-    // a submenu of its own and satisfied it.
+    // Anchored to each block. A bare `submenu:` test passed while the categories
+    // rendered flat, because the favourites block above them satisfied it.
     if (!/byCategory\(\)[\s\S]{0,800}?submenu:/.test(menuSrc)) {
         problems.push(`${DIALOG}: each quick roll category must render as a submenu -- flat, a full library is dozens of rows and worse than opening the window`);
     }
@@ -362,17 +371,80 @@ if (menuStart < 0) {
         problems.push(`${DIALOG}: favourites must render as a submenu, alongside the categories`);
     }
     if (!menuSrc.includes('runQuickRoll')) {
-        problems.push(`${DIALOG}: the menubar context menu must fire quick rolls through SkillCheckDialog.runQuickRoll`);
+        problems.push(`${DIALOG}: requestRollMenuItems must fire quick rolls through SkillCheckDialog.runQuickRoll`);
     }
 }
 
 // `runQuickRoll` opens the window with the roll pending, because a quick roll selects
 // contestants in the dialog's own list and has no headless equivalent.
 if (!/static runQuickRoll\(id\)/.test(dialog)) {
-    problems.push(`${DIALOG}: SkillCheckDialog.runQuickRoll is missing -- the menubar menu has no way to fire a quick roll`);
+    problems.push(`${DIALOG}: SkillCheckDialog.runQuickRoll is missing -- the menu has no way to fire a quick roll`);
 }
 if (!/pendingQuickRollId/.test(dialog)) {
     problems.push(`${DIALOG}: the dialog must accept pendingQuickRollId -- runQuickRoll opens the window with the roll pending and nothing else runs it`);
+}
+
+// --- the tool that carries it ---
+if (/registerMenubarTool\('skillcheck'/.test(dialog)) {
+    problems.push(`${DIALOG}: the separate Request a Roll menubar tool is back -- it and the dice tool are one entry now, and two icons a pixel apart doing the same job is what the merge removed`);
+}
+
+const dicetrayMenu = slice(dicetray, 'function buildDiceToolMenu()', DICETRAY);
+if (dicetrayMenu) {
+    for (const [needle, what] of [
+        ['SkillCheckDialog.requestRollMenuItems()', 'the favourites and quick roll library'],
+        ['openRequestRoll()', 'Request a Roll'],
+        ['openDiceTray()', 'Open Dice Tray'],
+        ['SidebarStyle.toggleManualRolls()', 'the manual rolls toggle']
+    ]) {
+        if (!dicetrayMenu.includes(needle)) {
+            problems.push(`${DICETRAY}: the dice tool's context menu no longer offers ${what} -- every control for rolling lives on this one menu, and a missing entry leaves it unreachable rather than erroring`);
+        }
+    }
+    if (!/SidebarStyle\.canToggleManualRolls\(\)/.test(dicetrayMenu)) {
+        problems.push(`${DICETRAY}: the manual rolls entry must be gated by SidebarStyle.canToggleManualRolls() -- it honours the user's preference and the GM's permission for players`);
+    }
+}
+
+// MANUAL ROLLS CHANGE EVERY ROLL AT THE TABLE and nothing else on screen says so. The
+// state used to be a lit sidebar button; moving the control into a context menu moved
+// the state with it, and a state you can only see by opening the menu that changes it
+// is a state you forget is on. The icon carries it now, which means three things have
+// to hold: it opens lit, it relights on toggle, and it follows a change made anywhere
+// else -- another client, Foundry's own Dice Configuration sheet, a macro.
+for (const [pattern, what] of [
+    [/iconColor: SidebarStyle\.isManualRollsEnabled\(\)/, 'the icon does not open lit after a reload'],
+    [/await SidebarStyle\.toggleManualRolls\(\);[\s\S]{0,80}?syncDiceToolIcon\(\);/, 'the icon does not relight when the menu toggles it'],
+    [/settingKey === 'diceConfiguration'\) syncDiceToolIcon\(\)/, 'the icon does not follow a change made outside this menu']
+]) {
+    if (!pattern.test(dicetray)) {
+        problems.push(`${DICETRAY}: ${what} -- manual rolls change every roll at the table, and the menubar icon is the only thing that says so`);
+    }
+}
+if (!dicetray.includes("rgba(231, 91, 1, 0.9)")) {
+    problems.push(`${DICETRAY}: the manual-rolls icon colour is gone`);
+}
+
+if (!/icon: 'fa-solid fa-dice'/.test(dicetray)) {
+    problems.push(`${DICETRAY}: the dice menubar tool's icon must be 'fa-solid fa-dice'`);
+}
+if (!/contextMenuItems: \(\) => buildDiceToolMenu\(\)/.test(dicetray)) {
+    problems.push(`${DICETRAY}: the dice menubar tool must carry the context menu`);
+}
+
+// The manual-rolls button is gone from the sidebar; only its engine stays.
+for (const [pattern, what] of [
+    [/_createManualRollButton/, 'the sidebar manual-rolls button builder'],
+    [/blacksmith-manual-rolls/, 'the sidebar manual-rolls button markup']
+]) {
+    if (pattern.test(sidebar)) {
+        problems.push(`${SIDEBAR}: ${what} is back -- the toggle lives on the dice tool's context menu, and two controls for one setting is what the move removed`);
+    }
+}
+for (const name of ['canToggleManualRolls()', 'isManualRollsEnabled()', 'toggleManualRolls()']) {
+    if (!sidebar.includes(`static ${name}`) && !sidebar.includes(`static async ${name}`)) {
+        problems.push(`${SIDEBAR}: SidebarStyle.${name} is missing -- the dice tool's menu calls it`);
+    }
 }
 
 // ===== THE TEMPLATE'S SIDE =========================================

@@ -24,6 +24,8 @@ const kinds = new Map();
  * @property {string} windowIcon
  * @property {object} [position]
  * @property {Array<{value: string, label: string, authoringModes?: string}>} [templateOptions]
+ *           The STATIC options only. Declared profiles are unioned in at render time --
+ *           call `getTemplateOptions(kindId)` for the list a person actually sees.
  * @property {Array<{id: string, label: string, checked?: boolean, disabled?: boolean, showForTemplate?: string, authoringModes?: string}>} [promptCheckboxes]
  * @property {Array<{id: string, label: string, value?: string, showForTemplate?: string, authoringModes?: string, inputType?: 'text'|'select'|'textarea', fullWidth?: boolean, options?: Array<{value: string, label: string}>}>} [promptFields]
  * @property {(templateKey: string, promptOptions?: Record<string, string|boolean>) => Promise<string>} [onBuildPrompt] - Build and return the prompt text; the window delivers it (clipboard or text file).
@@ -318,6 +320,28 @@ export async function runJsonImport(kind, jsonDataRaw) {
  * @param {object} kind
  * @returns {Array<{value: string, label: string, authoringModes: string}>}
  */
+/**
+ * What a kind actually OFFERS: its static options unioned with every profile
+ * declared for it.
+ *
+ * Exported because the registration is not the rendered list, and asking the
+ * registry for `getJsonImportKind(id).templateOptions` hands back only the
+ * static half. That divergence is the recurring defect of this subsystem in
+ * miniature -- two readers of one contract -- and it had already produced its
+ * symptom: a declared profile imported correctly, appeared in the window, and
+ * was invisible to anything that asked the registry what the kind offered.
+ *
+ * Callers that want the list a person sees call this. `getJsonImportKind`
+ * remains the raw registration, which is honest about being the registration.
+ *
+ * @param {string} kindId
+ * @returns {Array<{value: string, label: string, authoringModes: string}>}
+ */
+export function getTemplateOptions(kindId) {
+    const kind = getJsonImportKind(kindId);
+    return kind ? composeTemplateOptions(kind) : [];
+}
+
 function composeTemplateOptions(kind) {
     const stat = kind.templateOptions ?? [];
     const claimed = new Set(stat.map(one => String(one?.value ?? '')));

@@ -9,7 +9,6 @@ import { HookManager } from './manager-hooks.js';
 export class SidebarStyle {
     static initialized = false;
     static styleClass = 'blacksmith-sidebar-styled';
-    static manualRollButton = null;
 
     /**
      * Initialize the sidebar style functionality
@@ -24,37 +23,60 @@ export class SidebarStyle {
             // Ready has already fired, setup immediately
             this._applySidebarStyle();
             this._registerSettingChangeHook();
-            // Create manual roll button for all users if setting is enabled
-            if (this._shouldShowManualRollButton()) {
-                this._createManualRollButton();
-            } else {
-                // Setting disabled - remove button if it exists
-                this._removeManualRollButton();
-            }
         } else {
             // Wait for Foundry to be ready
             Hooks.once('ready', () => {
                 this._applySidebarStyle();
                 this._registerSettingChangeHook();
-                // Create manual roll button for all users if setting is enabled
-                if (this._shouldShowManualRollButton()) {
-                    this._createManualRollButton();
-                } else {
-                    // Setting disabled - remove button if it exists
-                    this._removeManualRollButton();
-                }
             });
         }
 
         this.initialized = true;
     }
 
-    static _shouldShowManualRollButton() {
+    // ===== MANUAL ROLLS ===========================================
+    //
+    // The CONTROL moved: it was a button this class drew below the sidebar's pin
+    // button, and it is now an entry on the dice tool's context menu, where it sits
+    // beside the dice tray and Request a Roll rather than in a sidebar that has
+    // nothing else to do with dice.
+    //
+    // The ENGINE stayed. Rewriting core's `diceConfiguration` and then coaxing Foundry
+    // into actually applying it is fiddly and version-sensitive, and none of that has
+    // anything to do with where the control is drawn.
+
+    /**
+     * Whether this user may be offered the toggle.
+     *
+     * The same two settings that used to decide whether the button appeared: the
+     * user's own preference, and the GM's world-level permission for players. Their
+     * keys still say "sidebar" because they are the author's settings text and they
+     * gate the same capability -- only its home changed.
+     */
+    static canToggleManualRolls() {
         const clientWantsButton = getSettingSafely(MODULE.ID, 'sidebarManualRollsEnabled', true);
         if (game.user.isGM) return !!clientWantsButton;
 
         const playersFeatureEnabledByGM = getSettingSafely(MODULE.ID, 'sidebarManualRollsPlayersEnabled', true);
         return !!clientWantsButton && !!playersFeatureEnabledByGM;
+    }
+
+    /** Whether every die is currently set to manual entry. */
+    static isManualRollsEnabled() {
+        return this._isManualRollsEnabled();
+    }
+
+    /**
+     * Flip manual rolls, and tell the GM when a player did it.
+     * @returns {Promise<boolean>} whether manual rolls are on afterwards
+     */
+    static async toggleManualRolls() {
+        const enabled = await this._toggleManualAllDice();
+        if (!game.user.isGM) {
+            await this._whisperGmManualRollsToggled(enabled);
+        }
+        postConsoleAndNotification(MODULE.NAME, `Manual rolls ${enabled ? 'enabled' : 'disabled'}`, '', true, false);
+        return enabled;
     }
 
     /**
@@ -75,123 +97,14 @@ export class SidebarStyle {
                     this._applySidebarStyle();
                 }
                 
-                // Handle manual rolls enabled/disabled setting
-                if (moduleId === MODULE.ID && settingKey === 'sidebarManualRollsEnabled') {
-                    if (this._shouldShowManualRollButton()) this._createManualRollButton();
-                    else this._removeManualRollButton();
-                }
+                // NOTHING HERE WATCHES MANUAL ROLLS ANY MORE. The three branches that
+                // did existed to keep a persistent button in step with three settings;
+                // a context menu is built when it opens, so it reads all three fresh
+                // and cannot be stale.
 
-                // Handle GM feature gate for player visibility
-                if (moduleId === MODULE.ID && settingKey === 'sidebarManualRollsPlayersEnabled') {
-                    if (this._shouldShowManualRollButton()) this._createManualRollButton();
-                    else this._removeManualRollButton();
-                }
-                
-                // Update manual roll button when core dice configuration changes
-                if (moduleId === 'core' && settingKey === 'diceConfiguration') {
-                    if (this.manualRollButton) {
-                        this._updateManualRollButtonState(this.manualRollButton);
-                    }
-                }
-                
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
-    }
-
-    /**
-     * Remove the manual roll button if it exists
-     */
-    static _removeManualRollButton() {
-        if (this.manualRollButton) {
-            const buttonLi = this.manualRollButton.closest('li');
-            if (buttonLi) {
-                buttonLi.remove();
-            }
-            this.manualRollButton = null;
-        } else {
-            // Also check if button exists in DOM but not in our reference
-            const existingButton = document.querySelector('.blacksmith-manual-rolls');
-            if (existingButton) {
-                const buttonLi = existingButton.closest('li');
-                if (buttonLi) {
-                    buttonLi.remove();
-                }
-            }
-        }
-    }
-
-    /**
-     * Create the manual roll button in sidebar tabs (below pin button)
-     * Only visible for GMs
-     */
-    static _createManualRollButton() {
-        // Check if button already exists
-        if (document.querySelector('.blacksmith-manual-rolls')) {
-            this.manualRollButton = document.querySelector('.blacksmith-manual-rolls');
-            this._updateManualRollButtonState(this.manualRollButton);
-            return;
-        }
-
-        // Find the pin button (if it exists) or chat button
-        const pinButton = document.querySelector('.blacksmith-sidebar-pin');
-        const chatButton = document.querySelector('button[data-action="tab"][data-tab="chat"]');
-        
-        let referenceElement = null;
-        if (pinButton) {
-            // Pin button exists, add below it
-            referenceElement = pinButton.closest('li');
-        } else if (chatButton) {
-            // No pin button, use chat button as reference
-            referenceElement = chatButton.closest('li');
-        } else {
-            postConsoleAndNotification(MODULE.NAME, 'Manual Roll Button: Could not find pin or chat button', '', true, false);
-            // Try again after a delay
-            setTimeout(() => {
-                this._createManualRollButton();
-            }, 500);
-            return;
-        }
-
-        if (!referenceElement) {
-            postConsoleAndNotification(MODULE.NAME, 'Manual Roll Button: Could not find reference element parent', '', true, false);
-            setTimeout(() => {
-                this._createManualRollButton();
-            }, 500);
-            return;
-        }
-
-        // Create new list item for manual roll button
-        const manualRollButtonLi = document.createElement('li');
-        
-        // Create the manual roll button
-        const manualRollButton = document.createElement('button');
-        manualRollButton.type = 'button';
-        manualRollButton.className = 'blacksmith-manual-rolls ui-control plain icon';
-        manualRollButton.setAttribute('data-tooltip', '');
-        manualRollButton.setAttribute('aria-label', 'Toggle Manual Rolls');
-        manualRollButton.setAttribute('data-action', 'toggleManualRolls');
-        
-        // Update button state based on current setting
-        this._updateManualRollButtonState(manualRollButton);
-        
-        // Add click handler
-        manualRollButton.addEventListener('click', async (event) => {
-            event.preventDefault();
-            await this._toggleManualRolls(manualRollButton);
-        });
-
-        // Append button to list item
-        manualRollButtonLi.appendChild(manualRollButton);
-        
-        // Insert after the reference element (below pin button or chat button)
-        if (pinButton) {
-            referenceElement.insertAdjacentElement('afterend', manualRollButtonLi);
-        } else {
-            referenceElement.insertAdjacentElement('afterend', manualRollButtonLi);
-        }
-        
-        this.manualRollButton = manualRollButton;
     }
 
     /**
@@ -513,37 +426,6 @@ export class SidebarStyle {
         }
     }
 
-    /**
-     * Update manual roll button state based on current dice configuration
-     */
-    static _updateManualRollButtonState(button) {
-        const isManualRollsEnabled = this._isManualRollsEnabled();
-        
-        // Clear existing icon classes
-        button.classList.remove('fa-solid', 'fa-regular', 'fa-dice-d20', 'fa-hand-pointer');
-        
-        // Clear button content
-        button.innerHTML = '';
-        
-        // Create icon element
-        const icon = document.createElement('i');
-        if (isManualRollsEnabled) {
-            icon.className = 'fa-solid fa-dice';
-            button.setAttribute('aria-pressed', 'true');
-            button.setAttribute('data-tooltip', 'Manual Rolls: Enabled (Click to disable)');
-            button.setAttribute('aria-label', 'Manual Rolls: Enabled');
-            button.classList.add('active');
-        } else {
-            icon.className = 'fa-solid fa-dice';
-            button.setAttribute('aria-pressed', 'false');
-            button.setAttribute('data-tooltip', 'Manual Rolls: Disabled (Click to enable)');
-            button.setAttribute('aria-label', 'Manual Rolls: Disabled');
-            button.classList.remove('active');
-        }
-        
-        button.appendChild(icon);
-    }
-
     static async _whisperGmManualRollsToggled(enabled) {
         try {
             const gmRecipients = ChatMessage.getWhisperRecipients('GM');
@@ -561,21 +443,6 @@ export class SidebarStyle {
         } catch (e) {
             postConsoleAndNotification(MODULE.NAME, 'Failed to whisper GM about manual rolls toggle', e, false, true);
         }
-    }
-
-    /**
-     * Toggle manual rolls setting
-     * Only available for GMs
-     */
-    static async _toggleManualRolls(button) {
-        const enabled = await this._toggleManualAllDice();
-        this._updateManualRollButtonState(button);
-
-        if (!game.user.isGM) {
-            await this._whisperGmManualRollsToggled(enabled);
-        }
-
-        postConsoleAndNotification(MODULE.NAME, `Manual rolls ${enabled ? 'enabled' : 'disabled'}`, '', true, false);
     }
 
     /**

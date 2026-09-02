@@ -73,10 +73,29 @@ while (queue.length) {
 }
 
 // Anything on disk the walk never touched is loaded by nothing.
+//
+// An EMPTY file is caught here too, and it is the more dangerous of the two. A
+// stylesheet nothing imports is at least suspicious in a diff; an emptied one is
+// reachable, resolves, and passes every check while every window it dressed silently
+// loses its layout. It happened: an editing script opened this project's largest
+// stylesheet for writing and read it back inside the same call, so the open truncated
+// it before the read ran, and 1,584 lines were replaced with nothing. Two windows
+// broke, in different features, and nothing reported a thing.
 for (const file of readdirSync(STYLES_DIR).filter((f) => f.endsWith('.css'))) {
     checked++;
-    if (reached.has(file)) continue;
-    problems.push(`"${file}" is on disk but nothing loads it -- no @import reaches it and module.json does not declare it. Every rule in it is dead and nothing will error.`);
+    if (!reached.has(file)) {
+        problems.push(`"${file}" is on disk but nothing loads it -- no @import reaches it and module.json does not declare it. Every rule in it is dead and nothing will error.`);
+        continue;
+    }
+    // A stylesheet has to DO something: carry a rule, or import one. `default.css` is
+    // the case that makes the second half necessary -- it is nothing but @imports by
+    // design, and a brace-only test called the entry point of the whole load path empty.
+    const body = readFileSync(join(STYLES_DIR, file), 'utf8');
+    const carriesRules = body.includes('{');
+    const carriesImports = /@import\s/.test(body);
+    if (!carriesRules && !carriesImports) {
+        problems.push(`"${file}" is loaded but contains no rules (${body.length} bytes). An emptied stylesheet resolves and imports cleanly, so nothing else here would notice -- and every window it dressed loses its layout.`);
+    }
 }
 
 if (problems.length) {

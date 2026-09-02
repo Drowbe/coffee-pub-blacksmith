@@ -1123,7 +1123,14 @@ tor-item.selected {
     width: 16px;
     text-align: center;
 }
-.cpb-check-item span:not(.cpb-roll-label):not(.cpb-roll-description) {
+/* "Any other span in a row fills it." That was true when a row held a label, a
+   description, and nothing else -- and it is what stretched the marks: each one is a
+   span, so each took an equal share of the row and scattered them across it, with the
+   DC pill drawn a hundred pixels wide.
+
+   The marks are excluded here rather than fought with specificity, because this rule
+   is the one making the outdated assumption. */
+.cpb-check-item span:not(.cpb-roll-label):not(.cpb-roll-description):not(.cpb-quick-roll-meta):not(.cpb-quick-roll-mark) {
     flex: 1;
     font-size: var(--font-size-12);
 }
@@ -1207,7 +1214,8 @@ tor-item.selected {
 }
 
 .cpb-roll-description {
-    flex: 1;
+    flex: 1 1 auto;
+    text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1358,6 +1366,9 @@ tor-item.selected {
     color: rgba(128, 117, 96, 0.9);
 }
 .cpb-quick-roll-mark {
+    /* Never grows: the description does the shrinking, so the marks stay packed
+       against the label and the description reads on from them. */
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     line-height: 1;

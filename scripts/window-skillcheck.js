@@ -3442,6 +3442,76 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     }
 
     /**
+     * The Request a Roll menu: favourites, then the quick roll library by category.
+     *
+     * Lives here rather than in the dice tool's registration because it is entirely
+     * about this window's data -- the favourites in `skillCheckPreferences` and the
+     * library in `QuickRollsManager` -- and the dice tool should not have to know the
+     * shape of either.
+     *
+     * @returns {Array<object>} menubar context menu items
+     */
+    static requestRollMenuItems() {
+            // FAVOURITES, THEN THE LIBRARY BY CATEGORY, each as a flyout.
+            //
+            // The menu used to be a flat list of favourites and nothing else, so a
+            // table's twenty-four quick rolls -- the things the QUICK tab is mostly
+            // made of -- were reachable only by opening the window. A flat list of
+            // twenty-four would be worse than the window; the categories the GM already
+            // filed them under are the grouping, and they are the GM's own words.
+            //
+            // Categories keep their library order rather than being sorted. It is the
+            // order shown in the tab, and re-sorting it here would make the two
+            // disagree about a list somebody arranged.
+            const prefs = game.settings.get(MODULE.ID, 'skillCheckPreferences') || {};
+            const favs = Array.isArray(prefs.requestRollFavorites) ? prefs.requestRollFavorites : [];
+            const items = [];
+
+            if (favs.length) {
+                items.push({
+                    name: 'Favorites',
+                    icon: 'fa-solid fa-heart',
+                    description: `${favs.length} saved`,
+                    submenu: favs.map((rec) => ({
+                        name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
+                        // The film icon marks the ones that take over the screen -- the
+                        // only warning before a click that does, since this menu fires
+                        // without opening the window.
+                        icon: rec.isCinematic ? 'fa-solid fa-film' : 'fa-solid fa-dice',
+                        onClick: () => { SkillCheckDialog.executeFavoriteSilent(rec); }
+                    }))
+                });
+            }
+
+            for (const { category, rolls } of QuickRollsManager.byCategory()) {
+                items.push({
+                    name: category,
+                    icon: 'fa-solid fa-folder',
+                    description: `${rolls.length} roll${rolls.length === 1 ? '' : 's'}`,
+                    submenu: rolls.map((roll) => ({
+                        name: String(roll.label).slice(0, 96),
+                        // The roll's OWN icon, so a row reads the same here as it does
+                        // in the tab; the film icon still wins when it is cinematic,
+                        // because that is the thing worth knowing before clicking.
+                        icon: roll.isCinematic ? 'fa-solid fa-film' : (roll.icon || 'fa-solid fa-dice'),
+                        description: roll.description || undefined,
+                        onClick: () => SkillCheckDialog.runQuickRoll(roll.id)
+                    }))
+                });
+            }
+
+            if (!items.length) {
+                return [{
+                    name: 'No rolls yet',
+                    icon: 'far fa-heart',
+                    description: 'Open Request a Roll to build one',
+                    onClick: () => new SkillCheckDialog().render(true)
+                }];
+            }
+            return items;
+    }
+
+    /**
      * Fire one quick roll by id, from outside the window.
      *
      * Opens the dialog with the roll pending rather than translating it into a silent
@@ -4181,95 +4251,17 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
 }
 
-// Register menubar tool via API (same pattern as external modules)
+// Seed the built-in quick rolls, and nothing else.
+//
+// THE REQUEST A ROLL MENUBAR TOOL IS GONE. It and the Dice Tray were two entries a
+// pixel apart doing the same job -- "I want to roll something" -- and between them they
+// had one context menu, one left-click each, and no relationship. The dice tool is now
+// the single entry for rolling, and it owns this menu; see `registerDiceTray`.
 Hooks.once('ready', () => {
-    // Plant the built-in quick rolls on a world that has never had them. Fire and
-    // forget: a world with a library already, or a GM who cleared it, is left alone
-    // by the manager, and a failure here must not take the menubar tool with it --
+    // Fire and forget: a world with a library already, or a GM who cleared it, is left
+    // alone by the manager, and a failure here must not take anything else with it --
     // the window still opens on an empty QUICK tab with an Add button in it.
     QuickRollsManager.seedIfNeeded().catch((error) => {
         postConsoleAndNotification(MODULE.NAME, 'Quick Rolls: seeding failed', error, false, false);
-    });
-
-    const api = game.modules.get(MODULE.ID)?.api;
-    if (!api?.registerMenubarTool) return;
-    api.registerMenubarTool('skillcheck', {
-        icon: "fa-solid fa-dice",
-        name: "skillcheck",
-        title: "Request Roll",
-        tooltip: null,
-        onClick: () => new SkillCheckDialog().render(true),
-        zone: "middle",
-        group: "utility",
-        groupOrder: 2,
-        order: 1,
-        moduleId: "blacksmith-core",
-        gmOnly: true,
-        leaderOnly: false,
-        visible: () => getSettingSafely(MODULE.ID, 'requestRollShowInMenubar', true),
-        toggleable: false,
-        active: false,
-        iconColor: null,
-        buttonNormalTint: null,
-        buttonSelectedTint: null,
-        contextMenuItems: () => {
-            // FAVOURITES, THEN THE LIBRARY BY CATEGORY, each as a flyout.
-            //
-            // The menu used to be a flat list of favourites and nothing else, so a
-            // table's twenty-four quick rolls -- the things the QUICK tab is mostly
-            // made of -- were reachable only by opening the window. A flat list of
-            // twenty-four would be worse than the window; the categories the GM already
-            // filed them under are the grouping, and they are the GM's own words.
-            //
-            // Categories keep their library order rather than being sorted. It is the
-            // order shown in the tab, and re-sorting it here would make the two
-            // disagree about a list somebody arranged.
-            const prefs = game.settings.get(MODULE.ID, 'skillCheckPreferences') || {};
-            const favs = Array.isArray(prefs.requestRollFavorites) ? prefs.requestRollFavorites : [];
-            const items = [];
-
-            if (favs.length) {
-                items.push({
-                    name: 'Favorites',
-                    icon: 'fa-solid fa-heart',
-                    description: `${favs.length} saved`,
-                    submenu: favs.map((rec) => ({
-                        name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
-                        // The film icon marks the ones that take over the screen -- the
-                        // only warning before a click that does, since this menu fires
-                        // without opening the window.
-                        icon: rec.isCinematic ? 'fa-solid fa-film' : 'fa-solid fa-dice',
-                        onClick: () => { SkillCheckDialog.executeFavoriteSilent(rec); }
-                    }))
-                });
-            }
-
-            for (const { category, rolls } of QuickRollsManager.byCategory()) {
-                items.push({
-                    name: category,
-                    icon: 'fa-solid fa-folder',
-                    description: `${rolls.length} roll${rolls.length === 1 ? '' : 's'}`,
-                    submenu: rolls.map((roll) => ({
-                        name: String(roll.label).slice(0, 96),
-                        // The roll's OWN icon, so a row reads the same here as it does
-                        // in the tab; the film icon still wins when it is cinematic,
-                        // because that is the thing worth knowing before clicking.
-                        icon: roll.isCinematic ? 'fa-solid fa-film' : (roll.icon || 'fa-solid fa-dice'),
-                        description: roll.description || undefined,
-                        onClick: () => SkillCheckDialog.runQuickRoll(roll.id)
-                    }))
-                });
-            }
-
-            if (!items.length) {
-                return [{
-                    name: 'No rolls yet',
-                    icon: 'far fa-heart',
-                    description: 'Open Request a Roll to build one',
-                    onClick: () => new SkillCheckDialog().render(true)
-                }];
-            }
-            return items;
-        }
     });
 });
