@@ -182,10 +182,18 @@ export function composeSkillCheckCard(data = {}) {
     if (band) parts.push(band);
 
     // --- What was asked for -------------------------------------------------
-    if (data.dc && data.showDC) {
+    // ONE BAND, not two. The formula and the DC are the same statement -- what is
+    // being asked for -- and a dice request needs the formula because its title is
+    // whatever the GM called it, which says nothing about the dice. Stacking them as
+    // separate bands gave the DC a second stamp of its own and made a plain d20
+    // request look busier than a contested one.
+    const dcText = data.dc && data.showDC ? `DC ${data.dc}${data.isGroupRoll ? ' Group Roll' : ''}` : null;
+    if (data.rollFormula || dcText) {
         parts.push({
             part: 'band',
-            text: `DC ${data.dc}${data.isGroupRoll ? ' Group Roll' : ''}`,
+            ...(data.rollFormula && dcText
+                ? { lead: data.rollFormula, text: dcText }
+                : { text: data.rollFormula || dcText }),
             quiet: true
         });
     }

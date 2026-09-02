@@ -48,7 +48,6 @@ export const BLACKSMITH = {
     FANCY_DATE_TIME: "",
     JOURNAL_AREA_TEMPLATE: `modules/${MODULE.ID}/templates/journal-area.hbs`,
     JOURNAL_ENCOUNTER_TEMPLATE: `modules/${MODULE.ID}/templates/journal-encounter.hbs`,
-    JOURNAL_INJURY_TEMPLATE: `modules/${MODULE.ID}/templates/journal-injury.hbs`,
     JOURNAL_LOCATION_TEMPLATE: `modules/${MODULE.ID}/templates/journal-location.hbs`,
     JOURNAL_TOOLS_ENTITY_REPLACEMENT_PARTIAL: `modules/${MODULE.ID}/templates/partials/entity-replacement.hbs`,
     JOURNAL_TOOLS_SEARCH_REPLACE_PARTIAL: `modules/${MODULE.ID}/templates/partials/search-replace.hbs`,

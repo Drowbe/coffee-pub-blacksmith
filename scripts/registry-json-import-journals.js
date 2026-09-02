@@ -5,7 +5,7 @@
 import { MODULE } from './const.js';
 import { CampaignManager } from './manager-campaign.js';
 import { postConsoleAndNotification } from './api-core.js';
-import { createJournalEntry, buildInjuryJournalEntry } from './utility-common.js';
+import { createJournalEntry } from './utility-common.js';
 import { GEOGRAPHY_FIELD_LIST } from './manager-geography.js';
 import { getDeclaration, getDeclarationsForKind } from './registry-declarations.js';
 import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
@@ -1233,9 +1233,6 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
         return buildJournalVisualPrompt('portrait', promptOptions);
     }
 
-    if (type === 'injury') {
-        return fetchLegacyPromptText('prompt-injuries.txt');
-    }
     if (type === 'encounter') {
         const raw = await fetchLegacyPromptText('prompt-encounter.txt');
         return getEncounterTemplateWithDefaults(raw);
@@ -1290,8 +1287,7 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
  */
 function knownJournalProfiles() {
     const declared = getDeclarationsForKind(JOURNAL_JSON_IMPORT_KIND_ID).map(one => one.id);
-    const legacy = ['injury'].filter(one => !declared.includes(one));
-    return [...declared, ...legacy].sort();
+    return declared.sort();
 }
 
 function validateJournalEntry(journalData) {
@@ -1303,11 +1299,26 @@ function validateJournalEntry(journalData) {
     if (journalType === 'NARRATIVE') {
         throw new Error('Legacy narrative import is not supported. Use journaltype "area" with blocks.*.');
     }
-    if (!['AREA', 'ENCOUNTER', 'LOCATION', 'INJURY'].includes(journalType)) {
-        throw new Error(`Unsupported journaltype "${journalData.journaltype}". `
-            + `Known profiles: ${knownJournalProfiles().join(', ')}.`);
+
+    // A DECLARED profile never reaches this function: both entry points resolve the
+    // declaration first and return. So arriving here NAMING one means the payload was
+    // fine and the declaration did not resolve -- registration threw, the owning
+    // module failed to load, or its load order put it after this. Saying so is the
+    // difference between a one-line diagnosis and an afternoon spent on the payload.
+    const registered = knownJournalProfiles();
+    if (registered.includes(journalType.toLowerCase())) {
+        throw new Error(`"${journalData.journaltype}" is a registered profile, but its declaration `
+            + `did not resolve. The module registering it may have failed to load.`);
     }
-    return true;
+
+    // Gated on the REGISTRY, never on a literal list. The message already read the
+    // registry while the check read a hardcoded array, so the two could disagree --
+    // and did: a payload naming a registered profile produced "Unsupported journaltype
+    // \"injury\". Known profiles: injury.", an error naming the thing it refused as the
+    // thing it accepts. A literal here is also a third place the profile list lives,
+    // and it went stale the moment the injury entry was removed.
+    throw new Error(`Unsupported journaltype "${journalData.journaltype}". `
+        + `Known profiles: ${registered.join(', ')}.`);
 }
 
 /**
@@ -1353,7 +1364,15 @@ async function importJournalEntry(journalData) {
         // entry is a damage type and the page is one injury.
         const data = outcome.data;
         if (String(declaration.document?.documentName ?? '') === 'JournalEntryPage') {
-            const container = String(journalData?.[declaration.document.containerNameFrom] ?? '').trim();
+            const document = declaration.document;
+            // A CONSTANT container short-circuits everything below: there is no field
+            // to read, no value to map, and nothing to transform.
+            if (document.containerName !== undefined) {
+                return await upsertJournalEntry(
+                    { name: document.containerName, pages: [outcome.data] },
+                    { folderName: journalData.foldername });
+            }
+            const container = String(journalData?.[document.containerNameFrom] ?? '').trim();
             if (!container) {
                 throw errorFromIssue(issue('REQUIRED_FIELD_MISSING',
                     declaration.document.containerNameFrom,
@@ -1367,7 +1386,21 @@ async function importJournalEntry(journalData) {
             // `Fire`, so an untransformed default would have produced two journals per
             // category. Declared by them, and through the same named-transform
             // vocabulary a field uses rather than a mechanism of its own.
-            const nameTransform = declaration.document.containerNameTransform;
+            // A MAP is a lookup the module owns; an unmapped value is an error rather
+            // than a page filed under its raw value, because the raw value is not a
+            // journal name in any module that needs a map at all.
+            if (document.containerNameMap) {
+                const mapped = document.containerNameMap[container];
+                if (mapped === undefined) {
+                    throw errorFromIssue(issue('VALUE_NOT_ALLOWED', document.containerNameFrom,
+                        `"${container}" has no container mapped to it.`,
+                        { allowed: Object.keys(document.containerNameMap), actual: container }));
+                }
+                return await upsertJournalEntry({ name: mapped, pages: [outcome.data] },
+                    { folderName: journalData.foldername });
+            }
+
+            const nameTransform = document.containerNameTransform;
             let name = container;
             if (nameTransform) {
                 const { applyTransform } = await import('./manager-declaration-transforms.js');
@@ -1381,7 +1414,6 @@ async function importJournalEntry(journalData) {
 
     validateJournalEntry(journalData);
     const journalType = String(journalData.journaltype).trim().toUpperCase();
-    if (journalType === 'INJURY') return buildInjuryJournalEntry(journalData);
     return createJournalEntry(journalData);
 }
 
@@ -1398,8 +1430,7 @@ const journalJsonImportKind = {
         { value: 'area', label: 'Area Narrative', authoringModes: 'json prompt' },
         { value: 'illustration', label: 'Illustration Image', authoringModes: 'prompt' },
         { value: 'location', label: 'Location Narrative', authoringModes: 'json prompt' },
-        { value: 'encounter', label: 'Encounter (Legacy)', authoringModes: 'prompt' },
-        { value: 'injury', label: 'Injury (Legacy)', authoringModes: 'prompt' }
+        { value: 'encounter', label: 'Encounter (Legacy)', authoringModes: 'prompt' }
     ],
     get promptCheckboxes() {
         return getJournalPromptCheckboxes();

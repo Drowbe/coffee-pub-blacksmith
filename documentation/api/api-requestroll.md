@@ -308,11 +308,21 @@ Terms may carry a label in brackets, which is Foundry's flavour syntax and reach
 initialValue: '2d10[Strength] + 1d4[Bludgeoning] + 10'
 ```
 
-Anything Foundry's `Roll` can evaluate is rolled as given. The window's dice builder covers **any mix of the eight standard dice plus one flat modifier**, each with an optional label, so a value of that shape opens with the rows filled in and the steppers edit it. A formula outside that shape -- roll data references (`@abilities.str.mod`), subtracted dice, more than one flat term -- is still rolled correctly, but the rows cannot show it, so the builder leaves it alone.
+Anything Foundry's `Roll` can evaluate is rolled as given. The window's dice builder covers **any mix of the eight standard dice plus one flat modifier**, each with an optional label, so a value of that shape opens with the rows filled in — in the order the formula wrote them — and the steppers edit it. A formula outside that shape (roll data references such as `@abilities.str.mod`, subtracted dice, more than one flat term) is still rolled correctly, but the rows cannot show it, so the builder leaves it alone.
 
-Term order in the window follows the row order (d2 through d100, then the modifier), not the order they were written.
+**`title` is the roll's name, not its formula.** It heads the chat card and the cinematic plate; the formula is carried separately and shown in its own right, beside the DC in both places. A dice request with no `title` is titled **"Custom Dice Roll"** rather than repeating its own formula.
 
-Advantage and disadvantage apply only to a plain `1d20` -- `_executeBuiltInRoll` matches that string exactly. A single unlabelled d20 composes to it; `2d20` and `1d20+3` do not, which is correct, since there is no advantage on those.
+```javascript
+api.openRequestRollDialog({
+    silent: true,
+    initialType: 'dice',
+    initialValue: '2d6[Fire] + 1d8[Radiant]',
+    title: 'Sneak Attack',
+    initialFilter: 'party'
+});
+```
+
+Advantage and disadvantage apply only to a plain `1d20` — `_executeBuiltInRoll` matches that string exactly. A single unlabelled d20 composes to it; `2d20` and `1d20+3` do not, which is correct, since there is no advantage on those.
 
 ## Usage Examples
 

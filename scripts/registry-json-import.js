@@ -294,6 +294,43 @@ export async function runJsonImport(kind, jsonDataRaw) {
  * @param {JsonImportKind} kind
  * @returns {Array<object>}
  */
+/**
+ * The kind's own template options, plus one for every DECLARED profile.
+ *
+ * A declaration was reaching construction, validation and routing while the
+ * authoring UI knew nothing about it -- so a module could register a profile that
+ * imported correctly and was invisible to anyone trying to AUTHOR a payload for
+ * it. No template, no guide, no prompt: the three derived outputs that exist for
+ * consumers, unreachable by consumers. Raised by the first satellite to register
+ * one, who found their own profile missing from both dropdowns while a Blacksmith
+ * legacy entry with the same id sat in one of them.
+ *
+ * The kind's static entries WIN a collision, because a kind still on its parser
+ * needs its own entry to keep working while a declared profile of the same id is
+ * being adopted. That is the state a handover passes through, and it should read
+ * as one entry rather than two.
+ *
+ * `authoringModes` comes from the declaration and defaults to `json prompt`,
+ * which is what a declared profile can genuinely offer: template and guide derive
+ * from the declaration, and so does the prompt's schema section. A prompt-only
+ * profile is a legacy shape rather than something a declaration produces.
+ *
+ * @param {object} kind
+ * @returns {Array<{value: string, label: string, authoringModes: string}>}
+ */
+function composeTemplateOptions(kind) {
+    const stat = kind.templateOptions ?? [];
+    const claimed = new Set(stat.map(one => String(one?.value ?? '')));
+    const declared = getDeclarationsForKind(kind.id)
+        .filter(declaration => !claimed.has(declaration.id))
+        .map(declaration => ({
+            value: declaration.id,
+            label: declaration.label ?? declaration.id,
+            authoringModes: declaration.authoringModes ?? 'json prompt'
+        }));
+    return [...stat, ...declared];
+}
+
 function groupOptionCheckboxes(kind) {
     const existing = new Set((kind.promptCheckboxes ?? []).map(one => one.id));
     const profiles = getDeclarationsForKind(kind.id).map(one => one.id);
@@ -348,7 +385,7 @@ export function openJsonImportWindow(kindId) {
         })),
         onSwitchImporter: openJsonImportWindow,
         position: kind.position ?? { width: 920, height: 680 },
-        templateOptions: kind.templateOptions ?? [],
+        templateOptions: composeTemplateOptions(kind),
         promptCheckboxes: [...(kind.promptCheckboxes ?? []), ...groupOptionCheckboxes(kind)],
         promptFields: kind.promptFields ?? [],
         journalAreaUi: kind.journalAreaUi ?? null,

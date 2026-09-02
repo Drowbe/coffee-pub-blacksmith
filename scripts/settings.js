@@ -4622,7 +4622,11 @@ export const registerSettings = () => {
 			showDC: true,
 			groupRoll: true,
 			isCinematic: false,
-			requestRollFavorites: []
+			requestRollFavorites: [],
+			// Remembered dice builds. Separate from favourites on purpose: a remembered
+			// roll lives on the DICE tab, and only the ones hearted there are promoted
+			// to the Quick tab beside skills and saves.
+			requestRollSavedDice: []
 		},
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});

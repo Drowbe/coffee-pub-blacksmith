@@ -189,6 +189,14 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this._pendingDiceBuild = this.selectedType === 'dice'
             ? SkillCheckDialog.parseDiceBuild(this.selectedValue)
             : null;
+        /**
+         * Stamps the order dice were added in, which is the order the formula reads in.
+         * Monotonic rather than a position, so removing the first die does not renumber
+         * the rest -- the survivors keep the order the GM still sees on screen.
+         */
+        this._diceOrderCounter = 0;
+        /** The dice build as a readable line, carried onto the card and the cinematic plate. */
+        this.selectedDiceDisplay = null;
         this.callback = data.callback || null;
         this.onRollComplete = data.onRollComplete || null;
         this._isQuickPartyRoll = false;
@@ -216,10 +224,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             showDC: true,
             groupRoll: true,
             isCinematic: false,
-            requestRollFavorites: []
+            requestRollFavorites: [],
+            requestRollSavedDice: []
         };
         if (!Array.isArray(this.userPreferences.requestRollFavorites)) {
             this.userPreferences.requestRollFavorites = [];
+        }
+        // Absent on every preferences object written before remembered rolls existed,
+        // and the setting's default does not backfill a value already stored.
+        if (!Array.isArray(this.userPreferences.requestRollSavedDice)) {
+            this.userPreferences.requestRollSavedDice = [];
         }
     }
 
@@ -328,6 +342,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             common: item.dataset.common ?? '',
             actorTools: item.dataset.actorTools ?? '',
             tooltip: item.dataset.tooltip ?? '',
+            // How this favourite PLAYS, which is not part of what it IS -- deliberately
+            // absent from `_computeFavoriteId`, so toggling it edits the favourite in
+            // place instead of orphaning it and creating a second one.
+            isCinematic: item.dataset.cinematic === 'true',
             label: labelEl?.textContent?.trim() ?? '',
             description: descEl?.textContent?.trim() ?? '',
             iconClass: iconEl?.className ?? 'fas fa-dice-d20'
@@ -538,6 +556,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (rec.rollTitle) div.dataset.rollTitle = rec.rollTitle;
         div.dataset.toolName = rec.toolName ?? '';
         div.dataset.common = rec.common ?? '';
+        div.dataset.cinematic = String(!!rec.isCinematic);
         if (rec.actorTools) div.dataset.actorTools = rec.actorTools;
         if (rec.tooltip) div.dataset.tooltip = rec.tooltip;
         return div;
@@ -567,6 +586,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             if (rec.rollTitle) row.dataset.rollTitle = rec.rollTitle;
             row.dataset.toolName = rec.toolName ?? '';
             row.dataset.common = rec.common ?? '';
+            row.dataset.cinematic = String(!!rec.isCinematic);
             if (rec.actorTools) row.dataset.actorTools = rec.actorTools;
             if (rec.tooltip) row.dataset.tooltip = rec.tooltip;
 
@@ -589,10 +609,38 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             favBtn.dataset.tooltip = 'Remove from favorites';
             favBtn.setAttribute('aria-label', 'Remove from favorites');
             favBtn.innerHTML = '<i class="fas fa-heart"></i>';
+
+            // HOW IT PLAYS, next to whether it is kept.
+            //
+            // A favourite fires without opening the window, so the Cinematic switch in
+            // the header -- the only way to ask for the overlay -- is never reached on
+            // this path, and every favourite went quietly to chat. The setting has to
+            // live on the favourite because there is no moment between clicking one and
+            // it posting in which to ask.
+            //
+            // ON THE FAVOURITE ROWS ONLY. A canonical check item is a roll TYPE, and
+            // the same skill wants the overlay on one occasion and not the next; a
+            // favourite is a saved decision about a specific request, which is exactly
+            // the thing that can carry a preference.
+            //
+            // NOT a `.cpb-favorite-toggle`: that class is claimed by a capture-phase
+            // listener that treats any click on it as hearting, and it calls
+            // stopPropagation, so this button would never see its own click.
+            const cinematic = document.createElement('button');
+            cinematic.type = 'button';
+            cinematic.className = `cpb-favorite-cinematic${rec.isCinematic ? ' cpb-favorite-cinematic-on' : ''}`;
+            cinematic.dataset.tooltip = rec.isCinematic
+                ? 'Plays as a cinematic. Click to send it to chat instead.'
+                : 'Goes to chat. Click to play it as a cinematic.';
+            cinematic.setAttribute('aria-label', cinematic.dataset.tooltip);
+            cinematic.setAttribute('aria-pressed', String(!!rec.isCinematic));
+            cinematic.innerHTML = '<i class="fas fa-film"></i>';
+
             const auto = document.createElement('div');
             auto.className = 'cpb-roll-type-auto';
             auto.innerHTML = '<i class="fas fa-play"></i>';
             trail.appendChild(favBtn);
+            trail.appendChild(cinematic);
             trail.appendChild(auto);
 
             row.appendChild(icon);
@@ -636,6 +684,22 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this._syncFavoriteHeartStates(htmlElement);
     }
 
+    /**
+     * Flip one favourite between chat and cinematic.
+     *
+     * Edits the stored record in place rather than removing and re-adding it, so the
+     * favourite keeps its id and its position in the list -- a row that jumped to the
+     * bottom every time you changed how it plays would be its own bug.
+     */
+    _toggleFavoriteCinematic(htmlElement, favoriteId) {
+        const favs = this.userPreferences.requestRollFavorites || [];
+        if (!favs.some((f) => f.id === favoriteId)) return;
+        const next = favs.map((f) => (f.id === favoriteId ? { ...f, isCinematic: !f.isCinematic } : f));
+        this.userPreferences = { ...this.userPreferences, requestRollFavorites: next };
+        game.settings.set(MODULE.ID, 'skillCheckPreferences', this.userPreferences);
+        this._renderFavoritesSection(htmlElement);
+    }
+
     _attachRequestRollFavoriteListeners(htmlElement) {
         if (!htmlElement || htmlElement.dataset.cpbFavListenersAttached === '1') return;
         htmlElement.dataset.cpbFavListenersAttached = '1';
@@ -648,6 +712,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 if (!row) return;
                 ev.preventDefault();
                 ev.stopPropagation();
+                // Checked BEFORE the run, because the whole row is the fire button --
+                // anything inside it that is not meant to fire has to say so here.
+                if (ev.target.closest('.cpb-favorite-cinematic')) {
+                    this._toggleFavoriteCinematic(htmlElement, row.dataset.favoriteId);
+                    return;
+                }
                 this._runFavoriteRowClick(htmlElement, row);
             });
         }
@@ -1688,7 +1758,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                         }
                         break;
                     case 'dice':
-                        name = `${value} Roll`;
+                        // The formula read as prose, NOT `value` -- which carries the
+                        // bracket syntax. This is the contested band's lead and the
+                        // cinematic's "X vs Y", both of which a reader reads.
+                        name = SkillCheckDialog.diceFormulaDisplay(value);
                         desc = showExplanation ? `This is a straightforward dice roll of ${value} -- exactly the formula shown, with no ability modifier or proficiency bonus added on top.` : null;
                         link = null; // Dice rolls don't have SRD links
                         break;
@@ -1726,6 +1799,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 rollType: challengerRollType,
                 defenderRollType: isContestedRoll ? defenderRollType : null,
                 hasMultipleGroups: isContestedRoll,
+                // The FORMULA, separately from the title. A dice request's title is what
+                // the GM called it ("Sneak Attack"); the formula is what will be rolled,
+                // and both belong on the card -- the title alone says nothing about the
+                // dice, and the formula alone reads as a machine talking.
+                rollFormula: challengerRollType === 'dice' ? (this.selectedDiceDisplay || challengerRollValue) : null,
                 showRollExplanation: htmlElement.querySelector('input[name="showRollExplanation"]')?.checked || false,
                 isCinematic: htmlElement.querySelector('input[name="isCinematic"]')?.checked || false,
                 isGM: game.user.isGM
@@ -2147,18 +2225,30 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     //
     // It is now a builder. Every die has its own count starting at zero and its own
     // optional label, there is one flat modifier at the end, and the sum of those is
-    // the request. Two consequences worth stating:
+    // the request. Four things follow that are worth stating:
     //
-    // 1. THE DOM IS THE STATE. Counts and labels are read back out of the rows in
-    //    document order rather than mirrored into a parallel object. A mirror is a
-    //    second thing to keep in step with the screen, and the failure when it drifts
-    //    is silent -- a request that rolls something other than what the readout said.
+    // 1. THE DOM IS THE STATE. Counts, labels, and the order they were set are read
+    //    back out of the rows rather than mirrored into a parallel object. A mirror is
+    //    a second thing to keep in step with the screen, and the failure when it
+    //    drifts is silent -- a request that rolls something other than what the
+    //    readout said.
     //
     // 2. BUILDING IS SELECTING. A non-empty build sets `selectedType`/`selectedValue`
     //    and both contested sides, exactly as clicking a tile used to; emptying it
     //    clears them again, and picking any other roll type clears the build. There
     //    is no separate "which die is selected" state, because a count above zero
     //    already says it.
+    //
+    // 3. TERM ORDER IS THE ORDER THE DICE WERE SET, not the order of the rows. The
+    //    row a die lives on is a fact about the UI; which die the GM reached for first
+    //    is a fact about the roll, and it is the one that reads right on the card.
+    //    Each row carries a stamp from a counter, taken when its count leaves zero and
+    //    dropped when it returns.
+    //
+    // 4. REMEMBERING IS NOT FAVOURITING. A remembered roll is kept here, in the tab
+    //    that builds it. Favouriting promotes it to the Quick tab beside skills and
+    //    saves -- which most working rolls have no business doing, hence two separate
+    //    stores and a heart that lives on the saved row rather than on the builder.
     //
     // The label convention is the one the roll window's modifier field already uses:
     // `2d10[Strength]`, brackets and all. That is also Foundry's own flavour syntax,
@@ -2168,6 +2258,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
     /** Row markers the builder reads. `modifier` is a term in the same sum, not a die. */
     static DICE_MODIFIER_ROW = 'modifier';
+
+    /** The title a dice request carries when the GM did not name it. */
+    static DICE_DEFAULT_TITLE = 'Custom Dice Roll';
 
     /**
      * A label as it may appear inside brackets.
@@ -2180,50 +2273,95 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         return String(raw ?? '').replace(/[\[\]]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
     }
 
-    /** The builder's rows, in the order they are shown, which is the order terms appear. */
+    /** The builder's rows, in document order. Term order is a stamp on each row, not this. */
     _diceRows(root) {
         return Array.from(root?.querySelectorAll?.('.cpb-dice-row[data-die]') ?? []);
     }
 
+    /** The count on one row, as a whole number. A missing or unreadable field is zero. */
+    static _diceRowCount(row) {
+        return Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
+    }
+
     /**
-     * Read the rows into a term list.
+     * Stamp each row with when its die entered the roll, and drop the stamp when it
+     * leaves.
+     *
+     * The stamp is what makes "2d10 then 1d4" come out as `2d10 + 1d4` rather than in
+     * row order. It is monotonic rather than a position, so removing the first die
+     * does not renumber the others -- the remaining dice keep the order they were
+     * added in, which is the order the GM still sees.
+     */
+    _stampDiceOrder(root) {
+        for (const row of this._diceRows(root)) {
+            const count = SkillCheckDialog._diceRowCount(row);
+            row.classList.toggle('cpb-dice-row-active', count !== 0);
+            if (count === 0) delete row.dataset.diceOrder;
+            else if (!row.dataset.diceOrder) row.dataset.diceOrder = String(++this._diceOrderCounter);
+        }
+    }
+
+    /**
+     * Read the rows into a term list, in the order the dice were set.
      *
      * A die contributes a term only when its count is above zero. The modifier
      * contributes only when non-zero, and only alongside at least one die -- a
      * "request" that is a bare number is not a roll, and Foundry would happily
-     * evaluate it, which is worse than refusing.
+     * evaluate it, which is worse than refusing. It is also always LAST, whenever it
+     * was typed: a flat term at the end is how a formula is written.
      *
      * @returns {{op: string, value: string, label: string}[]}
      */
     _readDiceTerms(root) {
-        const terms = [];
+        const dice = [];
         let modifier = null;
 
         for (const row of this._diceRows(root)) {
             const die = row.dataset.die;
-            const count = Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
+            const count = SkillCheckDialog._diceRowCount(row);
             const label = SkillCheckDialog._sanitizeDiceLabel(row.querySelector('.cpb-dice-reason')?.value);
 
             if (die === SkillCheckDialog.DICE_MODIFIER_ROW) {
                 if (count !== 0) modifier = { op: count < 0 ? '-' : '+', value: String(Math.abs(count)), label };
                 continue;
             }
-            if (count > 0) terms.push({ op: '+', value: `${count}${die}`, label });
+            if (count > 0) {
+                dice.push({ order: Number(row.dataset.diceOrder) || 0, term: { op: '+', value: `${count}${die}`, label } });
+            }
         }
 
+        const terms = dice.sort((a, b) => a.order - b.order).map((entry) => entry.term);
         if (terms.length && modifier) terms.push(modifier);
         return terms;
     }
 
     /**
-     * The build as the three strings the rest of the window needs.
+     * A formula with its bracketed labels read as words: `2d10[Strength]` -> `2d10 Strength`.
+     *
+     * The one place brackets become prose. The builder has the terms and could join
+     * them itself, but the silent API path has only the string, and two ways of
+     * writing the same line is how the card and the cinematic plate come to disagree.
+     */
+    static diceFormulaDisplay(formula) {
+        return String(formula ?? '').replace(/\[([^\]]*)\]/g, ' $1').replace(/\s+/g, ' ').trim();
+    }
+
+    /** The GM's name for this roll, or the default. Never empty, because it titles the card. */
+    _diceRollName(root) {
+        const typed = String(root?.querySelector?.('.cpb-dice-name')?.value ?? '').trim();
+        return typed || SkillCheckDialog.DICE_DEFAULT_TITLE;
+    }
+
+    /**
+     * The build as the strings the rest of the window needs.
      *
      * `formula` is what gets rolled and carries the labels as Foundry flavour;
      * `plainFormula` is the same sum with the labels removed, used when the labelled
-     * form does not parse. `title` is the readable line -- "2d10 Strength + 1d4
-     * Bludgeoning + 10" -- and becomes the request's title.
+     * form does not parse and when an icon is chosen. `display` is the readable line
+     * -- "2d10 Strength + 1d4 Bludgeoning + 10" -- shown on the card and the cinematic
+     * plate, and `name` is the request's title.
      *
-     * @returns {{terms: object[], formula: string, plainFormula: string, title: string}|null}
+     * @returns {{terms: object[], formula: string, plainFormula: string, display: string, name: string}|null}
      */
     _composeDiceBuild(root) {
         const terms = this._readDiceTerms(root);
@@ -2247,19 +2385,23 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             terms,
             formula: labelledIsRollable ? labelled : plainFormula,
             plainFormula,
-            title: join((t) => (t.label ? `${t.value} ${t.label}` : t.value))
+            display: SkillCheckDialog.diceFormulaDisplay(labelled),
+            name: this._diceRollName(root)
         };
     }
 
     /**
-     * Split a formula back into rows, for an API caller who passed one.
+     * Split a formula back into rows, for an API caller or a remembered roll.
      *
      * Understands what the builder can produce -- `NdX` terms with optional bracketed
      * labels and one trailing number -- and returns null for anything else, so a
      * formula too complex to show is rolled as given rather than silently rewritten
      * into something the rows can display.
      *
-     * @returns {{counts: object, labels: object, modifier: number, modifierLabel: string}|null}
+     * `order` is the dice in the order they appear, which is what the stamps are
+     * restored from: a remembered roll reopens reading the way it was written.
+     *
+     * @returns {{counts: object, labels: object, order: string[], modifier: number, modifierLabel: string}|null}
      */
     static parseDiceBuild(formula) {
         const text = String(formula ?? '').trim();
@@ -2271,10 +2413,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
 
         const counts = {};
         const labels = {};
+        const order = [];
         let modifier = 0;
         let modifierLabel = '';
         let pendingOp = '+';
-        let sawDie = false;
 
         for (const token of tokens) {
             if (token === '+' || token === '-') { pendingOp = token; continue; }
@@ -2287,9 +2429,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             if (dieMatch) {
                 if (pendingOp === '-') return null; // Subtracting dice is not a thing the rows can show.
                 const die = `d${dieMatch[2]}`;
+                if (!(die in counts)) order.push(die);
                 counts[die] = (counts[die] ?? 0) + (dieMatch[1] === '' ? 1 : parseInt(dieMatch[1], 10));
                 if (label) labels[die] = label;
-                sawDie = true;
                 pendingOp = '+';
                 continue;
             }
@@ -2305,11 +2447,11 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             return null;
         }
 
-        return sawDie ? { counts, labels, modifier, modifierLabel } : null;
+        return order.length ? { counts, labels, order, modifier, modifierLabel } : null;
     }
 
-    /** Write a parsed build into the rows. */
-    _applyDiceBuild(root, build) {
+    /** Write a parsed build into the rows, stamping the order it was written in. */
+    _applyDiceBuild(root, build, name = '') {
         if (!build) return;
         for (const row of this._diceRows(root)) {
             const die = row.dataset.die;
@@ -2318,7 +2460,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const isModifier = die === SkillCheckDialog.DICE_MODIFIER_ROW;
             if (countInput) countInput.value = String(isModifier ? build.modifier : (build.counts[die] ?? 0));
             if (labelInput) labelInput.value = isModifier ? (build.modifierLabel ?? '') : (build.labels[die] ?? '');
+            // Stamped from the FORMULA's order, not the rows', so a remembered roll
+            // reopens reading the way it was written rather than sorted by die size.
+            const position = build.order.indexOf(die);
+            if (position >= 0) row.dataset.diceOrder = String(this._diceOrderCounter + position + 1);
+            else delete row.dataset.diceOrder;
         }
+        this._diceOrderCounter += build.order.length;
+
+        const nameInput = root.querySelector('.cpb-dice-name');
+        if (nameInput) nameInput.value = name ?? '';
     }
 
     /**
@@ -2337,33 +2488,36 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const labelInput = row.querySelector('.cpb-dice-reason');
             if (countInput) countInput.value = '0';
             if (labelInput) labelInput.value = '';
+            delete row.dataset.diceOrder;
         }
+        const nameInput = element.querySelector('.cpb-dice-name');
+        if (nameInput) nameInput.value = '';
         this._syncDiceBuilder(element);
     }
 
     /**
      * Recompute the build and make the rest of the window agree with it.
      *
-     * `keepSelection` is for the reset that runs when another roll type is picked:
-     * the build is being cleared BECAUSE something else was selected, so clearing the
-     * selection too would undo the click that got us here.
+     * `keepSelection` is for the sync that runs at attach: an empty build must not
+     * clear a selection an API caller passed in for some other roll type.
      */
     _syncDiceBuilder(html, { keepSelection = false } = {}) {
         const root = html ?? this._getElementForUpdate();
         if (!root?.querySelector) return;
 
+        // Stamped BEFORE composing, because the stamps are what the term order is read
+        // from -- a die bumped this tick has no order until this runs.
+        this._stampDiceOrder(root);
         const build = this._composeDiceBuild(root);
-
-        // A row at zero has nothing to say; one in play is worth seeing at a glance.
-        for (const row of this._diceRows(root)) {
-            const count = Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
-            row.classList.toggle('cpb-dice-row-active', count !== 0);
-        }
 
         if (build) {
             this.selectedType = 'dice';
             this.selectedValue = build.formula;
-            this.selectedRollTitle = build.title;
+            // The NAME titles the request, not the formula: "Sneak Attack" is what the
+            // roll is for, and the formula is carried separately and shown in its own
+            // right on both the card and the cinematic plate.
+            this.selectedRollTitle = build.name;
+            this.selectedDiceDisplay = build.display;
             // Both contested sides, because a contested dice roll is the same formula
             // rolled by both -- there is no left-click/right-click split to make here.
             this.challengerRoll = { type: 'dice', value: build.formula };
@@ -2374,11 +2528,17 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 this.selectedValue = null;
                 this.selectedRollTitle = null;
             }
+            this.selectedDiceDisplay = null;
             if (this.challengerRoll?.type === 'dice') this.challengerRoll = { type: null, value: null };
             if (this.defenderRoll?.type === 'dice') this.defenderRoll = { type: null, value: null };
         }
 
         this._renderDiceFormula(root, build);
+        const remember = root.querySelector('.cpb-dice-remember');
+        if (remember) {
+            remember.disabled = !build;
+            remember.dataset.tooltip = build ? 'Remember this roll' : 'Add a die first';
+        }
     }
 
     /**
@@ -2402,7 +2562,6 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         if (!build) {
             readout.textContent = 'Add a die to build a roll';
             if (icon) icon.className = 'fas fa-dice-d20';
-            this._syncDiceFavoriteHeart(root, null);
             return;
         }
 
@@ -2426,33 +2585,44 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         });
 
         if (icon) icon.className = getDiceIcon(build.plainFormula);
-        this._syncDiceFavoriteHeart(root, build);
+    }
+
+    // ----- REMEMBERED ROLLS -------------------------------------------
+
+    /** The remembered rolls, always an array even on a preferences object that predates them. */
+    _savedDiceRolls() {
+        const saved = this.userPreferences.requestRollSavedDice;
+        return Array.isArray(saved) ? saved : [];
+    }
+
+    _writeSavedDiceRolls(next) {
+        this.userPreferences = { ...this.userPreferences, requestRollSavedDice: next };
+        game.settings.set(MODULE.ID, 'skillCheckPreferences', this.userPreferences);
     }
 
     /**
-     * A favourite record for the WHOLE build.
+     * A favourite record for a remembered roll.
      *
-     * The heart used to sit on each die tile and favourite that die, which no longer
-     * means anything -- a die on its own is not a request. It now favourites the
-     * formula, and the record is shaped exactly like a check item's so that
-     * `_computeFavoriteId`, the favourites list, and `executeFavoriteSilent` all
-     * handle it without knowing the builder exists.
+     * Shaped exactly like a check item's, so `_computeFavoriteId`, the favourites
+     * list, and `executeFavoriteSilent` all handle it without knowing the builder
+     * exists. The formula is the record's VALUE and the name is its label, which is
+     * why two rolls with the same dice and different names are two favourites.
      */
-    _diceFavoriteElement(build) {
+    static _diceFavoriteElement(record) {
         const el = document.createElement('div');
         el.className = 'cpb-check-item';
         el.dataset.type = 'dice';
-        el.dataset.value = build.formula;
-        el.dataset.rollTitle = build.title;
+        el.dataset.value = record.formula;
+        el.dataset.rollTitle = record.name;
 
         const icon = document.createElement('i');
-        icon.className = getDiceIcon(build.plainFormula);
+        icon.className = getDiceIcon(record.plainFormula || record.formula);
         const label = document.createElement('span');
         label.className = 'cpb-roll-label';
-        label.textContent = build.title;
+        label.textContent = record.name;
         const description = document.createElement('span');
         description.className = 'cpb-roll-description';
-        description.textContent = 'Dice roll.';
+        description.textContent = record.display || record.formula;
 
         el.appendChild(icon);
         el.appendChild(label);
@@ -2460,29 +2630,111 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         return el;
     }
 
-    /** Fill or empty the heart, and disable it when there is no formula to favourite. */
-    _syncDiceFavoriteHeart(root, build) {
-        const button = root.querySelector('.cpb-dice-favorite');
-        if (!button) return;
-        const ids = new Set((this.userPreferences.requestRollFavorites || []).map((f) => f.id));
-        const id = build ? SkillCheckDialog._computeFavoriteId(this._diceFavoriteElement(build)) : null;
-        const active = !!(id && ids.has(id));
-        button.disabled = !build;
-        button.classList.toggle('cpb-favorite-is-active', active);
-        button.dataset.tooltip = !build
-            ? 'Add a die first'
-            : (active ? 'Remove this formula from favorites' : 'Favorite this formula');
-        const i = button.querySelector('i');
-        if (i) i.className = active ? 'fas fa-heart' : 'far fa-heart';
+    /** Remember the current build. A roll already remembered under the same id is left alone. */
+    _rememberDiceBuild(root) {
+        const build = this._composeDiceBuild(root);
+        if (!build) return;
+        const record = {
+            formula: build.formula,
+            plainFormula: build.plainFormula,
+            display: build.display,
+            name: build.name
+        };
+        record.id = SkillCheckDialog._computeFavoriteId(SkillCheckDialog._diceFavoriteElement(record));
+
+        const saved = this._savedDiceRolls();
+        if (saved.some((entry) => entry.id === record.id)) {
+            ui.notifications.info(`"${record.name}" is already remembered.`);
+            return;
+        }
+        this._writeSavedDiceRolls([...saved, record]);
+        this._renderSavedDiceSection(root);
     }
 
-    /** Wire the steppers, the typed counts, the labels, the row click, the heart, and the reset. */
+    /**
+     * The remembered list.
+     *
+     * Rebuilt rather than patched, because the list is short and every path that
+     * changes it -- remember, forget, favourite -- changes a different part of a row.
+     * Hidden entirely when empty: a heading over nothing is worse than no heading.
+     */
+    _renderSavedDiceSection(root) {
+        const section = root?.querySelector?.('.cpb-dice-saved');
+        const list = root?.querySelector?.('.cpb-dice-saved-list');
+        if (!section || !list) return;
+
+        const saved = this._savedDiceRolls();
+        section.hidden = saved.length === 0;
+        list.innerHTML = '';
+        if (!saved.length) return;
+
+        const favoriteIds = new Set((this.userPreferences.requestRollFavorites || []).map((f) => f.id));
+
+        for (const record of saved) {
+            const row = document.createElement('div');
+            row.className = 'cpb-dice-saved-row';
+            row.dataset.savedId = record.id;
+
+            // The row is a button: clicking a remembered roll loads it back into the
+            // builder rather than firing it, because the point of remembering one is
+            // usually to adjust it.
+            const load = document.createElement('button');
+            load.type = 'button';
+            load.className = 'cpb-dice-saved-load';
+            load.dataset.tooltip = 'Load this roll into the builder';
+
+            const icon = document.createElement('i');
+            icon.className = getDiceIcon(record.plainFormula || record.formula);
+            const name = document.createElement('span');
+            name.className = 'cpb-dice-saved-name';
+            name.textContent = record.name;
+            const formula = document.createElement('span');
+            formula.className = 'cpb-dice-saved-formula';
+            formula.textContent = record.display || record.formula;
+            load.append(icon, name, formula);
+
+            const isFavorite = favoriteIds.has(record.id);
+            const heart = document.createElement('button');
+            heart.type = 'button';
+            heart.className = `cpb-dice-saved-heart${isFavorite ? ' cpb-favorite-is-active' : ''}`;
+            heart.dataset.tooltip = isFavorite
+                ? 'Remove from favorites'
+                : 'Also show this roll in Favorites';
+            heart.setAttribute('aria-label', heart.dataset.tooltip);
+            heart.innerHTML = `<i class="${isFavorite ? 'fas' : 'far'} fa-heart"></i>`;
+
+            const forget = document.createElement('button');
+            forget.type = 'button';
+            forget.className = 'cpb-dice-saved-forget';
+            forget.dataset.tooltip = 'Forget this roll';
+            forget.setAttribute('aria-label', 'Forget this roll');
+            forget.innerHTML = '<i class="fas fa-trash"></i>';
+
+            row.append(load, heart, forget);
+            list.appendChild(row);
+        }
+    }
+
+    /** Load a remembered roll back into the rows. */
+    _loadSavedDiceRoll(root, id) {
+        const record = this._savedDiceRolls().find((entry) => entry.id === id);
+        if (!record) return;
+        const parsed = SkillCheckDialog.parseDiceBuild(record.formula);
+        if (!parsed) {
+            ui.notifications.warn(`"${record.name}" cannot be shown in the builder.`);
+            return;
+        }
+        this._resetDiceBuild(root);
+        this._applyDiceBuild(root, parsed, record.name === SkillCheckDialog.DICE_DEFAULT_TITLE ? '' : record.name);
+        this._syncDiceBuilder(root);
+    }
+
+    /** Wire the steppers, the typed counts, the labels, the row click, remember, and reset. */
     _attachDiceBuilderListeners(html) {
         const root = html;
         const builder = root?.querySelector?.('.cpb-dice-builder');
         if (!builder) return;
 
-        const countFor = (row) => Math.trunc(Number(row.querySelector('.cpb-dice-count')?.value)) || 0;
         const isModifierRow = (row) => row.dataset.die === SkillCheckDialog.DICE_MODIFIER_ROW;
         // Only the modifier goes below zero. A negative count of dice is not a thing.
         const clamp = (row, n) => isModifierRow(row)
@@ -2492,7 +2744,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         const bump = (row, delta) => {
             const input = row.querySelector('.cpb-dice-count');
             if (!input) return;
-            input.value = String(clamp(row, countFor(row) + delta));
+            input.value = String(clamp(row, SkillCheckDialog._diceRowCount(row) + delta));
             this._syncDiceBuilder(root);
         };
 
@@ -2532,14 +2784,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             }
         });
 
-        const favorite = root.querySelector('.cpb-dice-favorite');
-        if (favorite) {
-            favorite.addEventListener('click', (ev) => {
+        // The name is not in the formula, so it does not need a resync -- but it IS the
+        // request's title, and `_syncDiceBuilder` is where that gets written.
+        const nameInput = root.querySelector('.cpb-dice-name');
+        if (nameInput) nameInput.addEventListener('input', () => this._syncDiceBuilder(root));
+
+        const remember = root.querySelector('.cpb-dice-remember');
+        if (remember) {
+            remember.addEventListener('click', (ev) => {
                 ev.preventDefault();
-                const build = this._composeDiceBuild(root);
-                if (!build) return;
-                this._toggleFavorite(root, this._diceFavoriteElement(build));
-                this._syncDiceFavoriteHeart(root, build);
+                this._rememberDiceBuild(root);
             });
         }
 
@@ -2551,12 +2805,39 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             });
         }
 
+        // Delegated, because the saved list is rebuilt whenever it changes and
+        // per-row listeners would have to be re-attached every time.
+        const savedList = root.querySelector('.cpb-dice-saved-list');
+        if (savedList) {
+            savedList.addEventListener('click', (ev) => {
+                const row = ev.target.closest('.cpb-dice-saved-row');
+                if (!row) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                const id = row.dataset.savedId;
+
+                if (ev.target.closest('.cpb-dice-saved-forget')) {
+                    this._writeSavedDiceRolls(this._savedDiceRolls().filter((entry) => entry.id !== id));
+                    this._renderSavedDiceSection(root);
+                    return;
+                }
+                if (ev.target.closest('.cpb-dice-saved-heart')) {
+                    const record = this._savedDiceRolls().find((entry) => entry.id === id);
+                    if (record) this._toggleFavorite(root, SkillCheckDialog._diceFavoriteElement(record));
+                    this._renderSavedDiceSection(root);
+                    return;
+                }
+                this._loadSavedDiceRoll(root, id);
+            });
+        }
+
         // An API caller passed a formula rather than a build; show it in the rows so
         // that nudging a stepper edits it instead of replacing it.
         if (this._pendingDiceBuild) {
-            this._applyDiceBuild(root, this._pendingDiceBuild);
+            this._applyDiceBuild(root, this._pendingDiceBuild, this.apiRollTitle ?? '');
             this._pendingDiceBuild = null;
         }
+        this._renderSavedDiceSection(root);
         this._syncDiceBuilder(root, { keepSelection: true });
     }
 
@@ -2715,6 +2996,16 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     link = showExplanation && saveData?.reference ? `@UUID[${saveData.reference}]{${name}}` : null;
                 }
                 break;
+            case 'dice':
+                // Named for what it rolls, since a silent caller may not pass a title.
+                // `createRequestRoll` falls back to DICE_DEFAULT_TITLE for the title
+                // itself; this is the roll's NAME, which the contested band uses.
+                name = SkillCheckDialog.diceFormulaDisplay(rollValue);
+                desc = showExplanation
+                    ? `This is a straightforward dice roll of ${name} -- exactly the formula shown, with no ability modifier or proficiency bonus added on top.`
+                    : null;
+                link = null;
+                break;
             default:
                 name = rollValue;
                 desc = null;
@@ -2760,6 +3051,10 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
      */
     static async _executeFavoriteFromRecord(rec) {
         const type = rec.type;
+        // Spread into every path below rather than set once at the end: each builds its
+        // own options object, and a favourite that plays to chat because one branch
+        // forgot the flag is a bug nobody reports -- it just quietly does the default.
+        const cinematic = rec.isCinematic ? { isCinematic: true } : {};
 
         if (type === 'quick') {
             const rt = rec.rollType || '';
@@ -2800,6 +3095,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 initialType: 'skill',
                 initialValue: skillValue,
                 groupRoll,
+                ...cinematic,
                 ...(rec.rollTitle ? { title: rec.rollTitle } : {}),
                 ...(dcOpt !== undefined ? { dc: dcOpt } : {})
             };
@@ -2818,6 +3114,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             const opts = {
                 initialType: type,
                 initialValue: rec.value,
+                ...cinematic,
                 ...(rec.rollTitle ? { title: rec.rollTitle } : {})
             };
             if (rec.dc != null && String(rec.dc).trim() !== '') {
@@ -2833,6 +3130,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             return SkillCheckDialog._openRequestRollSilent({
                 initialType: 'dice',
                 initialValue: rec.value,
+                ...cinematic,
                 ...(rec.rollTitle ? { title: rec.rollTitle } : {})
             });
         }
@@ -2950,9 +3248,13 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         const rollLabel = SkillCheckDialog._getRollLabelForType(rollType, rollValue, showRollExplanation);
         const messageData = {
             skillName: rollLabel.name,
-            rollTitle: title ?? rollLabel.name,
+            // An untitled dice request is "Custom Dice Roll" rather than its own formula:
+            // the formula is carried separately and shown in its own right, so a title
+            // repeating it says the same thing twice and names nothing.
+            rollTitle: title ?? (rollType === 'dice' ? SkillCheckDialog.DICE_DEFAULT_TITLE : rollLabel.name),
             defenderSkillName: null,
             skillAbbr: rollValue,
+            rollFormula: rollType === 'dice' ? SkillCheckDialog.diceFormulaDisplay(rollValue) : null,
             defenderSkillAbbr: null,
             actors: processedActors,
             requesterId: game.user.id,
@@ -3152,6 +3454,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         // Contested roll info (skill vs skill)
         if (messageData.hasMultipleGroups) {
             subtitleParts.push(`${messageData.skillName} vs ${messageData.defenderSkillName}`);
+        }
+
+        // The dice formula, beside the DC. A dice request's title is the GM's name for
+        // it, so without this the plate names a roll and never says what it rolls.
+        if (messageData.rollFormula) {
+            subtitleParts.push(foundry.utils.escapeHTML(String(messageData.rollFormula)));
         }
 
         // DC info

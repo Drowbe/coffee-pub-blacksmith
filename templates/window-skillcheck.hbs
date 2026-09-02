@@ -532,11 +532,32 @@
                             <input type="text" class="cpb-dice-reason" maxlength="40" placeholder="Label (optional)" aria-label="Label for the modifier" data-tooltip="What this modifier is for -- shown on the request. Optional.">
                         </div>
                     </div>
+                    {{!-- The answer line, and the two things you can do with it.
+
+                          The NAME is the request's title -- what the card and the
+                          cinematic plate say -- because "2d10 Strength + 1d4
+                          Bludgeoning + 10" is what the roll IS, not what it is FOR.
+                          Empty falls back to "Custom Dice Roll".
+
+                          REMEMBER is not FAVOURITE. Remembering keeps a roll here, in
+                          the tab that builds it; favouriting promotes it to the Quick
+                          tab alongside skills and saves. Most remembered rolls are
+                          working notes and do not belong up there, so the heart lives
+                          on each saved row rather than on the builder. --}}
                     <div class="cpb-dice-summary">
                         <i class="fas fa-dice-d20"></i>
                         <span class="cpb-dice-formula" data-tooltip="The formula this request will roll">Add a die to build a roll</span>
-                        <button type="button" class="cpb-dice-favorite" data-tooltip="Favorite this formula" aria-label="Favorite this formula"><i class="far fa-heart"></i></button>
+                    </div>
+                    <div class="cpb-dice-actions">
+                        <input type="text" class="cpb-dice-name" maxlength="60" placeholder="Name this roll (optional)" aria-label="Name for this roll" data-tooltip="The title on the chat card and the cinematic plate. Defaults to &quot;Custom Dice Roll&quot;.">
+                        <button type="button" class="cpb-dice-remember" data-tooltip="Remember this roll" aria-label="Remember this roll"><i class="fas fa-bookmark"></i> Remember</button>
                         <button type="button" class="cpb-dice-reset" data-tooltip="Clear every die, label, and modifier" aria-label="Clear the dice builder"><i class="fas fa-rotate-left"></i></button>
+                    </div>
+                    {{!-- Written by _renderSavedDiceSection. Empty markup rather than a
+                          Handlebars loop because the list changes without a re-render. --}}
+                    <div class="cpb-dice-saved" hidden>
+                        <div class="cpb-section-subheader">Remembered Rolls</div>
+                        <div class="cpb-dice-saved-list"></div>
                     </div>
                 </div>
 

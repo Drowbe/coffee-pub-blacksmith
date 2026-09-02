@@ -698,11 +698,14 @@ tor-item.selected {
     border: 1px solid rgba(0, 0, 0, 0.9);
     border-radius: 4px;
 }
-/* A row in play. Tinted rather than outlined: eight rows with borders that come and
-   go make the list jump, and the count beside it is already the precise statement. */
+/* A row in play. THE SAME GREEN a selected contestant and a challenger roll wear
+   (rgba(40, 108, 24, 0.4)) -- a die with a count above zero IS the selection on this
+   tab, so wearing a colour of its own would have said it was a different kind of
+   thing. Tinted rather than outlined: eight rows with borders that come and go make
+   the list jump, and the count beside it is already the precise statement. */
 .cpb-dice-row.cpb-dice-row-active {
-    background: rgba(231, 91, 1, 0.22);
-    border-color: rgba(231, 91, 1, 0.45);
+    background-color: rgba(40, 108, 24, 0.4);
+    border-color: rgba(0, 0, 0, 0.7);
 }
 .cpb-dice-row-modifier {
     margin-top: 3px;
@@ -815,7 +818,7 @@ tor-item.selected {
     flex: 1 1 auto;
     min-width: 0;
     display: flex;
-    align-items: baseline;
+    align-items: center;
     flex-wrap: wrap;
     gap: 4px;
     font-size: var(--font-size-14);
@@ -849,12 +852,63 @@ tor-item.selected {
     background: rgba(172, 159, 129, 0.22);
     color: rgba(222, 211, 185, 0.9);
 }
-.cpb-dice-summary .cpb-dice-favorite,
-.cpb-dice-summary .cpb-dice-reset {
+/* NAME AND WHAT TO DO WITH IT.
+
+   On its own row under the formula rather than beside it, because the formula grows:
+   four labelled terms wrap, and controls sharing that line would move every time a
+   label was typed. */
+.cpb-dice-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}
+.cpb-dice-actions .cpb-dice-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 24px;
+    padding: 0 8px;
+    font-size: var(--font-size-12);
+    color: rgba(222, 211, 185, 0.95);
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(172, 159, 129, 0.35);
+    border-radius: 3px;
+}
+.cpb-dice-actions .cpb-dice-name::placeholder {
+    color: rgba(172, 159, 129, 0.45);
+    font-style: italic;
+}
+.cpb-dice-actions .cpb-dice-remember {
     flex: 0 0 auto;
-    width: 22px;
-    height: 22px;
-    min-width: 22px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: auto;
+    height: 24px;
+    padding: 0 10px;
+    font-size: var(--font-size-11);
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border: 1px solid rgba(172, 159, 129, 0.35);
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(172, 159, 129, 0.9);
+    cursor: pointer;
+}
+.cpb-dice-actions .cpb-dice-remember:hover:not(:disabled) {
+    background: rgba(231, 91, 1, 0.5);
+    color: rgba(222, 211, 185, 0.95);
+}
+.cpb-dice-actions .cpb-dice-remember:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+.cpb-dice-actions .cpb-dice-reset {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
     line-height: 1;
     padding: 0;
     border: 1px solid rgba(172, 159, 129, 0.35);
@@ -863,20 +917,111 @@ tor-item.selected {
     color: rgba(172, 159, 129, 0.7);
     cursor: pointer;
 }
-.cpb-dice-summary .cpb-dice-favorite:hover:not(:disabled),
-.cpb-dice-summary .cpb-dice-reset:hover {
+.cpb-dice-actions .cpb-dice-reset:hover {
     background: rgba(231, 91, 1, 0.5);
     color: rgba(222, 211, 185, 0.95);
 }
-.cpb-dice-summary .cpb-dice-favorite:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
+.cpb-dice-actions .cpb-dice-remember i,
+.cpb-dice-actions .cpb-dice-reset i {
+    font-size: var(--font-size-11);
+    width: auto;
 }
-.cpb-dice-summary .cpb-dice-favorite.cpb-favorite-is-active {
+
+/* REMEMBERED ROLLS.
+
+   Kept on this tab rather than in Favorites, because most of them are working rolls
+   for tonight. The heart on each row is the promotion to Favorites, and it is per-row
+   for exactly that reason. */
+.cpb-dice-saved {
+    margin-top: 8px;
+}
+.cpb-dice-saved-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.cpb-dice-saved-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.9);
+    border-radius: 4px;
+    padding: 2px 4px;
+}
+.cpb-dice-saved-row:hover {
+    border-color: rgba(172, 159, 129, 0.35);
+}
+.cpb-dice-saved-list .cpb-dice-saved-load {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 4px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(222, 211, 185, 0.95);
+    text-align: left;
+    cursor: pointer;
+}
+.cpb-dice-saved-list .cpb-dice-saved-load:hover {
+    background: rgba(231, 91, 1, 0.5);
+}
+.cpb-dice-saved-list .cpb-dice-saved-load i {
+    flex: 0 0 auto;
+    font-size: var(--font-size-12);
+    line-height: 1;
+    width: 16px;
+    text-align: center;
+    color: rgba(172, 159, 129, 0.9);
+}
+.cpb-dice-saved-name {
+    flex: 0 0 auto;
+    font-size: var(--font-size-12);
+    line-height: 1;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+/* The formula is the caption: it is how you tell two remembered rolls apart when the
+   names are similar, and it is not what you are looking for when they are not. */
+.cpb-dice-saved-formula {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--font-size-11);
+    line-height: 1;
+    color: rgba(128, 117, 96, 0.9);
+}
+.cpb-dice-saved-list .cpb-dice-saved-heart,
+.cpb-dice-saved-list .cpb-dice-saved-forget {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    line-height: 1;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(172, 159, 129, 0.6);
+    cursor: pointer;
+}
+.cpb-dice-saved-list .cpb-dice-saved-heart:hover,
+.cpb-dice-saved-list .cpb-dice-saved-forget:hover {
+    background: rgba(231, 91, 1, 0.5);
+    color: rgba(222, 211, 185, 0.95);
+}
+.cpb-dice-saved-list .cpb-dice-saved-heart.cpb-favorite-is-active {
     color: rgb(231, 91, 1);
 }
-.cpb-dice-summary .cpb-dice-favorite i,
-.cpb-dice-summary .cpb-dice-reset i {
+.cpb-dice-saved-list .cpb-dice-saved-heart i,
+.cpb-dice-saved-list .cpb-dice-saved-forget i {
     font-size: var(--font-size-11);
     width: auto;
 }
@@ -1152,6 +1297,46 @@ tor-item.selected {
 }
 
 .cpb-favorite-toggle i {
+    font-size: 0.85em;
+    pointer-events: none;
+}
+
+/* HOW A FAVOURITE PLAYS.
+
+   Sized and shaped like the heart beside it, because they are the same kind of
+   control: two small persistent facts about this saved roll. It is OFF by default and
+   reads that way -- the same muted grey an unfilled heart wears -- so a row of
+   favourites does not look like a row of switches somebody left on.
+
+   Orange when on rather than the heart's red: they are different states of different
+   things, and two red icons side by side would read as one control that had
+   half-lit. */
+.cpb-favorite-cinematic {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cpb-favorite-cinematic:hover {
+    color: rgba(231, 91, 1, 0.95);
+}
+
+.cpb-favorite-cinematic.cpb-favorite-cinematic-on,
+.cpb-favorite-cinematic.cpb-favorite-cinematic-on:hover {
+    color: rgba(231, 91, 1, 0.95);
+    background: rgba(231, 91, 1, 0.18);
+}
+
+.cpb-favorite-cinematic i {
     font-size: 0.85em;
     pointer-events: none;
 }

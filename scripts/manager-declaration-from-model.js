@@ -82,8 +82,17 @@ function descriptorFor(key, field, dotted, human, pathPrefix) {
             ? [...field.choices]
             : Object.keys(field.choices);
     }
-    if (typeof field.min === 'number') descriptor.min = field.min;
-    if (typeof field.max === 'number') descriptor.max = field.max;
+    // Bounds only from a NUMERIC field. Foundry's ArrayField also carries a numeric
+    // `min`, but it bounds the element COUNT rather than a value, and lifting it onto
+    // an array descriptor produces a declaration the registry correctly refuses --
+    // a bound on a non-number would be compared against NaN and could never fail.
+    // The declaration format has no slot for a count bound; borrowing `min` for one
+    // would silently reinterpret it, which is worse than dropping it. If it is ever
+    // wanted it needs its own name.
+    if (type === 'number' || type === 'integer') {
+        if (typeof field.min === 'number') descriptor.min = field.min;
+        if (typeof field.max === 'number') descriptor.max = field.max;
+    }
 
     const guidance = human.guidance?.[dotted];
     if (guidance) descriptor.guidance = guidance;

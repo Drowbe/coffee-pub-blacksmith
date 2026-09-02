@@ -1459,6 +1459,52 @@ export default {
         },
 
         {
+            id: 'declared-profiles-reach-the-window',
+            label: 'A registered profile appears in the authoring dropdowns',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'A profile that imports correctly and cannot be authored for is half a feature.',
+            run: async ({ expect, log }) => {
+                const { registry } = await loadDeclarations();
+                const importer = await import(`${MODULE_PATH}/registry-json-import.js`);
+                const kind = `probe-window-${foundry.utils.randomID(6)}`;
+                const base = (id, extra = {}) => ({
+                    kind, id, label: `Probe ${id}`, schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntry' },
+                    fields: [{ name: 'x', path: 'x', type: 'string' }], ...extra
+                });
+
+                registry.registerDeclaration(base('alpha'));
+                registry.registerDeclaration(base('beta', { authoringModes: 'prompt' }));
+                registry.registerDeclaration(base('shadowed'));
+                importer.registerJsonImportKind({
+                    id: kind, gmOnly: true, buttonHtml: '<i></i>', idSuffix: kind,
+                    windowTitle: 'Probe', headerTitle: 'Probe', windowIcon: 'fa-solid fa-flask',
+                    // A kind still on its parser keeps its own entry for an id a
+                    // declaration also claims -- the state a handover passes through.
+                    templateOptions: [{ value: 'shadowed', label: 'Static Wins', authoringModes: 'prompt' }]
+                });
+
+                const options = importer.getJsonImportKind(kind)?.templateOptions ?? [];
+                const by = Object.fromEntries(options.map(one => [one.value, one]));
+                if (!by.alpha) log(`options were: ${JSON.stringify(options)}`);
+
+                // Construction, validation and routing honoured a declaration while the
+                // authoring UI did not, so a module could register a profile that
+                // imported correctly and was invisible to anyone authoring a payload for
+                // it -- no template, no guide, no prompt.
+                expect('a declared profile appears in the dropdown', by.alpha?.label, 'Probe alpha');
+                expect('and offers both authoring tabs by default',
+                    by.alpha?.authoringModes, 'json prompt');
+                expect('a declared authoringModes is honoured', by.beta?.authoringModes, 'prompt');
+
+                expect('a static entry wins its own id', by.shadowed?.label, 'Static Wins');
+                expect('and the id is not listed twice',
+                    options.filter(one => one.value === 'shadowed').length, 1);
+            }
+        },
+
+        {
             id: 'declaration-from-model',
             label: 'A declaration walked from a DataModel keeps every path',
             tier: 'headless',
@@ -1478,7 +1524,18 @@ export default {
                         { required: true, integer: true, min: 0, max: 100, initial: 0 }),
                     treatmentdc: field('NumberField',
                         { required: false, integer: true, min: 1, initial: null, nullable: true }),
-                    modifiers: field('ArrayField', { initial: [], element: field('SchemaField', {
+                    // `min: 0, max: Infinity` because a REAL ArrayField carries them:
+                    // Foundry merges `static _defaults` into every field instance
+                    // (common/data/fields.mjs), so a stub that assigns only what the
+                    // model passes builds a different object from the runtime's. A
+                    // consumer's gate was green on exactly that unfaithful input while
+                    // registration rejected the real thing, and this stub had the same
+                    // gap -- so the assertion below would have passed vacuously.
+                    //
+                    // An ArrayField's `min` bounds the element COUNT, not a value, and
+                    // must not reach a descriptor whose type is `array`.
+                    modifiers: field('ArrayField', { initial: [], min: 0, max: Infinity,
+                        element: field('SchemaField', {
                         fields: {
                             stat: field('StringField',
                                 { required: true, blank: false, choices: choices(['attack', 'ac']) }),
@@ -1505,6 +1562,12 @@ export default {
                 expect.ok('and its children carry none',
                     by.modifiers?.fields?.every(one => one.path === undefined));
 
+                // The count bound must be dropped rather than reinterpreted: the
+                // declaration format has no slot for one, and borrowing `min` would
+                // make the declaration lie about what it constrains.
+                expect.ok('an ArrayField element-count bound is not lifted as a value bound',
+                    by.modifiers?.min === undefined && by.modifiers?.max === undefined);
+
                 expect('a plain field is prefixed once', by.severity?.path, 'system.severity');
                 expect('choices become values', JSON.stringify(by.severity?.values), '["minor","major"]');
                 expect('integer is detected from the field', by.damage?.type, 'integer');
@@ -1519,6 +1582,66 @@ export default {
                     ?.find(one => one.name === 'value')?.guidance, 'The bonus.');
                 if (!by.title) log('extraFields missing from the walked declaration');
                 expect('a module-supplied field comes first', declaration.fields[0]?.name, 'title');
+            }
+        },
+
+        {
+            id: 'journal-destination-append',
+            label: 'A second page joins an entry instead of replacing it',
+            tier: 'interactive',
+            group: 'Step 8 - Journal',
+            note: 'Creates and deletes a probe journal. The append half has never been asserted.',
+            run: async ({ expect, log }) => {
+                const { upsertJournalEntry } =
+                    await import(`${MODULE_PATH}/utility-journal-destination.js`);
+                const page = (name, content) => ({
+                    name, type: 'text',
+                    text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
+                });
+                const name = `Blacksmith Probe ${foundry.utils.randomID(6)}`;
+                let entry = null;
+                try {
+                    // 1. Create.
+                    entry = await upsertJournalEntry({ name, pages: [page('First', '<p>one</p>')] });
+                    expect('an absent entry is created', entry?.pages?.size ?? entry?.pages?.length, 1);
+
+                    // 2. APPEND -- the half that has never worked and was never asserted.
+                    // The builder this replaced guarded with `Array.isArray` on an
+                    // EmbeddedCollection, which is never an array, so it always took the
+                    // empty branch and submitted an update carrying ONLY the new page.
+                    // A replacement satisfies "no duplicate" perfectly, which is why
+                    // absence-of-duplicate and presence-of-siblings are two assertions
+                    // and only the first was ever being made.
+                    await upsertJournalEntry({ name, pages: [page('Second', '<p>two</p>')] });
+                    entry = game.journal.getName(name);
+                    expect('a second page is appended', entry?.pages?.size, 2);
+                    expect.ok('and the FIRST page survives the append',
+                        Boolean(entry?.pages?.getName?.('First')));
+
+                    // 3. Update in place, against an entry that has something to lose.
+                    await upsertJournalEntry({ name, pages: [page('First', '<p>revised</p>')] });
+                    entry = game.journal.getName(name);
+                    expect('re-landing a page does not duplicate it', entry?.pages?.size, 2);
+                    expect.ok('its content is revised',
+                        String(entry?.pages?.getName?.('First')?.text?.content ?? '').includes('revised'));
+                    expect.ok('and the sibling still survives',
+                        Boolean(entry?.pages?.getName?.('Second')));
+
+                    // 4. Name AND folder together decide the match. Matching on name
+                    // alone was the injury builder's rule and it collides across
+                    // folders -- two campaigns each with a "Fire" entry are one entry
+                    // as far as that test is concerned.
+                    const foldered = await upsertJournalEntry(
+                        { name, pages: [page('First', '<p>elsewhere</p>')] },
+                        { folderName: `Probe ${foundry.utils.randomID(4)}` });
+                    expect.ok('the same name in another folder is a different entry',
+                        foldered?.id !== entry?.id);
+                    if (foldered?.id === entry?.id) log('folder scoping did not separate them');
+                    await foldered?.folder?.delete?.();
+                    await foldered?.delete?.();
+                } finally {
+                    await game.journal.getName(name)?.delete?.();
+                }
             }
         },
 

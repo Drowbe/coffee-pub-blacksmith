@@ -502,14 +502,24 @@ async function _playRollResultSound(roll) {
  * @returns {Promise<object>} Roll data for templates
  */
 async function prepareRollData(actor, type, value) {
+    // A DICE REQUEST IS ITS FORMULA. Every other roll type here is a d20 plus what the
+    // actor brings; a dice roll is exactly what the GM built and nothing else, so it
+    // has no base d20, no ability modifier, and no proficiency.
+    //
+    // This function used to hardcode `1d20` and add an ability modifier for EVERY type,
+    // falling back to `int` for anything it did not recognise -- so the roll window
+    // opened on a request for "2d10 Strength + 2d4 Smackdown + 2" showing "1D20 + 2 INT".
+    // The roll itself was always right, because `_executeBuiltInRoll` reads the value
+    // rather than this; it was the window that was describing a different roll.
+    const isDiceRoll = type === 'dice';
     const skillData = type === 'skill' ? CONFIG.DND5E.skills[value] : null;
-    const abilityKey = skillData?.ability || (type === 'ability' ? value : 'int');
-    const abilityMod = foundry.utils.getProperty(actor.system.abilities, `${abilityKey}.mod`) || 0;
+    const abilityKey = isDiceRoll ? null : (skillData?.ability || (type === 'ability' ? value : 'int'));
+    const abilityMod = isDiceRoll ? 0 : (foundry.utils.getProperty(actor.system.abilities, `${abilityKey}.mod`) || 0);
     const profBonus = actor.system.attributes.prof || 0;
-    
-    let baseRoll = '1d20';
-    let rollFormula = '1d20';
-    
+
+    let baseRoll = isDiceRoll ? (value || '1d20') : '1d20';
+    let rollFormula = baseRoll;
+
     // Build the base formula
     const formulaParts = [baseRoll];
     if (abilityMod !== 0) formulaParts.push(abilityMod);
@@ -529,7 +539,7 @@ async function prepareRollData(actor, type, value) {
     
     // Create pre-roll verbose formula for tooltips
     const preRollVerboseParts = [];
-    preRollVerboseParts.push('1d20 roll');
+    preRollVerboseParts.push(`${baseRoll} roll`);
     
     if (abilityMod !== 0) preRollVerboseParts.push(`${abilityMod} ${abilityKey}`);
     
@@ -574,6 +584,8 @@ async function prepareRollData(actor, type, value) {
         subtitleParts.push((value || 'Unknown').toUpperCase());
     } else if (type === 'tool') {
         subtitleParts.push(value || 'Unknown');
+    } else if (type === 'dice') {
+        subtitleParts.push(SkillCheckDialog.diceFormulaDisplay(value) || 'Dice Roll');
     } else {
         subtitleParts.push(value || 'Unknown');
     }
@@ -604,7 +616,7 @@ async function prepareRollData(actor, type, value) {
                   type === 'ability' ? `${(value || 'Unknown').toUpperCase()}` :
                   type === 'save' ? `${(value || 'Unknown').toUpperCase()}` :
                   type === 'tool' ? `${value || 'Unknown'}` : `${value || 'Unknown'}`,
-        rollFormula: preRollVerboseFormula || '1d20 roll',
+        rollFormula: preRollVerboseFormula || `${baseRoll} roll`,
         baseRoll: baseRoll || '1d20',
         abilityMod: abilityMod || 0,
         abilityKey: abilityKey,
@@ -1645,6 +1657,9 @@ class RollWindow extends BlacksmithWindowBaseV2 {
 
         const baseRoll = this.rollData.baseRoll || '1d20';
         const proficiencyBonus = this.rollData.proficiencyBonus || 0;
+        // A dice request brings its whole formula as the base, and brings nothing else:
+        // no ability modifier, no proficiency, and no ability picker to change either.
+        const isDiceRoll = this.rollData.rollTypeKey === 'dice';
 
         // The ability is READ FRESH each render rather than captured, because the
         // override below changes it: a captured value would leave the formula
@@ -1679,18 +1694,41 @@ class RollWindow extends BlacksmithWindowBaseV2 {
             cls: `formula-custom-modifier ${op === '-' ? 'formula-negative' : 'formula-positive'}`
         });
 
+        /**
+         * The terms the ROLL ITSELF contributes, before anything the player adds.
+         *
+         * For a dice request that is the built formula, term by term. It is written in
+         * the same `2d10[Strength]` shape the modifier field uses -- deliberately, so
+         * it parses with the same parser and renders with the same term shape, and the
+         * labels the GM typed survive onto this line as tags instead of being flattened
+         * into one long string with brackets in it.
+         */
+        const baseTerms = () => {
+            if (!isDiceRoll) return [{ text: baseRoll, icon: getDiceIcon(baseRoll) }];
+            return RollWindow.parseModifierTerms(baseRoll).map((parsed, index) => ({
+                // The first term carries no operator: the renderer owns the separator,
+                // and a leading `+` on a formula reads as a typo.
+                op: index === 0 ? undefined : parsed.op,
+                text: parsed.value,
+                label: parsed.label,
+                icon: /\d*d\d+/i.test(parsed.value) ? getDiceIcon(parsed.value) : null
+            }));
+        };
+
         const updateFormula = () => {
-            const terms = [{ text: baseRoll, icon: getDiceIcon(baseRoll) }];
+            const terms = baseTerms();
 
             // `label` is rendered as a tag rather than as more of the value, so the
             // number stays the thing you read and the reason sits beside it.
-            const abilityKey = currentAbility();
-            const abilityMod = abilityModFor(abilityKey);
-            if (abilityMod !== 0) {
-                terms.push({ op: abilityMod < 0 ? '-' : '+', text: String(Math.abs(abilityMod)), label: abilityKey });
-            }
-            if (proficiencyBonus > 0) {
-                terms.push({ op: '+', text: String(proficiencyBonus), label: 'prof' });
+            if (!isDiceRoll) {
+                const abilityKey = currentAbility();
+                const abilityMod = abilityModFor(abilityKey);
+                if (abilityMod !== 0) {
+                    terms.push({ op: abilityMod < 0 ? '-' : '+', text: String(Math.abs(abilityMod)), label: abilityKey });
+                }
+                if (proficiencyBonus > 0) {
+                    terms.push({ op: '+', text: String(proficiencyBonus), label: 'prof' });
+                }
             }
             for (const parsed of RollWindow.parseModifierTerms(modifierInput.value)) {
                 terms.push(modifierTerm(parsed));

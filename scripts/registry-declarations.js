@@ -71,8 +71,11 @@
  *                             `documentName` is 'JournalEntryPage' builds a PAGE: its field paths are the
  *                             page's own, `type` is the page subtype, and `containerNameFrom` names the
  *                             declared field whose VALUE names the JournalEntry the page is filed into.
- *                             `containerNameTransform` optionally names a Blacksmith transform applied to
- *                             that value to produce the entry name; untransformed by default.
+ *                             Alternatively `containerName` is a constant entry name for a content type
+ *                             that lives in one journal. `containerNameTransform` optionally names a
+ *                             Blacksmith transform applied to the value, and `containerNameMap` is a
+ *                             value-to-name lookup for when the name is not derivable from the value at
+ *                             all; the two are alternatives and both are optional.
  *                             `pageType` is the
  *                             JournalEntryPage subtype a journal profile creates, defaulting to
  *                             'text'. A module-owned subtype is namespaced `<module.id>.<subtype>`;
@@ -81,6 +84,9 @@
  * @property {DeclarationField[]} fields
  * @property {object[]} [rules] - Cross-field rules: a closed vocabulary kind, or a named rule.
  * @property {string[]} [derive] - Named derivations run over the assembled document data.
+ * @property {string} [authoringModes='json prompt'] - Which authoring tabs this profile appears on:
+ *                             'json', 'prompt', or both space-separated. A declared profile can offer both,
+ *                             since its template, guide and prompt schema all derive from the declaration.
  * @property {object} [ownership] - Per-profile ownership defaults. Never inherited from the kind:
  *                             a profile whose content is revealed deliberately must say so.
  */
@@ -139,9 +145,12 @@ export function fieldAccepts(field, value) {
 const FORMS = new Set(['mapped', 'passthrough']);
 const ROLES = new Set(['selector', 'envelope', 'input']);
 const ABSENT_MEANS = new Set(['default', 'preserve']);
+/** The authoring tabs a profile may appear on. */
+const AUTHORING_MODES = new Set(['json', 'prompt']);
 /** Every key a `document` descriptor may carry. Anything else is rejected by name. */
 const DOCUMENT_KEYS = new Set([
-    'documentName', 'type', 'pageType', 'containerNameFrom', 'containerNameTransform'
+    'documentName', 'type', 'pageType',
+    'containerName', 'containerNameFrom', 'containerNameTransform', 'containerNameMap'
 ]);
 
 /** @type {Map<string, Declaration>} */
@@ -359,7 +368,24 @@ function validateRules(declaration, where) {
  * @param {Declaration} declaration
  * @returns {string} The registry key.
  */
-export function registerDeclaration(declaration) {
+/**
+ * Run every registration rule against a declaration WITHOUT registering it.
+ *
+ * Exposed because a consumer's build gate could not reach these rules. A module
+ * building its declaration offline could check it against its own DataModel and
+ * find them in perfect agreement, then have registration reject it in a live
+ * world for violating the declaration FORMAT -- which is the same two-schemas
+ * defect this model exists to end, one level up: the second schema is the format
+ * rather than a data model, and nothing compared them.
+ *
+ * Found by a consumer whose walked declaration mirrored its model exactly and
+ * carried an ArrayField's element-count `min` on an array-typed field. Their gate
+ * passed; their user's console did not.
+ *
+ * Throws on the first violation, naming the profile and field. Returns nothing.
+ * @param {Declaration} declaration
+ */
+export function validateDeclaration(declaration) {
     if (!declaration || typeof declaration !== 'object') {
         throw new Error('A declaration must be an object');
     }
@@ -403,14 +429,66 @@ export function registerDeclaration(declaration) {
     // quietest kind there is: the page is built correctly, lands nowhere, and the
     // import reports success.
     if (String(declaration.document.documentName).trim() === 'JournalEntryPage') {
+        const constantName = declaration.document.containerName;
         const container = String(declaration.document.containerNameFrom || '').trim();
-        if (!container) {
-            throw new Error(`${where}: a JournalEntryPage profile requires document.containerNameFrom, `
-                + `naming the field whose value names the containing JournalEntry`);
+
+        // EXACTLY ONE of the two. A constant is for a content type that lives in one
+        // journal and has no category-like field to name -- ten inspiration cards in
+        // `Inspiration Cards` -- where requiring `containerNameFrom` made the profile
+        // impossible to write rather than merely awkward. Both together is ambiguous
+        // and neither leaves the page nowhere to go, so both are rejected.
+        if (constantName !== undefined && container) {
+            throw new Error(`${where}: document.containerName and document.containerNameFrom are `
+                + `alternatives; declare one`);
+        }
+        if (constantName !== undefined) {
+            if (typeof constantName !== 'string' || !constantName.trim()) {
+                throw new Error(`${where}: document.containerName must be a non-empty string`);
+            }
+        } else if (!container) {
+            throw new Error(`${where}: a JournalEntryPage profile requires document.containerName `
+                + `or document.containerNameFrom, naming the JournalEntry the page is filed into`);
         }
         const names = new Set((declaration.fields ?? []).map(field => field?.name));
-        if (!names.has(container)) {
+        if (container && !names.has(container)) {
             throw new Error(`${where}: document.containerNameFrom "${container}" is not a declared field`);
+        }
+
+        // A LOOKUP from the field's value to a container name, as DATA rather than a
+        // module-supplied function. A crit's journal is Butchery, Carnage or Slaughter
+        // and none of those strings is stored anywhere -- the mapping is the module's
+        // semantics, and a named casing transform cannot express it.
+        //
+        // Data rather than a callback for the reason the whole model is data: a map is
+        // serializable, inspectable, and checkable. The mirror check can assert every
+        // legal value of the source field has an entry and that the names produced are
+        // ones the module's compendium actually ships. A registered function is opaque
+        // to all three. Proposed in that form by the consumer that needed it, over
+        // their own earlier ask for a function.
+        const nameMap = declaration.document.containerNameMap;
+        if (nameMap !== undefined) {
+            if (typeof nameMap !== 'object' || nameMap === null || Array.isArray(nameMap)) {
+                throw new Error(`${where}: document.containerNameMap must be an object of `
+                    + `field value to container name`);
+            }
+            if (!container) {
+                throw new Error(`${where}: document.containerNameMap needs `
+                    + `document.containerNameFrom to say which field it maps`);
+            }
+            if (declaration.document.containerNameTransform !== undefined) {
+                throw new Error(`${where}: document.containerNameMap and containerNameTransform are `
+                    + `alternatives; a lookup and a named operation cannot both produce the name`);
+            }
+            // When the source field enumerates, every value must map -- an unmapped one
+            // produces no container name at all, which is the page-lands-nowhere failure
+            // this whole block exists to prevent.
+            const source = (declaration.fields ?? []).find(field => field?.name === container);
+            const values = Array.isArray(source?.values) ? source.values : null;
+            const unmapped = values ? values.filter(one => !(one in nameMap)) : [];
+            if (unmapped.length) {
+                throw new Error(`${where}: document.containerNameMap has no entry for `
+                    + `${unmapped.join(', ')} -- every value of "${container}" must map to a container`);
+            }
         }
         // How the container VALUE becomes an entry NAME: a NAMED TRANSFORM, the same
         // vocabulary a field uses, rather than a casing enum of its own.
@@ -462,6 +540,14 @@ export function registerDeclaration(declaration) {
 
     validateFields(declaration.fields, declaration.form, where);
     validateRules(declaration, where);
+    if (declaration.authoringModes !== undefined) {
+        const modes = String(declaration.authoringModes).trim().split(/\s+/).filter(Boolean);
+        const unknown = modes.filter(one => !AUTHORING_MODES.has(one));
+        if (!modes.length || unknown.length) {
+            throw new Error(`${where}: authoringModes must be one or more of `
+                + `${[...AUTHORING_MODES].join(', ')}`);
+        }
+    }
     if (declaration.derive !== undefined) {
         if (!Array.isArray(declaration.derive)) {
             throw new Error(`${where}: derive must be an array of named derivations`);
@@ -472,6 +558,16 @@ export function registerDeclaration(declaration) {
             }
         }
     }
+}
+/**
+ * Validate and register a declaration.
+ * @param {Declaration} declaration
+ */
+export function registerDeclaration(declaration) {
+    validateDeclaration(declaration);
+    const kind = String(declaration.kind || '').trim();
+    const id = String(declaration.id || '').trim();
+    const where = `${kind}.${id}`;
 
     const key = keyFor(kind, id);
     if (declarations.has(key)) {

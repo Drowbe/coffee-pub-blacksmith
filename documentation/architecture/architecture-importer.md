@@ -105,6 +105,25 @@ go is built correctly, lands nowhere, and reports success.
 
 Paths are verbatim in both shapes: nothing is prefixed.
 
+**A page profile names its container one of three ways**, and the shape was widened twice by consumers whose
+content the first version could not express:
+
+| | For |
+|---|---|
+| `containerName` | a constant -- one journal, no category-like field to name |
+| `containerNameFrom` + `containerNameTransform` | the name derives from a field by a named operation |
+| `containerNameFrom` + `containerNameMap` | the name is not derivable from the value at all |
+
+The first version was `containerNameFrom` plus a casing transform, built against a content type whose
+category maps to its journal by casing alone. It looked general and was the easiest of that module's three
+types. **A model built against one example looks general because the example is the only test of it.**
+
+The lookup is DATA rather than a module-supplied function, which the consumer argued for over their own
+earlier ask: a declaration that is pure data stays serializable, inspectable and checkable, where a registered
+function is opaque to all three. It also keeps the ownership split -- a map is Blacksmith-owned mechanism
+carrying module-owned data; a function would be module-owned mechanism. Being data bought a check a function
+could not: registration requires every enumerated value of the source field to be mapped.
+
 The container name is untransformed by default, and a profile that needs otherwise names a
 **Blacksmith transform** through `document.containerNameTransform` -- the same vocabulary a field's
 `transform` uses. The first consumer needed title case, and a two-value casing enum would have covered it,
@@ -190,10 +209,20 @@ errors -- not because the check was broken, but because every category in that v
 where the two transforms produce identical output. A true negative wearing a failed test's clothes. Injecting
 a transform that genuinely diverges produced fifteen errors, one per container.
 
-The two are the same error seen from opposite ends: in the first the test was too narrow to see a real fault,
-in the second the fault was too small for the data to show. Both are answered the same way -- when an
-injected fault produces nothing, establish that the fault is expressible before concluding the check is
-broken, or that the check works before concluding the fault was caught.
+**A third: the fixture can lack the thing the test is about.** "Import twice and confirm the siblings
+survive" cannot fail against a journal holding one page -- there is no sibling to lose, so it passes by
+construction. Both this repo and the consuming module planned that check against single-page data and would
+each have reported a green that meant nothing. It took a second fixture, deliberately different, to make the
+append path expressible at all.
+
+All three are the same error in different clothes, and the consumer stated the principle better than any of
+the incidents did:
+
+> A test that cannot distinguish success from the failure it was written for is worse than no test,
+> because it is reported as evidence.
+
+The practical form: when an injected fault produces nothing, establish that the fault is EXPRESSIBLE before
+concluding the check is broken -- and when a check passes, establish that the data could have made it fail.
 
 ### A checker cannot see an exemption it never exercises
 
@@ -221,6 +250,18 @@ stripped the mechanical effect from 135 of 144 shipped documents.
 It joins the note above rather than repeating it: independence is what makes a second derivation worth
 having, and reading rather than predicting is what keeps the second derivation independent. A review
 conducted from memory is not a second derivation at all.
+
+**A read is evidence about a MOMENT, and the moment is part of the claim.** Reading another tree tells you
+what the last writer left, not what any session intends, and it can change between the read and the quote
+with no event either party sees. One file changed three times inside ninety seconds while two sessions
+improved it through each other, and a `grep`, a `sed` and a `diff` run against it each returned a different
+version -- both parties then reported defects that had been fixed before the message arrived, and neither
+report was careless.
+
+So the honest form is "as of a few minutes ago that file declared X", never "your file declares X". When a
+claim built on a read turns out to be contested, **re-run the read rather than re-quoting it**: the second
+reading costs a command and the first one has an expiry nobody can see. Every wrong claim exchanged during
+this migration was either a prediction instead of a read, or a read whose moment had passed.
 
 ## Two readers of one contract is the recurring defect
 

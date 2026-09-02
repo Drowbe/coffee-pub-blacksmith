@@ -114,31 +114,40 @@ The GM is authoritative for group and contested *calculations* only. Individual 
 
 ## The dice builder (Request a Roll, DICE tab)
 
-The DICE tab is not a list you pick one thing from. It is one row per die -- a count starting at zero and an optional label -- plus one flat modifier row, and the sum of the non-zero rows is the request.
+The DICE tab is not a list you pick one thing from. It is one row per die -- a count starting at zero and an optional label -- plus one flat modifier row, a name, and a list of remembered rolls. The sum of the non-zero rows is the request.
 
-**The rows are the state.** `_readDiceTerms` reads counts and labels back out of the inputs in document order; there is no parallel object mirroring them. A mirror would be a second thing to keep in step with the screen, and the failure when it drifts is silent: a request that rolls something other than what the summary said. Term order is therefore row order, which is why `2d10 + 1d4` passed in by an API caller comes back displayed as `1d4 + 2d10` — the sum is the same and the display order belongs to the builder.
+**The rows are the state.** `_readDiceTerms` reads counts, labels, and order stamps back out of the inputs; there is no parallel object mirroring them. A mirror would be a second thing to keep in step with the screen, and the failure when it drifts is silent: a request that rolls something other than what the summary said.
 
-**Building is selecting.** There is no separate "which die is chosen" state, because a count above zero already says it. `_syncDiceBuilder` sets `selectedType`/`selectedValue`/`selectedRollTitle` **and both contested sides** when the build is non-empty, and clears all three when it empties. The corollary is load-bearing: choosing any other roll type must call `_resetDiceBuild`, which is why the check-item handler, the quick-roll handler, and the tool handler all do. A build sets *both* sides, so one left behind is still the defender's roll after a skill is clicked as challenger — a contested request rolling a formula that is no longer on screen.
+**Term order is the order the dice were set**, not the order of the rows. `_stampDiceOrder` writes a monotonic counter onto `data-dice-order` when a row's count leaves zero and deletes it when the count returns, and `_readDiceTerms` sorts by that stamp. Monotonic rather than positional, so removing the first die does not renumber the survivors -- they keep the order the GM still sees. The flat modifier is appended last regardless, because that is how a formula is written. `_applyDiceBuild` stamps from a parsed build's `order` array, which is how a remembered roll reopens reading the way it was saved.
 
-`_composeDiceBuild` returns three strings from the same term list:
+**Building is selecting.** There is no separate "which die is chosen" state, because a count above zero already says it -- which is also why an active row wears the same `rgba(40, 108, 24, 0.4)` as a selected contestant and a challenger roll. `_syncDiceBuilder` sets `selectedType`/`selectedValue`/`selectedRollTitle`/`selectedDiceDisplay` **and both contested sides** when the build is non-empty, and clears them when it empties. The corollary is load-bearing: choosing any other roll type must call `_resetDiceBuild`, which is why the check-item handler, the quick-roll handler, and the tool handler all do. A build sets *both* sides, so one left behind is still the defender's roll after a skill is clicked as challenger — a contested request rolling a formula that is no longer on screen.
+
+`_composeDiceBuild` returns four strings from the same term list:
 
 | | | |
 |---|---|---|
-| `formula` | `2d10[Strength] + 1d4[Bludgeoning] + 10` | what gets rolled and what is stored |
+| `formula` | `2d10[Strength] + 1d4[Bludgeoning] + 10` | what gets rolled, and what a remembered roll stores |
 | `plainFormula` | `2d10 + 1d4 + 10` | the fallback, and what the icon is chosen from |
-| `title` | `2d10 Strength + 1d4 Bludgeoning + 10` | the request's title |
+| `display` | `2d10 Strength + 1d4 Bludgeoning + 10` | shown on the card and the cinematic plate |
+| `name` | `Sneak Attack` | the request's title; `Custom Dice Roll` when unnamed |
+
+**The name and the formula are different things and both reach the card.** `messageData.rollTitle` is the name and `messageData.rollFormula` is the display line. On the card they share the "what was asked for" band -- formula as `lead`, DC as `text` -- and on the cinematic plate the formula is a `subtitleParts` entry immediately before the DC. Neither is enough alone: "Sneak Attack" says nothing about the dice, and a title that is only the formula names nothing. `diceFormulaDisplay` is the single implementation of "brackets read as words", used by the builder and by the silent API path, which has only the string.
 
 The bracket convention is the one `RollWindow.parseModifierTerms` already uses for the roll window's modifier field, and it is also Foundry's own flavour syntax, so a label reaches the roll's tooltip. `Roll.validate` is asked before the labelled form is trusted — a label is user prose reaching a formula, and the cost of being wrong is a request nobody can roll — so a rejected label falls back to `plainFormula`. Brackets are stripped from label text because they are the delimiter: a `]` inside a label ends it early and the rest of the formula becomes garbage.
 
-The summary is built as DOM, not as an HTML string. The labels are the user's prose and `textContent` is the one way to put prose on a page that cannot also put markup there.
+**Remembering is not favouriting.** Remembered rolls live in `skillCheckPreferences.requestRollSavedDice` and render under the builder; favourites live in `requestRollFavorites` and render in the Quick tab. The heart is per remembered row precisely so that keeping a roll for tonight does not promote it beside Perception and Death Save. A remembered row's click loads it back into the rows rather than firing it, since editing is usually why it was kept. Both stores key on `_computeFavoriteId` of the same synthetic check-item element (`_diceFavoriteElement`), so a remembered roll and its favourite share an id and the heart can tell whether it is lit.
+
+The summary and the saved rows are built as DOM, not as HTML strings. The labels and names are the user's prose, and `textContent` is the one way to put prose on a page that cannot also put markup there.
 
 Three couplings that are easy to break by accident:
 
-- **The favourite button must not carry `cpb-favorite-toggle`.** A capture-phase listener on the dialog claims that class for check items and calls `stopPropagation`, which would swallow the builder's own click. The dice heart favourites the whole formula through a synthetic check-item element (`_diceFavoriteElement`), so `_computeFavoriteId`, the favourites list, and `executeFavoriteSilent` handle it without knowing the builder exists. Favourites saved by the old per-die hearts still execute — they are `{type: 'dice', value: 'd6'}` and go down the silent path.
+- **A favourite carries how it plays, and the flag must reach every dispatch branch.** `rec.isCinematic` rides on the favourite record and on the row's `data-cinematic`, but NOT in `_computeFavoriteId` — toggling it has to edit the favourite in place, not mint a second one. `_executeFavoriteFromRecord` builds a separate options object per roll type and each must spread it; a branch that forgets posts to chat, which is the default and therefore silent. The button is `cpb-favorite-cinematic` and must never also be `cpb-favorite-toggle`, for the capture-listener reason below.
+- **Nothing in the dice section may carry `cpb-favorite-toggle`.** A capture-phase listener on the dialog claims that class for check items and calls `stopPropagation`, which would swallow the builder's own clicks. The saved rows use `cpb-dice-saved-heart`. Favourites saved by the old per-die hearts still execute — they are `{type: 'dice', value: 'd6'}` and go down the silent path.
 - **Advantage on dice rolls is a string match.** `_executeBuiltInRoll` swaps in `2d20kh`/`2d20kl` only when the formula is exactly `1d20` or `d20`. One plain d20 composes to `1d20`, so it still works; a labelled or multiplied d20 does not.
+- **`prepareRollData` must special-case `dice`, and nothing downstream will tell you if it stops.** It feeds the Roll Configuration window's formula line only; `_executeBuiltInRoll` reads the request's value directly. So when it hardcoded `1d20` and added an ability modifier for every type (falling back to `int`), the window read `1D20 + 2 INT` while the correct dice fell and the correct tooltip appeared afterwards. A dice roll has no base d20, no ability modifier and no proficiency, and `_setupFormulaUpdates` renders its formula term by term through `RollWindow.parseModifierTerms` -- which works because the builder writes labels in the same `2d10[Strength]` shape the modifier field does.
 - **The dialog cannot import `manager-rolls.js`.** That module imports the dialog, so the edge runs one way only. `getDiceIcon` lives in `api-core.js` for exactly this reason, next to `showDiceAnimation`.
 
-`node tools/check-dice-builder.mjs` guards the compose/parse pair and the template rows the reader depends on. It slices the real functions out of the source rather than reimplementing them, so it cannot pass against a copy that has drifted.
+`node tools/check-dice-builder.mjs` guards the compose/parse pair, the order contract, and the controls the builder wires by selector. It slices the real functions out of the source rather than reimplementing them, so it cannot pass against a copy that has drifted.
 
 ## System selection
 
