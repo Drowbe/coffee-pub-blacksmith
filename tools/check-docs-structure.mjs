@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PUBLISHED_FOLDERS, ROOT_PAGES, HOME_SRC, HOLD, IS_HUB, collect } from './wiki-sync.mjs';
+import { PUBLISHED_FOLDERS, ROOT_PAGES, HOME_SRC, HOLD, IS_HUB, collect, LINK, ASSET_LINK } from './wiki-sync.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DOCS = path.join(ROOT, 'documentation');
@@ -44,13 +44,16 @@ const PREFIX = {
 // documenting other modules, which the boundary rule refuses.
 const ROOT_FILES = ['home.md', 'known-issues.md', 'TODO.md', ...(IS_HUB ? ['TODO-GLOBAL.md'] : [])];
 const VIDEO = /\.(mp4|mov|avi|webm|mkv|m4v)$/i;
-const IMAGE_LINK = /!\[[^\]]*\]\(([^)]+)\)/g;
+// LINK and ASSET_LINK are IMPORTED from the publisher, never restated. A parallel definition is a
+// silent-wiki-breakage generator: the publisher required non-empty alt text while this file
+// accepted empty, so `![](assets/x.webp)` confirmed the file exists, passed green, and shipped an
+// un-rewritten repo-relative path to the wiki. Two regexes for one concept diverge, and the
+// divergence is invisible because each is correct on its own. (Raised by coffee-pub-librarian.)
 const NEWLINE = /\r?\n/;
 const FENCE = /^\s*```/;
 // An <img> tag is the only way to set a width, which is exactly what a product screenshot needs,
 // so a module doing the standard-blessed thing failed the orphan check. (Raised by coffee-pub-crier.)
 const HTML_IMG = /<img\s[^>]*?src=["']([^"']+)["']/gi;
-const ANY_LINK = /\[[^\]]*\]\(([^)]+)\)/g;
 
 function walk(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -286,11 +289,12 @@ const stripCode = (t) => t.replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, 
 for (const f of assetScanned) {
   const text = stripCode(fs.readFileSync(f, 'utf8'));
   const dir = path.dirname(f);
-  for (const re of [IMAGE_LINK, ANY_LINK, HTML_IMG]) {
+  for (const re of [LINK, HTML_IMG]) {
     re.lastIndex = 0;
     let m;
     while ((m = re.exec(text))) {
-      const target = m[1].split('#')[0].trim();
+      // LINK captures alt text at [1] and the target at [2]; HTML_IMG captures src at [1].
+      const target = (re === LINK ? m[2] : m[1]).split('#')[0].trim();
       if (!target || /^(https?:|mailto:)/i.test(target)) continue;
       if (!/\.(webp|png|jpg|jpeg|gif|svg)$/i.test(target)) continue;
       const abs = path.resolve(dir, target);
@@ -315,8 +319,8 @@ for (const f of allMd) {
   const kind = rel.includes('/') ? rel.split('/')[0] : 'root';
   const folderKind = { api: 'api', architecture: 'architecture', designsystem: 'design',
                        userguides: 'userguide', global: 'global', plans: 'plan' }[kind];
-  for (const m of fs.readFileSync(f, 'utf8').matchAll(ANY_LINK)) {
-    const base = path.basename(m[1].split('#')[0].trim());
+  for (const m of fs.readFileSync(f, 'utf8').matchAll(LINK)) {
+    const base = path.basename(m[2].split('#')[0].trim());
     const claim = KIND_PREFIX.exec(base);
     if (!claim || !/\.(webp|png|jpg|jpeg|gif|svg)$/i.test(base)) continue;
     if (claim[1] !== folderKind) {

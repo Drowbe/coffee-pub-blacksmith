@@ -54,7 +54,7 @@ function defaultBranch() {
 }
 const BRANCH = defaultBranch();
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_SLUG}/${BRANCH}/documentation/assets`;
-const ASSET_LINK = /(?:^|\/)assets\/([^/\\)]+)$/i;
+export const ASSET_LINK = /(?:^|\/)assets\/([^/\\)]+)$/i;
 
 // ---- What publishes: folder membership, not a hand-kept list. ----
 //
@@ -155,7 +155,14 @@ function siblingWikiUrl(target) {
   return `${HUB_WIKI}/${m[2]}${m[3] || ''}`;
 }
 
-const LINK = /\[([^\]]+)\]\(([^)]+)\)/g;
+// Alt text may be EMPTY. `![](assets/thing.webp)` is what someone writes for a decorative image and
+// what several markdown editors insert on paste -- and requiring non-empty text meant the publisher
+// skipped those links entirely, shipping a repo-relative path to the wiki where it resolves to
+// nothing. It renders correctly in the repo and in an editor, so the author sees it working
+// everywhere they look. Exported so check-docs-structure.mjs uses this definition rather than a
+// parallel one: the divergence between the two was what let this pass green.
+// (Raised by coffee-pub-librarian.)
+export const LINK = /\[([^\]]*)\]\(([^)]+)\)/g;
 const CODE_LINK = /\.(js|mjs|css|hbs|json|txt|webp|png)(#.*)?$/i;
 // CODE_PATH matches a directory name anywhere in the target, which is why the doc branch below runs
 // first: a documentation folder may share a name with a code folder -- `documentation/resources/` did,

@@ -904,7 +904,10 @@ What it does, in order:
    non-existent document is likewise downgraded, and becomes a link again automatically the day its
    target publishes.
 4. **Rewrites `assets/` paths** from repository-relative to absolute raw URLs, so images render on
-   the wiki while the source document keeps a relative path that renders everywhere else.
+   the wiki while the source document keeps a relative path that renders everywhere else. Those URLs
+   point at the default branch, so they 404 until the assets are pushed there. A wiki published ahead
+   of its images looks broken for a reason the build cannot detect -- push the branch first, or expect
+   a window where it does.
 5. **Enforces the boundary rule in code**, in all three directions -- see below.
 6. **Writes `_Sidebar.md`** with groups in a fixed order: Getting started, User guides, Global, API,
    Architecture, Design system. **User guides render in READING order, never alphabetically** --
@@ -925,6 +928,14 @@ What it does, in order:
 7. **Writes `Home.md`** from `documentation/home.md`.
 
 **Source documents are never modified.** Every rewrite happens on the way out.
+
+**The checker IMPORTS the publisher's link patterns; it never restates them.** Two regexes for one
+concept diverge, and the divergence is invisible because each is correct on its own. That happened:
+the publisher required non-empty alt text while the checker accepted empty, so `![](assets/x.webp)`
+confirmed the file existed, passed green, and shipped an un-rewritten repo-relative path to the wiki
+-- rendering correctly in the repository and in an editor, so the author saw it working everywhere
+they looked. Any parallel definition of what a link is generates that class of failure. Share the
+definition rather than agreeing to keep two in step.
 
 **A `.md` target is resolved as a document before any code-path test is applied.** A documentation
 folder shares a name with a code folder in the hub today -- `api/` is both `documentation/api/` and a
