@@ -1341,6 +1341,51 @@ tor-item.selected {
     pointer-events: none;
 }
 
+/* THE MARKS IN FRONT OF A DESCRIPTION.
+
+   How the roll resolves -- who passes, against what, and whether it takes over the
+   screen -- sitting in the description's own line, because they qualify it.
+
+   Quieter than the label and no louder than the description: they are there to be
+   glanced at, and a row where three marks compete with the name is worse than a row
+   with no marks at all. `flex: 0 0 auto` so the description does the shrinking. */
+.cpb-quick-roll-meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 2px;
+    color: rgba(128, 117, 96, 0.9);
+}
+.cpb-quick-roll-mark {
+    display: inline-flex;
+    align-items: center;
+    line-height: 1;
+}
+.cpb-check-item .cpb-quick-roll-mark i {
+    font-size: 0.85em;
+    width: auto;
+    margin: 0;
+}
+/* The DC is a number, not a glyph, so it wears a chip to keep it from reading as the
+   first word of the description. */
+.cpb-quick-roll-mark-dc {
+    padding: 1px 5px;
+    border-radius: 8px;
+    background: rgba(172, 159, 129, 0.18);
+    color: rgba(172, 159, 129, 0.95);
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+/* On a selected or hovered row the marks come up with everything else, rather than
+   staying muted against a lit background. */
+.cpb-check-item:hover .cpb-quick-roll-meta,
+.cpb-check-item.selected .cpb-quick-roll-meta {
+    color: rgba(222, 211, 185, 0.9);
+}
+
 /* QUICK ROLL ROW CONTROLS.
 
    Edit and delete sit before the heart, so the two that change the library are

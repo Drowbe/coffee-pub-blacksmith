@@ -219,6 +219,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         this.initialExplanation = (data.explanation != null && data.explanation !== '') ? String(data.explanation) : null;
         /** When set, activateListeners runs this favorite once the dialog DOM is ready (e.g. menubar context menu). */
         this._pendingFavoriteRec = data.pendingFavoriteRec ?? null;
+        /** When set, activateListeners fires this quick roll once the DOM is ready (menubar context menu). */
+        this._pendingQuickRollId = data.pendingQuickRollId ?? null;
 
         // Load user preferences
         this.userPreferences = game.settings.get('coffee-pub-blacksmith', 'skillCheckPreferences') || {
@@ -508,6 +510,56 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         label.className = 'cpb-roll-label';
         label.textContent = roll.label;
 
+        // HOW THE ROLL RESOLVES, in front of what it is for.
+        //
+        // The three facts that change what a click does -- who passes, against what,
+        // and whether it takes over the table's screen -- were only in the label if the
+        // GM had thought to write them there, and the built-ins mostly had not: "DC 15
+        // Perception Check" says its DC and nothing about group success. Two rows can
+        // be identical on screen and behave differently, which is the one thing a list
+        // you fire from must not do.
+        //
+        // In the description's line rather than on its own, because they qualify the
+        // description: they read as "group, DC 15, cinematic — tougher check to spot
+        // hidden creatures". Marks rather than words, since three words in front of
+        // every description would bury the description.
+        const meta = document.createElement('span');
+        meta.className = 'cpb-quick-roll-meta';
+
+        const mark = (className, tooltip, text) => {
+            const el = document.createElement('span');
+            el.className = `cpb-quick-roll-mark${className ? ` ${className}` : ''}`;
+            el.dataset.tooltip = tooltip;
+            if (text) el.textContent = text;
+            return el;
+        };
+        const markIcon = (icon, tooltip) => {
+            const el = mark('', tooltip);
+            const i = document.createElement('i');
+            i.className = icon;
+            el.appendChild(i);
+            return el;
+        };
+
+        if (roll.mode === 'contested') {
+            meta.appendChild(markIcon('fas fa-people-arrows', 'Contested — challengers roll against defenders'));
+        } else if (roll.success === 'group') {
+            meta.appendChild(markIcon('fas fa-users', 'Group success — half the party passing carries it'));
+        } else {
+            meta.appendChild(markIcon('fas fa-user-check', 'Individual success — each roller passes or fails alone'));
+        }
+
+        // A DC is optional, and its absence is meaningful: the roll reports a total and
+        // nothing else. Shown as its number rather than an icon, because the number IS
+        // the fact and an icon would need a tooltip to say it.
+        if (roll.dc) {
+            meta.appendChild(mark('cpb-quick-roll-mark-dc', `Target number ${roll.dc}`, `DC ${roll.dc}`));
+        }
+
+        meta.appendChild(roll.isCinematic
+            ? markIcon('fas fa-film', 'Cinematic — takes over the screen for the table')
+            : markIcon('fas fa-comment', 'Chat card — posts quietly to chat'));
+
         const description = document.createElement('span');
         description.className = 'cpb-roll-description';
         description.textContent = roll.description;
@@ -543,7 +595,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
         auto.innerHTML = `<i class="fas ${roll.isCinematic ? 'fa-film' : 'fa-play'}"></i>`;
 
         trailing.append(edit, remove, favorite, auto);
-        row.append(icon, label, description, trailing);
+        row.append(icon, label, meta, description, trailing);
         return row;
     }
 
@@ -2282,6 +2334,25 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             dcInput.addEventListener('change', handleDCChange);
         }
 
+        // A quick roll fired from the menubar. It runs through the WINDOW rather than
+        // through a silent API call, because that is what a quick roll is: the handler
+        // selects contestants in this dialog's own list -- the whole party, or the two
+        // sides of a contest -- and there is no headless equivalent of that. The window
+        // opens, fires, and closes itself, which is what a contested favourite has
+        // always done.
+        if (this._pendingQuickRollId) {
+            const quickId = this._pendingQuickRollId;
+            this._pendingQuickRollId = null;
+            setTimeout(() => {
+                const row = htmlElement.querySelector(`.cpb-quick-roll-row[data-quick-id="${quickId}"]`);
+                if (row) {
+                    this._handleQuickRollItem(htmlElement, row);
+                } else {
+                    ui.notifications.warn('That quick roll is no longer in the library. It may have been deleted or the library replaced by an import.');
+                }
+            }, 0);
+        }
+
         if (this._pendingFavoriteRec) {
             const rec = this._pendingFavoriteRec;
             this._pendingFavoriteRec = null;
@@ -3371,6 +3442,25 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     }
 
     /**
+     * Fire one quick roll by id, from outside the window.
+     *
+     * Opens the dialog with the roll pending rather than translating it into a silent
+     * API call. A quick roll's defining behaviour is selecting the contestants -- the
+     * whole party for a party roll, both sides for a contest -- and that reads the
+     * dialog's own list, so there is nothing to translate it into.
+     *
+     * @param {string} id - a `QuickRollsManager` roll id
+     */
+    static runQuickRoll(id) {
+        const roll = QuickRollsManager.get(id);
+        if (!roll) {
+            ui.notifications.warn('That quick roll is no longer in the library.');
+            return null;
+        }
+        return new SkillCheckDialog({ pendingQuickRollId: id }).render(true);
+    }
+
+    /**
      * Delegates to `game.modules.get(MODULE.ID).api.openRequestRollDialog({ silent: true, ...options })` (same public API as external callers).
      * Falls back to {@link SkillCheckDialog.createRequestRoll} only if the module API is unavailable (e.g. unusual load order).
      * @param {object} options - Roll options; any `silent` key is stripped so callers cannot disable silent mode.
@@ -4123,31 +4213,63 @@ Hooks.once('ready', () => {
         buttonNormalTint: null,
         buttonSelectedTint: null,
         contextMenuItems: () => {
+            // FAVOURITES, THEN THE LIBRARY BY CATEGORY, each as a flyout.
+            //
+            // The menu used to be a flat list of favourites and nothing else, so a
+            // table's twenty-four quick rolls -- the things the QUICK tab is mostly
+            // made of -- were reachable only by opening the window. A flat list of
+            // twenty-four would be worse than the window; the categories the GM already
+            // filed them under are the grouping, and they are the GM's own words.
+            //
+            // Categories keep their library order rather than being sorted. It is the
+            // order shown in the tab, and re-sorting it here would make the two
+            // disagree about a list somebody arranged.
             const prefs = game.settings.get(MODULE.ID, 'skillCheckPreferences') || {};
             const favs = Array.isArray(prefs.requestRollFavorites) ? prefs.requestRollFavorites : [];
-            if (favs.length === 0) {
+            const items = [];
+
+            if (favs.length) {
+                items.push({
+                    name: 'Favorites',
+                    icon: 'fa-solid fa-heart',
+                    description: `${favs.length} saved`,
+                    submenu: favs.map((rec) => ({
+                        name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
+                        // The film icon marks the ones that take over the screen -- the
+                        // only warning before a click that does, since this menu fires
+                        // without opening the window.
+                        icon: rec.isCinematic ? 'fa-solid fa-film' : 'fa-solid fa-dice',
+                        onClick: () => { SkillCheckDialog.executeFavoriteSilent(rec); }
+                    }))
+                });
+            }
+
+            for (const { category, rolls } of QuickRollsManager.byCategory()) {
+                items.push({
+                    name: category,
+                    icon: 'fa-solid fa-folder',
+                    description: `${rolls.length} roll${rolls.length === 1 ? '' : 's'}`,
+                    submenu: rolls.map((roll) => ({
+                        name: String(roll.label).slice(0, 96),
+                        // The roll's OWN icon, so a row reads the same here as it does
+                        // in the tab; the film icon still wins when it is cinematic,
+                        // because that is the thing worth knowing before clicking.
+                        icon: roll.isCinematic ? 'fa-solid fa-film' : (roll.icon || 'fa-solid fa-dice'),
+                        description: roll.description || undefined,
+                        onClick: () => SkillCheckDialog.runQuickRoll(roll.id)
+                    }))
+                });
+            }
+
+            if (!items.length) {
                 return [{
-                    name: 'No favorites yet',
+                    name: 'No rolls yet',
                     icon: 'far fa-heart',
-                    onClick: () => ui.notifications.info('Add favorites using the heart on a roll row in Request a Roll.')
+                    description: 'Open Request a Roll to build one',
+                    onClick: () => new SkillCheckDialog().render(true)
                 }];
             }
-            // THE ICON SAYS WHICH ONES TAKE OVER THE SCREEN.
-            //
-            // Every row carried the same die, so the menu gave no warning that one of
-            // these was about to drop a full-screen cinematic on the whole table -- a
-            // thing you very much want to know BEFORE clicking, and the only place a
-            // favourite is fired from without the Request a Roll window open.
-            //
-            // The same film icon as the toggle that set the flag, so the two halves of
-            // the feature share one symbol rather than each inventing its own.
-            return favs.map((rec) => ({
-                name: String(rec.label || rec.rollTitle || 'Favorite').slice(0, 96),
-                icon: rec.isCinematic ? 'fa-solid fa-film' : 'fa-solid fa-dice',
-                onClick: () => {
-                    SkillCheckDialog.executeFavoriteSilent(rec);
-                }
-            }));
+            return items;
         }
     });
 });

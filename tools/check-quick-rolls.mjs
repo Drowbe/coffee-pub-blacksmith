@@ -117,6 +117,30 @@ if (rowSrc && handlerSrc) {
         problems.push(`${DIALOG}: _handleQuickRollItem must read item.dataset.targets -- without it a contested quick roll cannot select its own challengers, and fires against whatever was already selected`);
     }
 
+    // THE MARKS IN FRONT OF THE DESCRIPTION must come from the roll's own fields.
+    // They exist because two rows can otherwise be identical on screen and behave
+    // differently -- "DC 15 Perception Check" says nothing about group success or
+    // about taking over the table's screen. A mark wired to the wrong field, or
+    // dropped, restores exactly that: a list you fire from where the rows lie.
+    for (const [pattern, what] of [
+        // Each CONDITION pinned to ITS icon, in order. Checking only that both
+        // conditions exist let the two icons be swapped -- a group roll wearing the
+        // individual mark, which is the exact lie these marks were added to stop.
+        [/roll\.mode === 'contested'\)\s*\{\s*meta\.appendChild\(markIcon\('fas fa-people-arrows'[\s\S]*?roll\.success === 'group'\)\s*\{\s*meta\.appendChild\(markIcon\('fas fa-users'[\s\S]*?else\s*\{\s*meta\.appendChild\(markIcon\('fas fa-user-check'/,
+            'how success is decided, with contested / group / individual each on its own icon'],
+        [/if \(roll\.dc\)[\s\S]{0,200}?DC \$\{roll\.dc\}/, 'the DC, shown only when there is one'],
+        // Anchored to the MARK, not to `fa-film` near `isCinematic`. The looser form
+        // was satisfied by the play indicator further down the same method, which is
+        // also a film reel when the roll is cinematic -- so swapping the mark's icon
+        // passed.
+        [/markIcon\('fas fa-film'/, 'whether it plays as a cinematic'],
+        [/markIcon\('fas fa-comment'/, 'that it posts to chat when it is not cinematic']
+    ]) {
+        if (!pattern.test(rowSrc)) {
+            problems.push(`${DIALOG}: _quickRollRow no longer marks ${what} -- without it two rows can look identical and do different things`);
+        }
+    }
+
     // `data-dc` is set CONDITIONALLY and must stay that way: the handler treats the
     // attribute's presence as "override the window's DC box", so writing an empty
     // string forces a blank DC onto every roll that meant to inherit one.
@@ -307,6 +331,48 @@ for (const [pattern, what] of [
 const literals = [...builderCss.matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)|\bhsla?\([^)]*\)/g)].map((m) => m[0]);
 if (literals.length) {
     problems.push(`${BUILDER_CSS}: ${literals.length} colour literal(s) -- ${[...new Set(literals)].slice(0, 4).join(', ')}${literals.length > 4 ? ', …' : ''}. A Tool window's surfaces are per-theme custom properties, so a literal is right in one theme and wrong in the other two. Use the --blacksmith-tool-* family; window-compendium-search.css is the reference`);
+}
+
+// ===== THE MENUBAR MENU REACHES THE LIBRARY ========================
+//
+// The right-click menu on the Request Roll tool is the only way to fire a roll without
+// opening the window, and for a long time it listed favourites and nothing else -- a
+// table's whole quick roll library was invisible from it. A menu that silently offers
+// less than it should looks exactly like a menu that is complete.
+
+const menuStart = dialog.indexOf('contextMenuItems: () => {');
+if (menuStart < 0) {
+    problems.push(`${DIALOG}: the Request Roll menubar tool has no contextMenuItems`);
+} else {
+    // The menu literal runs to the close of the registerMenubarTool call.
+    const menuSrc = dialog.slice(menuStart);
+    if (!menuSrc.includes('QuickRollsManager.byCategory()')) {
+        problems.push(`${DIALOG}: the menubar context menu must list the quick roll library by category -- it is the only way to fire a roll without opening the window`);
+    }
+    if (!menuSrc.includes('requestRollFavorites')) {
+        problems.push(`${DIALOG}: the menubar context menu must still list favourites`);
+    }
+    // Anchored to the CATEGORY LOOP, not to `submenu:` anywhere. A bare test passed
+    // while the categories rendered flat, because the favourites block above them has
+    // a submenu of its own and satisfied it.
+    if (!/byCategory\(\)[\s\S]{0,800}?submenu:/.test(menuSrc)) {
+        problems.push(`${DIALOG}: each quick roll category must render as a submenu -- flat, a full library is dozens of rows and worse than opening the window`);
+    }
+    if (!/Favorites[\s\S]{0,400}?submenu:/.test(menuSrc)) {
+        problems.push(`${DIALOG}: favourites must render as a submenu, alongside the categories`);
+    }
+    if (!menuSrc.includes('runQuickRoll')) {
+        problems.push(`${DIALOG}: the menubar context menu must fire quick rolls through SkillCheckDialog.runQuickRoll`);
+    }
+}
+
+// `runQuickRoll` opens the window with the roll pending, because a quick roll selects
+// contestants in the dialog's own list and has no headless equivalent.
+if (!/static runQuickRoll\(id\)/.test(dialog)) {
+    problems.push(`${DIALOG}: SkillCheckDialog.runQuickRoll is missing -- the menubar menu has no way to fire a quick roll`);
+}
+if (!/pendingQuickRollId/.test(dialog)) {
+    problems.push(`${DIALOG}: the dialog must accept pendingQuickRollId -- runQuickRoll opens the window with the roll pending and nothing else runs it`);
 }
 
 // ===== THE TEMPLATE'S SIDE =========================================
