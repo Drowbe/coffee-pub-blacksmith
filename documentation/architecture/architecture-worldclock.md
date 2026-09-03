@@ -46,8 +46,8 @@ calendar provider to integrate with** -- core is the provider, and a system supp
 it. And **the clock is not the gap**: core already ships time, a calendar and a HUD, so putting one in the
 menubar is a placement decision. The gap is darkness, below.
 
-What this adds is a menubar presence and GM controls. It does **not** link time to scene darkness --
-nothing in core does either, and that gap is tracked separately.
+What this adds is a menubar presence, GM controls, and the darkness link itself -- nothing in core moves a
+scene's darkness as time passes. See **Scene darkness** below.
 
 ## The seam with the menubar
 
@@ -106,7 +106,8 @@ Time Mode >            Combat, Real-time, Slow (0.25x), Fast (60x), Paused
 Options >              Set Time, Set Date, then anything contributed
     Set Time               our dialog: time of day only, bounds from the calendar
     Set Date               the system's dnd5e.applications.calendar.SetDateDialog
-    Darkness Control on <scene>     contributed through registerOptionProvider
+    Darkness Control on <scene>     contributed through registerOptionProvider;
+                                    reads "(not set)" until the GM has answered
 ```
 
 **Ordered by how often a GM reaches for it, not by category.** Pause is first because it is wanted
@@ -258,6 +259,23 @@ that reshuffled on each repaint would shimmer every time the clock ticked.
 
 ## Scene darkness
 
+**Verified against Foundry v14.364** (schema probe, live test server, 2026-09-03): `environment.darknessLevel`
+and `environment.darknessLock` are both unchanged, the `animateDarkness` update option is still honoured,
+`canvas.effects.animateDarkness` still exists, the lock still strips `darknessLevel` pre-update, and v14's new
+`Level` document carries **no environment of its own** — so Scene Levels does not supersede scene-wide
+darkness and none of this section needs rewriting for v14.
+
+Two cautions from doing that check. **Foundry's published API typedef for `SceneEnvironmentData` is wrong**:
+it names the lock `darknessLevelLock` in the v13 *and* v14 docs, while the real schema in both is
+`darknessLock`. Settle a field name against `CONFIG.Scene.documentClass.schema`, never against the docs site.
+And the `scene.mjs` line numbers cited below are v13.351 lines; the claims were re-verified on v14, the
+pointers were not.
+
+What *did* move is the sheet, which matters to the Geography tab rather than to the driver: v14's SceneConfig
+parts are `tabs / basics / grid / levels / visibility / environment / misc / footer`, so `lighting` and
+`ambience` are gone. Nothing in our copy names a core tab any more, for that reason.
+
+
 `scripts/manager-darkness.js` makes a scene's darkness follow the clock. It is the one capability core
 lacks: `scene.environment.darknessLevel` exists and the canvas reacts to it, but nothing moves it as time
 passes.
@@ -295,20 +313,42 @@ compute no change and never touch the database: stepping a full day at ten-minut
 a dozen writes across 144 steps.
 
 **Transitions are core's, not ours.** `scene.update(..., {animateDarkness: ms})` animates on every client
-(`client/documents/scene.mjs:606`) with no socket and no animation code here. Core's own default is 10s,
+(v13.351 `client/documents/scene.mjs:606`) with no socket and no animation code here. Core's own default is 10s,
 right for the scene-controls day/night buttons and far too slow for a clock step; `ANIMATE_MS` is 2s.
 
 **Darkness Level Lock is the override, and the driver must never set it.** Core deletes `darknessLevel`
-from any update to a locked scene (`client/documents/scene.mjs:417`), *including ours* -- so locking a
+from any update to a locked scene (v13.351 `client/documents/scene.mjs:417`), *including ours* -- so locking a
 clock-driven scene would lock the clock out of it. The upside is that a GM ticking Lock genuinely does pin
 that scene against the clock with nothing implemented on our side. The driver checks the lock first only to
 avoid issuing writes that would be discarded.
 
-**Opt-in per scene, never opt-out.** Following the clock is a scene flag toggled by right-clicking the
-world clock. Defaulting it on would black out every dungeon, cellar and windowless tavern the first time
-the clock passed sunset. The context-menu entry reports the current state as well as toggling it, and says
-so when Lock is blocking the driver -- it is currently the only place that explains why a scene's Darkness
-slider moves on its own.
+**Opt-in per scene, never opt-out.** Following the clock is a scene flag. Defaulting it on would black out
+every dungeon, cellar and windowless tavern the first time the clock passed sunset.
+
+**The flag is three-valued, and the third value is the useful one.** `true` and `false` are the GM's
+answer; **`undefined` is "nobody has decided"**, which is not the same thing and must not be read as a
+`false`. `getSceneSetting()` returns all three and `isDecidedForScene()` reports whether an answer exists;
+`isEnabledForScene()` is `=== true`, so an undecided scene is still not driven -- but it is not *settled*,
+and that is what makes it worth asking about. Reading the flag through a `!!` collapses the distinction and
+is the bug this shape exists to prevent.
+
+**A scene nobody has answered for asks, once.** On `canvasReady`, a GM opening an undecided scene gets a
+Yes/No dialog (`promptIfUndecided`). Both answers write a real boolean, so the scene is settled either way
+and is never asked again; **dismissing the dialog writes nothing** and is asked again next visit, because
+an unanswered question is not an answer. `worldClockDarknessAskPerScene` turns the asking off world-wide.
+The `_asking` set stops a second `canvasReady` stacking a second dialog on the same scene.
+
+**Three surfaces write one flag, and none is authoritative.** The scene's **Geography tab** carries the
+checkbox (`ui-scene-geography.js`, injected through `registerSceneConfigTab`) -- whether a place sees the
+sky is a fact about the place, and it is where a GM configuring a scene looks. The **world clock's
+right-click Options** entry is the fast toggle mid-session; it reports the current state, distinguishes
+*not set* with its own icon, and says when Lock is blocking the driver. The **first-visit dialog** is the
+third. The tab persists through Foundry's own form submission -- there is no save callback and no call into
+the driver -- so `updateScene` is what makes a flag written from anywhere take effect at once, rather than
+waiting for a clock step that the flat curve very often computes no change for.
+
+This was, for one release, reachable *only* from the clock's context menu, and the module's own author
+could not find it. A per-scene setting needs to live on the scene.
 
 **Only the active scene.** Darkness lives on the scene, and driving every scene in the world on every time
 change would be a write per scene for scenes nobody is looking at. Re-applied on `canvasReady`.

@@ -1976,7 +1976,7 @@ export async function updateCinemaOverlay(rollResults, context) {
         
         setTimeout(async () => {
             const d20Roll = extractActiveD20(roll);
-            const { isCritical, isFumble } = classifyCritFumble(d20Roll);
+            const { isCritical, isFumble } = classifyCritFumble(d20Roll, { roll });
 
             postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: Roll result:', roll, true, false);
             postConsoleAndNotification(MODULE.NAME, 'updateCinemaOverlay: d20Roll value:', d20Roll, true, false);

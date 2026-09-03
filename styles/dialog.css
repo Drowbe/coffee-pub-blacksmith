@@ -24,6 +24,36 @@
     margin-bottom: 0;
 }
 
+/* ----- Width -----
+
+   Only dialogs that named no width carry `blacksmith-dialog-autowidth`
+   (see dialogClasses() in api-dialog.js). Those are the ones ApplicationV2
+   sizes to their content, which for a paragraph of prose means the viewport.
+
+   `min()` keeps the cap from becoming a floor on a small window or a phone:
+   the readable measure wins on a desktop, the viewport wins when it is
+   narrower than the measure. Capping the CONTENT as well as the frame is
+   what actually forces the text to wrap -- a cap on the frame alone leaves
+   an auto-sized child free to overflow it. */
+.application.blacksmith-dialog.blacksmith-dialog-autowidth {
+    max-width: min(var(--blacksmith-dialog-max-width), calc(100vw - var(--blacksmith-space-xl) * 2));
+}
+
+.application.blacksmith-dialog.blacksmith-dialog-autowidth .window-content {
+    max-width: 100%;
+    overflow-wrap: break-word;
+}
+
+/* Anything genuinely wider than the measure -- a table, a preformatted block,
+   a code sample -- scrolls inside itself rather than pushing the frame back
+   out. Without this the cap would clip such content instead of revealing it. */
+.application.blacksmith-dialog.blacksmith-dialog-autowidth .window-content table,
+.application.blacksmith-dialog.blacksmith-dialog-autowidth .window-content pre {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
 /* ----- Button row ----- */
 
 .application.blacksmith-dialog .dialog-buttons,

@@ -94,6 +94,27 @@ export class HookManager {
                             if (cb.options?.once) {
                                 toRemove.push(cb.callbackId);
                             }
+                            // AN ASYNC CALLBACK'S FAILURE IS NOT A THROW. The catch
+                            // below sees only synchronous errors; an `async` callback
+                            // returns a promise, and if that promise rejects after
+                            // this loop has moved on, nothing here is on the stack to
+                            // catch it. It surfaces as a bare "Uncaught (in promise)"
+                            // with no hint of which hook or which module owned it --
+                            // or, if anything upstream swallows unhandled rejections,
+                            // as pure silence. A module then simply goes quiet, which
+                            // is the hardest failure in this suite to diagnose: Crier
+                            // announced nothing for nineteen rounds on 2026-09-02 and
+                            // the console said nothing at all about it.
+                            //
+                            // Attaching a reporter does NOT make dispatch await the
+                            // callback -- siblings still run immediately and are never
+                            // starved, which is the whole point of the per-callback
+                            // catch. It only makes the failure name itself.
+                            if (result && typeof result.then === 'function') {
+                                Promise.resolve(result).catch((error) => {
+                                    console.error(`Hook callback error in ${name} (async, ${cb.context ?? 'no context'}):`, error);
+                                });
+                            }
                             // CANCELLATION IS OPT-IN. Every callback on a hook name shares this
                             // one wrapper, so an undeclared `false` would speak for all of them.
                             // The dangerous case is not a deliberate veto but an ordinary

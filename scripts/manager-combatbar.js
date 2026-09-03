@@ -6,6 +6,7 @@ import { UIContextMenu } from './ui-context-menu.js';
 import { HookManager } from './manager-hooks.js';
 import { broadcastToast, ToastAPI } from './api-toast.js';
 import { EncounterManager } from './manager-encounter.js';
+import { DefeatedManager } from './manager-defeated.js';
 import { getActorHP } from './utility-health.js';
 // Static imports are safe here: neither timer module imports this one, so
 // there is no cycle, and `visible` predicates run per render — too often to
@@ -4259,16 +4260,16 @@ export class CombatBarManager {
     }
 
     /**
-     * Whether a combatant counts as dead for the bar's purposes. PCs are dead
-     * only when marked defeated (three failed death saves), NPCs when their HP
-     * hits zero. Shared by the strip and the Graveyard so the two can never
-     * disagree about who is dead - a disagreement would drop someone from both.
+     * Whether a combatant counts as dead for the bar's purposes.
+     *
+     * Delegates rather than deciding. This used to hold its own copy of the rule, and
+     * a copy is exactly how the bar came to draw a skull over a combatant the tracker
+     * was still about to give a turn to. `DefeatedManager.isDead` is the module's one
+     * definition -- see THE DEFINITION in `manager-defeated.js`. Kept as a method here
+     * because the strip and the Graveyard both call it by this name.
      */
     static isCombatantDead(combatant) {
-        const actor = combatant?.actor;
-        if (!actor) return false;
-        if (actor.type === 'character') return combatant.isDefeated || false;
-        return (actor.system?.attributes?.hp?.value || 0) <= 0;
+        return DefeatedManager.isDead(combatant);
     }
 
     /**

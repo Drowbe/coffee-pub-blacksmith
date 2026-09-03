@@ -86,7 +86,25 @@ const confirmed = await blacksmith.dialog.confirm({
 | `closeValue` | `false` | Resolved on any dismissal. |
 | `modal` | `destructive` | Modal only when `destructive` is true. See Modality. |
 | `classes` | `[]` | Extra classes on the dialog root. |
-| `position` | Foundry default | |
+| `position` | Foundry default | Pass `width` to size the dialog yourself. Doing so opts out of the width cap -- see Width. |
+
+## Width
+
+**A dialog you do not size is capped; a dialog you do size is left alone.**
+
+ApplicationV2 defaults to `width: "auto"`, and an auto-width frame sizes to its content. For a
+paragraph of prose that means the viewport: a two-sentence question rendered as a single 1240px line,
+which reads as a broken dialog rather than a wide one. Every helper here therefore adds
+`blacksmith-dialog-autowidth` when the caller named no width, and `styles/dialog.css` caps that class at
+`--blacksmith-dialog-max-width` (560px), or the viewport when the viewport is narrower.
+
+The cap is class-gated rather than applied to every Blacksmith dialog because a numeric width is written
+as an inline `style.width`, which `max-width` would override -- a blanket cap would silently shrink the
+dialogs that had deliberately asked to be wide. **If you want a wider dialog, pass
+`position: { width: 800 }`** and the cap does not apply to you.
+
+Content wider than the measure -- a table, a `<pre>` -- scrolls inside the dialog rather than pushing the
+frame back out.
 
 ## Modality
 

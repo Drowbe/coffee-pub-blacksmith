@@ -642,6 +642,8 @@
 			"restForageDC-Label": "Foraging DC",
 			"restForageDC-Hint": "The Survival check a character makes on a long rest when they are short of food or water. One check covers both, so a character can lose at most one level of exhaustion per rest. The game system applies what that level does to their rolls and speed.",
 
+			"worldClockDarknessAskPerScene-Label": "Ask About New Scenes",
+			"worldClockDarknessAskPerScene-Hint": "When you open a scene that has never been set either way, ask whether its darkness should follow the world clock. Answering once settles that scene for good; turn this off to stop being asked and set it on each scene's Geography tab instead.",
 			"worldClockDarknessDay-Label": "Darkness by Day",
 			"worldClockDarknessDay-Hint": "How dark a scene is at midday. Leave at 0 unless the world is meant to be permanently overcast.",
 

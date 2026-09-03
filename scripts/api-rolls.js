@@ -37,7 +37,8 @@ export class RollsAPI {
      * @param {object} [options]
      * @param {number} [options.dc] - DC for generic rolls or skill-check messages
      * @param {string} [options.tokenId] - Token id when classifying one row of a skill-check card
-     * @param {'natural'|'system'} [options.critMode='natural']
+     * (No crit option. The crit rule is not a caller's choice — it is whatever the roll
+     * itself declared, read from dnd5e's own thresholds. See `classifyCritFumble`.)
      * @returns {object|null} Normalized outcome — see api-rolls.md
      */
     static classify(input, options = {}) {

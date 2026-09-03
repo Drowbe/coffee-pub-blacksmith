@@ -2865,7 +2865,7 @@ export async function handleSkillRollUpdate(data) {
         // Add crit/fumble detection to the result
         if (actorResult) {
             const d20Roll = extractActiveD20(actorResult);
-            const { isCritical, isFumble } = classifyCritFumble(d20Roll);
+            const { isCritical, isFumble } = classifyCritFumble(d20Roll, { roll: actorResult });
             if (isCritical) actorResult.isCritical = true;
             if (isFumble) actorResult.isFumble = true;
         }

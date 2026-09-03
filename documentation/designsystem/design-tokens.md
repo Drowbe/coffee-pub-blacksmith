@@ -51,6 +51,7 @@ The scale is deliberately short. Pick the nearest step rather than introducing a
 | `--blacksmith-space-md` | `8px` | Standard padding -- buttons, compact elements |
 | `--blacksmith-space-lg` | `12px` | Section padding -- card internals, form groups |
 | `--blacksmith-space-xl` | `20px` | Separation between major content blocks |
+| `--blacksmith-dialog-max-width` | `560px` | Cap for a content-sized dialog, so auto width cannot run to the viewport |
 
 When converting existing literals: 2px to xs, 4px to sm, 6px and 8px to md, 10px and 12px to lg, 16px and
 20px to xl.

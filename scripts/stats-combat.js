@@ -159,10 +159,32 @@ class CombatStats {
         try {
             if (!game.user.isGM || !getSettingSafely(MODULE.ID, 'trackCombatStats', false)) return;
             if (!game.combat) return;
-            
+
+            // THE SAME DISCRIMINATOR THE DEBOUNCED PATH USES, AND FOR THE SAME REASON.
+            //
+            // This function is the page-lifecycle flush -- it fires on tab close and
+            // refresh -- and it was writing memory over the flag unconditionally while
+            // its sibling `_schedulePersistCombatStats` refused to. That asymmetry is
+            // reachable: `initialize()` restores from the flag exactly once at `ready`
+            // and resolves nothing when `game.combat` is null there, which happens
+            // whenever the fight's `active` flag has been cleared -- core does that to
+            // every other combat when a GM starts one elsewhere. Memory then sits at
+            // its defaults; if the combat resolves later in the session and the GM
+            // then closes the tab, this flush mirrors those defaults over a flag
+            // holding the whole fight, and the data is gone with no error anywhere.
+            //
+            // Unstamped memory has never been initialised for a combat; a stamped flag
+            // has been. That pairing means "we lost our state", and the answer is to
+            // write nothing rather than publish ours. A genuinely new combat always
+            // carries a stamp, so a legitimate reset is never blocked.
+            if (!this.combatStats?.startTime && game.combat.getFlag(MODULE.ID, 'combatStats')?.startTime) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Refused to flush unstamped memory over a stamped combat flag', { reason }, true, false);
+                return;
+            }
+
             const current = this._serializeForCombatFlag(this.currentStats);
             const combat = this._serializeForCombatFlag(this.combatStats);
-            
+
             // Fire-and-forget: best effort during page lifecycle events.
             Promise.resolve()
                 .then(() => game.combat.setFlag(MODULE.ID, 'stats', current))

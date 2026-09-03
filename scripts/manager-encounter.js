@@ -7,6 +7,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { ToastAPI } from './api-toast.js';
+import { DefeatedManager } from './manager-defeated.js';
 
 export class EncounterManager {
     /**
@@ -30,21 +31,19 @@ export class EncounterManager {
      * @returns {boolean}
      */
     static canStillFight(token) {
-        const actor = token?.actor;
-        if (!actor) return false;
+        if (!token?.actor) return false;
 
-        // The explicit statement of defeat, wherever it comes from, wins on either side.
-        const combatant = game.combat?.combatants?.find((c) => c.tokenId === token.id);
-        if (combatant?.isDefeated) return false;
-        if (actor.statuses?.has?.('dead')) return false;
-
-        const hp = actor.system?.attributes?.hp;
-        const current = Number(hp?.value);
-        if (!Number.isFinite(current)) return true;
-
-        // Zero ends a monster and only downs a character.
-        if (actor.type === 'character') return true;
-        return current > 0;
+        // Delegates rather than deciding. This held its own copy of the rule, and the
+        // copy had drifted in a way that mattered: it asked `game.combat` for the
+        // combatant carrying a GM's skull, and `game.combat` is null whenever no combat
+        // in the world is flagged active -- a live condition, not a hypothetical
+        // (2026-09-02). A GM-marked corpse therefore read as still able to fight, and
+        // the encounter builder would put it back in the fight.
+        //
+        // `DefeatedManager.isTokenDead` is the module's one definition and searches
+        // every combat rather than the viewed one. See THE DEFINITION in
+        // `manager-defeated.js`.
+        return !DefeatedManager.isTokenDead(token);
     }
 
     /**

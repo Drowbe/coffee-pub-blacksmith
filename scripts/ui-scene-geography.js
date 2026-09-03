@@ -7,6 +7,7 @@ import {
     GEOGRAPHY_FIELD_LIST,
     HABITATS
 } from './manager-geography.js';
+import { DarknessManager } from './manager-darkness.js';
 
 // ==================================================================
 // ===== GEOGRAPHY TAB (SCENE CONFIG) ===============================
@@ -15,14 +16,25 @@ import {
 // Blacksmith is consumer zero for registerSceneConfigTab: this tab goes through
 // the same public path Artificer will, with no internal shortcut.
 //
-// Every input is named `flags.coffee-pub-blacksmith.geography.<field>`, so
-// Foundry's own Scene Config submission persists it. There is no submit handler
-// here and no save callback on the API -- see api-scene-config.md.
+// Every input is named for the flag it writes -- `flags.coffee-pub-blacksmith.geography.<field>`
+// for the geography rows, and `flags.coffee-pub-blacksmith.darknessFollowsClock` for the
+// Time of Day box, which is a sibling of `geography` rather than inside it. Foundry's own
+// Scene Config submission persists all of them. There is no submit handler here and no save
+// callback on the API -- see api-scene-config.md.
 
 const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
 
 /** Field name Foundry will expand into the flag on submit. */
 const fieldName = (key) => `flags.${MODULE.ID}.${GEOGRAPHY_FLAG}.${key}`;
+
+/**
+ * Field name for a flag that sits directly under the module, beside `geography`.
+ *
+ * The darkness opt-in predates this tab and is read by `manager-darkness.js` at its own
+ * path, so it is named here rather than moved under `geography`: relocating a flag every
+ * existing world already carries would silently switch the driver off for all of them.
+ */
+const sceneFlagName = (key) => `flags.${MODULE.ID}.${key}`;
 
 /**
  * One text row per geography field.
@@ -78,6 +90,56 @@ function habitatRows(scene) {
         </div>`;
 }
 
+/**
+ * The darkness opt-in, and why it is on this tab.
+ *
+ * Whether a scene's light follows the sun is a fact about the PLACE -- an alley sees the
+ * sky, a cellar does not -- which is the same kind of fact as habitat, and it is the
+ * question a GM is already answering when they fill this tab in. It also has to be
+ * *somewhere a GM will find it*: it lived only in the world clock's right-click Options
+ * submenu, which is not a place anyone looks when configuring a scene. The author of this
+ * module could not find it.
+ *
+ * The clock menu keeps its entry -- it is the fast toggle mid-session and it reports the
+ * lock -- so both write this one flag and neither is authoritative over the other.
+ */
+function timeOfDayRows(scene) {
+    const enabled = DarknessManager.isEnabledForScene(scene);
+    const locked = !!scene?.environment?.darknessLock;
+
+    // Core deletes `environment.darknessLevel` from any update to a locked scene, so the
+    // driver stands down rather than issue writes that are silently discarded. Saying so
+    // here is the whole point: a ticked box that does nothing is the bug this replaces.
+    //
+    // The note does NOT name the core tab the lock lives on. It was "Ambience" in v13 and
+    // that tab does not survive into v14, whose SceneConfig parts are basics/grid/
+    // visibility/environment/levels/misc. Naming a core tab in our copy is a string that
+    // rots on somebody else's release schedule, for no gain -- a GM looking for a darkness
+    // control finds it without us pointing at a tab by name.
+    const lockNote = locked
+        ? `<p class="notes blacksmith-geography-lock">
+               <i class="fa-solid fa-lock"></i>
+               Darkness Level Lock is on for this scene, so the clock cannot change it.
+               Turn the lock off in this scene's lighting settings for this to take effect.
+           </p>`
+        : '';
+
+    return `
+        <div class="form-group">
+            <label>Time of Day</label>
+            <div class="form-fields">
+                <label class="checkbox">
+                    <input type="checkbox" name="${esc(sceneFlagName(DarknessManager.FLAG))}"
+                           ${enabled ? 'checked' : ''} />
+                    Darkness follows the world clock
+                </label>
+            </div>
+            <p class="notes">Sunrise and sunset dim and brighten this scene as world time moves.
+                Leave this off for interiors and anywhere else that never sees the sky.</p>
+            ${lockNote}
+        </div>`;
+}
+
 /** The tab body. Synchronous end to end, as the API requires. */
 function renderGeographyTab(scene) {
     const breadcrumb = GeographyManager.getBreadcrumb(scene);
@@ -91,6 +153,8 @@ function renderGeographyTab(scene) {
             ${breadcrumb ? `<p class="notes blacksmith-geography-breadcrumb"><strong>Path:</strong> ${esc(breadcrumb)}</p>` : ''}
             <hr />
             ${habitatRows(scene)}
+            <hr />
+            ${timeOfDayRows(scene)}
         </div>`;
 }
 

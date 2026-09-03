@@ -4506,8 +4506,24 @@ class MenuBar {
                 postConsoleAndNotification(MODULE.NAME, `Create Combat: skipped ${skipped} token(s) already out of the fight`, '', true, false);
             }
 
-            // Check if there's already an active combat encounter
-            let combat = game.combats.active;
+            // Check if there's already a combat encounter for this scene.
+            //
+            // NOT `game.combats.active` on its own, which was what this asked and
+            // which is wrong in a way that costs a table its fight. That getter
+            // requires the combat's `active` flag, and core CLEARS that flag on every
+            // other combat the moment a GM starts one somewhere else. A long-running
+            // encounter that has had that happen to it reads as no combat at all --
+            // so this button would create a SECOND combat on the same scene and add
+            // the tokens to that one, silently forking a fight already in progress.
+            // Observed live on 2026-09-02 in a nineteen-round encounter.
+            //
+            // `CombatBarManager.getActiveCombat()` is the one place that answers this
+            // question correctly (scene-scoped, with a fallback to a scene-owned
+            // combat that is merely inactive), and the bar's own "add combatants"
+            // path already uses it. Imported lazily to keep a load-order edge out of
+            // the graph; this runs from a click handler, so the cost is invisible.
+            const { CombatBarManager } = await import('./manager-combatbar.js');
+            let combat = CombatBarManager.getActiveCombat();
             const createdNew = !combat;
 
             if (!combat) {

@@ -3669,6 +3669,21 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
+	// -- Ask about undecided scenes --
+	// The opt-in is per scene and cannot be defaulted: driving every scene blacks out
+	// every cellar, driving none leaves the feature off for everyone. So a scene nobody
+	// has answered for is a QUESTION, not a "no", and this is the GM's switch for whether
+	// it gets asked. 'world': the answer is stored on the scene, so every GM shares it.
+	game.settings.register(MODULE.ID, 'worldClockDarknessAskPerScene', {
+		name: MODULE.ID + '.worldClockDarknessAskPerScene-Label',
+		hint: MODULE.ID + '.worldClockDarknessAskPerScene-Hint',
+		scope: 'world',
+		config: true,
+		type: Boolean,
+		default: true,
+		group: WORKFLOW_GROUPS.RUN_THE_GAME
+	});
+
 	game.settings.register(MODULE.ID, 'worldClockDarknessDay', {
 		name: MODULE.ID + '.worldClockDarknessDay-Label',
 		hint: MODULE.ID + '.worldClockDarknessDay-Hint',

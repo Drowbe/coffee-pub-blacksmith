@@ -64,42 +64,127 @@ function _extractD20FromDieResults(results, modifiers, termClass, faces) {
 }
 
 /**
- * Classify nat-20 / nat-1 crit and fumble from an active d20 face.
- * @param {number|null} d20
+ * Classify crit and fumble for a d20 roll. **This is Blacksmith's single answer to
+ * "was that a critical", and every consumer in the suite takes it from here.**
+ *
+ * THE SYSTEM'S THRESHOLD WINS WHEREVER THE SYSTEM STATED ONE.
+ *
+ * dnd5e settles this per roll, not globally: `D20Roll#isCritical` reads
+ * `d20.isCriticalSuccess`, which is `total >= options.criticalSuccess`, and
+ * `criticalSuccess` is stamped onto the die from the activity's `criticalThreshold`
+ * when the roll is built (`dnd5e.mjs:78912`, `78678`, `28489`; dnd5e 5.3.3). That is
+ * how a Champion's Improved Critical, a weapon property, or anything else that widens
+ * the range actually reaches a roll -- so a nat-20-only test is simply wrong for those
+ * characters, and silently so: it reports an ordinary hit and nobody sees a bug.
+ *
+ * This used to offer a `critMode: 'system'` that read `CONFIG.DND5E.critical.threshold`
+ * -- a GLOBAL, which is not where a character's threshold lives, so it would not have
+ * fixed the Champion even if anything had asked for it. Nothing did: every caller took
+ * the `'natural'` default, so the branch was dead code standing in for a feature that
+ * was never implemented. Both are gone.
+ *
+ * Three sources, in order of authority:
+ *   1. A live `Roll` that answers `isCritical`/`isFumble` -- dnd5e has already applied
+ *      the character's real thresholds, so we do not second-guess it.
+ *   2. A SERIALIZED roll, from a flag or a socket, whose d20 term still carries
+ *      `options.criticalSuccess`/`criticalFailure`. Most rolls reach us this way, so
+ *      without this step the system's answer would be lost in transit for the majority
+ *      of call sites and only live-object callers would get it right.
+ *   3. Natural 20 / natural 1, when the roll stated no threshold at all.
+ *
+ * @param {number|null} d20 - The active d20 face, from `extractActiveD20`.
  * @param {object} [options]
- * @param {'natural'|'system'} [options.critMode='natural'] - `system` reads dnd5e crit range when available
- * @returns {{ isCritical: boolean, isFumble: boolean, critMode: string }}
+ * @param {Roll|object|null} [options.roll] - The roll the face came from, live or
+ *   serialized. Pass it whenever you have it; without it only rule 3 can apply.
+ * @returns {{ isCritical: boolean, isFumble: boolean, critMode: 'system'|'natural' }}
  */
 export function classifyCritFumble(d20, options = {}) {
-    const critMode = options.critMode ?? 'natural';
-    if (typeof d20 !== 'number') {
-        return { isCritical: false, isFumble: false, critMode };
-    }
+    const fromSystem = _systemCritFumble(options.roll, d20);
+    if (fromSystem) return { ...fromSystem, critMode: 'system' };
 
-    if (critMode === 'system') {
-        const range = _getSystemCritRange();
-        const isCritical = d20 >= range[0] && d20 <= range[1];
-        const isFumble = d20 === 1;
-        return { isCritical, isFumble, critMode };
+    if (typeof d20 !== 'number') {
+        return { isCritical: false, isFumble: false, critMode: 'natural' };
     }
 
     return {
         isCritical: d20 === 20,
         isFumble: d20 === 1,
-        critMode
+        critMode: 'natural'
     };
 }
 
 /**
- * @returns {[number, number]}
+ * dnd5e's own verdict for this roll, or null if it did not give one.
+ *
+ * Defensive throughout. This reads the SYSTEM rather than a module -- dnd5e is part of
+ * the baseline Blacksmith is required to work on -- but a roll object can arrive in any
+ * state, including mid-evaluation, and an unusable one must degrade to the natural
+ * rule rather than throw. dnd5e returns `undefined` from these getters for a roll that
+ * is not evaluated or not valid, so only an actual boolean is accepted.
+ *
+ * @param {Roll|object|null} roll
+ * @param {number|null} d20
+ * @returns {{ isCritical: boolean, isFumble: boolean }|null}
  */
-function _getSystemCritRange() {
+function _systemCritFumble(roll, d20) {
+    if (!roll || typeof roll !== 'object') return null;
+
     try {
-        const range = CONFIG?.DND5E?.critical?.threshold ?? game?.settings?.get('dnd5e', 'criticalThreshold');
-        if (typeof range === 'number') return [range, 20];
-        if (Array.isArray(range) && range.length >= 2) return [range[0], range[1]];
-    } catch (_) { /* settings may be unavailable */ }
-    return [20, 20];
+        // 1. A live dnd5e roll has already done this work with the real thresholds.
+        if (typeof roll.isCritical === 'boolean' && typeof roll.isFumble === 'boolean') {
+            return { isCritical: roll.isCritical, isFumble: roll.isFumble };
+        }
+
+        // 2. A serialized one still carries the thresholds on its d20 term. Compare
+        //    against the same active face `extractActiveD20` picked, so advantage and
+        //    disadvantage are honoured identically on both paths.
+        if (typeof d20 !== 'number') return null;
+        const thresholds = _d20Thresholds(roll);
+        if (!thresholds) return null;
+
+        const { criticalSuccess, criticalFailure } = thresholds;
+        return {
+            isCritical: Number.isFinite(criticalSuccess) ? d20 >= criticalSuccess : d20 === 20,
+            isFumble: Number.isFinite(criticalFailure) ? d20 <= criticalFailure : d20 === 1
+        };
+    } catch (_) {
+        return null;
+    }
+}
+
+/**
+ * The crit thresholds stamped on a serialized roll's d20 term, or null if it carries
+ * none. Walks `terms` then `dice`, matching `extractActiveD20` so the two never
+ * disagree about which term is the d20.
+ *
+ * @param {object} roll
+ * @returns {{ criticalSuccess: number|null, criticalFailure: number|null }|null}
+ */
+function _d20Thresholds(roll) {
+    const candidates = [
+        ...(Array.isArray(roll.terms) ? roll.terms : []),
+        ...(Array.isArray(roll.roll?.terms) ? roll.roll.terms : []),
+        ...(Array.isArray(roll.dice) ? roll.dice : []),
+        ...(Array.isArray(roll.roll?.dice) ? roll.roll.dice : [])
+    ];
+
+    for (const term of candidates) {
+        const isD20 = term?.class === 'D20Die'
+            || (term?.class === 'Die' && term?.faces === 20)
+            || term?.faces === 20;
+        if (!isD20) continue;
+
+        const criticalSuccess = Number(term?.options?.criticalSuccess);
+        const criticalFailure = Number(term?.options?.criticalFailure);
+        if (!Number.isFinite(criticalSuccess) && !Number.isFinite(criticalFailure)) continue;
+
+        return {
+            criticalSuccess: Number.isFinite(criticalSuccess) ? criticalSuccess : null,
+            criticalFailure: Number.isFinite(criticalFailure) ? criticalFailure : null
+        };
+    }
+
+    return null;
 }
 
 /**
@@ -128,13 +213,14 @@ export function buildSkillCheckOutcome({
     isGroupRoll = false,
     groupRoll = null,
     contestedRoll = null,
-    visibility = 'public',
-    critMode = 'natural'
+    visibility = 'public'
 }) {
     const dcNumber = coerceDc(dc);
     const d20 = extractActiveD20(result);
     const total = typeof result?.total === 'number' ? result.total : null;
-    const { isCritical, isFumble } = classifyCritFumble(d20, { critMode });
+    // `result` is passed as the roll so the system's own thresholds survive the trip
+    // through a flag or a socket. See `classifyCritFumble`.
+    const { isCritical, isFumble, critMode } = classifyCritFumble(d20, { roll: result });
     const success = (typeof total === 'number' && dcNumber !== null) ? total >= dcNumber : null;
 
     return {
@@ -168,18 +254,19 @@ export function buildSkillCheckOutcome({
 export function classify(input, options = {}) {
     if (!input) return null;
 
-    const critMode = options.critMode ?? 'natural';
-
+    // No `critMode` here any more. It used to be threaded through every branch below
+    // and every payload, and `classifyCritFumble` ignored it -- the crit rule is not a
+    // caller's choice, it is whatever the roll itself declared. See that function.
     if (input instanceof ChatMessage || input?.documentName === 'ChatMessage' || input?.flags) {
-        return _classifyChatMessage(input, { critMode, ...options });
+        return _classifyChatMessage(input, options);
     }
 
     if (input.workflow) {
-        return _classifyWorkflow(input, { critMode, ...options });
+        return _classifyWorkflow(input, options);
     }
 
     if (input.terms || input.dice || typeof input.total === 'number') {
-        return _classifyRollObject(input, { critMode, ...options });
+        return _classifyRollObject(input, options);
     }
 
     return null;
@@ -258,8 +345,7 @@ function _classifyChatMessage(message, options) {
                 allComplete: flags.allRollsComplete
             } : null,
             contestedRoll: flags.contestedRoll ?? null,
-            visibility: _messageVisibility(message),
-            critMode: options.critMode
+            visibility: _messageVisibility(message)
         });
     }
 
@@ -281,7 +367,7 @@ function _classifyChatMessage(message, options) {
         // is legitimate, and there is no natural 20 to speak of, so report nothing
         // rather than guess.
         if (initiativeD20 == null) return null;
-        const initiativeNat = classifyCritFumble(initiativeD20, { critMode: options.critMode });
+        const initiativeNat = classifyCritFumble(initiativeD20, { roll: initiativeRoll });
         const combatant = _combatantForInitiativeMessage(message);
 
         return {
@@ -302,7 +388,7 @@ function _classifyChatMessage(message, options) {
             combatId: combatant?.parent?.id ?? null,
             messageId: message.id,
             visibility: _messageVisibility(message),
-            critMode: options.critMode
+            critMode: initiativeNat.critMode
         };
     }
 
@@ -311,19 +397,30 @@ function _classifyChatMessage(message, options) {
 
     const roll = message.rolls?.[0] ?? null;
     const d20 = extractActiveD20(roll);
-    const wf = getCritFumbleFromWorkflow({
-        workflow: { isCritical: false, isFumble: false },
-        attackRoll: roll
-    });
-    const nat = classifyCritFumble(d20, { critMode: options.critMode });
+
+    // ONE classifier, and it is ours.
+    //
+    // This used to also call `getCritFumbleFromWorkflow` and OR the two answers
+    // together -- handing it a FABRICATED empty workflow, `{isCritical: false,
+    // isFumble: false}`, because there is no workflow on this path and never was. It
+    // was borrowing that function's d20 inspection, and the cost of the shortcut was
+    // that Blacksmith's core dnd5e lane ran on a helper written for another product's
+    // data shape. That is how the module came to hold two answers to "was that a
+    // critical", one of which stopped at natural 20.
+    //
+    // `classifyCritFumble` now covers everything that call contributed and more: it
+    // reads the same live-roll `isCritical`, and where the old helper fell through to
+    // a bare nat-20 test it reads the threshold the roll actually declared. Nothing
+    // was lost by dropping it, and the core lane no longer reaches into midi code.
+    const nat = classifyCritFumble(d20, { roll });
 
     return {
         kind: 'attack',
         source: attackEvent.workflowId ? 'midi.attack' : 'dnd5e.attack',
         d20,
         total: attackEvent.attackTotal,
-        isCritical: wf.isCritical || nat.isCritical,
-        isFumble: wf.isFumble || nat.isFumble,
+        isCritical: nat.isCritical,
+        isFumble: nat.isFumble,
         success: attackEvent.hitTargets?.length > 0 ? true : (attackEvent.missTargets?.length > 0 ? false : null),
         dc: null,
         actorId: attackEvent.attackerActorId,
@@ -335,8 +432,10 @@ function _classifyChatMessage(message, options) {
         unknownTargets: attackEvent.unknownTargets,
         itemUuid: attackEvent.itemUuid,
         visibility: _messageVisibility(message),
-        critMode: options.critMode,
-        critSources: wf.sources
+        critMode: nat.critMode,
+        // Was the old helper's per-source breakdown. There is one source now, and
+        // `critMode` already names it.
+        critSources: null
     };
 }
 
@@ -369,7 +468,8 @@ function _classifyWorkflow(input, options) {
         unknownTargets: attackEvent?.unknownTargets ?? [],
         itemUuid: attackEvent?.itemUuid ?? null,
         visibility: 'public',
-        critMode: options.critMode,
+        // The workflow stated this one, not our own threshold reading.
+        critMode: 'workflow',
         critSources: sources
     };
 }
@@ -382,7 +482,7 @@ function _classifyWorkflow(input, options) {
 function _classifyRollObject(roll, options) {
     const d20 = extractActiveD20(roll);
     const total = typeof roll.total === 'number' ? roll.total : null;
-    const { isCritical, isFumble } = classifyCritFumble(d20, { critMode: options.critMode });
+    const { isCritical, isFumble, critMode } = classifyCritFumble(d20, { roll });
     const dc = typeof options.dc === 'number' ? options.dc : null;
     const success = (typeof total === 'number' && dc !== null) ? total >= dc : null;
 
@@ -399,7 +499,7 @@ function _classifyRollObject(roll, options) {
         tokenId: options.tokenId ?? null,
         messageId: options.messageId ?? null,
         visibility: options.visibility ?? 'public',
-        critMode: options.critMode
+        critMode
     };
 }
 

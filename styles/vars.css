@@ -29,6 +29,12 @@
     --blacksmith-space-lg: 12px;
     --blacksmith-space-xl: 20px;
 
+    /* The widest a text dialog is allowed to get. A DialogV2 with width:auto
+       sizes to its content, and a single unwrapped paragraph therefore runs to
+       the viewport -- 1240px of one-line prose, which is unreadable and looks
+       broken. ~68 characters is the usual readable measure. */
+    --blacksmith-dialog-max-width: 560px;
+
 
     /* -------------------------------------------------------- */
     /* --- COLOR: BRAND --------------------------------------- */

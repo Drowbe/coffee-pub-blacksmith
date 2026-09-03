@@ -102,10 +102,24 @@ function withErrorBanner(content, message) {
     return `<div class="${ERROR_CLASS}" role="alert">${safe}</div>${content}`;
 }
 
-/** Build the dialog's CSS classes. */
-function dialogClasses(extra = [], { destructive = false } = {}) {
+/**
+ * Build the dialog's CSS classes.
+ *
+ * THE WIDTH CAP IS CLASS-GATED, AND THAT IS THE POINT. A DialogV2 opened without a
+ * width gets ApplicationV2's `width: "auto"`, which writes NO inline width
+ * (`application.mjs:986` leaves `style.width` empty) and lets the frame size to its
+ * content -- so one unwrapped paragraph produces a dialog as wide as the monitor.
+ * Capping it in CSS is therefore possible, but a blanket `max-width` on every
+ * Blacksmith dialog would also clamp the ones that ASKED to be wide: a numeric width
+ * is written as an inline `style.width`, and `max-width` beats it.
+ *
+ * So the cap goes on only when the caller named no width. A dialog that passes
+ * `position.width` has made a decision, and this must not overrule it.
+ */
+function dialogClasses(extra = [], { destructive = false, autoWidth = false } = {}) {
     const classes = [ROOT_CLASS];
     if (destructive) classes.push('blacksmith-dialog-destructive');
+    if (autoWidth) classes.push('blacksmith-dialog-autowidth');
     if (Array.isArray(extra)) classes.push(...extra.filter(c => typeof c === 'string' && c.trim()));
     else if (typeof extra === 'string' && extra.trim()) classes.push(extra.trim());
     return classes;
@@ -273,7 +287,13 @@ async function openDialog({
         content,
         modal,
         rejectClose: false,
-        classes: dialogClasses(classes, { destructive }),
+        // `width: "auto"` is ApplicationV2's default, so "no width given" is the case
+        // that needs capping. A caller that passed one -- number or the string "auto"
+        // -- is left to its own decision.
+        classes: dialogClasses(classes, {
+            destructive,
+            autoWidth: !Number.isFinite(Number(position?.width))
+        }),
         position: position || undefined,
         buttons: buttons.map(button => compact({
             action: button.action,

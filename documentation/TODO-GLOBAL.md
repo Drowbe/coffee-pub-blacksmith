@@ -74,6 +74,32 @@ file. Same rule as `TODO.md`.
 6. **The wiki is a pure mirror of the repo docs. The repo is law.** Nothing is authored wiki-first. A page
    with no repo source is a bug, not content.
 7. **Docs first**, then packs, then tables.
+8. **A module may accept information from another module. It may never ask another module whether to do
+   its job.** (Decided 2026-09-03 by the author, after the second occurrence.) Ground Rule 2 says this
+   about documentation; this is the same rule about code, and it is the one that actually breaks worlds.
+
+   The line is between two things that look similar and are not:
+
+   | Contact | | Why |
+   |---|---|---|
+   | Subscribing to another module's hook as an **additional** lane | **allowed** | Additive. The native path is complete on its own and the extra lane only sharpens it. Absent the module, nothing changes. `manager-roll-outcomes.js` listening for `midi-qol.hitsChecked` is the reference example. |
+   | Reading another module's **settings**, or gating our own behaviour on its presence | refused | This is asking permission to function. The other module owes us nothing, does not know we exist, and its config is not our contract. |
+   | Modelling another module's **internals** — branch logic, line citations | refused | Asymmetric coupling that rots silently. We cite `dnd5e.mjs:NNNN` under a checker (`check-dnd5e-citations.mjs`); there is no such checker for any module, and there should not need to be one. |
+
+   **Blacksmith is the authority for the suite.** Every feature must be complete and correct on core
+   Foundry and dnd5e alone. A user with no optional modules installed is the baseline, not the degraded
+   case.
+
+   **"Another module might also write this" is never a reason to stop writing it.** That was the actual
+   failure. `DefeatedManager` stood down from marking the dead because midi-qol *looked* configured to do
+   it, and midi then didn't -- its write went through `game.combat`, which was null. Nobody marked
+   anything, and a table played nineteen rounds with corpses taking turns. Two modules writing the same
+   field is a cosmetic problem; two modules each assuming the other did it is a broken world. When both
+   write, make the write idempotent, check state immediately before it, and swallow the loser's rejection.
+   If the console still prints a line, accept the line.
+
+   Related and already recorded: `feedback-never-midi-first` (midi is an enhancement, never assumed) and
+   `feedback-blacksmith-is-consumer-zero`. This rule exists because those were not enough.
 
 ---
 

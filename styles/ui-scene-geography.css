@@ -35,3 +35,14 @@
     margin-top: 0.25rem;
     opacity: 0.85;
 }
+
+/* The darkness lock warning. Uses core's `.notes` sizing and only adds the
+   colour, because it is a real obstruction -- a ticked box that cannot take
+   effect -- and has to read as more than an aside. */
+.blacksmith-geography-lock {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+    color: var(--blacksmith-status-warning);
+}

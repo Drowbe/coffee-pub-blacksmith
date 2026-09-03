@@ -50,6 +50,21 @@ hub fast. Don't add feature code here that belongs in a sibling.
   to a sibling's docs; that mistake has been made once. The three directions are stated in TODO-GLOBAL
   Ground Rule 2 and enforced by `siblingWikiUrl` in `tools/wiki-sync.mjs`.
 - **Each module bundles its own compendiums.** Don't rely on cross-module content cohesion.
+- **Blacksmith may accept information from another module. It never asks another module whether to do its
+  job.** Subscribing to a foreign hook as an *additional* lane is fine — the native path must be complete
+  without it. Reading another module's **settings**, gating our behaviour on its **presence**, or modelling
+  its **internals** (branch logic, `some-module.js:NNNN` citations) is refused: that module owes us nothing
+  and does not know we exist. Every feature must be correct on core Foundry and dnd5e alone; a user with no
+  optional modules is the baseline, not the degraded case.
+
+  **"Another module might also write this" is never a reason to stop writing it.** `DefeatedManager` stood
+  down from marking the dead because midi-qol looked configured to do it; midi then didn't, and a table
+  played nineteen rounds with corpses taking turns (2026-09-02). Two modules writing the same field is
+  cosmetic; two modules each assuming the other did it is a broken world. Write it, make the write
+  idempotent, check state immediately before it, swallow the loser's rejection — and accept the console
+  line if one still prints. Full statement in TODO-GLOBAL Ground Rule 8. **No checker enforces this**;
+  `grep -rn "game.settings.*get.*'\(midi-qol\|[a-z-]*\)'" scripts/` for a foreign module id is the manual
+  check.
 
 ## No build, no tests
 

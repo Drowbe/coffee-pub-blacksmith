@@ -295,7 +295,12 @@ export class RollOutcomesManager {
             });
         }
 
-        if (game.modules.get('midi-qol')?.active) {
+        // Registered unconditionally. A hook nothing ever fires costs nothing, and the
+        // presence check that used to wrap these was Blacksmith asking whether another
+        // module existed before deciding what to do -- the shape TODO-GLOBAL Ground
+        // Rule 8 refuses. The handlers gate themselves on our OWN `enableMidiIntegration`
+        // setting, which is the correct gate and the only one.
+        {
             HookManager.registerHook({
                 name: 'midi-qol.hitsChecked',
                 description: 'Roll outcomes: emit attackResolved from MIDI workflow (optional lane)',
