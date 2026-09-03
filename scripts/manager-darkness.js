@@ -270,6 +270,82 @@ class DarknessManager {
     }
 
     // ==============================================================
+    // ===== SCENE PREREQUISITES ====================================
+    // ==============================================================
+
+    /**
+     * Scene settings that have to be right for a driven scene to LOOK driven.
+     *
+     * Moving `darknessLevel` is necessary and not sufficient. A scene can accept every
+     * write this driver makes and still show the players nothing, three different ways,
+     * and each of them looks exactly like "the darkness feature is broken":
+     *
+     *   - **Darkness Level Lock** makes core delete `darknessLevel` from our update, so
+     *     the write is discarded outright. This is the hard blocker.
+     *   - **Global Illumination** off means daylight lights nothing: the scene sits dark
+     *     all day and only token light sources show. Darkness moves, and midday looks
+     *     like midnight.
+     *   - **Token Vision** off means players see the whole scene regardless of darkness.
+     *     Darkness moves and nobody can tell.
+     *
+     * Each entry says how to test whether a scene already satisfies it and what to write
+     * if not. **Nothing here is applied without the GM ticking it** -- these are somebody
+     * else's scene settings, and a module that quietly rewrites three of them because it
+     * was switched on is a module that cannot be trusted with a world.
+     */
+    static PREREQUISITES = [
+        {
+            id: 'globalLight',
+            label: 'Turn on Global Illumination',
+            note: 'Without it the scene stays dark by day and only token lights show.',
+            isSatisfied: (scene) => scene?.environment?.globalLight?.enabled === true,
+            buildPatch: (scene) => {
+                const patch = { 'environment.globalLight.enabled': true };
+
+                // ENABLING GI ALONE IS WORSE THAN NOT ENABLING IT. The threshold
+                // `globalLight.darkness.max` is the darkness above which core switches
+                // global illumination off, and it defaults to 1 -- meaning "never switch
+                // off". A scene with GI on and the default threshold is fully lit at
+                // midnight, so the driver would move darkness all night and the players
+                // would see essentially nothing change.
+                //
+                // The threshold is derived from OUR OWN curve rather than picked: halfway
+                // between the configured day and night darkness is the middle of the
+                // twilight ramp, so global light fades out as the sun goes down instead of
+                // at some unrelated number. Only written when the threshold is still the
+                // untouched default -- a GM who has set one has made a decision.
+                const current = Number(scene?.environment?.globalLight?.darkness?.max);
+                if (!Number.isFinite(current) || current >= 1) {
+                    const day = this._clamp01(Number(getSettingSafely(MODULE.ID, 'worldClockDarknessDay', 0)));
+                    const night = this._clamp01(Number(getSettingSafely(MODULE.ID, 'worldClockDarknessNight', 0.85)));
+                    patch['environment.globalLight.darkness.max'] = this._clamp01((day + night) / 2);
+                }
+                return patch;
+            }
+        },
+        {
+            id: 'darknessLock',
+            label: 'Turn off Darkness Level Lock',
+            note: 'While it is on, the clock cannot change this scene at all.',
+            isSatisfied: (scene) => !scene?.environment?.darknessLock,
+            buildPatch: () => ({ 'environment.darknessLock': false })
+        },
+        {
+            id: 'tokenVision',
+            label: 'Turn on Token Vision',
+            note: 'Without it players see the whole scene however dark it gets.',
+            isSatisfied: (scene) => scene?.tokenVision === true,
+            buildPatch: () => ({ tokenVision: true })
+        }
+    ];
+
+    /** The prerequisites this scene does not already satisfy. */
+    static getUnmetPrerequisites(scene) {
+        if (!scene) return [];
+        return this.PREREQUISITES.filter(item => !item.isSatisfied(scene));
+    }
+
+    // ==============================================================
     // ===== ASKING =================================================
     // ==============================================================
 
@@ -305,16 +381,22 @@ class DarknessManager {
 
         this._asking.add(scene.id);
         try {
-            const { action } = await DialogAPI.wait({
+            const unmet = this.getUnmetPrerequisites(scene);
+            const { action, result } = await DialogAPI.wait({
                 title: 'Darkness Control',
-                content: `
-                    <p>Should the light on <strong>${foundry.utils.escapeHTML(scene.name)}</strong>
-                    follow the world clock?</p>
-                    <p class="notes">Sunrise and sunset will dim and brighten this scene as world
-                    time moves. Choose <strong>No</strong> for interiors and anywhere else that
-                    never sees the sky. You can change this later on the scene's Geography tab.</p>`,
+                content: this._promptContent(scene, unmet),
                 buttons: [
-                    { action: 'yes', label: 'Yes, follow the clock', icon: 'fa-solid fa-sun', default: true },
+                    {
+                        action: 'yes',
+                        label: 'Yes, follow the clock',
+                        icon: 'fa-solid fa-sun',
+                        default: true,
+                        // Reads the boxes from the form the helper hands back. Runs after the
+                        // dialog has closed, so it must not touch the live dialog.
+                        callback: (form) => unmet
+                            .filter(item => form?.querySelector?.(`input[name="prereq-${item.id}"]`)?.checked)
+                            .map(item => item.id)
+                    },
                     { action: 'no', label: 'No, leave it alone', icon: 'fa-solid fa-ban' }
                 ]
             });
@@ -322,11 +404,81 @@ class DarknessManager {
             // Anything that is not one of the two answers is a dismissal, and a dismissal
             // writes nothing. DialogAPI resolves its own CLOSE action here.
             if (action !== 'yes' && action !== 'no') return;
-            await this.setEnabledForScene(scene, action === 'yes');
+
+            if (action === 'no') {
+                // NOTHING BUT THE FLAG. "No" must not touch global illumination, the lock,
+                // or token vision -- the GM declined the feature, which is not permission
+                // to reconfigure their scene on the way out.
+                await this.setEnabledForScene(scene, false);
+                return;
+            }
+
+            await this._enableWithPrerequisites(scene, Array.isArray(result) ? result : []);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, "Darkness: Failed to ask about scene darkness control", error, false, false);
         } finally {
             this._asking.delete(scene.id);
+        }
+    }
+
+    /**
+     * The dialog body: the question, then a checkbox per unmet prerequisite.
+     *
+     * Only UNMET ones appear. A checkbox offering to turn on something already on is
+     * noise, and worse, it invites the GM to read the list as "these are the things
+     * this module is about to change" when most of them are already true.
+     *
+     * Every box is pre-ticked, because the honest default for "should this feature
+     * work" is yes -- but each one is individually clearable, which is the difference
+     * between offering and helping yourself.
+     */
+    static _promptContent(scene, unmet) {
+        const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
+
+        const boxes = unmet.length
+            ? `<hr />
+               <p><strong>These scene settings would stop it working. Fix them?</strong></p>
+               ${unmet.map(item => `
+                   <label class="checkbox" style="display:block; margin-bottom:0.35rem;">
+                       <input type="checkbox" name="prereq-${esc(item.id)}" checked />
+                       ${esc(item.label)}
+                       <span class="notes" style="display:block; margin-left:1.5rem;">${esc(item.note)}</span>
+                   </label>`).join('')}`
+            : '';
+
+        return `
+            <p>Should the light on <strong>${esc(scene.name)}</strong> follow the world clock?</p>
+            <p class="notes">Sunrise and sunset will dim and brighten this scene as world time moves.
+            Choose <strong>No</strong> for interiors and anywhere else that never sees the sky.
+            You can change this later on the scene's Geography tab.</p>
+            ${boxes}`;
+    }
+
+    /**
+     * Turn the scene on, together with whichever prerequisites the GM left ticked.
+     *
+     * ONE update, not four. The flag and the scene settings land together, so there is a
+     * single `updateScene` and therefore a single forced re-apply -- and no window in
+     * which the scene is opted in but still locked, which would make the first apply a
+     * write core silently discards.
+     */
+    static async _enableWithPrerequisites(scene, acceptedIds) {
+        const accepted = new Set(acceptedIds);
+        const update = { [`flags.${MODULE.ID}.${this.FLAG}`]: true };
+
+        for (const item of this.PREREQUISITES) {
+            if (!accepted.has(item.id)) continue;
+            if (item.isSatisfied(scene)) continue;
+            Object.assign(update, item.buildPatch(scene));
+        }
+
+        try {
+            // The darkness itself is NOT written here. The `updateScene` hook sees the flag
+            // land and calls applyToActiveScene({force: true}), which reads the scene after
+            // this update -- so it sees the lock already cleared and animates properly.
+            await scene.update(update);
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, "Darkness: Failed to enable scene darkness control", error, false, true);
         }
     }
 

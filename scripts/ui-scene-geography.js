@@ -105,23 +105,27 @@ function habitatRows(scene) {
  */
 function timeOfDayRows(scene) {
     const enabled = DarknessManager.isEnabledForScene(scene);
-    const locked = !!scene?.environment?.darknessLock;
 
-    // Core deletes `environment.darknessLevel` from any update to a locked scene, so the
-    // driver stands down rather than issue writes that are silently discarded. Saying so
-    // here is the whole point: a ticked box that does nothing is the bug this replaces.
+    // The same three settings the first-visit dialog offers to fix, reported here for a
+    // scene that was switched on some other way -- through the clock menu, or by ticking
+    // this very box on a previous visit. A ticked box that does nothing is the bug this
+    // whole section replaces, so the tab has to be able to say WHY it is doing nothing.
     //
-    // The note does NOT name the core tab the lock lives on. It was "Ambience" in v13 and
-    // that tab does not survive into v14, whose SceneConfig parts are basics/grid/
-    // visibility/environment/levels/misc. Naming a core tab in our copy is a string that
-    // rots on somebody else's release schedule, for no gain -- a GM looking for a darkness
-    // control finds it without us pointing at a tab by name.
-    const lockNote = locked
-        ? `<p class="notes blacksmith-geography-lock">
-               <i class="fa-solid fa-lock"></i>
-               Darkness Level Lock is on for this scene, so the clock cannot change it.
-               Turn the lock off in this scene's lighting settings for this to take effect.
-           </p>`
+    // Reported, never fixed. This tab has no submit handler of its own: it names its
+    // inputs and lets Foundry's form submission persist them, so it has nowhere to apply
+    // a repair from even if it were entitled to. The dialog is where consent is asked for.
+    //
+    // The note does NOT name the core tab these live on. It was "Ambience" in v13 and that
+    // tab does not survive into v14, whose SceneConfig parts are basics/grid/levels/
+    // visibility/environment/misc. Naming a core tab in our copy is a string that rots on
+    // somebody else's release schedule, for no gain.
+    const unmet = enabled ? DarknessManager.getUnmetPrerequisites(scene) : [];
+    const warnings = unmet.length
+        ? `<div class="blacksmith-geography-lock">
+               <p class="notes"><i class="fa-solid fa-triangle-exclamation"></i>
+               <strong>This scene is set to follow the clock, but these will stop it working:</strong></p>
+               <ul class="notes">${unmet.map(item => `<li>${esc(item.label)} &mdash; ${esc(item.note)}</li>`).join('')}</ul>
+           </div>`
         : '';
 
     return `
@@ -136,7 +140,7 @@ function timeOfDayRows(scene) {
             </div>
             <p class="notes">Sunrise and sunset dim and brighten this scene as world time moves.
                 Leave this off for interiors and anywhere else that never sees the sky.</p>
-            ${lockNote}
+            ${warnings}
         </div>`;
 }
 

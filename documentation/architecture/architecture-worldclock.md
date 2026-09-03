@@ -350,6 +350,30 @@ waiting for a clock step that the flat curve very often computes no change for.
 This was, for one release, reachable *only* from the clock's context menu, and the module's own author
 could not find it. A per-scene setting needs to live on the scene.
 
+**Moving darkness is necessary and not sufficient.** Three other scene settings can each make a fully
+driven scene look untouched, and all three fail the same way -- silently, looking exactly like "the darkness
+feature is broken":
+
+| Setting | Path | What goes wrong |
+|---|---|---|
+| Darkness Level Lock | `environment.darknessLock` | Core deletes `darknessLevel` from our update. The hard blocker |
+| Global Illumination | `environment.globalLight.enabled` | Off means daylight lights nothing: the scene sits dark all day and only token lights show. Midday looks like midnight |
+| Token Vision | `tokenVision` | Off means players see the whole scene however dark it is. Darkness moves and nobody can tell |
+
+`DarknessManager.PREREQUISITES` holds them, each with a satisfaction test and a patch, and
+`getUnmetPrerequisites(scene)` reports which a scene fails. **They are offered, never applied unattended:**
+the first-visit dialog shows a pre-ticked checkbox per unmet one and writes only what the GM leaves ticked,
+and answering *No* to the feature writes the flag and nothing else. The Geography tab reports unmet
+prerequisites on an already-enabled scene but cannot fix them -- it has no submit handler of its own.
+
+**Enabling Global Illumination alone is worse than leaving it off.** `globalLight.darkness.max` is the
+darkness above which core switches global light off, and it **defaults to 1** -- "never switch off". A scene
+with GI on and that default is fully lit at midnight, so the driver would move darkness all night to no
+visible effect. The prerequisite therefore also lowers the threshold, and derives it from our own curve
+rather than picking a number: halfway between the configured day and night darkness is the middle of the
+twilight ramp, so global light fades as the sun goes down. It is written **only when the stored threshold is
+still 1**; a GM who has set one has made a decision.
+
 **Only the active scene.** Darkness lives on the scene, and driving every scene in the world on every time
 change would be a write per scene for scenes nobody is looking at. Re-applied on `canvasReady`.
 

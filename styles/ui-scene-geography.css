@@ -40,9 +40,18 @@
    colour, because it is a real obstruction -- a ticked box that cannot take
    effect -- and has to read as more than an aside. */
 .blacksmith-geography-lock {
+    margin-top: 0.25rem;
+    color: var(--blacksmith-status-warning);
+}
+
+.blacksmith-geography-lock p {
     display: flex;
     align-items: baseline;
     gap: 0.4rem;
-    margin-top: 0.25rem;
-    color: var(--blacksmith-status-warning);
+    margin: 0;
+}
+
+.blacksmith-geography-lock ul {
+    margin: 0.2rem 0 0 1.6rem;
+    padding: 0;
 }
