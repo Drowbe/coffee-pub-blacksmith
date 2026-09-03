@@ -55,3 +55,18 @@
     margin: 0.2rem 0 0 1.6rem;
     padding: 0;
 }
+
+/* The Time of Day opt-in. Its group is `stacked`, so the note below it already
+   sits full width; this only keeps the box and its text on one line. */
+.blacksmith-geography-timeofday {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-weight: normal;
+}
+
+.blacksmith-geography-timeofday input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}

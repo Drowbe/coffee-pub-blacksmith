@@ -27,7 +27,7 @@ import { MODULE } from './const.js';
 import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { WorldClockManager } from './manager-worldclock.js';
-import { DialogAPI } from './api-dialog.js';
+import { DialogAPI, DIALOG_ACTIONS } from './api-dialog.js';
 
 class DarknessManager {
 
@@ -80,12 +80,7 @@ class DarknessManager {
             priority: 4,
             callback: () => {
                 //  ------------------- BEGIN - HOOKMANAGER CALLBACK -------------------
-                void this.applyToActiveScene();
-                // Asked here rather than at `ready` because the question is about the scene
-                // in front of the GM, and asking it on load would mean asking about whichever
-                // scene the world happened to open on. Not awaited: a modal the GM leaves
-                // sitting must not hold up the rest of the canvas hook chain.
-                void this.promptIfUndecided(game.scenes?.active ?? canvas?.scene);
+                this._onCanvasReady();
                 //  ------------------- END - HOOKMANAGER CALLBACK ---------------------
             }
         });
@@ -119,7 +114,37 @@ class DarknessManager {
 
         WorldClockManager.registerOptionProvider(() => this.getContextMenuItems());
 
+        // ON CLIENT LOAD, `canvasReady` HAS ALREADY FIRED. Core awaits `canvas.initializing`
+        // -- which draws the canvas and fires that hook -- and only then calls `ready`
+        // (`client/game.mjs:784-787`, v13.351). This whole manager is initialized from
+        // `ready`, so on a fresh load it registers for a hook that has been and gone and
+        // will not come again until the GM switches scene.
+        //
+        // That cost two things silently. The prompt never appeared on load, which is what
+        // made it look like the feature only noticed scene changes. And a scene that
+        // already follows the clock was never caught up on connect, so it sat at whatever
+        // darkness it was last written with until the next time change -- reconnecting
+        // mid-session at midnight showed you the afternoon.
+        //
+        // So run the pass directly when the canvas is already up. `canvas.ready` is false
+        // for a world with no active scene or the canvas disabled, and skipping both is
+        // right in that case.
+        if (canvas?.ready) this._onCanvasReady();
+
         postConsoleAndNotification(MODULE.NAME, "Darkness: Driver registered", "", true, false);
+    }
+
+    /**
+     * Catch the scene up, then ask about it if nobody ever has.
+     *
+     * Shared by the `canvasReady` hook and the direct call at the end of `initialize()`,
+     * so a scene change and a client load do exactly the same thing. Neither call is
+     * awaited: the dialog is not modal, and a GM who leaves it sitting must not hold up
+     * the rest of the canvas hook chain or the remainder of `ready`.
+     */
+    static _onCanvasReady() {
+        void this.applyToActiveScene();
+        void this.promptIfUndecided(game.scenes?.active ?? canvas?.scene);
     }
 
     // ==============================================================
@@ -292,13 +317,26 @@ class DarknessManager {
      * if not. **Nothing here is applied without the GM ticking it** -- these are somebody
      * else's scene settings, and a module that quietly rewrites three of them because it
      * was switched on is a module that cannot be trusted with a world.
+     *
+     * `note` is written as what the setting BUYS, never as what breaks without it. A list
+     * of three warnings reads as a list of problems the GM now owns; a list of three
+     * capabilities reads as the feature being set up. Same writes either way.
+     *
+     * `isSatisfied` is used for the Geography tab's warning about an already-enabled
+     * scene. It deliberately does NOT gate the dialog's ticks -- see `_promptContent`.
      */
     static PREREQUISITES = [
         {
             id: 'globalLight',
             label: 'Turn on Global Illumination',
-            note: 'Without it the scene stays dark by day and only token lights show.',
-            isSatisfied: (scene) => scene?.environment?.globalLight?.enabled === true,
+            note: 'Lights the whole scene by day, then fades out as the sun goes down.',
+            // NOT just `enabled`. A scene with global light on and the threshold still at
+            // its default of 1 is lit at EVERY darkness level, so the driver moves darkness
+            // all night and nothing visibly changes -- the exact failure this prerequisite
+            // exists to prevent, hiding behind a ticked box. Shipped once reading `enabled`
+            // alone, on a scene that had GI on and the threshold at 1.
+            isSatisfied: (scene) => (scene?.environment?.globalLight?.enabled === true)
+                && (Number(scene?.environment?.globalLight?.darkness?.max) < 1),
             buildPatch: (scene) => {
                 const patch = { 'environment.globalLight.enabled': true };
 
@@ -325,15 +363,15 @@ class DarknessManager {
         },
         {
             id: 'darknessLock',
-            label: 'Turn off Darkness Level Lock',
-            note: 'While it is on, the clock cannot change this scene at all.',
+            label: 'Unlock the Darkness Level',
+            note: 'Leaves the world clock free to set this scene’s light as time passes.',
             isSatisfied: (scene) => !scene?.environment?.darknessLock,
             buildPatch: () => ({ 'environment.darknessLock': false })
         },
         {
             id: 'tokenVision',
             label: 'Turn on Token Vision',
-            note: 'Without it players see the whole scene however dark it gets.',
+            note: 'Lets your players feel the changing light through their own tokens. Optional.',
             isSatisfied: (scene) => scene?.tokenVision === true,
             buildPatch: () => ({ tokenVision: true })
         }
@@ -381,10 +419,9 @@ class DarknessManager {
 
         this._asking.add(scene.id);
         try {
-            const unmet = this.getUnmetPrerequisites(scene);
-            const { action, result } = await DialogAPI.wait({
+            const { action, value, result } = await DialogAPI.wait({
                 title: 'Darkness Control',
-                content: this._promptContent(scene, unmet),
+                content: this._promptContent(scene),
                 buttons: [
                     {
                         action: 'yes',
@@ -393,7 +430,7 @@ class DarknessManager {
                         default: true,
                         // Reads the boxes from the form the helper hands back. Runs after the
                         // dialog has closed, so it must not touch the live dialog.
-                        callback: (form) => unmet
+                        callback: (form) => this.PREREQUISITES
                             .filter(item => form?.querySelector?.(`input[name="prereq-${item.id}"]`)?.checked)
                             .map(item => item.id)
                     },
@@ -401,11 +438,16 @@ class DarknessManager {
                 ]
             });
 
-            // Anything that is not one of the two answers is a dismissal, and a dismissal
-            // writes nothing. DialogAPI resolves its own CLOSE action here.
-            if (action !== 'yes' && action !== 'no') return;
+            // THE BUTTON LANDS IN `value`, NOT `action`. `wait()` reports `action` as
+            // 'submit' for every button that is not the cancel one and puts the button's own
+            // action in `value` -- so testing `action` against 'yes' is false on a Yes, and
+            // this whole method returned without writing anything. It shipped that way once:
+            // the dialog appeared, the GM answered, and nothing happened, twice over, because
+            // the No path was equally dead.
+            if (action !== DIALOG_ACTIONS.SUBMIT) return;
+            if (value !== 'yes' && value !== 'no') return;
 
-            if (action === 'no') {
+            if (value === 'no') {
                 // NOTHING BUT THE FLAG. "No" must not touch global illumination, the lock,
                 // or token vision -- the GM declined the feature, which is not permission
                 // to reconfigure their scene on the way out.
@@ -422,36 +464,44 @@ class DarknessManager {
     }
 
     /**
-     * The dialog body: the question, then a checkbox per unmet prerequisite.
+     * The dialog body: the question, then a checkbox per prerequisite.
      *
-     * Only UNMET ones appear. A checkbox offering to turn on something already on is
-     * noise, and worse, it invites the GM to read the list as "these are the things
-     * this module is about to change" when most of them are already true.
+     * ALL of them are listed and ALL of them start ticked, whatever the scene currently
+     * says. Two reasons, and the second is the one that took a round of live testing to
+     * learn.
      *
-     * Every box is pre-ticked, because the honest default for "should this feature
-     * work" is yes -- but each one is individually clearable, which is the difference
-     * between offering and helping yourself.
+     * First, ticking a setting that is already on costs nothing -- the patch is a no-op
+     * the document diff drops -- while HIDING it takes a decision away from the GM. Some
+     * scenes want global illumination without token vision; that choice cannot be made
+     * about a box nobody was shown.
+     *
+     * Second, "already satisfied" is not a safe reason to leave a box clear, because a
+     * prerequisite can be half true. Global illumination with the threshold still at 1 is
+     * *enabled* and still wrong. Pre-ticking everything means the GM's answer is "set this
+     * scene up properly", and the patches sort out which parts of that are already done.
+     *
+     * So there is no greyed-out state and no "already set" text here. The list is what the
+     * scene will be, not a report on what it is.
      */
-    static _promptContent(scene, unmet) {
+    static _promptContent(scene) {
         const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
 
-        const boxes = unmet.length
-            ? `<hr />
-               <p><strong>These scene settings would stop it working. Fix them?</strong></p>
-               ${unmet.map(item => `
-                   <label class="checkbox" style="display:block; margin-bottom:0.35rem;">
-                       <input type="checkbox" name="prereq-${esc(item.id)}" checked />
-                       ${esc(item.label)}
-                       <span class="notes" style="display:block; margin-left:1.5rem;">${esc(item.note)}</span>
-                   </label>`).join('')}`
-            : '';
+        const rows = this.PREREQUISITES.map(item => `
+            <label class="checkbox blacksmith-darkness-prereq">
+                <input type="checkbox" name="prereq-${esc(item.id)}" checked />
+                <span class="blacksmith-darkness-prereq-label">${esc(item.label)}</span>
+                <span class="notes">${esc(item.note)}</span>
+            </label>`).join('');
 
         return `
             <p>Should the light on <strong>${esc(scene.name)}</strong> follow the world clock?</p>
             <p class="notes">Sunrise and sunset will dim and brighten this scene as world time moves.
             Choose <strong>No</strong> for interiors and anywhere else that never sees the sky.
-            You can change this later on the scene's Geography tab.</p>
-            ${boxes}`;
+            You can change this later on the scene&rsquo;s Geography tab.</p>
+            <hr />
+            <p><strong>These scene settings let you see it happen.</strong>
+            Untick anything you would rather set yourself.</p>
+            <div class="blacksmith-darkness-prereqs">${rows}</div>`;
     }
 
     /**
@@ -468,7 +518,10 @@ class DarknessManager {
 
         for (const item of this.PREREQUISITES) {
             if (!accepted.has(item.id)) continue;
-            if (item.isSatisfied(scene)) continue;
+            // No `isSatisfied` short-circuit. A satisfied item's patch is a no-op that the
+            // document diff drops -- except global light, whose patch also lowers a
+            // threshold still sitting at 1. Skipping satisfied items here is what let a
+            // scene with GI already on keep the threshold that made the feature invisible.
             Object.assign(update, item.buildPatch(scene));
         }
 

@@ -241,6 +241,20 @@ Debug helpers on `window` (e.g. **BlacksmithAPIDetails**, **BlacksmithAPIHooks**
 
 Things that cost someone an hour of grep to discover. Written down so nobody pays twice.
 
+- **`canvasReady` has ALREADY FIRED by the time anything registered in `ready` can hear it.** Core awaits
+  `canvas.initializing` -- which draws the canvas and fires `canvasReady` -- and only *then* calls
+  `Hooks.callAll("ready")` (v13.351 `client/game.mjs:784-787`). Almost everything in this module initializes
+  from `ready`, so **a `canvasReady` handler registered there does not run on client load**; it first runs
+  when the GM switches scene. This fails silently and asymmetrically: the feature works all session and is
+  simply absent for the first scene you connect to, which reads as "it only reacts to scene changes".
+
+  A handler whose work matters at load must therefore prime itself: `if (canvas?.ready) this._onCanvasReady();`
+  immediately after registering, calling the same method the hook calls so the two paths cannot drift.
+  `canvas.ready` is false for a world with no active scene or with the canvas disabled, which is the correct
+  time to skip. `DarknessManager` does this; `utility-quickview.js` does the equivalent. **Audited 2026-09-03
+  and not fixed:** `manager-token-indicators.js` and `manager-combatbar.js` register `canvasReady` with no
+  such priming — whether that costs them anything at load has not been checked.
+
 - **`api.version` is `MODULE.APIVERSION`** (`const.js` — currently `"13.0.0"`), **not** `module.json`'s
   version. They are unrelated and drift on purpose.
 - **`window.COFFEEPUB` is not a config object.** It holds *generated asset constants* only, assigned in

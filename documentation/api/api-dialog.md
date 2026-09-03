@@ -223,7 +223,20 @@ const outcome = await blacksmith.dialog.wait({
 });
 ```
 
-Each button accepts `{ action, label, icon, default, destructive, disabled, callback }`. `callback` receives the dialog's form element and its return value becomes `result`. `value` in the result is the button's `action`. An action named `cancel` resolves `action: 'cancel'`.
+Each button accepts `{ action, label, icon, default, destructive, disabled, callback }`. `callback` receives the dialog's form element and its return value becomes `result`. An action named `cancel` resolves `action: 'cancel'`.
+
+> **Read the clicked button off `value`, not `action`.** The result's `action` is one of the three
+> vocabulary strings below — for any button that is not the `cancel` one it is `'submit'`, whatever you
+> named the button. The button's own `action` lands in `value`.
+>
+> ```javascript
+> const { action, value } = await blacksmith.dialog.wait({ buttons: [{action: 'yes', ...}, {action: 'no', ...}] });
+> if (action !== blacksmith.dialog.ACTIONS.SUBMIT) return;   // dismissed
+> if (value === 'yes') { /* ... */ }                          // NOT `action === 'yes'`
+> ```
+>
+> Testing `action === 'yes'` is false on a Yes and silently does nothing — the dialog opens, the user
+> answers, and no branch runs. It cost a full round of live testing on the darkness prompt in 13.23.0.
 
 Consumer callbacks in `choose` and `wait` run **after** the dialog has closed — the form element is captured beforehand and handed to you, so read what you need from it rather than expecting a live dialog. This is deliberate: it keeps the helpers independent of whether DialogV2 awaits a button callback.
 

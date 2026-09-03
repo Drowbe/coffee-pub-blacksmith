@@ -362,9 +362,22 @@ feature is broken":
 
 `DarknessManager.PREREQUISITES` holds them, each with a satisfaction test and a patch, and
 `getUnmetPrerequisites(scene)` reports which a scene fails. **They are offered, never applied unattended:**
-the first-visit dialog shows a pre-ticked checkbox per unmet one and writes only what the GM leaves ticked,
-and answering *No* to the feature writes the flag and nothing else. The Geography tab reports unmet
+the first-visit dialog shows a checkbox per prerequisite and writes only what the GM leaves ticked, and
+answering *No* to the feature writes the flag and nothing else. The Geography tab reports unmet
 prerequisites on an already-enabled scene but cannot fix them -- it has no submit handler of its own.
+
+**Every box starts ticked, whatever the scene currently says, and `isSatisfied` does not gate that.**
+Ticking a setting that is already correct costs nothing -- the patch is a no-op the document diff drops --
+while leaving it clear, or hiding the row, takes a decision away: some scenes want global illumination
+without token vision, and that cannot be said about a box nobody was shown. More importantly, *satisfied*
+is not a safe reason to skip a write, because a prerequisite can be half true: global illumination with the
+threshold still at 1 is enabled and still wrong, and gating on `isSatisfied` is exactly what let that ship.
+The GM's answer is "set this scene up", and the patches sort out which parts of that are already done.
+
+**The notes say what a setting buys, never what breaks without it.** Three warnings read as three problems
+the GM now owns; three capabilities read as a feature being set up. The writes are identical. The Geography
+tab's warning list uses the labels alone for the same reason -- those notes are written for the offer and
+read backwards in a list of what is missing.
 
 **Enabling Global Illumination alone is worse than leaving it off.** `globalLight.darkness.max` is the
 darkness above which core switches global light off, and it **defaults to 1** -- "never switch off". A scene

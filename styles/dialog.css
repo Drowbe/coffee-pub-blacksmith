@@ -129,3 +129,43 @@
     max-height: 46vh;
     overflow-y: auto;
 }
+
+/* ----- Prerequisite checklist (darkness control prompt) -----
+
+   A checkbox, its label, and a note that belongs UNDER the label rather than
+   beside it. Grid rather than flex because the note has to start in the label's
+   column, not the checkbox's -- with flex it either wraps under the box or
+   forms a third column and squeezes the label into a narrow strip. */
+.blacksmith-darkness-prereqs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-md);
+}
+
+.blacksmith-dialog label.blacksmith-darkness-prereq {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--blacksmith-space-md);
+    align-items: start;
+    margin: 0;
+    font-weight: normal;
+}
+
+.blacksmith-dialog label.blacksmith-darkness-prereq input[type="checkbox"] {
+    margin: 0;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.blacksmith-darkness-prereq .blacksmith-darkness-prereq-label {
+    grid-column: 2;
+    grid-row: 1;
+    font-weight: 600;
+}
+
+/* Second row, second column: under the label, aligned with it. */
+.blacksmith-darkness-prereq .notes {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+}

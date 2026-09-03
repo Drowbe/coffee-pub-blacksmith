@@ -119,25 +119,30 @@ function timeOfDayRows(scene) {
     // tab does not survive into v14, whose SceneConfig parts are basics/grid/levels/
     // visibility/environment/misc. Naming a core tab in our copy is a string that rots on
     // somebody else's release schedule, for no gain.
+    // Labels only, not the prerequisite notes. Those notes say what a setting BUYS, which
+    // is right in the dialog that offers them and reads backwards in a list of what is
+    // currently missing. The label already names the action.
     const unmet = enabled ? DarknessManager.getUnmetPrerequisites(scene) : [];
     const warnings = unmet.length
         ? `<div class="blacksmith-geography-lock">
                <p class="notes"><i class="fa-solid fa-triangle-exclamation"></i>
-               <strong>This scene is set to follow the clock, but these will stop it working:</strong></p>
-               <ul class="notes">${unmet.map(item => `<li>${esc(item.label)} &mdash; ${esc(item.note)}</li>`).join('')}</ul>
+               <strong>This scene follows the clock. To see it happen:</strong></p>
+               <ul class="notes">${unmet.map(item => `<li>${esc(item.label)}</li>`).join('')}</ul>
            </div>`
         : '';
 
+    // `stacked`, like the habitat group above it, and for the same reason: a plain
+    // `.form-group` is a flex ROW, so a `<p class="notes">` after the fields becomes a
+    // third column beside the checkbox and renders as a tall narrow strip of text. The
+    // note belongs under the control it explains.
     return `
-        <div class="form-group">
+        <div class="form-group stacked">
             <label>Time of Day</label>
-            <div class="form-fields">
-                <label class="checkbox">
-                    <input type="checkbox" name="${esc(sceneFlagName(DarknessManager.FLAG))}"
-                           ${enabled ? 'checked' : ''} />
-                    Darkness follows the world clock
-                </label>
-            </div>
+            <label class="checkbox blacksmith-geography-timeofday">
+                <input type="checkbox" name="${esc(sceneFlagName(DarknessManager.FLAG))}"
+                       ${enabled ? 'checked' : ''} />
+                Darkness follows the world clock
+            </label>
             <p class="notes">Sunrise and sunset dim and brighten this scene as world time moves.
                 Leave this off for interiors and anywhere else that never sees the sky.</p>
             ${warnings}
