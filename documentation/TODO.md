@@ -968,10 +968,34 @@ the bulk of the work; it belongs in `utilities/` and should report what it chang
 `documentation/plans/migration-v14.md` is the migration guidance for the whole suite. This is the narrower
 list: v14 breakage observed in a running world. `module.json` declares `maximum: 14`, so these are ours.
 
-- **The world clock's darkness control does not change darkness in v14.** The driver writes
-  `{ environment: { darknessLevel: target } }` with an animation duration and returns early on
-  `scene.environment.darknessLock` (`manager-darkness.js:234`, `:250-252`). Establish which of those v14
-  changed before changing any of them, and keep the v13 path working -- `minimum` is still 13.
+### Prove the Scene Config tab injector on v14
+
+`manager-scene-config.js` anchors on `nav.tabs` and `footer.form-footer` rather than tab ids, but v14
+restructured the sheet -- parts are now `tabs/basics/grid/levels/visibility/environment/misc/footer`, so
+`lighting` and `ambience` are gone -- and it has never been rendered there. Two risks the anchors do not
+cover: v14's **pop-out windows** (the injector builds nodes against the host `document`) and its **async
+`_insertElement`**, which changes the render-pass timing the duplicate-tab guard depends on.
+Probes and the by-hand steps are in `testing/v14-darkness.md`. The nav/footer half needs only a bare v14;
+the rest needs Blacksmith installed there.
+Verify: the Geography tab appears once, its Time of Day box round-trips a save, and both survive popping
+the sheet out.
+
+### Prime the other two `canvasReady` handlers, or establish they do not need it
+
+`canvasReady` fires before `ready`, so a handler registered from `ready` never runs on client load --
+fixed in `DarknessManager`, written up in `architecture-blacksmith.md` §9A. An audit on 2026-09-03 found
+`manager-token-indicators.js:156` and `manager-combatbar.js:2154` register one with no priming. Whether
+that costs anything depends on what each handler does at load; check before adding a call.
+Verify: whatever each handler draws is present on a fresh connect, not only after a scene switch.
+
+**Settled 2026-09-03, do not re-investigate.** "The darkness control does not change darkness in v14" was
+wrong: a schema probe on a live v14.364 server confirmed `environment.darknessLevel` and
+`environment.darknessLock` are both unchanged, the `animateDarkness` update option is still honoured, the
+lock still strips `darknessLevel` pre-update, and v14's new `Level` document carries no environment of its
+own -- so Scene Levels does not supersede scene-wide darkness. The real cause was a scene that had never
+been opted in, plus a `canvasReady` handler that never ran on load. **Foundry's published
+`SceneEnvironmentData` typedef is wrong** and names the lock `darknessLevelLock` in the v13 and v14 docs
+alike; settle a field name against `CONFIG.Scene.documentClass.schema`, never the docs site.
 
 ---
 
