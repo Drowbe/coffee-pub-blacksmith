@@ -980,15 +980,11 @@ the rest needs Blacksmith installed there.
 Verify: the Geography tab appears once, its Time of Day box round-trips a save, and both survive popping
 the sheet out.
 
-### Prime the other two `canvasReady` handlers, or establish they do not need it
+**Settled 2026-09-03, do not re-investigate.** The `canvasReady`-never-fires-on-load bug was
+`DarknessManager`'s alone: all ten registrations were audited and every other one already reaches its load
+work by another route. See `architecture-blacksmith.md` §9A.
 
-`canvasReady` fires before `ready`, so a handler registered from `ready` never runs on client load --
-fixed in `DarknessManager`, written up in `architecture-blacksmith.md` §9A. An audit on 2026-09-03 found
-`manager-token-indicators.js:156` and `manager-combatbar.js:2154` register one with no priming. Whether
-that costs anything depends on what each handler does at load; check before adding a call.
-Verify: whatever each handler draws is present on a fresh connect, not only after a scene switch.
-
-**Settled 2026-09-03, do not re-investigate.** "The darkness control does not change darkness in v14" was
+"The darkness control does not change darkness in v14" was
 wrong: a schema probe on a live v14.364 server confirmed `environment.darknessLevel` and
 `environment.darknessLock` are both unchanged, the `animateDarkness` update option is still honoured, the
 lock still strips `darknessLevel` pre-update, and v14's new `Level` document carries no environment of its

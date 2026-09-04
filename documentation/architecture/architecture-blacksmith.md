@@ -251,9 +251,15 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   A handler whose work matters at load must therefore prime itself: `if (canvas?.ready) this._onCanvasReady();`
   immediately after registering, calling the same method the hook calls so the two paths cannot drift.
   `canvas.ready` is false for a world with no active scene or with the canvas disabled, which is the correct
-  time to skip. `DarknessManager` does this; `utility-quickview.js` does the equivalent. **Audited 2026-09-03
-  and not fixed:** `manager-token-indicators.js` and `manager-combatbar.js` register `canvasReady` with no
-  such priming — whether that costs them anything at load has not been checked.
+  time to skip.
+
+  **All ten `canvasReady` registrations were audited on 2026-09-03 and only `DarknessManager` had the bug.**
+  The priming does not have to look like `DarknessManager`'s to count -- what matters is that the load path
+  reaches the same work by *some* route: `TokenIndicatorManager.initialize()` calls `refreshAll()` directly
+  after registering, `CombatBarManager.initialize()` calls `openCombatBarOnLoad()`, and
+  `utility-quickview.js` calls `_syncCanvasWithQuickViewSetting()` immediately. When you add a `canvasReady`
+  handler, the question to answer is not "did I prime it" but **"what draws this on a fresh connect"** -- and
+  if the honest answer is "the hook", it will not.
 
 - **`api.version` is `MODULE.APIVERSION`** (`const.js` — currently `"13.0.0"`), **not** `module.json`'s
   version. They are unrelated and drift on purpose.

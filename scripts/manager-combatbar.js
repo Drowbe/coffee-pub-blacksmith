@@ -2528,7 +2528,11 @@ export class CombatBarManager {
     static openCombatBarOnLoad(menuBar) {
         try {
             setTimeout(async () => {
-                const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', false);
+                // `true`, matching the setting's registered default (settings.js:2323) and the
+                // scene-change path below. The fallback only applies when the setting cannot be
+                // read at all, and disagreeing about it meant the bar stayed shut on load and
+                // opened on the next scene change -- the same question answered two ways.
+                const shouldShowCombatBar = getSettingSafely(MODULE.ID, 'menubarCombatShow', true);
                 if (!shouldShowCombatBar) return;
                 if (!menuBar.secondaryBarTypes?.has?.('combat')) {
                     await CombatBarManager.registerCombatBarType(menuBar);
