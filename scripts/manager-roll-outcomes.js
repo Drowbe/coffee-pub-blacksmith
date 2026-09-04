@@ -18,8 +18,14 @@ import {
 
 export class RollOutcomesManager {
     static _initialized = false;
+    /**
+     * ONE tracker, because there is one key space now. Two trackers in two namespaces
+     * was how the lanes failed to see each other -- see `_emitAttackOnce`.
+     * The longer of the two old windows: an attack's two lanes can be seconds apart.
+     */
+    static _attackDedupe = createDedupeTracker(30_000);
+    /** Initiative, which is single-lane and keyed by message id. */
     static _chatDedupe = createDedupeTracker(30_000);
-    static _midiDedupe = createDedupeTracker(20_000);
     /** @type {Map<string, { isCritical: boolean, isFumble: boolean, ts: number }>} */
     static _pendingMidiCrit = new Map();
 
@@ -30,11 +36,53 @@ export class RollOutcomesManager {
         this._registerSocketHandlers();
     }
 
-    static _emitAttackOnce(dedupeKey, outcome, meta = {}) {
+    /**
+     * Emit an attack outcome at most once, however many lanes saw it.
+     *
+     * THE LANES NO LONGER TAKE TURNS, SO THIS HAS TO BE REAL.
+     *
+     * The core dnd5e lane used to return early for any midi-flagged message and leave
+     * the whole attack to the MIDI lane. That is the shape that cost a table nineteen
+     * rounds elsewhere in this module: when the lane we deferred to did not run,
+     * nothing did. Both lanes now run, always -- which makes THIS function the only
+     * thing standing between a table and every attack being counted twice.
+     *
+     * The old version could not have done it. It took a single pre-built key and
+     * checked two trackers, but the callers built keys in different namespaces --
+     * `rolls:chat:<messageId>` against `rolls:midi:<workflowKey>` -- which can never be
+     * equal, so the same attack down both paths deduped against nothing.
+     *
+     * So identity is plural now. Every name we can put to an attack is checked, and
+     * every one of them is marked: the chat message it belongs to, the midi workflow
+     * that produced it, and our own system-level key (attacker, item, activity,
+     * targets). A hit on ANY of them means we have already emitted this attack. That
+     * tolerates either lane being unable to name it the same way -- midi's card id
+     * missing, a workflow with no id, a message whose activity flag never arrived --
+     * without either double-emitting or falling silent.
+     *
+     * @param {object|null} outcome
+     * @param {object} [meta]
+     */
+    static _emitAttackOnce(outcome, meta = {}) {
         if (!outcome || outcome.kind !== 'attack') return;
-        if (this._midiDedupe.isDuplicate(dedupeKey) || this._chatDedupe.isDuplicate(dedupeKey)) return;
-        this._midiDedupe.markProcessed(dedupeKey);
-        this._chatDedupe.markProcessed(dedupeKey);
+
+        const identities = [
+            outcome.messageId ? `msg:${outcome.messageId}` : null,
+            meta.messageId ? `msg:${meta.messageId}` : null,
+            meta.workflowKey ? `wf:${meta.workflowKey}` : null,
+            outcome.key ? `key:${outcome.key}` : null
+        ].filter(Boolean);
+
+        // Nothing to dedupe on. Emitting is the lesser error: a missing event is
+        // invisible and permanent, a duplicated one is visible and reportable.
+        if (!identities.length) {
+            RollsAPI.emitResolved(outcome, meta);
+            return;
+        }
+
+        if (identities.some((id) => this._attackDedupe.isDuplicate(id))) return;
+        for (const id of identities) this._attackDedupe.markProcessed(id);
+
         RollsAPI.emitResolved(outcome, meta);
     }
 
@@ -64,11 +112,18 @@ export class RollOutcomesManager {
         const hasRolls = (message.rolls?.length ?? 0) > 0;
         if (!hasDnd5e && !hasMidiFlags && !hasRolls) return;
 
-        // Yield to the MIDI lane only when integration is actually on — with
-        // Midi installed but integration disabled, the core lane processes
-        // Midi-flagged messages too (they still classify from flags).
-        if (isMidiIntegrationEnabled() && hasMidiFlags) return;
-
+        // NO YIELD HERE ANY MORE. This used to return for any midi-flagged message
+        // when integration was on, handing the whole attack to the other lane. That is
+        // the "leverage midi INSTEAD of ours" shape the author ruled out on 2026-09-03:
+        // our lane stopped, and if the lane we deferred to did not run, nothing did.
+        // `DefeatedManager` made the same bet about the same module and a table played
+        // nineteen rounds with the dead taking turns.
+        //
+        // Our lane is now always the lane. The MIDI lane still runs and can still be
+        // first, which is fine and sometimes better -- it knows hit and miss
+        // authoritatively -- but whichever arrives first, `_emitAttackOnce` makes sure
+        // exactly one event reaches consumers. `hasMidiFlags` is still read above only
+        // to recognise a message worth classifying at all.
         const outcome = classify(message);
 
         // Initiative resolves here rather than in the attack path below: it has no
@@ -90,7 +145,7 @@ export class RollOutcomesManager {
         // natural 20/1) to be discarded by the message-id dedupe below.
         if (typeof outcome.total !== 'number') return;
 
-        this._emitAttackOnce(`rolls:chat:${message.id}`, outcome, {
+        this._emitAttackOnce(outcome, {
             trigger: 'dnd5e.chatMessage',
             messageId: message.id
         });
@@ -122,15 +177,14 @@ export class RollOutcomesManager {
             this._pendingMidiCrit.delete(key);
         }
 
-        const dedupeKey = `rolls:midi:${key}`;
         const meta = { trigger: 'midi.hitsChecked', workflowKey: key, messageId: outcome.messageId ?? null };
 
         if (!game.user.isGM) {
-            await this._forwardToGM('cpbRollAttackResolved', { outcome, meta, dedupeKey });
+            await this._forwardToGM('cpbRollAttackResolved', { outcome, meta });
             return;
         }
 
-        this._emitAttackOnce(dedupeKey, outcome, meta);
+        this._emitAttackOnce(outcome, meta);
     }
 
     /**
@@ -149,17 +203,19 @@ export class RollOutcomesManager {
             attackRoll: workflow.attackRoll
         });
 
-        const dedupeKey = `rolls:midi:${key}`;
-        if (this._midiDedupe.isDuplicate(dedupeKey) || this._chatDedupe.isDuplicate(dedupeKey)) return;
-
+        // Staging only -- this records crit/fumble for `hitsChecked` to pick up and
+        // emits nothing itself, so it must NOT consult the emit dedupe. It used to,
+        // and that was a bug waiting for both lanes to be live: once the chat lane has
+        // emitted this attack, the workflow identity is marked, so this would skip
+        // staging and a later `hitsChecked` for the same workflow would carry no crit.
         this._pendingMidiCrit.set(key, { isCritical, isFumble, ts: Date.now() });
     }
 
     static _onSocketRollAttackResolved(payload) {
         if (!game.user.isGM) return;
-        const { outcome, meta, dedupeKey } = payload ?? {};
-        if (!outcome || !dedupeKey) return;
-        this._emitAttackOnce(dedupeKey, outcome, meta ?? {});
+        const { outcome, meta } = payload ?? {};
+        if (!outcome) return;
+        this._emitAttackOnce(outcome, meta ?? {});
     }
 
     // ===== DAMAGE LANE (dnd5e.calculateDamage + dnd5e.applyDamage) =====

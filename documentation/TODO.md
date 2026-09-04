@@ -23,6 +23,43 @@ nobody reads.
 
 ---
 
+## Module integrations
+
+Design, audit and sequencing: `documentation/plans/plan-integration-inversion.md`. Steps 1 and 2 ship
+together -- separately they double-count every attack.
+
+### Delete the six yields where our own lane stops, and make the correlation key ours
+
+`manager-roll-outcomes.js:70`, `stats-sources.js:301/364/825`, `stats-player.js:1174/1279`, and the key
+at `utility-message-resolution.js:363/530`. Our lane must always run; midi's workflow id becomes an
+alias recorded alongside our own key rather than the identity. One key space means one dedupe tracker,
+which is what stops the two lanes double-counting once both are live.
+Verify: with Midi-QOL Integration ON, one attack produces exactly one `blacksmith.rolls.attackResolved`
+and one damage entry in the combat statistics -- not two.
+
+### One crit classifier
+
+Extract `classifyCritFumble` and its d20 helpers to a leaf module so both
+`utility-roll-classification.js` and `utility-midi-resolution.js` can import it; the existing cycle
+blocks it today. `getCritFumbleFromWorkflow` keeps only midi's own `isCritical`/`isFumble` flags as an
+additional signal and stops doing its own d20 reasoning, which currently stops at natural 20.
+Verify: a widened crit threshold reports a critical identically with integration on and off.
+
+### Times Up: stop yielding effect expiry
+
+`api-effects.js` hands deletion to Times Up via `yieldDeletion`. Same shape as the midi defect -- if
+Times Up doesn't expire it, nobody does. Our sweep should always run and be idempotent, swallowing the
+"already gone" rejection the way `DefeatedManager._syncStatusEffect` does.
+Verify: an effect expires exactly once with Times Up installed, and still expires with it absent.
+
+### Author decision: the three integration hints teach the wrong model
+
+`lang/en.json` -- "use its workflows for attack, damage, and crit detection" and "let it own effect
+expiry" both describe the behaviour this work is removing. **Claude does not rewrite these**; settings
+copy is the author's. Needs proposed wording and the author's choice once the code is additive.
+
+---
+
 ## Request a Roll
 
 ### Decide which quick rolls ship as defaults

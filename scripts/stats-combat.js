@@ -1557,7 +1557,15 @@ class CombatStats {
         combatTotals.attacks.attempts++;
         
         // Core-only: increment crit/fumble once per attack (MIDI increments in RollComplete)
-        const isMidiAttack = typeof attackEvent?.key === "string" && attackEvent.key.startsWith("midi:");
+        //
+        // Asks the event whether it carries a workflow, rather than SNIFFING THE SHAPE
+        // OF THE KEY, which is what this did: `attackEvent.key.startsWith("midi:")`.
+        // That worked only because our correlation key used to BE midi's workflow id,
+        // and it broke silently the moment the key became ours (2026-09-03) -- the test
+        // went permanently false and crits would have been counted twice, here and
+        // again in `RollComplete`. A key is an identity, not a type tag; anything that
+        // needs to know where an event came from must ask for that directly.
+        const isMidiAttack = !!attackEvent?.workflowId;
         if (!isMidiAttack) {
             if (attackEvent.isCritical) {
                 attackerStats.combat.attacks.crits++;

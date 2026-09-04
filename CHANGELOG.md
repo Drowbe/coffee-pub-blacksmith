@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Blacksmith's correlation key is Blacksmith's** (`scripts/utility-message-resolution.js`, `scripts/stats-combat.js`, `scripts/manager-roll-outcomes.js`). `makeKey` returned `midi:<workflowId>` whenever a chat message carried one, falling back to Blacksmith's own scheme only when it did not — so the identity of our own events, and everything keyed on it (deduplication, the pending-crit maps, the socket forwards), was another module's identifier. The key is now always attacker, item, activity and targets, read from `flags.dnd5e`; a workflow id stays on the event as an alias for anything that needs to correlate with a workflow.
+
+  **The rolls lane no longer takes turns with the MIDI lane.** The core dnd5e lane used to return early for any midi-flagged message and hand the whole attack over — the same "leverage it instead of ours" shape that left a table's dead taking turns for nineteen rounds. Both lanes now always run. What makes that safe is that deduplication finally works across them: the two old trackers keyed in namespaces that could never collide (`rolls:chat:<messageId>` against `rolls:midi:<workflowKey>`), so the same attack arriving down both paths deduplicated against nothing. `_emitAttackOnce` now checks and marks *every* identity an attack has — its chat message, its workflow, our own key — in one tracker, so either lane may arrive first and consumers still see exactly one event.
+
+  Changing the key surfaced a latent defect worth naming, because more may exist. `stats-combat.js` decided whether an attack came from the MIDI lane by **sniffing the shape of the key** — `key.startsWith("midi:")` — and skipped counting criticals on that basis, since `RollComplete` counts them instead. That test worked only because the key used to *be* midi's workflow id; it went permanently false the moment the key became ours, and criticals would have been counted twice with integration on, silently. It now asks the event for its `workflowId` directly. A key is an identity, not a type tag.
+
+  Design, audit and remaining steps: `documentation/plans/plan-integration-inversion.md`. The statistics lanes still yield and are deliberately untouched — that surface has twelve deduplication sites and no single recording chokepoint, and getting it wrong writes double damage into persisted campaign statistics.
+
 ### Added
 
 - **The per-scene darkness opt-in is now on the scene, and an undecided scene asks** (`scripts/manager-darkness.js`, `scripts/ui-scene-geography.js`, `scripts/settings.js`). Whether a scene's light follows the world clock was a real feature with a real driver, reachable from exactly one place: right-clicking the world clock, then Options. The author of this module could not find it, and spent a session convinced the darkness driver was broken. It was not — the scene had simply never been switched on.

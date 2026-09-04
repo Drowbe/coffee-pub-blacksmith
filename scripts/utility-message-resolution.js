@@ -165,21 +165,23 @@ export function resolveLandedTargets(delivery, { hitTargets = [], allTargets = [
  * @returns {string} Stable cache key
  */
 export function makeKey(partsOrMessage) {
-    // If it's a message object, extract MIDI workflowId first
+    // OUR IDENTITY IS OURS. It used to be midi's: this function returned
+    // `midi:<workflowId>` whenever a message carried one, and fell back to the parts
+    // below only when it did not. Everything downstream -- dedupe, the pending-crit
+    // maps, the socket forwards -- was therefore keyed on another module's identifier,
+    // which is the "use midi to define our data" category the author ruled out on
+    // 2026-09-03. It also meant the two lanes could never dedupe against each other:
+    // one produced `midi:...` and the other produced the parts key, so the same attack
+    // arriving down both paths looked like two different events.
+    //
+    // The parts are a SYSTEM-level identity -- attacker, item, activity, targets, all
+    // from `flags.dnd5e` -- so both lanes can compute it and a table with no midi
+    // installed computes exactly the same thing. A workflow id is still recorded
+    // alongside on the events that have one; it is an alias, never the identity.
     if (partsOrMessage && typeof partsOrMessage === 'object' && 'flags' in partsOrMessage) {
-        const message = partsOrMessage;
-        const midi = message.flags?.["midi-qol"];
-        const workflowId = midi?.workflowId;
-        
-        if (workflowId) {
-            return `midi:${workflowId}`;
-        }
-        
-        // Fall back to key parts extraction
-        const parts = getKeyParts(message);
-        return makeKey(parts);
+        return makeKey(getKeyParts(partsOrMessage));
     }
-    
+
     // Otherwise, treat as key parts object
     const parts = partsOrMessage;
     const { attackerActorId, itemUuid, activityUuid, targetUuids } = parts;
@@ -359,8 +361,9 @@ export function resolveAttackMessage(message) {
     const missTargets = outcomes.filter(o => o.hit === false).map(o => o.uuid).filter(Boolean);
     const unknownTargets = outcomes.filter(o => o.hit === null).map(o => o.uuid).filter(Boolean);
 
-    // Use workflowId-based key for MIDI, fallback to key parts for core
-    const key = workflowId ? `midi:${workflowId}` : makeKey(getKeyParts(message));
+    // Always our own key. `workflowId` is still on the event below as an alias for
+    // anything that needs to correlate with a midi workflow -- see `makeKey`.
+    const key = makeKey(getKeyParts(message));
 
     // Delivery, from the dnd5e activity on the message. This is why it is resolved here rather than
     // in the midi lane: the flag rides on the chat card, so a table with no midi installed answers
@@ -526,8 +529,9 @@ export function resolveDamageMessage(message) {
         ? dnd.targets.map(t => t.uuid).filter(Boolean)
         : [];
 
-    // Use workflowId-based key for MIDI, fallback to key parts for core
-    const key = workflowId ? `midi:${workflowId}` : makeKey(getKeyParts(message));
+    // Always our own key. `workflowId` is still on the event below as an alias for
+    // anything that needs to correlate with a midi workflow -- see `makeKey`.
+    const key = makeKey(getKeyParts(message));
 
     return {
         type: "damage",
