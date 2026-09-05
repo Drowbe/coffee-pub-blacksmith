@@ -123,10 +123,27 @@ are therefore one unit and must not ship apart.**
       keeps only what is genuinely workflow-shaped: reading midi's own `isCritical`/`isFumble` flags as
       an *additional* signal, never as its own d20 reasoning.
 
-- [ ] **4. Times Up, same inversion.** `api-effects.js` yields effect deletion when Times Up is
-      installed. Same shape, same risk: if Times Up doesn't expire it, nobody does. Our sweep should
-      always run and be idempotent, with the "already gone" rejection swallowed the way
-      `DefeatedManager._syncStatusEffect` now does.
+- [x] **4. Times Up.** DONE 2026-09-04, and it turned out to be a deletion rather than an inversion.
+
+      **Times Up is retired.** Its author shipped no Foundry v14 version -- "core now provides the vast
+      bulk of the functionality that times-up provided and it is no longer needed" -- and
+      `times-up/module.json` caps at `"maximum": "13.999"`. dnd5e never expired effects at all (zero
+      expiry symbols in 5.3.3), so on v14 the job is core's and ours. midi-qol, by contrast, IS
+      continuing to v14, which is why the midi steps above are the ones that matter long term.
+
+      `sweepExpired` no longer yields, and `isTimesUpIntegrationEnabled()` is deleted -- it was the
+      module's last runtime question about whether Times Up exists. **Blacksmith now has no behavioural
+      tie to that module**: nothing to declare, and nothing a v13 user must install.
+
+      Kept deliberately: `timesUpOriginalSeconds`, and it is no longer gated on the module being
+      active. It reads a flag on OUR documents, and the conversion it recovers from is irreversible --
+      `setDurationRounds` floors `duration.remaining` into rounds, nulls `duration.seconds`, and
+      stashes the original total, so the rounds and the stash do not describe the same quantity and no
+      arithmetic gets it back. Gating that read on the module would have abandoned the only record of
+      those durations the moment a table reached v14 with effects converted under v13.
+
+      Left for the author: the `enableTimesUpIntegration` setting now controls nothing. Removing a
+      registered setting discards a GM's stored choice, so it is not Claude's to delete.
 
 - [ ] **5. Settings copy -- FOR THE AUTHOR, NOT FOR CLAUDE.** The three hints in `lang/en.json` teach the
       wrong model in the author's own product voice: "**use its workflows** for attack, damage, and crit

@@ -87,29 +87,42 @@ function roundSeconds() {
     return Number.isFinite(value) && value > 0 ? value : 6;
 }
 
-/**
- * Whether Blacksmith should let Times Up own expiry: the module must be active
- * AND the enableTimesUpIntegration world setting on (default true).
- *
- * Checked at RUNTIME by every lane, so toggling applies live — same contract as
- * isMidiIntegrationEnabled in utility-midi-resolution.js. When this returns
- * false, Blacksmith supplies the baseline itself; with Times Up installed that
- * means both will expire the same effect and one will fail noisily, which is
- * why the setting is documented as diagnostic rather than as a normal mode.
- */
-export function isTimesUpIntegrationEnabled() {
-    if (!game?.modules?.get('times-up')?.active) return false;
-    try {
-        return game.settings.get(MODULE.ID, 'enableTimesUpIntegration') !== false;
-    } catch {
-        return true; // setting not registered yet — module active means integrate
-    }
-}
+// `isTimesUpIntegrationEnabled()` was here. It answered "should Blacksmith let Times
+// Up own expiry", and it is deleted because Blacksmith no longer lets anyone own
+// expiry -- see `sweepExpired`. It was the module's last runtime question about
+// whether Times Up existed, so with it gone Blacksmith has no behavioural tie to
+// that module at all: nothing to declare, and nothing a v13 user needs installed.
+//
+// What remains is `timesUpOriginalSeconds`, which reads a flag on our own documents
+// and is not a tie to anything -- see its note.
+//
+// The `enableTimesUpIntegration` SETTING still registers in `settings.js` and now
+// controls nothing. Left for the author to remove, because it is user-facing and
+// deleting a registered setting discards whatever a GM had chosen. Flagged in
+// `documentation/TODO.md`.
 
 /**
  * The seconds a Times Up conversion stashed away, or null if it did not convert
  * this effect. Presence of the flag IS the marker that the effect was authored
  * in seconds and rewritten into rounds.
+ *
+ * READ WHENEVER PRESENT, NEVER GATED ON THE MODULE BEING INSTALLED. This is a
+ * flag on a document in this world -- our own data, written at some point in its
+ * past. Whether the module that wrote it is loaded right now has no bearing on
+ * whether the record is true.
+ *
+ * That distinction stops being academic on Foundry v14. Times Up is retired --
+ * its author shipped no v14 version, on the grounds that core absorbed the bulk
+ * of it -- so on v14 the module CANNOT be active. Every effect it converted
+ * during a v13 campaign still carries this flag with `duration.seconds` nulled,
+ * and gating the read on the module would abandon the only surviving record of
+ * those effects' real durations, permanently and silently. The same happened on
+ * v13 the moment a GM unticked the integration setting.
+ *
+ * The conversion cannot be undone by arithmetic, which is why the flag is the
+ * only answer: `setDurationRounds` floors `duration.remaining` into rounds and
+ * stashes `duration.seconds`, so the stored total and the rounds do not even
+ * describe the same quantity, let alone a recoverable one.
  */
 function timesUpOriginalSeconds(effect) {
     const stashed = getFlag(effect, 'times-up', 'durationSeconds');
@@ -150,8 +163,10 @@ export function getEffectRemaining(effect) {
 
     if (duration.type === 'seconds') return { value: raw, unit: 'seconds' };
 
-    // Rounds/turns. If Times Up put it here, put it back.
-    if (isTimesUpIntegrationEnabled() && timesUpOriginalSeconds(effect) !== null) {
+    // Rounds/turns. If a Times Up conversion put it here, put it back -- on the
+    // evidence of the flag alone, never on whether that module happens to be
+    // loaded. See `timesUpOriginalSeconds`.
+    if (timesUpOriginalSeconds(effect) !== null) {
         return { value: raw * roundSeconds(), unit: 'seconds' };
     }
     return { value: raw, unit: 'rounds' };
@@ -251,7 +266,6 @@ export class EffectsAPI {
      */
     static getRemaining(effect) { return getEffectRemaining(effect); }
     static hasExpired(effect) { return hasEffectExpired(effect); }
-    static isTimesUpIntegrationEnabled() { return isTimesUpIntegrationEnabled(); }
 
     static initialize() {
         if (EffectsAPI._hookIds) return;
@@ -284,27 +298,41 @@ export class EffectsAPI {
      * Find effects whose clock has run out, announce each once, and settle who
      * deletes it.
      *
-     * WHY THIS EXISTS AT ALL. Foundry core does not expire effects; Times Up
-     * does, and it is optional. That left every consuming module with three
-     * moves and no correct one: always delete (races Times Up), never delete
-     * (effects linger forever without it), or check whether Times Up is
-     * installed (forbidden to a satellite). The loser of the race cannot even
-     * fail quietly — Foundry notifies from inside the socket response handler,
-     * before the promise rejects, so a caller's catch is strictly too late.
-     * Arbitration has to live in the one layer permitted to know Times Up is
-     * there. See architecture-ownership.md.
+     * WHY THIS EXISTS AT ALL. Neither dnd5e nor this system expires effects --
+     * dnd5e 5.3.3 carries no expiry code whatsoever. Something has to, or every
+     * timed effect in a world lingers forever, so it is us.
+     *
+     * WE NO LONGER YIELD THIS TO ANYONE. Until 2026-09-04 this deferred to Times
+     * Up whenever that module was installed, and only swept itself when it was
+     * not. That is the "leverage it INSTEAD of ours" shape the author ruled out
+     * (TODO-GLOBAL Ground Rule 8): our sweep stopped, and if the module we
+     * deferred to did not run, nothing expired anything. The same bet about a
+     * different module cost a table nineteen rounds of dead combatants taking
+     * turns.
+     *
+     * It was also a functional tie to a module that is now retired. Times Up
+     * shipped no Foundry v14 version -- its author's own note says core absorbed
+     * the bulk of it -- so a Blacksmith that only expires effects when Times Up
+     * is present would silently stop expiring anything the day a table upgrades.
+     * Blacksmith now expires effects on its own in every configuration, with or
+     * without that module, on v13 and v14 alike, and nothing needs to be said to
+     * a user about installing anything.
+     *
+     * RACING IS HANDLED BY THE DELETE, NOT BY STANDING DOWN. With Times Up still
+     * installed on v13 both may reach the same effect; `deleteExpired` re-checks
+     * the collection immediately before deleting and swallows the "already gone"
+     * rejection, so the loser costs at most a console line. That is the correct
+     * price. An effect that never expires is not.
      *
      * EXPIRED MEANS THE CLOCK RAN OUT, NOT THAT THE DOCUMENT IS GONE. Consumers
      * that need to know it was removed listen to `deleteActiveEffect`, which
-     * fires whoever did the deleting. Keeping the two apart is what lets this
-     * yield deletion to Times Up without the event's meaning changing.
+     * fires for whoever did the deleting.
      *
-     * CONSUMERS MUST NOT DELETE ON EXPIRY. That is the whole contract: exactly
-     * one actor deletes in every configuration, and it is Times Up or this.
+     * CONSUMERS STILL MUST NOT DELETE ON EXPIRY. One actor deletes, and it is
+     * this one.
      */
     static sweepExpired() {
         if (!game.user?.isGM) return;
-        const yieldDeletion = isTimesUpIntegrationEnabled();
         for (const actor of game.actors ?? []) {
             if (!actor?.effects?.size) continue;
             for (const effect of actor.effects) {
@@ -312,11 +340,11 @@ export class EffectsAPI {
                 const uuid = effect?.uuid;
                 if (!uuid || ANNOUNCED_EXPIRED.has(uuid)) continue;
                 ANNOUNCED_EXPIRED.add(uuid);
-                EffectsAPI.emitExpired(effect, { deletedBy: yieldDeletion ? 'times-up' : 'blacksmith' });
-                // Yield the delete when Times Up owns expiry; it will remove the
-                // document on its own schedule and `deleteActiveEffect` carries
-                // that fact. Otherwise nothing else will, so this does.
-                if (!yieldDeletion) void EffectsAPI.deleteExpired(effect);
+                EffectsAPI.emitExpired(effect, { deletedBy: 'blacksmith' });
+                // Always ours. `deleteExpired` is guarded against having lost a
+                // race, which is the whole reason we no longer have to ask who
+                // else might be sweeping.
+                void EffectsAPI.deleteExpired(effect);
             }
         }
     }

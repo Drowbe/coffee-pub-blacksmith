@@ -45,18 +45,27 @@ blocks it today. `getCritFumbleFromWorkflow` keeps only midi's own `isCritical`/
 additional signal and stops doing its own d20 reasoning, which currently stops at natural 20.
 Verify: a widened crit threshold reports a critical identically with integration on and off.
 
-### Times Up: stop yielding effect expiry
+### Author decision: remove the Times Up setting and its copy
 
-`api-effects.js` hands deletion to Times Up via `yieldDeletion`. Same shape as the midi defect -- if
-Times Up doesn't expire it, nobody does. Our sweep should always run and be idempotent, swallowing the
-"already gone" rejection the way `DefeatedManager._syncStatusEffect` does.
-Verify: an effect expires exactly once with Times Up installed, and still expires with it absent.
+`enableTimesUpIntegration` in `settings.js` and `lang/en.json` now controls nothing -- the code it gated
+is gone (2026-09-04) and Blacksmith always expires effects itself. A registered setting that does
+nothing is worse than no setting, so it should go, but **Claude does not delete a user-facing setting**:
+removing a registration discards whatever a GM had chosen. Author's call and author's copy.
 
-### Author decision: the three integration hints teach the wrong model
+Context that makes this safe rather than urgent: **Times Up is retired.** Its author shipped no v14
+version -- "core now provides the vast bulk of the functionality that times-up provided and it is no
+longer needed" -- and `times-up/module.json` caps at `"maximum": "13.999"`. midi-qol, by contrast, is
+continuing to v14. So this setting has an expiry date nobody here controls.
 
-`lang/en.json` -- "use its workflows for attack, damage, and crit detection" and "let it own effect
-expiry" both describe the behaviour this work is removing. **Claude does not rewrite these**; settings
-copy is the author's. Needs proposed wording and the author's choice once the code is additive.
+Not to be removed with it: `timesUpOriginalSeconds` in `api-effects.js`. That reads a flag on our own
+documents and stays correct and necessary for as long as any world contains an effect Times Up
+converted -- which includes v14 worlds upgraded from v13.
+
+### Author decision: the Midi-QOL hint teaches the wrong model
+
+`lang/en.json` -- "use its workflows for attack, damage, and crit detection" describes the behaviour the
+integration inversion is removing. **Claude does not rewrite these**; settings copy is the author's.
+Needs proposed wording and the author's choice once the code is fully additive.
 
 ---
 
