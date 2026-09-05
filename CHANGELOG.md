@@ -29,6 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Compendium Search shows the system's item card when you hover a result's icon** (`scripts/window-compendium-search.js`, `styles/window-compendium-search.css`). The palette listed a name, a badge and a price, which is enough to recognise something you already know and not enough to choose between two things you do not. Hovering the icon now shows the same rich card the compendium sidebar and character sheet show, rendered by the system rather than rebuilt here — dnd5e fills a `<section class="loading" data-uuid>` placeholder in from `Item5e.richTooltip()`, and that placeholder is the whole of our side of it.
+
+  Driven off the icon, not the row: the row is 400px of drag target and a card that appeared whenever the pointer crossed it would be in the way of the thing you were dragging onto. The icon also takes a pointer cursor, because it is now the one part of the row that does something hovering elsewhere does not.
+
+  The card is only offered for Items, and only when the system actually implements `richTooltip` — everything else keeps a plain text tooltip. An unfilled placeholder is a spinner that spins forever, so the capability is checked rather than assumed.
+
 - **The per-scene darkness opt-in is now on the scene, and an undecided scene asks** (`scripts/manager-darkness.js`, `scripts/ui-scene-geography.js`, `scripts/settings.js`). Whether a scene's light follows the world clock was a real feature with a real driver, reachable from exactly one place: right-clicking the world clock, then Options. The author of this module could not find it, and spent a session convinced the darkness driver was broken. It was not — the scene had simply never been switched on.
 
   The checkbox now sits on the scene's **Geography tab**, under Time of Day. Whether a place sees the sky is a fact about the place — an alley does, a cellar does not — which is the same kind of fact as habitat, and it is what a GM is already answering when they fill that tab in. The tab warns, in place, when Darkness Level Lock is on and the clock therefore cannot move the scene. The clock's context-menu entry stays: it is the fast toggle mid-session and the one that reports the lock.

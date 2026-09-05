@@ -71,6 +71,23 @@ const RARITY_MUNDANE = 'mundane';
 /** Type-selector sentinel: search every mapped type at once. */
 const ALL_TYPES = '__all__';
 
+/**
+ * Whether the system ships a rich hover card for Items.
+ *
+ * dnd5e renders one from `Item5e.richTooltip()` (dnd5e.mjs:23569, verified against
+ * 5.3.3) and fills it in through a MutationObserver on the shared tooltip element
+ * (`Tooltips5e`, dnd5e.mjs:82063): a `data-tooltip` holding a `<section class="loading"
+ * data-uuid="...">` is swapped for the real card once it resolves. That is the same
+ * declarative contract the system's own chat templates use, so we drive it rather than
+ * rebuilding the card.
+ *
+ * Checked, not assumed, because the spinner is what the user is left staring at if the
+ * system never replaces it. A system with no `richTooltip` gets plain text instead.
+ */
+function systemHasRichItemTooltips() {
+    return typeof CONFIG?.Item?.documentClass?.prototype?.richTooltip === 'function';
+}
+
 export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
     static ROOT_CLASS = 'blacksmith-window-tool-root';
@@ -492,6 +509,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         if (!list) return;
 
         const results = report.results ?? [];
+        const esc = foundry.utils.escapeHTML;
+        // Hoisted out of the row loop: it is a capability question about the system, not
+        // about any one result.
+        const richTooltips = systemHasRichItemTooltips();
         list.replaceChildren();
 
         if (!results.length) {
@@ -550,6 +571,23 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             thumb.src = result.img || 'icons/svg/mystery-man.svg';
             thumb.alt = '';
             thumb.loading = 'lazy';
+            // Explicitly false so the icon is not itself a drag source. The row stays
+            // draggable and the browser walks up to it, which is what keeps the payload
+            // the {type, uuid} object rather than the image's file URL -- the reason the
+            // icon used to be pointer-events: none. It needs pointers back to be hoverable.
+            thumb.draggable = false;
+            if (richTooltips && result.documentClass === 'Item') {
+                // The system's own contract: a placeholder it recognises, swapped for the
+                // real card when the document resolves. Built as a string because that is
+                // what data-tooltip is -- Foundry runs it through cleanHTML and injects it
+                // (client/helpers/interaction/tooltip-manager.mjs:243, v13), and `section`,
+                // `class` and `data-*` all survive that pass.
+                thumb.dataset.tooltip = `<section class="loading" data-uuid="${esc(result.uuid)}"><i class="fa-solid fa-spinner fa-spin-pulse"></i></section>`;
+            } else {
+                // No card for this document class, so say something true rather than
+                // leaving a spinner that never resolves.
+                thumb.dataset.tooltip = 'Click to open, drag to add';
+            }
 
             const name = document.createElement('span');
             name.className = 'bcs-name';

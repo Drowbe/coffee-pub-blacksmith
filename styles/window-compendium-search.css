@@ -142,10 +142,15 @@
     /* 2px reads as square at this size. 4px is visibly rounded without turning
        item art into a badge. */
     border-radius: 4px;
-    /* The row is the drag source, so the image must not start its own
-       native image drag and hand the drop target a file URL instead of
-       the {type, uuid} payload. */
-    pointer-events: none;
+    /* Hoverable, because the icon carries the system's rich item card. The row is
+       still the drag source -- `draggable="false"` on the <img> is what stops the
+       image starting its own native drag and handing the drop target a file URL
+       instead of the {type, uuid} payload. That attribute replaces the
+       `pointer-events: none` this rule used to carry; do not put it back. */
+    pointer-events: auto;
+    /* The icon is the only part of the row that does something a click does not:
+       it shows the card. A pointer says so. */
+    cursor: pointer;
 }
 
 .blacksmith-compendium-search-window .bcs-name {
