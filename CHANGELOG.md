@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Compendium Search can look past the GM's mapping, on demand** (`scripts/manager-compendiums.js`, `scripts/api-compendiums.js`, `scripts/window-compendium-search.js`). A globe in the palette's title bar switches the scan from the compendiums the GM curated to **every installed compendium that can hold the type**. It exists for the case the mapping is for: the curated set is the right default and is occasionally not where the thing is.
+
+  **The mapping still leads.** `_allSourcesOrder()` puts the mapped order first, the world next, then everything else installed. That is not cosmetic — `search()` lets its cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of the list. The world sits after the mapped set rather than at the end for the same reason: a GM's own documents beat the fortieth installed pack.
+
+  Off by default and **client-scoped**, riding in the palette's existing preferences rather than a new setting. "Look wider right now" is a gesture belonging to the person making it, not a property of the world. It is off by default because every pack it reaches is indexed once per session, so the first unscoped search on a content-heavy world is a visible pause — and the status line reads `— all installed` whenever a result could have come from outside the mapping, since the row's own heading names the pack without saying that.
+
+  Exposed on the API as `allSources` on `search()`, `searchDetailed()`, `query()` and `queryDetailed()`. It composes with `sources`, which is now intersected against whatever the scan can reach rather than against the mapping unconditionally; `'world'` stays nameable either way, which the old predicate allowed and a narrower one would have silently broken.
+
+  With the toggle on, the type dropdown offers every type rather than only the mapped ones. Filtering to "has a configured source" is exactly backwards once the mapping is bypassed, and would hide the case the toggle is for.
+
 - **Compendium Search shows the system's item card when you hover a result's icon** (`scripts/window-compendium-search.js`, `styles/window-compendium-search.css`). The palette listed a name, a badge and a price, which is enough to recognise something you already know and not enough to choose between two things you do not. Hovering the icon now shows the same rich card the compendium sidebar and character sheet show, rendered by the system rather than rebuilt here — dnd5e fills a `<section class="loading" data-uuid>` placeholder in from `Item5e.richTooltip()`, and that placeholder is the whole of our side of it.
 
   Driven off the icon, not the row: the row is 400px of drag target and a card that appeared whenever the pointer crossed it would be in the way of the thing you were dragging onto. The icon also takes a pointer cursor, because it is now the one part of the row that does something hovering elsewhere does not.
@@ -54,6 +64,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Blacksmith remains consumer zero for `registerSceneConfigTab`: the tab goes through the public path, and the checkbox is persisted by Foundry's own form submission with no save callback. A new `updateScene` hook applies the change the moment the flag lands from any of the three surfaces — without it, a GM ticking the box in the middle of a flat afternoon sees nothing happen until the next twilight, because the curve computes no change and the write gate correctly suppresses it.
 
 ### Fixed
+
+- **An empty search box now browses whenever a subtype is chosen, not only when a price or rarity is** (`scripts/window-compendium-search.js`). Compendium Search browses on an empty box when a filter is set, and its test for "a filter is set" counted only the economics facets. So choosing **Weapon** and clearing the box was told to type three characters, while choosing **Rare** and clearing the box listed everything — and because the facets persist across sessions and the query deliberately does not, whether a subtype browsed depended on a rarity the user may have set on a different day. From outside it looked random. A subtype is a request for a set exactly as a rarity is, and is now treated as one.
+
+  Type alone is still not enough on its own. "All Items" is every mapped pack read out alphabetically and capped, which answers nothing and costs the most to produce.
+
+  Two things follow. The subtype control now re-renders like the facets do, because it can flip the window between search and browse mode and the placeholder is what tells the user which is live. And a subtype restored from preferences is dropped unless the restored type can actually show the control — a saved type whose pack has since been uninstalled falls back to All types, which would have stranded its subtype as a filter narrowing results with nothing on screen to clear it.
 
 - **The darkness pass never ran on client load, only on scene change** (`scripts/manager-darkness.js`). Core awaits `canvas.initializing` — which draws the canvas and fires `canvasReady` — and only then calls `Hooks.callAll("ready")` (v13.351 `client/game.mjs:784-787`). This manager initializes from `ready`, so it was registering for a hook that had already fired and would not come again until the GM switched scene.
 

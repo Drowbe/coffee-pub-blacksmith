@@ -228,6 +228,36 @@ export class CompendiumManager {
         return choices;
     }
 
+    /**
+     * Every source that could hold this type, in the order an unscoped scan should open
+     * them. The mapping still leads.
+     *
+     * THE GM'S PRIORITY ORDER IS NOT DISCARDED, it is extended. Unscoped searching exists
+     * for the case where the curated set does not have the thing -- not for the claim that
+     * curation was worthless. So the mapped order runs first and unmapped packs follow it,
+     * which matters concretely in stop-scan mode: the cap truncates the TAIL, so putting
+     * the mapping anywhere but the head would let a third-party pack push the GM's own
+     * choice out of a result list.
+     *
+     * The world sits directly after the mapped set rather than at the end, unless the
+     * mapping already placed it. A tail of dozens of installed packs is exactly what a cap
+     * cuts off, and a GM's own world documents are a likelier answer than the fortieth
+     * bundled compendium.
+     *
+     * @private
+     * @param {string} canonical - An already-normalized type token
+     * @param {object} mapping - getMapping(canonical), passed in so it is read once
+     * @returns {string[]} 'world' and/or pack ids
+     */
+    _allSourcesOrder(canonical, mapping) {
+        const order = [...mapping.searchOrder];
+        if (!order.includes('world')) order.push('world');
+        for (const pack of this.getAllPacks(canonical)) {
+            if (!order.includes(pack.id)) order.push(pack.id);
+        }
+        return order;
+    }
+
     // ==============================================================
     // ===== RESOLUTION =============================================
     // ==============================================================
@@ -422,6 +452,10 @@ export class CompendiumManager {
      * @param {string[]} [options.sources=null]  - Optional subset of configured source ids
      * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
      * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
+     * @param {boolean} [options.allSources=false] - Search every INSTALLED pack that can hold
+     *   the type, not only the GM's mapping. The mapped order still leads; see
+     *   _allSourcesOrder. Opt-in because it opens and indexes every such pack once per
+     *   session, which on a content-heavy world is a visible pause on the first call.
      * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
      *                          img: string|null, source: string, sourceLabel: string,
      *                          sourcePackage: string, matchType: string}>>}
@@ -477,7 +511,8 @@ export class CompendiumManager {
             limit = 50,
             sources = null,
             minLength = 2,
-            fuzzy = true
+            fuzzy = true,
+            allSources = false
         } = options;
 
         const needle = String(query ?? '').trim().toLowerCase();
@@ -490,6 +525,7 @@ export class CompendiumManager {
         return this._scan({
             type,
             sources,
+            allSources,
             subtypes: itemType ? [itemType] : null,
             needle,
             fuzzy,
@@ -539,6 +575,9 @@ export class CompendiumManager {
      * @param {{min?: number, max?: number}} [filter.priceGp=null] - Price window in gold
      * @param {boolean} [filter.includeUnpriced=false] - Keep entries stored at price 0
      * @param {string[]} [filter.sources=null] - Restrict to configured source ids
+     * @param {boolean} [filter.allSources=false] - Scan every installed pack that can hold the
+     *   type, not only the mapping. Costlier here than in search(), because a query never
+     *   stops early: an unscoped query opens every one of them.
      * @param {number} [filter.limit=200] - Cap the output; the scan is always complete
      * @returns {Promise<Array<object>>} search() rows plus `rarity`, `price`, `priceGp`
      */
@@ -566,6 +605,7 @@ export class CompendiumManager {
             priceGp = null,
             includeUnpriced = false,
             sources = null,
+            allSources = false,
             limit = 200
         } = filter;
 
@@ -578,6 +618,7 @@ export class CompendiumManager {
         return this._scan({
             type,
             sources,
+            allSources,
             subtypes,
             // No needle at all, which is what puts the scan in single-bucket mode.
             needle: null,
@@ -678,6 +719,8 @@ export class CompendiumManager {
      * @param {object} spec
      * @param {string|string[]} spec.type - Type token(s), same as search()
      * @param {string[]|null} [spec.sources] - Restrict to these configured source ids
+     * @param {boolean} [spec.allSources=false] - Draw the source order from every installed
+     *   pack that can hold the type rather than from the mapping alone
      * @param {string[]|null} [spec.subtypes] - Restrict to these document subtypes
      * @param {string|null} [spec.needle] - Lowercased search text, or null for no text match
      * @param {boolean} [spec.fuzzy=true] - Include the loose "includes" tier (needle mode only)
@@ -700,6 +743,7 @@ export class CompendiumManager {
         fuzzy = true,
         limit = 50,
         stopAtLimit = false,
+        allSources = false,
         extended = false,
         rarity = null,
         priceGp = null,
@@ -733,9 +777,20 @@ export class CompendiumManager {
         const searchOrder = [];
         for (const canonical of canonicalTypes) {
             const mapping = this.getMapping(canonical);
+            const available = allSources ? this._allSourcesOrder(canonical, mapping) : mapping.searchOrder;
+            // Intersected against what this call can reach, which is the mapping normally
+            // and every installed pack in all-sources mode. Filtering against the mapping
+            // in both would make `sources` and `allSources` contradict each other, with the
+            // narrower one silently winning.
             const order = requestedSources
-                ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
-                : mapping.searchOrder;
+                ? requestedSources.filter(source => available.includes(source)
+                    // 'world' stays nameable even when the mapping leaves it out of the
+                    // default order. The searchWorldFirst/Last flags decide whether it is
+                    // searched WITHOUT being asked for, not whether it may be asked for --
+                    // and the old predicate admitted it unconditionally, so narrowing that
+                    // here would silently break every caller passing sources: ['world'].
+                    || source === 'world')
+                : available;
             if (!order.length) continue;
             plans.push({ type: canonical, sources: new Set(order), documentClass: getDocumentClass(canonical) });
             for (const source of order) if (!searchOrder.includes(source)) searchOrder.push(source);

@@ -225,7 +225,8 @@ await compendiums.search(query, type, {
   limit: 50,        // cap total results
   sources: null,    // configured-source subset, as in resolve()
   minLength: 2,     // shorter queries return [] without scanning
-  fuzzy: true       // include the loose 'includes' tier
+  fuzzy: true,      // include the loose 'includes' tier
+  allSources: false // look beyond the mapping to every installed compendium
 });
 ```
 
@@ -316,11 +317,29 @@ await compendiums.query({
   priceGp: { min: 1, max: 500 },  // gold pieces; either end omittable
   includeUnpriced: false,         // keep entries stored at price 0
   sources: null,                  // default: the GM's configured search set
+  allSources: false,              // scan every installed compendium instead
   limit: 200                      // caps the output
 });
 ```
 
 `search()` accepts `rarity`, `priceGp` and `includeUnpriced` too, so a picker can offer a facet alongside a text box. Passing either one is what makes `search()` populate the economics fields.
+
+## Searching beyond the mapping: `allSources`
+
+Both `search()` and `query()` take `allSources`. It replaces the GM's mapping as the scan order with every installed compendium that can hold the type — the same inventory `getAllPacks()` reports.
+
+```js
+// The mapped set first, then everything else installed.
+const results = await compendiums.search('shortsword', 'Item', { allSources: true });
+```
+
+Three things to know before you pass it:
+
+- **The mapping still leads.** The mapped order runs first, the world next, unmapped packs after. Because `search()`'s cap stops the scan, the tail is what gets cut — so a curated pick is never displaced by a bundled one.
+- **It is not free.** Every pack it reaches is indexed once per session. The first unscoped call on a content-heavy world is a visible pause, and `query()` costs more than `search()` because a query never stops early. Make it a user gesture, not a default.
+- **It composes with `sources`.** An explicit `sources` list is intersected against whatever the scan can reach — the mapping normally, the full inventory when unscoped. `'world'` is nameable either way, regardless of the `searchWorldFirst`/`Last` settings.
+
+Blacksmith's own Compendium Search window is the reference consumer: the globe in its title bar toggles this, client-scoped, because "look wider right now" is a gesture rather than a configuration.
 
 ## Type tokens
 

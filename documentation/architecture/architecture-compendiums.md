@@ -79,4 +79,17 @@ These citations name a dnd5e version because a `dnd5e.mjs:NNNN` pointer is only 
 
 `search()` and `query()` exist so a consumer never builds a second index cache. One that calls `getSelected()` and indexes the packs directly gets its own invalidation, which drifts from this one after any compendium edit — and, if it reads rarity or price, widens the underlying Foundry index a second time at the cost of another full re-fetch per pack.
 
-The reference consumer is `window-compendium-search.js`, which uses both modes: `searchDetailed()` when there is text, and `queryDetailed()` when a facet is set and the box is empty. That second path is the reason the window can browse at all — below its minimum query length it previously refused.
+The reference consumer is `window-compendium-search.js`, which uses both modes: `searchDetailed()` when there is text, and `queryDetailed()` when a filter is set and the box is empty. That second path is the reason the window can browse at all — below its minimum query length it previously refused.
+
+**What counts as a filter is a product decision, and it belongs to the window, not here.** The window's `_hasFacets()` treats a subtype OR an economics facet as enough to browse on; type alone is not, because "all Items" is every mapped pack read out alphabetically and capped, which answers nothing and costs the most. That rule was previously economics-only, which made browsing depend on a rarity the user may have set on a different day — the facets persist across sessions and the query deliberately does not.
+
+
+## Unscoped scanning: `allSources`
+
+`search()` and `query()` both take `allSources`, which replaces the GM's mapping as the source of the scan order with **every installed pack that can hold the type** — `getAllPacks()`, the same inventory the settings dropdowns are built from.
+
+**The mapping still leads.** `_allSourcesOrder()` puts the mapped order first, the world next, and unmapped packs after that. This is not cosmetic: `search()` lets the cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of a result list. The world sits after the mapped set rather than at the end for the same reason — a GM's own documents are a likelier answer than the fortieth installed compendium.
+
+**It is opt-in and should stay opt-in.** Every pack it reaches is indexed once per session, so the first unscoped call on a content-heavy world is a visible pause; `query()` pays more than `search()`, because a query never stops early and therefore opens all of them. The cost is bounded — `_getPackIndex` caches, so it is paid once — but it is paid the first time, in front of the user.
+
+`sources` and `allSources` compose: an explicit `sources` list is intersected against whatever the scan can reach, which is the mapping normally and the full inventory when unscoped. `'world'` is nameable in `sources` either way, whether or not `searchWorldFirst`/`Last` places it in the default order.

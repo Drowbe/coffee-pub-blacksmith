@@ -145,6 +145,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             prefs = game.settings.get(MODULE.ID, PREFS_SETTING) || {};
         } catch { /* setting not registered yet */ }
 
+        // Read before _availableTypes(), which depends on it: with the mapping bypassed,
+        // every type is reachable and the "has a configured source" filter would be a lie.
+        this._allSources = !!prefs.allSources;
+
         const types = this._availableTypes();
         // All types by default: a palette you reach for mid-session should answer
         // "where is that thing" without first being told what kind of thing it is.
@@ -152,6 +156,15 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             ? prefs.type
             : ALL_TYPES;
         this._subtype = typeof prefs.subtype === 'string' ? prefs.subtype : ANY_SUBTYPE;
+        // Dropped unless the restored type can actually SHOW this control. Type and subtype
+        // are always saved together, so they cannot disagree by ordinary use -- but a saved
+        // type whose pack has since been uninstalled falls back to All above and would
+        // strand its subtype here. That subtype now decides whether an empty box browses,
+        // so a stranded one is a filter narrowing results with no control to clear it.
+        if (this._subtype !== ANY_SUBTYPE
+            && !this._availableSubtypes().some(s => s.value === this._subtype)) {
+            this._subtype = ANY_SUBTYPE;
+        }
         this._rarity = typeof prefs.rarity === 'string' ? prefs.rarity : ANY_RARITY;
         this._priceMin = Number.isFinite(prefs.priceMin) ? prefs.priceMin : null;
         this._priceMax = Number.isFinite(prefs.priceMax) ? prefs.priceMax : null;
@@ -166,11 +179,19 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
     // ===== RENDER =================================================
     // ==============================================================
 
-    /** Mapped types that actually have a source configured — an unmapped type can only disappoint. */
+    /**
+     * Types the picker can offer.
+     *
+     * Normally the ones with a source configured, because an unmapped type can only
+     * disappoint. Unscoped, that filter is exactly backwards: every type is reachable
+     * through some installed pack, and hiding the ones the GM never mapped would remove
+     * the case the toggle exists for.
+     */
     _availableTypes() {
         try {
-            return compendiumManager.getTypes()
-                .filter(type => compendiumManager.getSearchOrderForType(type).length > 0);
+            const types = compendiumManager.getTypes();
+            if (this._allSources) return types;
+            return types.filter(type => compendiumManager.getSearchOrderForType(type).length > 0);
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: could not read mapped types', error, false, false);
             return [];
@@ -248,8 +269,22 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         return rarities;
     }
 
-    /** Whether any facet is narrowing the result set. */
+    /**
+     * Whether any filter is narrowing the result set -- which is also the test for
+     * whether an empty search box browses instead of refusing.
+     *
+     * SUBTYPE COUNTS, and for a long time it did not. Only the economics facets did, so
+     * choosing "Weapon" with an empty box was told to type three characters while
+     * choosing "Rare" with an empty box browsed -- and because the facets persist across
+     * sessions and the query does not, whether a subtype browsed depended on a rarity the
+     * user had set some other day. That is indistinguishable from a bug from the outside.
+     * A subtype is a request for a set, exactly as a rarity is.
+     *
+     * Type alone is deliberately still not enough. "All Items" is every mapped pack read
+     * out alphabetically, capped -- a list that answers nothing and costs the most.
+     */
     _hasFacets() {
+        if (this._subtype !== ANY_SUBTYPE) return true;
         return this._economicsApply()
             && (this._rarity !== ANY_RARITY || this._priceMin !== null || this._priceMax !== null);
     }
@@ -320,7 +355,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             : `<div class="bcs-empty bcs-unmapped">
                    <i class="fa-solid fa-triangle-exclamation"></i>
                    <p>No compendiums are mapped yet.</p>
-                   <p class="bcs-empty-hint">Configure them in Campaign Settings, under Compendium Mapping.</p>
+                   <p class="bcs-empty-hint">Configure them in Campaign Settings, under Compendium Mapping — or turn on <strong>Search all installed compendiums</strong> (the globe) to look at everything installed.</p>
                </div>`;
 
         return {
@@ -336,6 +371,28 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
 
     getToolHeaderActions() {
         return [{
+            // A gesture, not a filter -- "look wider right now" -- so it sits in the title
+            // bar beside Reload rather than in the filter row with the things that describe
+            // WHAT you are looking for. It is also why the state is client-scoped: it is
+            // this user's reach, not a property of the world.
+            id: 'all-sources',
+            icon: 'fa-solid fa-globe',
+            // One label in both states. The pressed state carries the difference -- the base
+            // class marks it `is-active` in the title bar and prefixes a check in the
+            // context menu it falls back to on a micro title bar -- and a label that
+            // rewrote itself would read as a second, different control in that menu.
+            label: 'Search all installed compendiums',
+            active: this._allSources,
+            onClick: async () => {
+                this._allSources = !this._allSources;
+                void this._savePreferences();
+                // A full render: the status line, the placeholder and the type list all
+                // change with this, and the header button's own pressed state is reapplied
+                // by the base class on render.
+                await this.render(false);
+                this._getRoot()?.querySelector('.bcs-query')?.focus();
+            }
+        }, {
             id: 'refresh',
             icon: 'fa-solid fa-arrows-rotate',
             label: 'Reload compendium indexes',
@@ -385,25 +442,27 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             this._getRoot()?.querySelector('.bcs-query')?.focus();
         });
 
-        subtype?.addEventListener('change', () => {
-            this._subtype = subtype.value;
-            void this._savePreferences();
-            void this._search({ immediate: true });
-        });
-
-        const rarity = root.querySelector('.bcs-rarity');
-        const priceMin = root.querySelector('.bcs-price-min');
-        const priceMax = root.querySelector('.bcs-price-max');
-
-        // A facet change can flip the window between search and browse mode, and the
-        // placeholder says which mode is live -- so unlike the subtype control these
-        // re-render rather than repainting rows in place. Focus goes back to the box for
-        // the same reason it does after a type change.
+        // A filter change can flip the window between search and browse mode, and the
+        // placeholder says which mode is live -- so these re-render rather than repainting
+        // rows in place. Focus goes back to the box for the same reason it does after a
+        // type change. Declared here because the subtype control uses it too.
         const onFacetChange = async () => {
             void this._savePreferences();
             await this.render(false);
             this._getRoot()?.querySelector('.bcs-query')?.focus();
         };
+
+        // Re-renders rather than repainting rows in place, because a subtype now flips the
+        // window between search and browse mode and the placeholder is what says which is
+        // live. It used to repaint, which was correct only while subtype was a pure filter.
+        subtype?.addEventListener('change', () => {
+            this._subtype = subtype.value;
+            void onFacetChange();
+        });
+
+        const rarity = root.querySelector('.bcs-rarity');
+        const priceMin = root.querySelector('.bcs-price-min');
+        const priceMax = root.querySelector('.bcs-price-max');
 
         rarity?.addEventListener('change', () => {
             this._rarity = rarity.value;
@@ -469,7 +528,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     limit: RESULT_LIMIT,
                     minLength: MIN_QUERY_LENGTH,
                     rarity,
-                    priceGp
+                    priceGp,
+                    allSources: this._allSources
                 });
             } else if (this._hasFacets()) {
                 // Browse mode. No text to match, so the scan is complete and the cap
@@ -481,7 +541,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     subtypes: this._subtype ? [this._subtype] : null,
                     rarity,
                     priceGp,
-                    limit: RESULT_LIMIT
+                    limit: RESULT_LIMIT,
+                    allSources: this._allSources
                 });
             }
         } catch (error) {
@@ -635,7 +696,11 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             const more = report.truncated
                 ? ` — more available${skipped ? `, ${skipped} compendium${skipped === 1 ? '' : 's'} not searched` : ''}`
                 : '';
-            status.textContent = `${results.length} in ${sources} source${sources === 1 ? '' : 's'} (${elapsed}ms)${more}`;
+            // Said out loud, because an unscoped scan is the one state where a result can
+            // come from a compendium the GM deliberately left out of the mapping -- and
+            // the row's own heading names the pack without saying that.
+            const scope = this._allSources ? ' — all installed' : '';
+            status.textContent = `${results.length} in ${sources} source${sources === 1 ? '' : 's'}${scope} (${elapsed}ms)${more}`;
             status.classList.toggle('is-truncated', !!report.truncated);
         }
     }
@@ -692,7 +757,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 subtype: this._subtype,
                 rarity: this._rarity,
                 priceMin: this._priceMin,
-                priceMax: this._priceMax
+                priceMax: this._priceMax,
+                allSources: this._allSources
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: could not save preferences', error, false, false);

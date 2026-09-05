@@ -218,6 +218,10 @@ export const CompendiumsAPI = {
      * @param {string[]} [options.sources=null]  - Restrict to configured source ids (`world` or pack ids)
      * @param {number}  [options.minLength=2]    - Return [] without scanning below this query length
      * @param {boolean} [options.fuzzy=true]     - Include the loose "includes" tier
+     * @param {boolean} [options.allSources=false] - Look beyond the GM's mapping to every
+     *   INSTALLED compendium that can hold the type. The mapped order still runs first, so
+     *   a curated pick is never displaced by a bundled one. Opt-in: it indexes every such
+     *   pack once per session, which is a visible pause on a content-heavy world.
      * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
      *                          img: string|null, source: string, sourceLabel: string,
      *                          sourcePackage: string, matchType: string}>>}
@@ -310,6 +314,9 @@ export const CompendiumsAPI = {
      * @param {{min?: number, max?: number}} [filter.priceGp=null] - Price window in gold pieces
      * @param {boolean} [filter.includeUnpriced=false] - Keep entries stored at price 0
      * @param {string[]} [filter.sources=null]       - Restrict to configured source ids
+     * @param {boolean} [filter.allSources=false]    - Scan every installed pack that can hold
+     *   the type, not only the mapping. Costlier here than in search(): a query never stops
+     *   early, so an unscoped one opens every one of them.
      * @param {number}  [filter.limit=200]           - Cap the output
      * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
      *                          img: string|null, source: string, sourceLabel: string,
