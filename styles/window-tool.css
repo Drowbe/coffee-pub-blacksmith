@@ -242,9 +242,31 @@
 }
 
 .application.blacksmith-window-tool > .window-header button.header-control:hover,
-.application.blacksmith-window-tool > .window-header button.header-control:focus-visible,
-.application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active {
+.application.blacksmith-window-tool > .window-header button.header-control:focus-visible {
     --button-text-color: var(--blacksmith-tool-text);
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+/* ON is not the same fact as "the pointer is here", and these used to be the same rule:
+   an active toggle got the hover treatment exactly, so a toggle that was switched on was
+   indistinguishable from one the mouse happened to be over -- and, with the mouse
+   elsewhere, from one that was off. A title bar of toggles then says nothing about state.
+
+   The house orange, which is what the menubar already uses for the same job and what the
+   micro title bar's focus state uses six rules down. Not --blacksmith-tool-accent: under
+   Light that resolves to the same near-black as --blacksmith-tool-text, so it would read
+   as no change at all on the one theme where it matters most. Placed AFTER the hover rule
+   because the two selectors have equal specificity and source order decides. */
+.application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active {
+    --button-text-color: var(--blacksmith-color-brand-accent, #c15701);
+    background: transparent;
+}
+
+/* Hovering something already on keeps the orange and adds the hover ground, so the two
+   facts stack rather than one overwriting the other. */
+.application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active:hover,
+.application.blacksmith-window-tool > .window-header button.blacksmith-window-tool-header-action.is-active:focus-visible {
+    --button-text-color: var(--blacksmith-color-brand-accent, #c15701);
     background: var(--blacksmith-tool-surface-hover);
 }
 

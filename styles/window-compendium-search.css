@@ -109,6 +109,11 @@
    amber chip at the same weight let the list be scanned in one pass without either
    answer being an alarm.
 
+   THE WORLD IS A THIRD STATE and shows its chip always, widening or not. It is not a
+   compendium and cannot be in the mapping, so calling it unmapped would send a GM looking
+   for a slot they forgot to fill; and since the heading now carries the world's own title,
+   the chip is what says this group is the user's documents rather than a pack.
+
    No border rule, no recoloured heading: the chip carries it. */
 
 .blacksmith-compendium-search-window .bcs-group-mark {
@@ -125,16 +130,25 @@
     white-space: nowrap;
 }
 
-.blacksmith-compendium-search-window .bcs-group-mark[data-mapped="true"] {
+.blacksmith-compendium-search-window .bcs-group-mark[data-mapping="mapped"] {
     border-color: var(--blacksmith-variant-success-border, rgba(51, 92, 51, 0.45));
     background: var(--blacksmith-variant-success-bg, rgba(51, 92, 51, 0.12));
     color: var(--blacksmith-status-success, #629602);
 }
 
-.blacksmith-compendium-search-window .bcs-group-mark[data-mapped="false"] {
+.blacksmith-compendium-search-window .bcs-group-mark[data-mapping="unmapped"] {
     border-color: var(--blacksmith-variant-warning-border, rgba(115, 86, 35, 0.45));
     background: var(--blacksmith-variant-warning-bg, rgba(115, 86, 35, 0.12));
     color: var(--blacksmith-status-warning, #aa6000);
+}
+
+/* Neither of the above. Info blue rather than a third shade of the mapped/unmapped pair,
+   because this is not a better or worse answer to the same question -- it is a different
+   question. */
+.blacksmith-compendium-search-window .bcs-group-mark[data-mapping="world"] {
+    border-color: var(--blacksmith-variant-info-border, rgba(47, 68, 106, 0.45));
+    background: var(--blacksmith-variant-info-bg, rgba(47, 68, 106, 0.12));
+    color: var(--blacksmith-status-info, #3c6685);
 }
 
 .blacksmith-compendium-search-window .bcs-group-mark + .bcs-group-package {

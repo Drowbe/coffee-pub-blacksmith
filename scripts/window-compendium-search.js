@@ -751,9 +751,18 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 const header = document.createElement('div');
                 header.className = 'bcs-group';
 
+                // The world is labelled by its own title, with the chip carrying the fact
+                // that it IS the world. Every other heading reads pack name + package, and
+                // `sourceLabel` for a world row is the literal string 'World' -- so showing
+                // it here and then a WORLD chip beside it says the same word twice while
+                // the world's actual name sits in the package slot going unread.
+                const isWorldGroup = result.source === 'world';
+
                 const packLabel = document.createElement('span');
                 packLabel.className = 'bcs-group-pack';
-                packLabel.textContent = result.sourceLabel;
+                packLabel.textContent = isWorldGroup
+                    ? (result.sourcePackage || result.sourceLabel)
+                    : result.sourceLabel;
                 header.appendChild(packLabel);
 
                 // BOTH answers get a chip, not just the unwelcome one. Marking only the
@@ -765,29 +774,35 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 // Only while unscoped, because that is the only state where the question
                 // is live. With the toggle off every source is mapped, and a chip on every
                 // heading would be decoration.
-                if (showMapping) {
-                    const mapped = result.mapped !== false;
+                // THREE STATES, not two. Mapped and unmapped are answers about the
+                // Compendium Mapping, and the world is not in it and could not be -- the
+                // mapping is a list of packs. Calling the world unmapped invites a GM to go
+                // looking for the slot they forgot to fill, and there is none.
+                //
+                // The world chip shows ALWAYS, where the other two show only while a
+                // widening is on. It is not reporting mapping state; it is what tells the
+                // reader this group is their own documents rather than a compendium, which
+                // is true whether the world arrived through the mapping or the globe.
+                const state = result.source === 'world'
+                    ? 'world'
+                    : (result.mapped === false ? 'unmapped' : 'mapped');
+
+                if (state === 'world' || showMapping) {
                     const mark = document.createElement('span');
                     mark.className = 'bcs-group-mark';
-                    mark.dataset.mapped = String(mapped);
-                    mark.textContent = mapped ? 'mapped' : 'not mapped';
-                    // The world is a source but not a compendium, so it gets its own
-                    // wording -- and points at the setting that actually governs it, which
-                    // is Search World First/Last and not the pack priority slots.
-                    const isWorld = result.source === 'world';
-                    if (mapped) {
-                        mark.dataset.tooltip = isWorld
-                            ? 'Your world’s own documents. Included because Search World First or Last is on for this type.'
-                            : 'This compendium is in your Compendium Mapping.';
-                    } else {
-                        mark.dataset.tooltip = isWorld
-                            ? 'Your world’s own documents, not a compendium. Shown because Include world documents is on; to search them always, turn on Search World First or Last for this type.'
-                            : 'This compendium is not in your Compendium Mapping. It is shown because Search all installed compendiums is on.';
-                    }
+                    mark.dataset.mapping = state;
+                    mark.textContent = state;
+                    mark.dataset.tooltip = {
+                        world: 'Your world’s own documents, not a compendium — the Compendium Mapping does not apply. Included because Search World First or Last is on for this type, or because Include world documents is on.',
+                        mapped: 'This compendium is in your Compendium Mapping.',
+                        unmapped: 'This compendium is not in your Compendium Mapping. It is shown because Search all installed compendiums is on.'
+                    }[state];
                     header.appendChild(mark);
                 }
 
-                if (result.sourcePackage && result.sourcePackage !== result.sourceLabel) {
+                // Skipped for the world: its title is already the heading, so the package
+                // slot would repeat it.
+                if (!isWorldGroup && result.sourcePackage && result.sourcePackage !== result.sourceLabel) {
                     const packageLabel = document.createElement('span');
                     packageLabel.className = 'bcs-group-package';
                     packageLabel.textContent = result.sourcePackage;
