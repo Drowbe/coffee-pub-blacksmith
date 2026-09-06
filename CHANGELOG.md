@@ -33,6 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Compendium Search can be opened seeded, so a module does not have to build its own picker** (`scripts/window-compendium-search.js`, `documentation/api/api-window.md`). `openWindow('blacksmith-compendium-search', { type, subtype, query })` opens the palette already looking for something. Its registry opener previously took no arguments and silently dropped the options object `openWindow` hands it, which made the registry look like it supported something it did not.
+
+  A caller opening this from its own UI usually knows what the user is after — "add a spell to this character" is not the same request as "open the search" — and without a seed a sibling reaching for the palette gets whatever state the user last left it in, which is why they would keep writing pickers instead.
+
+  An already-open window is **re-seeded**, not merely raised: a caller asking for spells means it. A call carrying no seed, or one whose values are already set, raises without re-rendering, so it cannot discard a search somebody is part-way through typing. Values are validated rather than trusted — an unmapped type or a subtype that does not belong to the type is dropped with a debug line, because a control holding a value its own option list does not contain renders blank and the user cannot then tell what is being searched. A seed is one open and does not write the user's saved preferences.
+
+  `documentation/api/api-window.md` also gains the four registered windows its id table was missing — World Calendar, Notes, Note editor and Rest — so the list is now every id `registerWindow` is actually called with.
+
 - **A world setting for whether players may add from Compendium Search** (`scripts/settings.js`, `scripts/window-compendium-search.js`, `lang/en.json`). The palette hands out Foundry's native drag payload, so a result lands on any sheet the user owns and creates the document there. That is the right mechanism, and it also means an unpoliced palette is a "give yourself any item in the game" tool for any player who owns a character.
 
   **Players Can Add From Compendium Search** is on by default — that is what the palette already did, and turning it off is a decision a table makes rather than one an update makes for them. Off, a player keeps the search itself: they can look things up and open what they find, but not drag it out. That split is narrower than it looks and it is the one that matters — a player reading how grappling works needs the compendium open, not write access to their own sheet.

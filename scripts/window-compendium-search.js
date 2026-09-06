@@ -141,18 +141,105 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
      * Open the window, focusing the existing one instead of opening a second.
      * A fixed `id` means two live instances would collide in the DOM, and a
      * palette is a thing you want one of.
+     *
+     * SEEDING. A caller opening this from its own UI usually knows what the user is
+     * after -- "add a spell to this character" is not the same request as "open the
+     * search" -- so `seed` sets the controls for this open. An ALREADY-OPEN window is
+     * re-seeded rather than merely raised: a caller asking for spells means it, and
+     * bringing forward a palette still showing the last thing the user typed answers a
+     * different question. Invalid values are ignored, never guessed at.
+     *
+     * A seed does not write the user's saved preferences. It is one open, not a new
+     * default; what the user does next is theirs and saves as normal.
+     *
+     * @param {object} [seed]
+     * @param {string} [seed.type] - Any accepted type token, or '__all__' for All types
+     * @param {string} [seed.subtype] - Document subtype, e.g. 'weapon'. Must belong to `type`
+     * @param {string} [seed.query] - Prefill the search box
      * @returns {Promise<CompendiumSearchWindow>}
      */
-    static async open() {
-        if (CompendiumSearchWindow.activeWindow) {
-            CompendiumSearchWindow.activeWindow.bringToFront?.();
-            return CompendiumSearchWindow.activeWindow;
+    static async open(seed = {}) {
+        const existing = CompendiumSearchWindow.activeWindow;
+        if (existing) {
+            const changed = existing._applySeed(seed);
+            existing.bringToFront?.();
+            // Only when the seed actually moved something. A plain open of an open window
+            // should not throw away a search the user is part-way through typing.
+            if (changed) {
+                await existing.render(false);
+                existing._getRoot()?.querySelector('.bcs-query')?.focus();
+            }
+            return existing;
         }
         const win = new CompendiumSearchWindow();
         // Assigned before the await, not after. See the note on activeWindow.
         CompendiumSearchWindow.activeWindow = win;
+        // Before the first render, so the controls come up already showing the seed
+        // rather than rendering the user's saved state and then visibly correcting it.
+        win._applySeed(seed);
         await win.render({ force: true });
         return win;
+    }
+
+    /**
+     * Apply a caller's opening state, ignoring anything that does not fit.
+     *
+     * VALIDATED, NOT TRUSTED. A type that is not mapped, or a subtype that does not
+     * belong to the type, is dropped with a debug line rather than set -- a control
+     * holding a value its own option list does not contain shows blank, and the user
+     * then cannot tell what is being searched. Silently correct beats confidently wrong.
+     *
+     * Order matters: type is applied first because it OWNS the subtype list, so a seed
+     * carrying both is validated against the type it asked for and not the one that was
+     * there before.
+     *
+     * @private
+     * @param {object} [seed] - See open()
+     * @returns {boolean} whether anything changed
+     */
+    _applySeed(seed) {
+        if (!seed || typeof seed !== 'object') return false;
+        let changed = false;
+
+        if (typeof seed.type === 'string' && seed.type) {
+            const wanted = seed.type === ALL_TYPES ? ALL_TYPES : normalizeType(seed.type);
+            if (wanted && (wanted === ALL_TYPES || this._availableTypes().includes(wanted))) {
+                if (wanted !== this._type) {
+                    this._type = wanted;
+                    // The subtype belongs to the type, exactly as in the change handler.
+                    // A seed supplying both re-sets it immediately below.
+                    this._subtype = ANY_SUBTYPE;
+                    changed = true;
+                }
+            } else {
+                postConsoleAndNotification(MODULE.NAME,
+                    'Compendium Search: ignoring unavailable seed type', seed.type, true, false);
+            }
+        }
+
+        if (typeof seed.subtype === 'string') {
+            if (seed.subtype === ANY_SUBTYPE) {
+                if (this._subtype !== ANY_SUBTYPE) {
+                    this._subtype = ANY_SUBTYPE;
+                    changed = true;
+                }
+            } else if (this._availableSubtypes().some(option => option.value === seed.subtype)) {
+                if (seed.subtype !== this._subtype) {
+                    this._subtype = seed.subtype;
+                    changed = true;
+                }
+            } else {
+                postConsoleAndNotification(MODULE.NAME,
+                    `Compendium Search: ignoring seed subtype for type ${this._type}`, seed.subtype, true, false);
+            }
+        }
+
+        if (typeof seed.query === 'string' && seed.query !== this._query) {
+            this._query = seed.query;
+            changed = true;
+        }
+
+        return changed;
     }
 
     constructor(options = {}) {
@@ -930,7 +1017,10 @@ export function registerCompendiumSearchWindow() {
     registerWindow(APP_ID, {
         moduleId: MODULE.ID,
         title: 'Compendium Search',
-        open: async () => CompendiumSearchWindow.open()
+        // Forwarded, not dropped. openWindow(id, options) already carries an options
+        // object; an opener that ignores it makes the registry look like it supports
+        // something it does not.
+        open: async (options) => CompendiumSearchWindow.open(options)
     });
 }
 

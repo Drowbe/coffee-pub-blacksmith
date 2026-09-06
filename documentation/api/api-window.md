@@ -854,10 +854,14 @@ These ship with Blacksmith and are openable by id from any module or macro.
 | Player Statistics | `blacksmith-stats-player` | `{ actorId }` -- **required** |
 | XP Distribution | `blacksmith-xp` | none |
 | Status Effects | `blacksmith-status-effects` | `{ actor \| actorUuid, descriptionEffectId, descriptionStatusId }` -- see below |
-| Compendium Search | `blacksmith-compendium-search` | none |
+| Compendium Search | `blacksmith-compendium-search` | `{ type, subtype, query }` -- see below |
 | Send Toast | `blacksmith-toast-send` | none |
 | Start a Vote | `blacksmith-vote` | none |
 | Pin Layers | `blacksmith-pin-layers` | none |
+| World Calendar | `blacksmith-calendar` | none |
+| Notes | `blacksmith-notes` | none |
+| Note editor | `blacksmith-note-editor` | `{ note }` -- a note page or its uuid; omitted opens a new note |
+| Rest | `blacksmith-rest-window` | none |
 
 Each of these is a single-instance window: opening one that is already open raises it rather than creating
 a second. What a second open does beyond raising differs by window, and the difference is deliberate:
@@ -910,6 +914,43 @@ GM Notes has `blacksmith.gmNotes`, and JSON import has `registerJsonImportKind` 
 configuration that a registry id would be the worse door. Pin configuration, bulk pin tags, and the
 combatant card are contextual: they exist against a specific pin or combatant and have no meaning opened
 cold. The CSS editor is a settings surface and stays internal.
+
+### `blacksmith-compendium-search` and its options
+
+All three are optional. With none, the palette opens in whatever state the user last left it, which is
+what an "open the search" button should do.
+
+```javascript
+// Just open it.
+blacksmith.openWindow('blacksmith-compendium-search');
+
+// Open it already looking for something specific.
+blacksmith.openWindow('blacksmith-compendium-search', { type: 'spell' });
+blacksmith.openWindow('blacksmith-compendium-search', { type: 'item', subtype: 'weapon' });
+blacksmith.openWindow('blacksmith-compendium-search', { type: 'item', query: 'longsword' });
+```
+
+| Option | Meaning |
+|---|---|
+| `type` | Any accepted type token (`'item'`, `'Spell'`, `'monster'`, ...), normalized like every other compendium call. `'__all__'` selects All types. Ignored if the type has no configured source. |
+| `subtype` | A document subtype such as `'weapon'`. Must belong to `type`, and is validated against it -- so pass `type` too. `''` clears it. |
+| `query` | Prefills the search box. Runs as soon as the window renders, subject to the same 3-character minimum a typed query has. |
+
+**A seed is one open, not a new default.** It does not write the user's saved palette preferences; whatever
+they do next is theirs and saves as normal.
+
+**An already-open palette is re-seeded, not merely raised.** A caller asking for spells means it, and
+raising a window still showing the last thing the user typed answers a different question. A call carrying
+no seed -- or one whose values are already set -- raises without re-rendering, so it cannot discard a search
+somebody is part-way through typing.
+
+**Invalid values are dropped, not guessed at.** An unmapped type, or a subtype that does not belong to the
+type, is ignored with a debug line. A control holding a value its own option list does not contain renders
+blank, and the user then cannot tell what is being searched.
+
+The window is deliberately **not** GM-only -- a player equipping their own character is the main case -- but
+whether players may drag results out onto a sheet is governed by the world setting **Players Can Add From
+Compendium Search**. A caller does not need to check it; the window enforces it either way.
 
 ### `blacksmith-health` and the `tokens` option
 
