@@ -166,6 +166,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         // Read before _availableTypes(), which depends on it: with the mapping bypassed,
         // every type is reachable and the "has a configured source" filter would be a lie.
         this._allSources = !!prefs.allSources;
+        // Off by default, and separate from _allSources. The world is not a compendium, so
+        // "search all installed compendiums" has no business quietly including it -- which
+        // it did, and the World heading it produced read as a bug rather than a choice.
+        this._includeWorld = !!prefs.includeWorld;
 
         const types = this._availableTypes();
         // All types by default: a palette you reach for mid-session should answer
@@ -433,6 +437,18 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 this._getRoot()?.querySelector('.bcs-query')?.focus();
             }
         }, {
+            // The globe belongs HERE and not on the atlas: this one really is world data.
+            id: 'include-world',
+            icon: 'fa-solid fa-globe',
+            label: 'Include world documents',
+            active: this._includeWorld,
+            onClick: async () => {
+                this._includeWorld = !this._includeWorld;
+                void this._savePreferences();
+                await this.render(false);
+                this._getRoot()?.querySelector('.bcs-query')?.focus();
+            }
+        }, {
             id: 'refresh',
             icon: 'fa-solid fa-arrows-rotate',
             label: 'Reload compendium indexes',
@@ -569,7 +585,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     minLength: MIN_QUERY_LENGTH,
                     rarity,
                     priceGp,
-                    allSources: this._allSources
+                    allSources: this._allSources,
+                    includeWorld: this._includeWorld
                 });
             } else if (this._hasFacets()) {
                 // Browse mode. No text to match, so the scan is complete and the cap
@@ -582,7 +599,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     rarity,
                     priceGp,
                     limit: BROWSE_LIMIT,
-                    allSources: this._allSources
+                    allSources: this._allSources,
+                    includeWorld: this._includeWorld
                 });
             }
         } catch (error) {
@@ -615,7 +633,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         // about any one result.
         const richTooltips = systemHasRichItemTooltips();
         const canAdd = this._canAddFromResults();
-        const showMapping = this._allSources;
+        // Shown when either widening is live, because either can put a source in the list
+        // that the GM did not map. With both off the order IS the mapping and every chip
+        // would read "mapped".
+        const showMapping = this._allSources || this._includeWorld;
         list.replaceChildren();
 
         if (!results.length) {
@@ -663,9 +684,19 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     mark.className = 'bcs-group-mark';
                     mark.dataset.mapped = String(mapped);
                     mark.textContent = mapped ? 'mapped' : 'not mapped';
-                    mark.dataset.tooltip = mapped
-                        ? 'This compendium is in your Compendium Mapping.'
-                        : 'This compendium is not in your Compendium Mapping. It is shown because Search all installed compendiums is on.';
+                    // The world is a source but not a compendium, so it gets its own
+                    // wording -- and points at the setting that actually governs it, which
+                    // is Search World First/Last and not the pack priority slots.
+                    const isWorld = result.source === 'world';
+                    if (mapped) {
+                        mark.dataset.tooltip = isWorld
+                            ? 'Your world’s own documents. Included because Search World First or Last is on for this type.'
+                            : 'This compendium is in your Compendium Mapping.';
+                    } else {
+                        mark.dataset.tooltip = isWorld
+                            ? 'Your world’s own documents, not a compendium. Shown because Include world documents is on; to search them always, turn on Search World First or Last for this type.'
+                            : 'This compendium is not in your Compendium Mapping. It is shown because Search all installed compendiums is on.';
+                    }
                     header.appendChild(mark);
                 }
 
@@ -764,7 +795,10 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             // Said out loud, because an unscoped scan is the one state where a result can
             // come from a compendium the GM deliberately left out of the mapping -- and
             // the row's own heading names the pack without saying that.
-            const scope = this._allSources ? ' — all installed' : '';
+            const scopes = [];
+            if (this._allSources) scopes.push('all installed');
+            if (this._includeWorld) scopes.push('world');
+            const scope = scopes.length ? ` — ${scopes.join(' + ')}` : '';
             status.textContent = `${results.length} in ${sources} source${sources === 1 ? '' : 's'}${scope} (${elapsed}ms)${more}`;
             status.classList.toggle('is-truncated', !!report.truncated);
         }
@@ -832,7 +866,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 rarity: this._rarity,
                 priceMin: this._priceMin,
                 priceMax: this._priceMax,
-                allSources: this._allSources
+                allSources: this._allSources,
+                includeWorld: this._includeWorld
             });
         } catch (error) {
             postConsoleAndNotification(MODULE.NAME, 'Compendium Search: could not save preferences', error, false, false);

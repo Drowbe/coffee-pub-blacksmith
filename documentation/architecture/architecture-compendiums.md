@@ -103,7 +103,11 @@ Note that `getMapping()` and `getSearchOrderForType()` are **not** filtered. The
 
 `search()` and `query()` both take `allSources`, which replaces the GM's mapping as the source of the scan order with **every installed pack that can hold the type** — `getAllPacks()`, the same inventory the settings dropdowns are built from.
 
-**The mapping still leads.** `_allSourcesOrder()` puts the mapped order first, the world next, and unmapped packs after that. This is not cosmetic: `search()` lets the cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of a result list. The world sits after the mapped set rather than at the end for the same reason — a GM's own documents are a likelier answer than the fortieth installed compendium.
+**The mapping still leads.** `_allSourcesOrder()` puts the mapped order first and unmapped packs after it. This is not cosmetic: `search()` lets the cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of a result list.
+
+**`allSources` is packs only. The world is `includeWorld`.** These are two independent widenings and neither ever subtracts — a source the mapping asked for stays under both, and either flag works without the other. Keeping them separate is not tidiness: the world is not a compendium, so an option named for compendiums that quietly also read the GM's loose documents was answering a second question under the first one's name. When `includeWorld` is on it sits directly after the mapped set rather than at the end, because a tail of dozens of installed packs is exactly what a cap cuts off and a GM's own documents are a likelier answer than the fortieth bundled compendium.
+
+The world is otherwise reached only through the mapping's own `searchWorldFirst` / `searchWorldLast` settings, which is what `mapped` reports for a world row.
 
 **It is opt-in and should stay opt-in.** Every pack it reaches is indexed once per session, so the first unscoped call on a content-heavy world is a visible pause; `query()` pays more than `search()`, because a query never stops early and therefore opens all of them. The cost is bounded — `_getPackIndex` caches, so it is paid once — but it is paid the first time, in front of the user.
 

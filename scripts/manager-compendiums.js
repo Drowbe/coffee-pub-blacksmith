@@ -229,27 +229,6 @@ export class CompendiumManager {
     }
 
     /**
-     * Every source that could hold this type, in the order an unscoped scan should open
-     * them. The mapping still leads.
-     *
-     * THE GM'S PRIORITY ORDER IS NOT DISCARDED, it is extended. Unscoped searching exists
-     * for the case where the curated set does not have the thing -- not for the claim that
-     * curation was worthless. So the mapped order runs first and unmapped packs follow it,
-     * which matters concretely in stop-scan mode: the cap truncates the TAIL, so putting
-     * the mapping anywhere but the head would let a third-party pack push the GM's own
-     * choice out of a result list.
-     *
-     * The world sits directly after the mapped set rather than at the end, unless the
-     * mapping already placed it. A tail of dozens of installed packs is exactly what a cap
-     * cuts off, and a GM's own world documents are a likelier answer than the fortieth
-     * bundled compendium.
-     *
-     * @private
-     * @param {string} canonical - An already-normalized type token
-     * @param {object} mapping - getMapping(canonical), passed in so it is read once
-     * @returns {string[]} 'world' and/or pack ids
-     */
-    /**
      * Drop the sources this user is not allowed to read.
      *
      * A GM-only pack is still PRESENT in `game.packs` on a player's client -- Foundry ships
@@ -287,9 +266,36 @@ export class CompendiumManager {
         });
     }
 
-    _allSourcesOrder(canonical, mapping) {
+    /**
+     * Every PACK that could hold this type, in the order an unscoped scan should open them.
+     * The mapping still leads.
+     *
+     * THE GM'S PRIORITY ORDER IS NOT DISCARDED, it is extended. Unscoped searching exists
+     * for the case where the curated set does not have the thing -- not for the claim that
+     * curation was worthless. So the mapped order runs first and unmapped packs follow it,
+     * which matters concretely in stop-scan mode: the cap truncates the TAIL, so putting
+     * the mapping anywhere but the head would let a third-party pack push the GM's own
+     * choice out of a result list.
+     *
+     * THE WORLD IS NOT A COMPENDIUM and is not swept in by this. It arrives only if the
+     * mapping placed it (searchWorldFirst/Last) or the caller asked with `includeWorld`.
+     * This option widens which PACKS are read; quietly adding the GM's own loose documents
+     * to that would be a different question answered under the same name.
+     *
+     * When it is included it sits directly after the mapped set rather than at the end. A
+     * tail of dozens of installed packs is exactly what a cap cuts off, and a GM's own
+     * documents are a likelier answer than the fortieth bundled compendium.
+     *
+     * @private
+     * @param {string} canonical - An already-normalized type token
+     * @param {object} mapping - getMapping(canonical), passed in so it is read once
+     * @param {object} [options]
+     * @param {boolean} [options.includeWorld=false] - Add the world if the mapping did not
+     * @returns {string[]} 'world' and/or pack ids
+     */
+    _allSourcesOrder(canonical, mapping, { includeWorld = false } = {}) {
         const order = [...mapping.searchOrder];
-        if (!order.includes('world')) order.push('world');
+        if (includeWorld && !order.includes('world')) order.push('world');
         for (const pack of this.getAllPacks(canonical)) {
             if (!order.includes(pack.id)) order.push(pack.id);
         }
@@ -499,6 +505,10 @@ export class CompendiumManager {
      *   the type, not only the GM's mapping. The mapped order still leads; see
      *   _allSourcesOrder. Opt-in because it opens and indexes every such pack once per
      *   session, which on a content-heavy world is a visible pause on the first call.
+     *   Packs only -- it does NOT add the world; that is `includeWorld`.
+     * @param {boolean} [options.includeWorld=false] - Also read the world's own documents,
+     *   if the mapping's searchWorldFirst/Last did not already ask for them. Independent of
+     *   `allSources`; neither ever removes a source the mapping asked for.
      * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
      *                          img: string|null, source: string, sourceLabel: string,
      *                          sourcePackage: string, mapped: boolean, matchType: string}>>}
@@ -555,7 +565,8 @@ export class CompendiumManager {
             sources = null,
             minLength = 2,
             fuzzy = true,
-            allSources = false
+            allSources = false,
+            includeWorld = false
         } = options;
 
         const needle = String(query ?? '').trim().toLowerCase();
@@ -569,6 +580,7 @@ export class CompendiumManager {
             type,
             sources,
             allSources,
+            includeWorld,
             subtypes: itemType ? [itemType] : null,
             needle,
             fuzzy,
@@ -620,7 +632,9 @@ export class CompendiumManager {
      * @param {string[]} [filter.sources=null] - Restrict to configured source ids
      * @param {boolean} [filter.allSources=false] - Scan every installed pack that can hold the
      *   type, not only the mapping. Costlier here than in search(), because a query never
-     *   stops early: an unscoped query opens every one of them.
+     *   stops early: an unscoped query opens every one of them. Packs only.
+     * @param {boolean} [filter.includeWorld=false] - Also read the world's own documents, if
+     *   the mapping did not already ask for them. Independent of `allSources`.
      * @param {number} [filter.limit=200] - Cap the output; the scan is always complete
      * @returns {Promise<Array<object>>} search() rows plus `rarity`, `price`, `priceGp`.
      *   `mapped` says whether the GM mapped the source or the scan reached past the mapping.
@@ -650,6 +664,7 @@ export class CompendiumManager {
             includeUnpriced = false,
             sources = null,
             allSources = false,
+            includeWorld = false,
             limit = 200
         } = filter;
 
@@ -663,6 +678,7 @@ export class CompendiumManager {
             type,
             sources,
             allSources,
+            includeWorld,
             subtypes,
             // No needle at all, which is what puts the scan in single-bucket mode.
             needle: null,
@@ -765,6 +781,8 @@ export class CompendiumManager {
      * @param {string[]|null} [spec.sources] - Restrict to these configured source ids
      * @param {boolean} [spec.allSources=false] - Draw the source order from every installed
      *   pack that can hold the type rather than from the mapping alone
+     * @param {boolean} [spec.includeWorld=false] - Add 'world' to the order if the mapping
+     *   did not already place it
      * @param {string[]|null} [spec.subtypes] - Restrict to these document subtypes
      * @param {string|null} [spec.needle] - Lowercased search text, or null for no text match
      * @param {boolean} [spec.fuzzy=true] - Include the loose "includes" tier (needle mode only)
@@ -788,6 +806,7 @@ export class CompendiumManager {
         limit = 50,
         stopAtLimit = false,
         allSources = false,
+        includeWorld = false,
         extended = false,
         rarity = null,
         priceGp = null,
@@ -827,10 +846,23 @@ export class CompendiumManager {
         for (const canonical of canonicalTypes) {
             const mapping = this.getMapping(canonical);
             for (const source of mapping.searchOrder) mappedSources.add(source);
-            // Visibility first, so an unreadable pack costs neither a slot nor a place in
+            // TWO INDEPENDENT WIDENINGS, and neither ever subtracts. `allSources` adds the
+            // packs the mapping left out; `includeWorld` adds the world if the mapping did
+            // not already place it. Either works without the other -- a toggle that silently
+            // does nothing unless a second one is on is not a toggle -- and a mapping that
+            // asked for the world keeps it under both.
+            let reachable;
+            if (allSources) {
+                reachable = this._allSourcesOrder(canonical, mapping, { includeWorld });
+            } else {
+                reachable = [...mapping.searchOrder];
+                // Appended, where the unscoped order slots it in mid-list: with only the
+                // mapping ahead of it there is nothing after it for a cap to cut off.
+                if (includeWorld && !reachable.includes('world')) reachable.push('world');
+            }
+            // Visibility last, so an unreadable pack costs neither a slot nor a place in
             // the reported order. See _visibleSources.
-            const available = this._visibleSources(
-                allSources ? this._allSourcesOrder(canonical, mapping) : mapping.searchOrder);
+            const available = this._visibleSources(reachable);
             // Intersected against what this call can reach, which is the mapping normally
             // and every installed pack in all-sources mode. Filtering against the mapping
             // in both would make `sources` and `allSources` contradict each other, with the
