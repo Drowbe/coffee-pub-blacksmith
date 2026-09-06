@@ -123,6 +123,19 @@ rather than a symptom observed.
       immediacy for quiet and the overlay is the half that waits. If the toast still appears, the delay
       is too short rather than wrong.
 
+- [ ] **Copied monsters are named individually in the statistics.** Put four copy-pasted tokens of one
+      monster on the canvas -- rename them if they do not auto-name -- and have them attack and be
+      attacked. Every hit line, the biggest hit and the MVP entry must name the TOKEN ("Patch", "Tusk")
+      and not the prototype four times over ("Bandit").
+
+      This is the fix for what was reported as "damage is applying to all copies" on 2026-09-06. It was
+      not: damage was measured and stays isolated. The statistics named every copy by the base actor,
+      so damage spread across a group read as damage landing repeatedly on one of them. Attacker names
+      come from the new `attackEvent.attackerTokenId`, target names from the token document.
+
+      Same setup as Squire's token-switching test, which passed live on 2026-09-06 -- so if four copies
+      are already on the canvas for that, this costs one extra glance at the statistics card.
+
 - [ ] **Damage is unchanged.** Midi ON. Damage totals, biggest hit and the onHit/unlinked buckets must
       read exactly as before this change. The damage half still yields deliberately, so this is
       confirming no accidental effect, not testing new behaviour.

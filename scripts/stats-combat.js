@@ -1606,6 +1606,12 @@ class CombatStats {
             includeCombat: true
         });
 
+        // The nameplate of the token that actually swung, when the message named one.
+        // See `actorName` below.
+        const attackerTokenName = attackEvent.attackerTokenId
+            ? (canvas?.tokens?.get(attackEvent.attackerTokenId)?.name ?? null)
+            : null;
+
         if (!this.currentStats.hits) this.currentStats.hits = [];
         if (!this.currentStats.misses) this.currentStats.misses = [];
         this._ensureCombatTotals();
@@ -1676,16 +1682,29 @@ class CombatStats {
         // Process all targets (batching async operations for efficiency)
         const targetInfoPromises = attackEvent.targets.map(async (target) => {
             // Try to get target actor name (optional - for hitInfo)
+            // THE TOKEN'S NAME FIRST, THE ACTOR'S ONLY AS A FALLBACK.
+            //
+            // This asked the ACTOR first and fell back to the token, which is backwards
+            // for the commonest way a GM fields a group: drop one monster, copy-paste
+            // it nineteen times. Those copies are unlinked, so each has its own delta
+            // actor -- but a delta does not override `name`, so `token.actor.name`
+            // returns the BASE actor's name for every one of them. Nineteen distinct
+            // creatures called Tusk, Patch and so on were all recorded as "Bandit".
+            //
+            // The consequence is worse than a cosmetic one. Every hit, every biggest-hit
+            // and every MVP line named the same creature, so damage spread across a
+            // group read as damage landing repeatedly on one of them -- which is exactly
+            // what a GM would report as "damage is applying to all copies". Found
+            // 2026-09-06 while checking Blacksmith for a class of bug the Bibliosoph
+            // session had just found twice in its own display paths.
             let targetActorName = 'Unknown Target';
             if (target.uuid) {
                 try {
                     const targetDoc = await fromUuid(target.uuid);
-                    const targetActorDoc = targetDoc?.actor ?? targetDoc;
-                    if (targetActorDoc?.name) {
-                        targetActorName = targetActorDoc.name;
-                    } else if (targetDoc?.name) {
-                        targetActorName = targetDoc.name;
-                    }
+                    // A TokenDocument's own name is the one on the nameplate and the one
+                    // the GM means. Where the uuid resolves to an Actor directly there is
+                    // no token to prefer and this reads the same value as before.
+                    targetActorName = targetDoc?.name ?? targetDoc?.actor?.name ?? targetActorName;
                 } catch (e) {
                     // Skip if can't resolve - not critical
                 }
@@ -1707,7 +1726,13 @@ class CombatStats {
                 isHit: target.hit === true,
                 timestamp: attackEvent.ts,
                 actorId: attackerActor.id,
-                actorName: attackerActor.name,
+                // The token's name where we know which token swung, for the reason
+                // spelled out on `targetActorName` above: copies share a base actor and
+                // its name, so naming the attacker from the actor calls every member of
+                // a pasted group by the prototype's name. `actorId` stays the BASE id
+                // deliberately -- statistics aggregate per actor, and that is correct.
+                // Only the label is per-token.
+                actorName: attackerTokenName ?? attackerActor.name,
                 itemName: itemName,
                 targetName: targetActorName,
                 targetAC: target.ac

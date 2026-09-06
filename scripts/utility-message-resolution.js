@@ -381,6 +381,13 @@ export function resolveAttackMessage(message) {
         key: key,
         ts: message.timestamp ?? Date.now(),
         attackerActorId: attackerActorId,
+        // WHICH TOKEN SWUNG, not just which actor it was built from. A group of
+        // copy-pasted monsters shares one base actor, and an unlinked token's delta
+        // does not override `name` -- so anything naming the attacker from
+        // `attackerActorId` calls all nineteen of them by the prototype's name. The
+        // speaker carries the token, so the information was there and simply was not
+        // being kept. Null for a message with no token speaker, which is legitimate.
+        attackerTokenId: message.speaker?.token ?? null,
         itemUuid: itemUuid,
         activityUuid: activityUuid,
         targets: outcomes,
@@ -542,6 +549,13 @@ export function resolveDamageMessage(message) {
         itemType: itemType,
         itemUuid: itemUuid,
         attackerActorId: attackerActorId,
+        // WHICH TOKEN SWUNG, not just which actor it was built from. A group of
+        // copy-pasted monsters shares one base actor, and an unlinked token's delta
+        // does not override `name` -- so anything naming the attacker from
+        // `attackerActorId` calls all nineteen of them by the prototype's name. The
+        // speaker carries the token, so the information was there and simply was not
+        // being kept. Null for a message with no token speaker, which is legitimate.
+        attackerTokenId: message.speaker?.token ?? null,
         targetUuids: targetUuids, // Always an array, from message flags
         bucket: isHeal ? "heal" : null, // Will be set during correlation for damage
         damageMsgId: message.id,

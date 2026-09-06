@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A suite-wide page on telling one monster from another** (`documentation/global/global-token-actor-identity.md`). Three modules made the same mistake within two days, independently, in code that had worked for months. Once each looked, it was **ten sites**: two in Blacksmith, two in Bibliosoph, seven in Squire. One was reported by a user; the other nine were found only by knowing what to grep for.
+
+  One cause. Copy-pasting a monster is how a GM fields a group, every copy is unlinked and carries its own delta — but the synthetic actor still reports the **base actor's id**, and a delta does not override `name`. So `actor.id` is shared and `actor.name` is the prototype's, while `actor.uuid` and `token.name` are the specific ones.
+
+  The rule, in the words that caught all ten: **resolve by token to identify or apply, by actor only to aggregate — `actor.id` is an aggregate identity, `actor.uuid` is a specific one.** Comparing with `.id` asks "the same kind of creature?"; most code means "the same creature?". It survives review because `currentActor?.id === actor?.id` looks exactly like an identity check.
+
+  The page also records what to do with the failure mode that costs the most time, which is not the worst bug: a display naming nineteen creatures identically looks exactly like damage being applied to all of them, and sends everyone hunting a data bug that does not exist. That is how this was reported, and two modules were investigated before anyone measured what had actually moved. It carries the cases where `.id` is **correct**, so nobody sweeps `.uuid` over comparisons against directory actors, and a diagnostic from the Squire instance: when two independent entry points fail the same way, the shared thing downstream is the candidate.
+
+  In `global/` because it is Foundry knowledge rather than any module's, so satellites link it instead of each learning it once.
+
 ### Fixed
+
+- **Combat statistics called every copy of a monster by its prototype's name** (`scripts/stats-combat.js`, `scripts/utility-message-resolution.js`). The commonest way to field a group is to drop one monster and copy-paste it — nineteen cultists from one actor. Those copies are unlinked and each carries its own delta, but **a delta does not override `name`**, so `token.actor.name` returns the base actor's name for all of them. Target names were resolved actor-first and fell back to the token, which is backwards; attacker names had no token to fall back to at all.
+
+  The result was worse than cosmetic. Every hit, biggest-hit and MVP line named the same creature, so damage spread across a group read as damage landing repeatedly on one of them. A GM watching that reasonably concludes damage is being applied to all copies at once — which is exactly how this was reported.
+
+  Target names now prefer the **token document's** name, which is what is on the nameplate and what the GM means. `resolveAttackMessage` additionally carries `attackerTokenId`, taken from the speaker where the information was always available and simply not kept, so the attacker can be named the same way.
+
+  `actorId` stays the base actor id deliberately — statistics aggregate per actor, and that is correct. Only the label is per-token. The rule, worth stating because it caught two modules on the same day: **resolve by token to identify or apply, by actor to aggregate.**
 
 - **Blacksmith's effect sweep no longer makes Times Up throw red toasts at the GM** (`scripts/api-effects.js`). When the sweep stopped yielding, both modules began reaching the same expired effect on the same tick on a v13 world with Times Up still installed. Blacksmith usually won, and the loser's rejection was not Blacksmith's to swallow: Times Up does not guard its delete, so the server's `ActiveEffect <id> does not exist!` surfaced through `ui.notifications.error` — several red toasts per turn.
 
