@@ -1,4 +1,4 @@
-# Testing: verification owed for effect expiry after the Times Up removal (2026-09-04)
+# Testing: verification owed for effect expiry and the statistics lanes (2026-09-04/05)
 
 **Audience:** us.
 
@@ -79,6 +79,29 @@ long as the author supports v13.
       whether to delete the registration.
 
 ---
+
+## Combat statistics: the attack lane stopped yielding (2026-09-05)
+
+Different subject, same failure class, and it needs a live world with **Midi-QOL Integration ON** --
+which is the configuration none of it has ever been run in.
+
+- [ ] **One attack, one set of numbers.** Midi ON, in combat. Make one attack that hits. Confirm
+      attempts, hits and crits each rise by exactly **one**, not two. Both the core chat lane and the
+      MIDI lane now process the attack; `CombatStats._alreadyProcessed` is what stops the second one
+      recording, pairing them on the `workflowId` both events carry.
+
+- [ ] **An attack still counts when the MIDI lane says nothing.** Midi ON, in combat, but make an
+      attack midi does not produce a workflow for. It must still be counted -- that is the whole point
+      of the change, and the failure it prevents is the silent one.
+
+- [ ] **A player's own attack counts once.** Midi ON. A player rolls an attack from their own sheet.
+      Exactly one attempt. This is the path that made the `_onAttackRoll` yield worth keeping: its
+      socket payload carries no identity the MIDI lane shares, so nothing can dedupe it and it must
+      not be forwarded twice.
+
+- [ ] **Damage is unchanged.** Midi ON. Damage totals, biggest hit and the onHit/unlinked buckets must
+      read exactly as before this change. The damage half still yields deliberately, so this is
+      confirming no accidental effect, not testing new behaviour.
 
 ## Not owed here
 

@@ -1523,6 +1523,64 @@ class CombatStats {
     // -------------------------------------------------------------------------
 
     /**
+     * Every identity an event carries, so two lanes describing the same thing
+     * recognise each other. Seen entries expire on their own.
+     * @type {Map<string, number>}
+     */
+    static _processedEvents = new Map();
+    static _PROCESSED_TTL_MS = 30_000;
+
+    /**
+     * Whether this event has already been recorded, by whichever lane saw it first.
+     *
+     * THE LANES NO LONGER TAKE TURNS, SO THIS IS WHAT KEEPS THE NUMBERS HONEST.
+     *
+     * The core dnd5e lane used to return early whenever midi integration was on,
+     * leaving attacks entirely to the MIDI lane -- the "leverage it INSTEAD of ours"
+     * shape ruled out in TODO-GLOBAL Ground Rule 8. Both lanes now always run, and
+     * that is only safe because they can tell they are looking at the same attack.
+     *
+     * They cannot do that by key alone: the core lane's key is ours (attacker, item,
+     * activity, targets) while the MIDI lane's is still `midi:<workflowId>`, and those
+     * never collide. So every name an event has is checked and every one is marked --
+     * a hit on ANY of them means recorded. `workflowId` is the one that actually pairs
+     * them, because the core lane reads it off the message's midi flags and the MIDI
+     * lane has it from the workflow, so it is the same value on both sides.
+     *
+     * Erring towards recording rather than dropping is deliberate for attacks: an
+     * uncounted hit is invisible, while a double-counted one shows up in the numbers
+     * where someone can report it.
+     *
+     * @param {string} kind - Namespace, so an attack and its damage never collide.
+     * @param {object} event - A resolved attack or damage event.
+     * @returns {boolean}
+     */
+    static _alreadyProcessed(kind, event) {
+        const now = Date.now();
+        if (this._processedEvents.size > 500) {
+            for (const [id, ts] of this._processedEvents) {
+                if (now - ts > this._PROCESSED_TTL_MS) this._processedEvents.delete(id);
+            }
+        }
+
+        const identities = [
+            event?.workflowId ? `${kind}:wf:${event.workflowId}` : null,
+            event?.messageId ? `${kind}:msg:${event.messageId}` : null,
+            event?.key ? `${kind}:key:${event.key}` : null
+        ].filter(Boolean);
+
+        // Nothing to recognise it by. Record it — see the note above.
+        if (!identities.length) return false;
+
+        for (const id of identities) {
+            const seen = this._processedEvents.get(id);
+            if (seen !== undefined && (now - seen) <= this._PROCESSED_TTL_MS) return true;
+        }
+        for (const id of identities) this._processedEvents.set(id, now);
+        return false;
+    }
+
+    /**
      * Process a resolved attack event from chat message resolution.
      * This is the new source of truth for attack hit/miss determination.
      * @param {AttackResolvedEvent} attackEvent - Normalized attack event from resolveAttackMessage()
@@ -1531,6 +1589,7 @@ class CombatStats {
         if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
+        if (this._alreadyProcessed('attack', attackEvent)) return;
 
         // Get attacker actor
         const attackerActor = game.actors.get(attackEvent.attackerActorId);

@@ -360,7 +360,24 @@ export class CombatSources {
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        // MIDI lane is authoritative for crit/fumble; avoid double counting
+        // THIS YIELD STAYS, AND IT IS NOT THE CATEGORY B SHAPE -- checked, and briefly
+        // removed in error on 2026-09-05.
+        //
+        // Ground Rule 8 forbids standing down from OUR OWN JOB. This handler does not
+        // do that job. On the GM path it records nothing at all: it sets
+        // `_lastRollWasCritical` and returns, because hit/miss and crit are recorded
+        // from the chat lane through `_processResolvedAttack`, which now always runs.
+        // So removing this yield gains exactly nothing.
+        //
+        // What it would cost is real. On the NON-GM path this forwards to
+        // `cpbTrackAttack`, whose handler calls `_processAttackRoll` and increments
+        // attempts, crits and fumbles directly -- and that socket payload carries only
+        // an item uuid and a roll total, so it has no identity in common with the MIDI
+        // lane's event and `_alreadyProcessed` cannot pair them. A player rolling their
+        // own attack would be counted twice.
+        //
+        // Yielding a DUPLICATE FORWARD is not the same as yielding the work. The work
+        // is done, unconditionally, elsewhere.
         if (isMidiIntegrationEnabled()) return;
 
         const { rolls, context, item } = CombatSources._normalizeRollHookArgs(a, b);
@@ -819,10 +836,23 @@ export class CombatSources {
         const hasRolls = (message.rolls?.length ?? 0) > 0;
         if (!hasDnd5e && !hasMidi && !hasRolls) return;
 
-        // If MIDI integration is on and this message is part of a MIDI workflow, ignore it
-        // here. MIDI lane hooks (hitsChecked + preTargetDamageApplication + RollComplete) are
-        // authoritative; with integration disabled the core lane reclaims these messages.
-        if (isMidiIntegrationEnabled() && hasMidi) return;
+        // THE YIELD THAT USED TO BE HERE HAS MOVED DOWN, to section 2.
+        //
+        // It returned for any midi-flagged message and handed the whole card -- attack
+        // AND damage -- to the MIDI lane. That is the "leverage it INSTEAD of ours"
+        // shape TODO-GLOBAL Ground Rule 8 refuses, and it is why nothing recorded an
+        // attack on a table where the MIDI lane did not fire.
+        //
+        // The attack half below now runs on every message. It is safe to do that
+        // because `CombatStats._processResolvedAttack` recognises an attack it has
+        // already recorded regardless of which lane brought it -- both events carry the
+        // same `workflowId`, which is what pairs them. See `_alreadyProcessed`.
+        //
+        // The DAMAGE half still yields, and that is a known gap rather than a decision
+        // -- the two lanes describe damage in different shapes (this one per message,
+        // the MIDI one per target), so they have no shared identity yet to dedupe on.
+        // Getting that wrong writes double damage into persisted campaign statistics,
+        // so it waits for a live test. Tracked in `plan-integration-inversion.md`.
 
         // Prune expired cache entries
         CombatSources._pruneAttackCache();
@@ -919,6 +949,10 @@ export class CombatSources {
         // carrying the damage roll resolved as an attack again, hit the dedupe, and returned. No
         // damage was recorded at all on this path, which is why a landed hit showed 0 damage
         // dealt and no biggest hit while the hit rate was correct.
+        // The yield, now scoped to damage alone. See the note at the top of this
+        // handler for why it is still here and what would remove it.
+        if (isMidiIntegrationEnabled() && hasMidi) return;
+
         const damageEvent = resolveDamageMessage(message);
         if (!damageEvent) return;
 
