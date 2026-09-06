@@ -1210,6 +1210,22 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.MANAGE_CONTENT
 	});
 
+	// -- Players May Add From Compendium Search --
+	game.settings.register(MODULE.ID, 'compendiumSearchPlayerAdd', {
+		name: MODULE.ID + '.compendiumSearchPlayerAdd-Label',
+		hint: MODULE.ID + '.compendiumSearchPlayerAdd-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		// World, not client: who may pull content onto a sheet is a table rule, and a
+		// client-scoped permission is one the person being governed can turn off.
+		scope: 'world',
+		// On, because that is what the palette already did. Turning it off is a decision a
+		// table makes, not one an update makes for them.
+		default: true,
+		group: WORKFLOW_GROUPS.MANAGE_CONTENT
+	});
+
 	// Saved Send Toast templates: { [name]: appearance + target bundle }. World
 	// scope — the template library is shared by all GMs; built-in templates are
 	// code-side and never stored here.

@@ -324,6 +324,12 @@ await compendiums.query({
 
 `search()` accepts `rarity`, `priceGp` and `includeUnpriced` too, so a picker can offer a facet alongside a text box. Passing either one is what makes `search()` populate the economics fields.
 
+## Results you cannot see are never returned
+
+`resolve()`, `search()` and `query()` all drop compendiums this user cannot read (`pack.visible`, core's own test) and world documents they lack permission for (`Document#visible`). **Do not filter this downstream** — it is enforced in the scan, before the cap, so an invisible pack does not silently consume result budget and push visible entries off the end of the priority order.
+
+The consequence worth knowing: `resolve()` can answer differently on a GM's client and a player's. If you need a GM-authoritative answer, resolve on the GM's client, as anything that writes already does.
+
 ## Searching beyond the mapping: `allSources`
 
 Both `search()` and `query()` take `allSources`. It replaces the GM's mapping as the scan order with every installed compendium that can hold the type — the same inventory `getAllPacks()` reports.
@@ -339,7 +345,9 @@ Three things to know before you pass it:
 - **It is not free.** Every pack it reaches is indexed once per session. The first unscoped call on a content-heavy world is a visible pause, and `query()` costs more than `search()` because a query never stops early. Make it a user gesture, not a default.
 - **It composes with `sources`.** An explicit `sources` list is intersected against whatever the scan can reach — the mapping normally, the full inventory when unscoped. `'world'` is nameable either way, regardless of the `searchWorldFirst`/`Last` settings.
 
-Blacksmith's own Compendium Search window is the reference consumer: the globe in its title bar toggles this, client-scoped, because "look wider right now" is a gesture rather than a configuration.
+Every result row carries **`mapped`** — `true` when the GM mapped its source, `false` when the scan reached past the mapping to find it. Show it. A result from a compendium the GM deliberately left out looks exactly like one they chose, and the pack's own name does not say which; Blacksmith's palette marks those group headings and their rows.
+
+Blacksmith's own Compendium Search window is the reference consumer: the atlas in its title bar toggles this, client-scoped, because "look wider right now" is a gesture rather than a configuration.
 
 ## Type tokens
 

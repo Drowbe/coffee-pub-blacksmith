@@ -249,6 +249,44 @@ export class CompendiumManager {
      * @param {object} mapping - getMapping(canonical), passed in so it is read once
      * @returns {string[]} 'world' and/or pack ids
      */
+    /**
+     * Drop the sources this user is not allowed to read.
+     *
+     * A GM-only pack is still PRESENT in `game.packs` on a player's client -- Foundry ships
+     * the index to everyone and gates it with `visible` -- so a scan that ignores the flag
+     * happily reads names, subtypes and artwork out of a compendium the GM restricted.
+     * Homebrew and prepared-content packs are exactly the ones GMs restrict. Reported by
+     * the Squire maintainer, who was filtering it downstream; downstream is the wrong place,
+     * because every consumer needs it and each one getting it right independently is how it
+     * ends up missing from most of them.
+     *
+     * FILTERED BEFORE THE SCAN, not after. `search()` lets its cap stop the scan, so an
+     * invisible pack removed at the end would still have spent result budget and pushed
+     * visible entries off the tail of the priority order -- a silent, permission-shaped
+     * hole in the results. Removing it from the order means it never costs anything and
+     * never appears in `searchOrder`, which is honest: for THIS user it would not have
+     * been searched.
+     *
+     * `pack.visible` is core's own test (`getUserLevel() >= OBSERVER`,
+     * client/documents/collections/compendium-collection.mjs:241, v13) -- the same one the
+     * compendium sidebar uses -- so this shows a user exactly the packs Foundry would.
+     * The world passes through; its documents carry their own ownership and are filtered
+     * per-document in `_getWorldEntries`.
+     *
+     * An unknown pack id drops rather than passing. The cost of this check runs one way.
+     *
+     * @private
+     * @param {string[]} order - 'world' and/or pack ids
+     * @returns {string[]} the same order, minus what this user cannot read
+     */
+    _visibleSources(order) {
+        return order.filter(source => {
+            if (source === 'world') return true;
+            const pack = game.packs?.get(source);
+            return !!pack && pack.visible !== false;
+        });
+    }
+
     _allSourcesOrder(canonical, mapping) {
         const order = [...mapping.searchOrder];
         if (!order.includes('world')) order.push('world');
@@ -300,9 +338,14 @@ export class CompendiumManager {
 
         const mapping = this.getMapping(canonical);
         const requestedSources = Array.isArray(sources) ? [...new Set(sources.filter(Boolean))] : null;
-        const searchOrder = requestedSources
+        // Same permission rule the multi-result scan uses, for the same reason -- a player
+        // resolving a name must not get a uuid out of a pack the GM restricted. It does mean
+        // resolve() can answer differently on a GM's client and a player's, which is what
+        // visibility MEANS; anything needing a GM-authoritative answer must resolve on the
+        // GM's client, as everything that writes already does.
+        const searchOrder = this._visibleSources(requestedSources
             ? requestedSources.filter(source => source === 'world' || mapping.packIds.includes(source))
-            : mapping.searchOrder;
+            : mapping.searchOrder);
         if (!searchOrder.length) {
             postConsoleAndNotification(MODULE.NAME, `Compendium Manager | No sources configured for type`, canonical, true, false);
             return miss;
@@ -458,7 +501,7 @@ export class CompendiumManager {
      *   session, which on a content-heavy world is a visible pause on the first call.
      * @returns {Promise<Array<{uuid: string, name: string, type: string|null, documentClass: string,
      *                          img: string|null, source: string, sourceLabel: string,
-     *                          sourcePackage: string, matchType: string}>>}
+     *                          sourcePackage: string, mapped: boolean, matchType: string}>>}
      */
     async search(query, type, options = {}) {
         return (await this.searchDetailed(query, type, options)).results;
@@ -579,7 +622,8 @@ export class CompendiumManager {
      *   type, not only the mapping. Costlier here than in search(), because a query never
      *   stops early: an unscoped query opens every one of them.
      * @param {number} [filter.limit=200] - Cap the output; the scan is always complete
-     * @returns {Promise<Array<object>>} search() rows plus `rarity`, `price`, `priceGp`
+     * @returns {Promise<Array<object>>} search() rows plus `rarity`, `price`, `priceGp`.
+     *   `mapped` says whether the GM mapped the source or the scan reached past the mapping.
      */
     async query(filter = {}) {
         return (await this.queryDetailed(filter)).results;
@@ -775,9 +819,18 @@ export class CompendiumManager {
         // several types is opened once and appears once in the results.
         const plans = [];
         const searchOrder = [];
+        // Every source the GM actually mapped, for ANY of the requested types -- the union,
+        // not per type. A pack mapped for Spell but not Item is still a pack the GM chose,
+        // and in All-types mode its spells are reached through the Item plan, so a per-type
+        // test would label the GM's own pick as uncurated.
+        const mappedSources = new Set();
         for (const canonical of canonicalTypes) {
             const mapping = this.getMapping(canonical);
-            const available = allSources ? this._allSourcesOrder(canonical, mapping) : mapping.searchOrder;
+            for (const source of mapping.searchOrder) mappedSources.add(source);
+            // Visibility first, so an unreadable pack costs neither a slot nor a place in
+            // the reported order. See _visibleSources.
+            const available = this._visibleSources(
+                allSources ? this._allSourcesOrder(canonical, mapping) : mapping.searchOrder);
             // Intersected against what this call can reach, which is the mapping normally
             // and every installed pack in all-sources mode. Filtering against the mapping
             // in both would make `sources` and `allSources` contradict each other, with the
@@ -894,6 +947,15 @@ export class CompendiumManager {
                         source,
                         sourceLabel,
                         sourcePackage,
+                        // Whether the GM mapped this source, or the scan reached past the
+                        // mapping to get here. Always present and always meaningful: with
+                        // `allSources` off it is true on every row, which is the truth, not
+                        // a placeholder. A consumer offering unscoped search owes the user
+                        // this -- a result from a pack the GM deliberately left out looks
+                        // exactly like one they chose, and the pack's own name does not say
+                        // which. 'world' counts as mapped only if the GM's searchWorldFirst
+                        // or searchWorldLast put it in the order.
+                        mapped: mappedSources.has(source),
                         // Present on EVERY row from either entry point, null when the call
                         // did not involve economics. A key that appears and disappears
                         // depending on which method produced the row is a trap, and so is
@@ -961,12 +1023,19 @@ export class CompendiumManager {
      * carries every field, so the economics come free and the two-state cache the pack
      * side needs has nothing to model. World rows therefore always populate them, which
      * also means a world entry never has to be re-read to answer a filter.
+     *
+     * FILTERED BY OWNERSHIP, per document. A pack's permission is one flag for the whole
+     * pack (`_visibleSources`); a world collection's is per document, so this is where the
+     * equivalent check belongs. `Document#visible` is core's own test -- at least LIMITED
+     * permission for this user (client/documents/abstract/client-document.mjs:193, v13) --
+     * so a player searching the world sees the documents Foundry would show them and not
+     * the GM's private ones.
      * @private
      */
     _getWorldEntries(type) {
         const docs = getWorldCollection(type);
         if (!docs) return [];
-        return docs.map(d => ({
+        return docs.filter(d => d?.visible !== false).map(d => ({
             name: d.name,
             uuid: d.uuid,
             type: d.type,

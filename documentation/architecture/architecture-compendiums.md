@@ -84,6 +84,21 @@ The reference consumer is `window-compendium-search.js`, which uses both modes: 
 **What counts as a filter is a product decision, and it belongs to the window, not here.** The window's `_hasFacets()` treats a subtype OR an economics facet as enough to browse on; type alone is not, because "all Items" is every mapped pack read out alphabetically and capped, which answers nothing and costs the most. That rule was previously economics-only, which made browsing depend on a rarity the user may have set on a different day — the facets persist across sessions and the query deliberately does not.
 
 
+## Permission is enforced in the scan, not by consumers
+
+A GM-only compendium is still **present in `game.packs` on a player's client** — Foundry ships the index to everyone and gates it with `visible`. A scan that ignores the flag therefore reads names, subtypes and artwork out of packs the GM restricted, which are exactly the homebrew and prepared-content packs a GM restricts.
+
+`_visibleSources()` drops them, and both `resolve()` and `_scan()` run every source order through it. `_getWorldEntries()` does the per-document equivalent with `Document#visible`, because a pack's permission is one flag for the whole pack while a world collection's is per document.
+
+**Filtered before the scan, not after.** `search()` lets its cap stop the scan, so an invisible pack removed at the end would still have spent result budget and pushed visible entries off the tail of the priority order — a permission-shaped hole in the results that nothing reports. Removing it from the order means it never costs anything and never appears in `searchOrder`, which is the honest report: for *this* user it would not have been searched.
+
+**This belongs here and not in consumers.** It was found downstream, in Squire, which was filtering the returned rows itself. Every consumer needs it, and each one getting it right independently is how it ends up missing from most of them.
+
+One consequence to hold: `resolve()` can now answer differently on a GM's client and a player's. That is what visibility means. Anything needing a GM-authoritative answer must resolve on the GM's client, as everything that writes already does.
+
+Note that `getMapping()` and `getSearchOrderForType()` are **not** filtered. They report the GM's configuration, which is the same on every client; visibility is a property of who is reading, applied where reading happens.
+
+
 ## Unscoped scanning: `allSources`
 
 `search()` and `query()` both take `allSources`, which replaces the GM's mapping as the source of the scan order with **every installed pack that can hold the type** — `getAllPacks()`, the same inventory the settings dropdowns are built from.
@@ -91,5 +106,7 @@ The reference consumer is `window-compendium-search.js`, which uses both modes: 
 **The mapping still leads.** `_allSourcesOrder()` puts the mapped order first, the world next, and unmapped packs after that. This is not cosmetic: `search()` lets the cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of a result list. The world sits after the mapped set rather than at the end for the same reason — a GM's own documents are a likelier answer than the fortieth installed compendium.
 
 **It is opt-in and should stay opt-in.** Every pack it reaches is indexed once per session, so the first unscoped call on a content-heavy world is a visible pause; `query()` pays more than `search()`, because a query never stops early and therefore opens all of them. The cost is bounded — `_getPackIndex` caches, so it is paid once — but it is paid the first time, in front of the user.
+
+Every result row carries `mapped`, saying whether the GM mapped its source or the scan reached past the mapping to find it. It is the **union across the requested types**, not per type: a pack mapped for Spell but not Item is still a pack the GM chose, and in All-types mode its spells are reached through the Item plan, so a per-type test would label the GM's own pick as uncurated. Blacksmith's palette marks those groups; any consumer offering unscoped search owes the user something equivalent, because a result from a pack the GM deliberately left out looks exactly like one they chose.
 
 `sources` and `allSources` compose: an explicit `sources` list is intersected against whatever the scan can reach, which is the mapping normally and the full inventory when unscoped. `'world'` is nameable in `sources` either way, whether or not `searchWorldFirst`/`Last` places it in the default order.

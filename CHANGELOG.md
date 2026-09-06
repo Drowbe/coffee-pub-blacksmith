@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Compendium Search's result cap is now two caps, and both are higher** (`scripts/window-compendium-search.js`). One number was doing two unrelated jobs. In search mode the cap **stops the scan**, so it is a work budget — once full, remaining compendiums are never opened. In browse mode it stops nothing: every configured source is opened either way and the cap only trims the array, so it bought nothing but DOM nodes.
+
+  Search is now 200 (from 100), comfortably past what a 3+ character query returns in practice and short enough that a generic query does not open an entire content library before giving up. Browse is 500, because 100 was simply too few to browse with — one subtype across a few packs is several hundred rows, and cutting it there hid most of a set the user had asked to see. 500 rows is roughly 3000 elements built once with lazy images, which is not a number a browser notices.
+
 - **Blacksmith expires effects itself, always, and no longer has any tie to Times Up** (`scripts/api-effects.js`). `sweepExpired` deferred deletion to Times Up whenever that module was installed and only swept when it was absent — the same "leverage it instead of ours" shape that left a table's dead taking turns: our sweep stopped, and if the module we deferred to did not run, nothing expired anything.
 
   It was also a functional tie to a module that is now retired. **Times Up ships no Foundry v14 version** — its author's own note reads "core now provides the vast bulk of the functionality that times-up provided and it is no longer needed" — and its manifest caps at `13.999`. dnd5e never expired effects at all: there is no expiry code anywhere in 5.3.3. So a Blacksmith that only swept when Times Up was present would have silently stopped expiring anything the day a table upgraded. It now sweeps in every configuration, on v13 and v14 alike, with nothing a user needs to install. Racing is handled where it belongs — `deleteExpired` re-checks the collection immediately before deleting and swallows the "already gone" rejection, so a lost race costs a console line rather than an effect that never ends.
@@ -29,7 +33,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Compendium Search can look past the GM's mapping, on demand** (`scripts/manager-compendiums.js`, `scripts/api-compendiums.js`, `scripts/window-compendium-search.js`). A globe in the palette's title bar switches the scan from the compendiums the GM curated to **every installed compendium that can hold the type**. It exists for the case the mapping is for: the curated set is the right default and is occasionally not where the thing is.
+- **A world setting for whether players may add from Compendium Search** (`scripts/settings.js`, `scripts/window-compendium-search.js`, `lang/en.json`). The palette hands out Foundry's native drag payload, so a result lands on any sheet the user owns and creates the document there. That is the right mechanism, and it also means an unpoliced palette is a "give yourself any item in the game" tool for any player who owns a character.
+
+  **Players Can Add From Compendium Search** is on by default — that is what the palette already did, and turning it off is a decision a table makes rather than one an update makes for them. Off, a player keeps the search itself: they can look things up and open what they find, but not drag it out. That split is narrower than it looks and it is the one that matters — a player reading how grappling works needs the compendium open, not write access to their own sheet.
+
+  One boolean rather than a ladder of permissions Blacksmith would then own. It is checked in `_onDragStart` as well as on the row's `draggable`, because hiding an affordance is not authorisation: the attribute is one line of devtools away, and the listener is what actually hands over the payload. World-scoped, since a client-scoped permission is one the person being governed can switch off. Raised by the Squire maintainer.
+
+- **Result rows say which compendiums the GM mapped and which they did not** (`scripts/manager-compendiums.js`, `scripts/window-compendium-search.js`, `styles/window-compendium-search.css`). Every row from `search()` and `query()` now carries `mapped`, and while the scan is unscoped the palette puts a chip on every group heading — green `MAPPED`, amber `NOT MAPPED`.
+
+  Without it, unscoped search is a trap: a result from a pack the GM deliberately left out looks exactly like one they chose, and the pack's own name does not say which. The heading carries it because the heading is sticky and therefore on screen for the whole group, including the row being dragged.
+
+  **Both answers are labelled, and that is the design.** The first cut marked only the unmapped sources, with a border rule and a recoloured pack name on top of the chip — which made them the loudest thing in the window. The eye goes to the one run of colour, so the compendiums the GM actually curated read as the exception. Two chips at equal weight scan in one pass and neither is an alarm. The chips appear only while unscoped, because that is the only state where the question is live; with the toggle off every source is mapped and a chip on every heading would be decoration.
+
+  `mapped` is the union across the requested types, not per type. A pack mapped for Spell but not Item is still a pack the GM chose, and in All-types mode its spells are reached through the Item plan — a per-type test would have labelled the GM's own pick as uncurated.
+
+- **Compendium Search can look past the GM's mapping, on demand** (`scripts/manager-compendiums.js`, `scripts/api-compendiums.js`, `scripts/window-compendium-search.js`). An atlas in the palette's title bar switches the scan from the compendiums the GM curated to **every installed compendium that can hold the type**. It exists for the case the mapping is for: the curated set is the right default and is occasionally not where the thing is.
 
   **The mapping still leads.** `_allSourcesOrder()` puts the mapped order first, the world next, then everything else installed. That is not cosmetic — `search()` lets its cap stop the scan, so the tail is what gets cut, and any other ordering would let a bundled third-party pack push the GM's own curated choice out of the list. The world sits after the mapped set rather than at the end for the same reason: a GM's own documents beat the fortieth installed pack.
 
@@ -64,6 +82,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Blacksmith remains consumer zero for `registerSceneConfigTab`: the tab goes through the public path, and the checkbox is persisted by Foundry's own form submission with no save callback. A new `updateScene` hook applies the change the moment the flag lands from any of the three surfaces — without it, a GM ticking the box in the middle of a flat afternoon sees nothing happen until the next twilight, because the curve computes no change and the write gate correctly suppresses it.
 
 ### Fixed
+
+- **Compendium lookups no longer read out of compendiums the user is not allowed to see** (`scripts/manager-compendiums.js`). A GM-only pack is still **present in `game.packs` on a player's client** — Foundry ships the index to everyone and gates it with `visible` — so a scan that ignored the flag happily returned names, subtypes and artwork from packs the GM had restricted. Homebrew and prepared-content packs are exactly the ones GMs restrict, and Compendium Search is deliberately not GM-only, so a player typing three letters could read them.
+
+  `_visibleSources()` now filters every source order in both `resolve()` and `_scan()`, and `_getWorldEntries()` does the per-document equivalent with `Document#visible` — a pack's permission is one flag for the whole pack, a world collection's is per document. Both use core's own tests, so a user sees exactly the packs and documents Foundry would show them.
+
+  **Filtered before the scan, not after.** `search()` lets its cap stop the scan, so an invisible pack removed at the end would still have spent result budget and pushed visible entries off the tail of the priority order — a permission-shaped hole in the results that nothing reports. Removed from the order, it costs nothing and never appears in `searchOrder`, which is honest: for that user it would not have been searched.
+
+  This changes one thing worth knowing: `resolve()` can now answer differently on a GM's client and a player's. That is what visibility means, and anything needing a GM-authoritative answer must resolve on the GM's client, as everything that writes already does. `getMapping()` and `getSearchOrderForType()` are deliberately **not** filtered — they report the GM's configuration, which is the same on every client.
+
+  Found and reported by the Squire maintainer, who was filtering the returned rows downstream. Downstream is the wrong place: every consumer needs it, and each one getting it right independently is how it ends up missing from most of them.
 
 - **An empty search box now browses whenever a subtype is chosen, not only when a price or rarity is** (`scripts/window-compendium-search.js`). Compendium Search browses on an empty box when a filter is set, and its test for "a filter is set" counted only the economics facets. So choosing **Weapon** and clearing the box was told to type three characters, while choosing **Rare** and clearing the box listed everything — and because the facets persist across sessions and the query deliberately does not, whether a subtype browsed depended on a rarity the user may have set on a different day. From outside it looked random. A subtype is a request for a set exactly as a rarity is, and is now treated as one.
 

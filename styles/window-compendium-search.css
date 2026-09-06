@@ -98,6 +98,60 @@
     text-transform: uppercase;
 }
 
+/* ===== MAPPED / NOT MAPPED CHIPS ================================
+   Only rendered with "Search all installed compendiums" on, which is the only state
+   where the question is live. Off, every source is mapped and a chip on every heading
+   would be pure decoration.
+
+   BOTH SIDES ARE LABELLED, and that is the whole design. Marking only the unmapped
+   ones made them the loudest thing in the list -- the eye goes to the one row of colour,
+   so the results the GM deliberately curated read as the exception. A green chip and an
+   amber chip at the same weight let the list be scanned in one pass without either
+   answer being an alarm.
+
+   No border rule, no recoloured heading: the chip carries it. */
+
+.blacksmith-compendium-search-window .bcs-group-mark {
+    flex: 0 0 auto;
+    /* Ahead of the package name, which keeps its right-hand slot. */
+    order: 1;
+    padding: 0 5px;
+    border: 1px solid transparent;
+    border-radius: var(--blacksmith-radius-sm, 3px);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.blacksmith-compendium-search-window .bcs-group-mark[data-mapped="true"] {
+    border-color: var(--blacksmith-variant-success-border, rgba(51, 92, 51, 0.45));
+    background: var(--blacksmith-variant-success-bg, rgba(51, 92, 51, 0.12));
+    color: var(--blacksmith-status-success, #629602);
+}
+
+.blacksmith-compendium-search-window .bcs-group-mark[data-mapped="false"] {
+    border-color: var(--blacksmith-variant-warning-border, rgba(115, 86, 35, 0.45));
+    background: var(--blacksmith-variant-warning-bg, rgba(115, 86, 35, 0.12));
+    color: var(--blacksmith-status-warning, #aa6000);
+}
+
+.blacksmith-compendium-search-window .bcs-group-mark + .bcs-group-package {
+    order: 2;
+}
+
+/* ===== WHEN ADDING IS OFF ========================================
+   `compendiumSearchPlayerAdd` off leaves a player the search and takes the drag. The
+   grab cursor would be promising something the dragstart handler will refuse. */
+.blacksmith-compendium-search-window .bcs-row:not([draggable="true"]) {
+    cursor: pointer;
+}
+
+.blacksmith-compendium-search-window .bcs-row:not([draggable="true"]):active {
+    cursor: pointer;
+}
+
 .blacksmith-compendium-search-window .bcs-group-package {
     flex: 1 1 auto;
     min-width: 0;

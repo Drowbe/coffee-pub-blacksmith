@@ -43,8 +43,26 @@ const PREFS_SETTING = 'compendiumSearchPreferences';
 /** Keystroke settle time before a query runs. Long enough to skip a fast typist's intermediate states. */
 const DEBOUNCE_MS = 140;
 
-/** Higher than a tray's 40 — this window is taller and the user is browsing, not quick-adding. */
-const RESULT_LIMIT = 100;
+/**
+ * TWO LIMITS, because the cap does two different jobs and one number could only be wrong
+ * for one of them.
+ *
+ * In SEARCH mode the cap stops the scan (`stopAtLimit: true`), so it is a work budget:
+ * once it is full, remaining compendiums are never opened. Raising it costs real time on
+ * a generic query. 200 is comfortably past what a 3+ character query returns in practice,
+ * and short enough that "a" against a full content library does not open everything
+ * installed before it gives up.
+ *
+ * In BROWSE mode the cap does not stop anything (`stopAtLimit: false`) -- every configured
+ * source is opened either way and the cap only trims the array. So it buys nothing but DOM
+ * nodes, and 100 was simply too few to browse with: one subtype across a few packs is
+ * several hundred rows, and cutting it at 100 hid most of a set the user asked to see. The
+ * cost of 500 rows is ~3000 elements built once with lazy images, which is not a number a
+ * browser notices; the honest ceiling is where a plain list stops being scrollable, and
+ * that is thousands, not hundreds.
+ */
+const SEARCH_LIMIT = 200;
+const BROWSE_LIMIT = 500;
 
 /**
  * Three, not the API's default of two. Searching every mapped type at once opens far
@@ -270,6 +288,26 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     /**
+     * Whether this user may drag a result out onto a sheet.
+     *
+     * The palette hands out Foundry's native drag payload, so a result lands on any sheet
+     * the user owns and CREATES the document there. That is the right mechanism and it is
+     * also a write path: for a player who owns a character, an unpoliced palette is a
+     * "give yourself any item in the game" tool. Some tables want exactly that. Others do
+     * not, and the split that matters is narrower than it looks -- a player reading how
+     * grappling works needs the compendium open, not write access to their own sheet.
+     *
+     * So browsing is never gated and adding is, which is one boolean rather than a ladder
+     * of permissions Blacksmith would then have to own. A module with a richer policy is
+     * welcome to have one; this is the floor, and it belongs here because the write path
+     * is ours. Raised by the Squire maintainer.
+     */
+    _canAddFromResults() {
+        if (game.user?.isGM) return true;
+        return !!getSettingSafely(MODULE.ID, 'compendiumSearchPlayerAdd', true);
+    }
+
+    /**
      * Whether any filter is narrowing the result set -- which is also the test for
      * whether an empty search box browses instead of refusing.
      *
@@ -355,7 +393,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             : `<div class="bcs-empty bcs-unmapped">
                    <i class="fa-solid fa-triangle-exclamation"></i>
                    <p>No compendiums are mapped yet.</p>
-                   <p class="bcs-empty-hint">Configure them in Campaign Settings, under Compendium Mapping — or turn on <strong>Search all installed compendiums</strong> (the globe) to look at everything installed.</p>
+                   <p class="bcs-empty-hint">Configure them in Campaign Settings, under Compendium Mapping — or turn on <strong>Search all installed compendiums</strong> in the title bar to look at everything installed.</p>
                </div>`;
 
         return {
@@ -365,7 +403,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             bodyContent,
             showToolFooter: types.length > 0,
             toolFooterLeft: '<span class="bcs-status" data-status></span>',
-            toolFooterRight: '<span class="bcs-hint">Drag onto a sheet</span>'
+            toolFooterRight: `<span class="bcs-hint">${this._canAddFromResults() ? 'Drag onto a sheet' : 'Click to open'}</span>`
         };
     }
 
@@ -376,7 +414,9 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             // WHAT you are looking for. It is also why the state is client-scoped: it is
             // this user's reach, not a property of the world.
             id: 'all-sources',
-            icon: 'fa-solid fa-globe',
+            // An atlas, not a globe: this widens which COMPENDIUMS are read, and a globe
+            // reads as world data. Foundry's own compendium sidebar tab uses the same glyph.
+            icon: 'fa-solid fa-atlas',
             // One label in both states. The pressed state carries the difference -- the base
             // class marks it `is-active` in the title bar and prefixes a check in the
             // context menu it falls back to on a micro title bar -- and a label that
@@ -525,7 +565,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             if (hasText) {
                 report = await compendiumManager.searchDetailed(this._query, this._searchTypes(), {
                     itemType: this._subtype || null,
-                    limit: RESULT_LIMIT,
+                    limit: SEARCH_LIMIT,
                     minLength: MIN_QUERY_LENGTH,
                     rarity,
                     priceGp,
@@ -541,7 +581,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                     subtypes: this._subtype ? [this._subtype] : null,
                     rarity,
                     priceGp,
-                    limit: RESULT_LIMIT,
+                    limit: BROWSE_LIMIT,
                     allSources: this._allSources
                 });
             }
@@ -574,6 +614,8 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
         // Hoisted out of the row loop: it is a capability question about the system, not
         // about any one result.
         const richTooltips = systemHasRichItemTooltips();
+        const canAdd = this._canAddFromResults();
+        const showMapping = this._allSources;
         list.replaceChildren();
 
         if (!results.length) {
@@ -606,6 +648,27 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
                 packLabel.textContent = result.sourceLabel;
                 header.appendChild(packLabel);
 
+                // BOTH answers get a chip, not just the unwelcome one. Marking only the
+                // unmapped sources made them the loudest thing on screen -- the eye goes
+                // to the one run of colour -- so the compendiums the GM actually curated
+                // read as the exception. Two chips at equal weight scan in one pass and
+                // neither reads as an alarm.
+                //
+                // Only while unscoped, because that is the only state where the question
+                // is live. With the toggle off every source is mapped, and a chip on every
+                // heading would be decoration.
+                if (showMapping) {
+                    const mapped = result.mapped !== false;
+                    const mark = document.createElement('span');
+                    mark.className = 'bcs-group-mark';
+                    mark.dataset.mapped = String(mapped);
+                    mark.textContent = mapped ? 'mapped' : 'not mapped';
+                    mark.dataset.tooltip = mapped
+                        ? 'This compendium is in your Compendium Mapping.'
+                        : 'This compendium is not in your Compendium Mapping. It is shown because Search all installed compendiums is on.';
+                    header.appendChild(mark);
+                }
+
                 if (result.sourcePackage && result.sourcePackage !== result.sourceLabel) {
                     const packageLabel = document.createElement('span');
                     packageLabel.className = 'bcs-group-package';
@@ -620,12 +683,14 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
             // No tier in browse mode -- nothing was matched against -- so no tier class
             // rather than a `bcs-tier-null` nothing styles.
             row.className = result.matchType ? `bcs-row bcs-tier-${result.matchType}` : 'bcs-row';
-            row.draggable = true;
+            row.draggable = canAdd;
             row.dataset.uuid = result.uuid;
             // Straight off the result. Deriving it from the type token searched is a
             // way to get the drag payload subtly wrong, so the API hands it over.
             row.dataset.documentClass = result.documentClass;
-            row.dataset.tooltip = `${result.name} — click to open, drag to add`;
+            row.dataset.tooltip = canAdd
+                ? `${result.name} — click to open, drag to add`
+                : `${result.name} — click to open`;
 
             const thumb = document.createElement('img');
             thumb.className = 'bcs-thumb';
@@ -720,6 +785,15 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
     _onDragStart(event) {
         const row = event.target?.closest?.('.bcs-row');
         if (!row?.dataset?.uuid) return;
+
+        // Checked here as well as on the row's `draggable`, because hiding an affordance is
+        // not authorisation: the attribute is one line of devtools away, and this listener
+        // is what actually hands over the payload. Re-read rather than cached from the last
+        // paint, so a GM turning the setting off takes effect on the next drag.
+        if (!this._canAddFromResults()) {
+            event.preventDefault();
+            return;
+        }
 
         event.dataTransfer.setData('text/plain', JSON.stringify({
             type: row.dataset.documentClass,
