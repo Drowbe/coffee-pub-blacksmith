@@ -96,11 +96,23 @@ function _extractD20FromDieResults(results, modifiers, termClass, faces) {
  * @param {object} [options]
  * @param {Roll|object|null} [options.roll] - The roll the face came from, live or
  *   serialized. Pass it whenever you have it; without it only rule 3 can apply.
- * @returns {{ isCritical: boolean, isFumble: boolean, critMode: 'system'|'natural' }}
+ * `critMode` on the result REPORTS which rule was applied, and is not an input. The
+ * values, which consumers may read off the `blacksmith.rolls.*` payload:
+ *
+ *   'declared'  the roll stated a threshold and we used it (rules 1 and 2)
+ *   'natural'   the roll stated none, so natural 20 / natural 1
+ *   'workflow'  set elsewhere, where the verdict came from a midi-qol workflow
+ *
+ * It is `'declared'` rather than `'system'` deliberately. The deleted INPUT option was
+ * called `critMode: 'system'`, and reusing that word for an output value read as the
+ * option having survived -- it misled a consuming module's session on first contact
+ * (2026-09-05), which is reason enough not to keep it.
+ *
+ * @returns {{ isCritical: boolean, isFumble: boolean, critMode: 'declared'|'natural' }}
  */
 export function classifyCritFumble(d20, options = {}) {
     const fromSystem = _systemCritFumble(options.roll, d20);
-    if (fromSystem) return { ...fromSystem, critMode: 'system' };
+    if (fromSystem) return { ...fromSystem, critMode: 'declared' };
 
     if (typeof d20 !== 'number') {
         return { isCritical: false, isFumble: false, critMode: 'natural' };

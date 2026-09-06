@@ -30,15 +30,30 @@ writes are what close those, and they are unproven.
 
 ## The cheap reproduction (use this, not the live world)
 
-Proposed by the Crier session and adopted: **a small combat with `active: false` and a couple of turn
-advances reproduces the whole class**, without dragging a nineteen-round world state around. Do not copy
-production session data into dev to test this.
+A small combat with `active: false`, rather than dragging a nineteen-round world state around. Do not
+copy production session data into dev to test this.
+
+**THE RELOAD IS THE LOAD-BEARING STEP, NOT THE FLAG.** An earlier version of this section said clearing
+`active` was enough. It is not, and as written it reproduced nothing -- corrected 2026-09-05 after the
+Crier session measured it on a live world.
+
+`game.combat` is `ui.combat.viewed`, and that is **sticky**: the tracker infers it once and clearing the
+flag afterwards does not make it re-infer. Clear `active` mid-session and `game.combat` keeps returning
+the combat while `game.combats.active` returns undefined -- the two disagree, and most things carry on
+working. Only a reload re-runs the inference and finds nothing to infer, which is when `game.combat`
+finally goes null and the failures appear.
+
+That is also why the original incident presented as total silence rather than intermittent breakage: the
+author had reloaded.
 
 Setup, once, for most of what follows:
 
 1. New scene, new combat, four combatants: two plain NPCs, one NPC owned by a player (a summon), one PC.
 2. Roll initiative for all four and start the combat.
 3. `game.combats.get(<id>).update({ active: false })` in the console.
+4. **Reload (F5).** Without this the bug does not exist yet.
+5. Confirm the trap is armed before testing anything: `game.combat` must be `null`. If it returns a
+   combat, the inference has not been re-run and every item below will pass for the wrong reason.
 
 ---
 

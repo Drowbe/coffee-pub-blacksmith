@@ -88,7 +88,10 @@ both the Foundry hook and Blacksmith's abort listener; calling the disposer does
     tokenId: 'def456',
     messageId: 'xyz789',
     visibility: 'public' | 'private' | 'blind' | 'self',
-    critMode: 'natural',  // or 'system' when dnd5e crit range used
+    critMode: 'natural',  // 'declared' when the roll stated a threshold and it was used;
+                          // 'natural' for nat 20 / nat 1 when it stated none;
+                          // 'workflow' when the verdict came from a midi-qol workflow.
+                          // Reports which rule was applied — it is not an input.
 
     // skillCheck only
     isGroupRoll: false,

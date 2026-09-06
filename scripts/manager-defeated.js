@@ -395,23 +395,45 @@ export class DefeatedManager {
     static async _syncStatusEffect(actor, active) {
         const statusId = CONFIG.specialStatusEffects?.DEFEATED;
         if (!statusId || !actor) return;
-        const existing = actor.effects.find(e => e.statuses?.has(statusId));
-        if (active && !existing) {
+        const hasStatus = () => !!actor.effects.find(e => e.statuses?.has(statusId));
+        if (active && !hasStatus()) {
+            // LET ANYONE ELSE GO FIRST, THEN LOOK AGAIN.
+            //
+            // The status carries a STATIC `_id`, so two writers who both see it absent
+            // both create `dnd5edead0000000` and the server rejects the loser. That
+            // rejection is NOT a quiet console line: Foundry surfaces it through
+            // `ui.notifications.error`, so the GM gets a red toast reading "The _id
+            // [dnd5edead0000000] already exists" every time something dies. Confirmed
+            // at the author's table 2026-09-05. It is raised from inside the socket
+            // response handler, before our promise rejects, so the catch below cannot
+            // prevent it -- by the time we can react, the toast has been shown.
+            //
+            // The only thing that helps is not being the loser. This yields a beat and
+            // re-reads the actor: if anything else is applying the status, it has
+            // landed by now and we do nothing. That is a check on the WORLD'S STATE,
+            // not on whether some module is installed, so it stays inside Ground
+            // Rule 8 -- we are not asking permission, we are looking at the document.
+            //
+            // The delay is safe because this half is COSMETIC. The `defeated` field is
+            // what makes core skip the turn and it was written before we got here,
+            // unconditionally. All that waits is the token's skull overlay.
+            await new Promise((resolve) => setTimeout(resolve, 150));
+            if (hasStatus()) {
+                postConsoleAndNotification(MODULE.NAME, 'Defeated: Defeated status was already applied by something else', '', true, false);
+                return;
+            }
+
             try {
                 await actor.toggleStatusEffect(statusId, { overlay: true, active: true });
             } catch (error) {
-                // The status effect carries a STATIC id, so a second creator hits a
-                // duplicate-id rejection rather than making a second effect. Our own
-                // `_inFlight` guard cannot prevent that on its own: core's tracker
-                // skull button, dnd5e, or another module can create the same effect
-                // at the same moment, and we cannot lock them out. The outcome we
-                // wanted has happened either way, so swallow that one case and let
-                // anything else be reported.
+                // Still possible: two writers inside the same 150ms. Rarer now, and
+                // the outcome we wanted has happened either way.
                 const message = String(error?.message ?? '');
                 if (!message.includes('already exists')) throw error;
-                postConsoleAndNotification(MODULE.NAME, 'Defeated: Defeated status was already being applied by something else', '', true, false);
+                postConsoleAndNotification(MODULE.NAME, 'Defeated: Lost the race to apply the defeated status', '', true, false);
             }
-        } else if (!active && existing) {
+        } else if (!active && actor.effects.find(e => e.statuses?.has(statusId))) {
+            const existing = actor.effects.find(e => e.statuses?.has(statusId));
             // Guarded for the same reason the create above is, and it was not.
             // `actor.effects` is this client's copy: another client, the tracker's
             // own skull button, or any other module can delete the effect between the

@@ -27,6 +27,7 @@ import { CombatMvp, MVPDescriptionGenerator } from './stats-mvp.js';
 // see the note at the top of stats-sources.js before adding a static field
 // there that references CombatStats.
 import { CombatSources } from './stats-sources.js';
+import { isMidiIntegrationEnabled } from './utility-midi-resolution.js';
 import { assetLookup } from './utility-asset-lookup.js';
 
 class CombatStats {
@@ -1615,17 +1616,32 @@ class CombatStats {
         attackerCombatStats.combat.attacks.attempts++;
         combatTotals.attacks.attempts++;
         
-        // Core-only: increment crit/fumble once per attack (MIDI increments in RollComplete)
+        // Crit and fumble are counted HERE unless the MIDI lane is actually going to
+        // count them in `RollComplete`. Both conditions have to hold, and getting that
+        // wrong has already cost this module real data twice.
         //
-        // Asks the event whether it carries a workflow, rather than SNIFFING THE SHAPE
-        // OF THE KEY, which is what this did: `attackEvent.key.startsWith("midi:")`.
-        // That worked only because our correlation key used to BE midi's workflow id,
-        // and it broke silently the moment the key became ours (2026-09-03) -- the test
-        // went permanently false and crits would have been counted twice, here and
-        // again in `RollComplete`. A key is an identity, not a type tag; anything that
-        // needs to know where an event came from must ask for that directly.
-        const isMidiAttack = !!attackEvent?.workflowId;
-        if (!isMidiAttack) {
+        // It asked `attackEvent.key.startsWith("midi:")` -- sniffing the SHAPE of the
+        // key for type information. That broke silently the moment the key became ours
+        // (2026-09-03): the test went permanently false, and crits would have been
+        // counted twice, here and again in `RollComplete`. A key is an identity, not a
+        // type tag.
+        //
+        // Replacing it with `!!attackEvent.workflowId` fixed the double count and left
+        // a worse bug standing, which is the one that matters to a table: **with midi
+        // installed but our integration OFF, nobody counted crits at all.** The message
+        // still carries midi flags, so `workflowId` is set and this branch was skipped
+        // -- while `_onMidiRollComplete` returns immediately because integration is off.
+        // Every critical and fumble on a midi-generated attack was silently lost, and
+        // had been since long before either change, because the old key test was true
+        // in exactly the same circumstances. Found 2026-09-05.
+        //
+        // The question is not "did this come from a workflow". It is "is something else
+        // going to count it", and only our own setting answers that. Reading
+        // `enableMidiIntegration` is reading OUR setting, which Ground Rule 8 permits --
+        // what it forbids is reading midi's, or asking whether midi is installed in
+        // order to decide whether to do our job.
+        const midiWillCountIt = isMidiIntegrationEnabled() && !!attackEvent?.workflowId;
+        if (!midiWillCountIt) {
             if (attackEvent.isCritical) {
                 attackerStats.combat.attacks.crits++;
                 attackerCombatStats.combat.attacks.crits++;

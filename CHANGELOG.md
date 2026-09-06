@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Criticals and fumbles were never counted on a table running midi-qol with Blacksmith's integration switched off** (`scripts/stats-combat.js`). The core lane skipped counting them whenever the attack carried a midi workflow id, on the reasoning that midi's `RollComplete` handler counts them instead — but that handler returns immediately when `enableMidiIntegration` is off. The message still carries midi flags either way, so the core lane stood down for a lane that was not running, and every critical and fumble on a midi-generated attack was silently lost. A GM in that configuration has been reading zeroes.
+
+  It is long-standing rather than new: the test was previously `key.startsWith("midi:")`, which was true in exactly the same circumstances, so this has been wrong for as long as both conditions have been possible together.
+
+  The gate now asks the question that actually matters — *is something else going to count this?* — which takes both `enableMidiIntegration` **and** the presence of a workflow. Reading our own setting is permitted; what Ground Rule 8 forbids is reading midi's, or asking whether midi is installed in order to decide whether to do our job. Counting them here on the strength of a foreign module's flag being present was the second thing.
+
 ### Changed
+
+- **Marking a creature defeated no longer raises a red error at the GM** (`scripts/manager-defeated.js`). Foundry's defeated status carries a static `_id`, so when two things apply it in the same instant the server rejects the loser — and Foundry surfaces that through `ui.notifications.error`, not the console. Every death produced a red toast reading `The _id [dnd5edead0000000] already exists`. It is raised from inside the socket response handler, before our promise rejects, so no `try`/`catch` of ours could prevent it; this was previously documented as an accepted cost on the assumption it was a console line, which was wrong.
+
+  The fix is not to ask whether anything else is applying it — that is the coupling this module has spent the week removing — but to **let anyone else go first and then look again**: a beat's pause, a re-read of the actor, and if the status has arrived we do nothing. That is a check on the world's state rather than on another module's presence, so it stays inside Ground Rule 8.
+
+  Safe to delay because that half is cosmetic: `defeated` is the field that makes core skip the turn, and it is still written first and unconditionally. Only the token's skull overlay waits.
 
 - **The combat statistics attack lane no longer stands down for midi-qol** (`scripts/stats-combat.js`, `scripts/stats-sources.js`). The core dnd5e lane returned early for any midi-flagged chat message and handed the whole card — attack and damage — to the MIDI lane. That is the shape Ground Rule 8 refuses: our lane stopped, and on a table where the MIDI lane did not fire, nothing recorded the attack at all.
 
@@ -153,7 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   dnd5e settles this per roll rather than globally: `D20Roll#isCritical` reads `total >= options.criticalSuccess`, and that threshold is stamped onto the die from the activity when the roll is built. The classifier now takes the system's answer in three steps — a live roll that answers `isCritical`/`isFumble`; failing that, the `criticalSuccess`/`criticalFailure` still carried on a **serialized** roll's d20 term, which is how most rolls reach us through a flag or a socket; and only then natural 20 / natural 1, for a roll that declared no threshold at all.
 
-  The `critMode: 'system'` option that was supposed to cover this is deleted. It read `CONFIG.DND5E.critical.threshold` — a global, which is not where a character's threshold lives — so it would not have fixed the Champion even if anything had called it, and nothing did: every caller took the `'natural'` default, in Blacksmith and in all thirteen siblings. It was dead code standing in for a feature that was never implemented, and it was threaded as an argument through eight functions and five payloads on the way. The payload keeps a `critMode` field, but it now reports what the classifier actually did (`'system'`, `'natural'`, or `'workflow'`) instead of echoing a caller's unused preference.
+  The `critMode: 'system'` option that was supposed to cover this is deleted. It read `CONFIG.DND5E.critical.threshold` — a global, which is not where a character's threshold lives — so it would not have fixed the Champion even if anything had called it, and nothing did: every caller took the `'natural'` default, in Blacksmith and in all thirteen siblings. It was dead code standing in for a feature that was never implemented, and it was threaded as an argument through eight functions and five payloads on the way. The payload keeps a `critMode` field, but it now reports what the classifier actually did — `'declared'` when the roll stated a threshold and it was used, `'natural'` for nat 20 / nat 1 when it stated none, `'workflow'` when the verdict came from a midi-qol workflow — instead of echoing a caller's unused preference. It reports `'declared'` rather than `'system'` because reusing the deleted option's name for a reported value read as the option having survived, and misled a consuming module on first contact.
 
 - **Blacksmith now has one definition of "dead", and it is Blacksmith's** (`scripts/manager-defeated.js`, `scripts/manager-combatbar.js`, `scripts/manager-encounter.js`). Three places each held their own version of the rule — the combat bar's `isCombatantDead`, the encounter builder's `canStillFight`, and core's `Combatant#isDefeated` — and they could disagree. That is how a table gets a bar showing a skull over a combatant the tracker is about to give a turn to.
 

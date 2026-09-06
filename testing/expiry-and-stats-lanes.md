@@ -82,8 +82,15 @@ long as the author supports v13.
 
 ## Combat statistics: the attack lane stopped yielding (2026-09-05)
 
-Different subject, same failure class, and it needs a live world with **Midi-QOL Integration ON** --
-which is the configuration none of it has ever been run in.
+Different subject, same failure class.
+
+**Run with Midi-QOL Integration ON, 2026-09-05.** A combat was fought, an NPC killed, a new round begun,
+and **the dead combatant did not take a turn** -- which is the whole reason this work exists, confirmed
+in the configuration that caused the original incident. One `dnd5edead0000000 already exists` error
+appeared; that is the known status-effect race, addressed below, and it did not prevent the mark.
+
+The items left are the ones that run needs to be repeated to measure, since they need numbers watched
+rather than a symptom observed.
 
 - [ ] **One attack, one set of numbers.** Midi ON, in combat. Make one attack that hits. Confirm
       attempts, hits and crits each rise by exactly **one**, not two. Both the core chat lane and the
@@ -98,6 +105,16 @@ which is the configuration none of it has ever been run in.
       Exactly one attempt. This is the path that made the `_onAttackRoll` yield worth keeping: its
       socket payload carries no identity the MIDI lane shares, so nothing can dedupe it and it must
       not be forwarded twice.
+
+- [ ] **No red toast when something dies.** Midi ON. Kill an NPC and watch the notification area, not
+      just the console. There must be no `The _id [dnd5edead0000000] already exists` error.
+
+      That toast appeared at the author's table on 2026-09-05 and is the reason
+      `DefeatedManager._syncStatusEffect` now waits 150ms and re-reads the actor before applying the
+      status: whoever else is applying it has landed by then, and we do nothing. **Verify the mark still
+      happens** -- the token gets its skull and the combatant is skipped -- since the fix trades
+      immediacy for quiet and the overlay is the half that waits. If the toast still appears, the delay
+      is too short rather than wrong.
 
 - [ ] **Damage is unchanged.** Midi ON. Damage totals, biggest hit and the onHit/unlinked buckets must
       read exactly as before this change. The damage half still yields deliberately, so this is
