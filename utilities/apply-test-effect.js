@@ -4,9 +4,17 @@
 // Puts a timed Active Effect on every selected token, so the effect-expiry
 // tests can be set up in two clicks instead of by hand in the effect sheet.
 //
-// Written for the tests in `testing/` that read:
-//   "apply a 2-round effect in combat, advance 3 rounds"
-//   "apply a 20-second effect during combat (it converts to rounds)"
+// Written for the items in `testing/effect-expiry.md`.
+//
+// TWO TICK SOURCES, AND THEY ARE NOT INTERCHANGEABLE. Blacksmith watches
+// `updateWorldTime` and `updateCombat` separately, because a seconds duration
+// moves with the world clock and a rounds duration moves with the combat
+// tracker, and neither advances the other. So there are two tests here, not one:
+//
+//   in combat, rounds     pick "2 rounds", advance the tracker
+//   out of combat, seconds  pick a seconds duration and leave "advance the world
+//                           clock" ticked -- the macro applies it, jumps the
+//                           clock past it, and reports PASS or FAIL itself
 //
 // WHY A MACRO AND NOT THE EFFECT SHEET. Those two tests turn on the duration
 // being EXACTLY what the test says. Foundry's effect sheet writes whichever of
@@ -42,7 +50,7 @@
         '600 seconds (10 min, control)': { rounds: null, seconds: 600 }
     };
 
-    const choice = await foundry.applications.api.DialogV2.prompt({
+    const result = await foundry.applications.api.DialogV2.prompt({
         window: { title: 'Apply Test Effect' },
         content: `
             <p>Applying to <strong>${tokens.length}</strong> selected token(s).</p>
@@ -52,16 +60,32 @@
                     ${Object.keys(PRESETS).map((k) => `<option value="${k}">${k}</option>`).join('')}
                 </select>
             </div>
+            <div class="form-group">
+                <label for="cpb-test-advance">
+                    <input type="checkbox" id="cpb-test-advance" name="advance" checked>
+                    Advance the world clock past it (seconds durations only)
+                </label>
+                <p class="notes">
+                    Runs the whole out-of-combat test in one go: the effect is applied, the
+                    clock jumps past its duration, and Blacksmith's world-time sweep should
+                    remove it immediately. Ignored for a rounds duration, which the clock
+                    does not move.
+                </p>
+            </div>
         `,
         ok: {
             label: 'Apply',
-            callback: (_event, button) => button.form.elements.duration.value
+            callback: (_event, button) => ({
+                choice: button.form.elements.duration.value,
+                advance: button.form.elements.advance.checked
+            })
         },
         rejectClose: false
     });
 
-    if (!choice) return; // Dismissed. Writing nothing is the correct read of a dismissed dialog.
+    if (!result) return; // Dismissed. Writing nothing is the correct read of a dismissed dialog.
 
+    const { choice, advance } = result;
     const { rounds, seconds } = PRESETS[choice];
 
     // `startRound`/`startTurn` matter: a rounds duration that does not know when
@@ -114,15 +138,55 @@
         }
     }
 
-    if (!inCombat) {
-        ui.notifications.warn('Applied, but no combat is running — a rounds duration cannot tick down. Start combat for tests 1 and 2.');
-    }
-
     const summary = `Applied "${choice}" to ${applied} token(s).`;
     if (failures.length) {
         console.warn('BLACKSMITH | TEST EFFECT failures', failures);
         ui.notifications.warn(`${summary} ${failures.length} failed — see console.`);
     } else {
         ui.notifications.info(summary);
+    }
+
+    // ONLY A ROUNDS DURATION NEEDS COMBAT. A seconds duration out of combat is
+    // not a mistake to warn about -- it is the world-clock test, and Blacksmith
+    // watches `updateWorldTime` as a tick source of its own, separately from
+    // `updateCombat` (`api-effects.js`). An earlier version of this macro warned
+    // whenever combat was absent and read as a refusal, which cost the author a
+    // test run.
+    if (rounds !== null && !inCombat) {
+        ui.notifications.warn('That is a ROUNDS duration and no combat is running, so nothing will advance it. Start combat, or pick a seconds duration to test the world clock instead.');
+        return;
+    }
+
+    if (!advance || seconds === null) return;
+    if (!applied) return;
+
+    // Past the end, not exactly to it: landing on the boundary leaves the
+    // remainder at zero, and "expired" is `<= 0`, so an off-by-one here would
+    // make a working sweep look broken.
+    const jump = seconds + 1;
+    const before = game.time.worldTime;
+    await game.time.advance(jump);
+
+    // The sweep runs from the `updateWorldTime` hook, which has to land first.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+
+    const survivors = [];
+    for (const token of tokens) {
+        for (const effect of token.actor?.effects ?? []) {
+            if (effect.name?.startsWith('Blacksmith Test (')) survivors.push(`${token.name}: ${effect.name}`);
+        }
+    }
+
+    console.log('BLACKSMITH | TEST EFFECT world clock advanced', {
+        seconds: jump,
+        worldTimeBefore: before,
+        worldTimeAfter: game.time.worldTime,
+        survivingTestEffects: survivors
+    });
+
+    if (survivors.length) {
+        ui.notifications.error(`FAIL: advanced ${jump}s and ${survivors.length} test effect(s) are still there. See console.`);
+    } else {
+        ui.notifications.info(`PASS: advanced ${jump}s of world time and the effect expired.`);
     }
 })();
