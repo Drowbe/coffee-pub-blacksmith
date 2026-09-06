@@ -357,9 +357,38 @@ export class EffectsAPI {
     static async deleteExpired(effect) {
         try {
             if (!effect?.parent?.effects?.get?.(effect.id)) return false;
+
+            // LET ANYONE ELSE DELETE IT FIRST, THEN LOOK AGAIN.
+            //
+            // Since `sweepExpired` stopped yielding, Blacksmith deletes every expired
+            // effect itself -- and on a v13 world that still has Times Up installed,
+            // both of us reach the same effect on the same tick. We usually win, and
+            // the loser's rejection is not ours to swallow: Times Up does not guard its
+            // delete, so the server's "ActiveEffect <id> does not exist!" surfaces
+            // through `ui.notifications.error` as a red toast at the GM, several per
+            // turn. Observed at the author's table 2026-09-06.
+            //
+            // Winning that race was never the point. The effect has to go; who removes
+            // it does not matter. So we wait a beat and re-read: if anything else got
+            // there, we do nothing and nobody sees an error. If nothing did -- no Times
+            // Up, or it declined this one -- the effect is still here and we remove it,
+            // which is the guarantee that made the yield removable in the first place.
+            //
+            // A check on the WORLD'S STATE, not on whether a module is installed, so it
+            // stays inside Ground Rule 8. The same shape as
+            // `DefeatedManager._syncStatusEffect`, and for the same reason: the cure
+            // for an unsuppressable error raised by someone else's code is not to be
+            // the one who loses.
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            if (!effect?.parent?.effects?.get?.(effect.id)) return false;
+
             await effect.delete();
             return true;
         } catch (error) {
+            // Ours, and rare now: something deleted it inside that window. The outcome
+            // we wanted has happened either way.
+            const message = String(error?.message ?? '');
+            if (message.includes('does not exist')) return false;
             console.warn(`${MODULE.NAME} | Failed to delete expired effect`, effect?.uuid, error);
             return false;
         }

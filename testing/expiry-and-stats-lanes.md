@@ -92,10 +92,17 @@ appeared; that is the known status-effect race, addressed below, and it did not 
 The items left are the ones that run needs to be repeated to measure, since they need numbers watched
 rather than a symptom observed.
 
-- [ ] **One attack, one set of numbers.** Midi ON, in combat. Make one attack that hits. Confirm
-      attempts, hits and crits each rise by exactly **one**, not two. Both the core chat lane and the
-      MIDI lane now process the attack; `CombatStats._alreadyProcessed` is what stops the second one
-      recording, pairing them on the `workflowId` both events carry.
+- [ ] **One attack, one set of NUMBERS.** Midi ON, in combat. Make one attack that hits, then read
+      attempts, hits and crits on the statistics card. Each must rise by exactly **one**, not two. Both
+      the core chat lane and the MIDI lane now process the attack; `CombatStats._alreadyProcessed` is
+      what stops the second one recording, pairing them on the `workflowId` both events carry.
+
+      **This is NOT covered by "crits worked with midi on" (author, 2026-09-06).** That confirmed
+      crit DETECTION -- the classifier reaching the right verdict through the MIDI lane, which is the
+      unification of the two classifiers and is genuinely proven. It says nothing about how many times
+      the verdict was RECORDED, and double-counting is the whole risk here. A crit counted twice looks
+      exactly like a crit counted once at the moment it fires; the difference is only visible in the
+      running totals.
 
 - [ ] **An attack still counts when the MIDI lane says nothing.** Midi ON, in combat, but make an
       attack midi does not produce a workflow for. It must still be counted -- that is the whole point

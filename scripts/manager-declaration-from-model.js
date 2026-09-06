@@ -147,10 +147,32 @@ export function declarationFromModel(schema, options = {}) {
     if (!resolved || typeof resolved !== 'object') {
         throw new Error('declarationFromModel: expected a schema object or a model class with defineSchema()');
     }
+    // ONLY THE WALK'S OWN INPUTS ARE NAMED HERE. Everything else is declaration
+    // content and passes straight through.
+    //
+    // This used to destructure the declaration keys by name -- `kind, id, label,
+    // module, document, rules, derive` -- and return exactly those. That made this
+    // function a SECOND definition of a declaration's shape, and a silently truncating
+    // one: every key the registry gained afterwards was dropped here without a word.
+    //
+    // `promptFields` was the first casualty and found the flaw the day it shipped
+    // (reported by the Bibliosoph session, 2026-09-06). A profile declared three
+    // fields with correct ids, labels, options and hints; `validateDeclaration`
+    // accepted the result, because a declaration with no `promptFields` is perfectly
+    // legal; the offline build gate passed green; and the fields would never have
+    // appeared in the prompt window. **Every check said yes and the feature did
+    // nothing** -- which is the same class of failure the registry's reject-unknown-
+    // keys rule exists to prevent, arriving one layer earlier than that rule can see.
+    //
+    // Forwarding rather than rejecting-by-name is the choice, and deliberately. This
+    // is a BUILDER, not a gate: `validateDeclaration` is the single authority on what
+    // a declaration may contain, and a builder that also enforced the shape would have
+    // to be updated in lockstep with the registry forever -- the same coupling, merely
+    // noisy instead of quiet. Forwarding means the next key the registry gains works
+    // here on the day it ships, with nobody remembering to come back.
     const {
-        kind, id, label, module, document,
-        pathPrefix = 'system.', guidance = {}, examples = {},
-        extraFields = [], rules, derive
+        pathPrefix = 'system.', guidance = {}, examples = {}, extraFields = [],
+        ...declaration
     } = options;
 
     const human = { guidance, examples };
@@ -158,14 +180,15 @@ export function declarationFromModel(schema, options = {}) {
         .map(([key, field]) => descriptorFor(key, field, key, human, pathPrefix));
 
     return {
-        kind, id, label, schemaVersion: 1, form: 'mapped',
-        ...(module ? { module } : {}),
-        document,
+        schemaVersion: 1,
+        ...declaration,
+        // Fixed, not overridable: a walk over a DataModel produces a mapped
+        // declaration by definition, and a caller asking for another form is
+        // describing something this function did not build.
+        form: 'mapped',
         // The module's own descriptors come FIRST so a name collision resolves in
         // their favour: the page name and the container selector are theirs to
         // define, and the model has no opinion about either.
-        fields: [...extraFields, ...fields],
-        ...(rules ? { rules } : {}),
-        ...(derive ? { derive } : {})
+        fields: [...extraFields, ...fields]
     };
 }

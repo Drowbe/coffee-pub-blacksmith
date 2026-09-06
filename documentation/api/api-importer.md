@@ -215,6 +215,47 @@ A profile's own fields win a name collision. The host owns its schema.
 
 `preamble` exists so a module's prompt text has a home in its own declaration. A module should not need to host prompt files, and Blacksmith should not host another module's.
 
+## Asking the author a question
+
+A profile can put its own fields on the prompt with `promptFields`. Before this, construction,
+validation, routing and the template dropdown all read the registry and the prompt did not -- so a module
+could describe its data completely and could not ask one question about it.
+
+```js
+promptFields: [
+    { id: 'category', label: 'Damage type', inputType: 'select',
+      options: [{ value: 'slashing', label: 'Slashing' }, { value: 'fire', label: 'Fire' }],
+      hint: 'Which journal the generated pages are filed into.' },
+    { id: 'count', label: 'How many', value: '10' }
+]
+```
+
+The author's answers arrive in the `promptOptions` your `onBuildPrompt` already receives, keyed by `id`.
+
+| Key | |
+|---|---|
+| `id`, `label` | Required. `id` must be unique within the profile. |
+| `inputType` | `text` (default), `select`, or `textarea`. |
+| `options` | Required for `select`, refused otherwise. Each needs a `value`. |
+| `value` | Prefilled answer. |
+| `hint` | One sentence, shown as a help tooltip beside the label. |
+| `placeholder`, `rows` | Text and textarea presentation. |
+| `fullWidth` | Give the row the full grid width. |
+| `group`, `groupIcon` | Put related fields under a shared heading. |
+
+**Every one of those is rendered** -- the allowed set is read off the prompt window rather than chosen,
+because a key nothing renders would let a profile register, validate, and silently never show the field.
+Anything else is rejected by name at registration.
+
+**Two rules you do not control:**
+
+- **The kind's fields win a collision.** A declaration ADDS a field; it cannot redefine one the kind
+  already offers. Two profiles may both use the id `severity` -- each is scoped to its own template and
+  only one profile is ever selected.
+- **`showForTemplate` is stamped for you, and declaring it is an error**, as is `showForField`. A prompt
+  field is not self-identifying the way a template option is, so an unscoped field would appear on every
+  other profile's prompt -- your `severity` question turning up while somebody imports a Realm.
+
 ## Checking a declaration before you ship it
 
 Three entry points under `api/` run in **Node, offline, with no Foundry and no Blacksmith runtime**, so your

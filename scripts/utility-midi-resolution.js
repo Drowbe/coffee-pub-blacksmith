@@ -12,7 +12,14 @@
  * 
  * NOTE: This module does NOT import utility-message-resolution.js to avoid circular dependencies.
  * If callers need message-based fallback keying, they should import makeKey/getKeyParts directly.
+ *
+ * It DOES import `utility-d20.js`, and that is safe by construction: that module is a
+ * leaf and imports nothing. It exists so this file and `utility-roll-classification.js`
+ * -- which imports this one -- can share one answer to "was that a critical" instead of
+ * keeping two that drifted apart.
  */
+
+import { extractActiveD20, classifyCritFumble } from './utility-d20.js';
 
 /**
  * Whether Blacksmith should leverage Midi-QOL workflows: the module must be
@@ -177,39 +184,29 @@ export function getCritFumbleFromWorkflow({ workflow, attackRoll = null }) {
     const rollCrit = !!attackRoll?.isCritical || !!attackRoll?.options?.critical;
     const rollFumble = !!attackRoll?.isFumble || !!attackRoll?.options?.fumble;
     
-    // Source 3: Fallback - inspect d20 results (handles advantage/disadvantage)
-    let d20Results = [];
-    let d20Active = [];
-    let natCrit = false;
-    let natFumble = false;
-    
-    try {
-        const d20Dice = (attackRoll?.dice ?? []).filter(d => d?.faces === 20);
-        for (const die of d20Dice) {
-            const results = Array.isArray(die?.results) ? die.results : [];
-            for (const r of results) {
-                if (typeof r?.result === "number") {
-                    d20Results.push(r.result);
-                    // Active/kept results (for advantage/disadvantage)
-                    if (r.active !== false) {
-                        d20Active.push(r.result);
-                    }
-                }
-            }
-        }
-        
-        // Use active results if available, otherwise all results
-        const d20Used = d20Active.length > 0 ? d20Active : d20Results;
-        natCrit = d20Used.includes(20);
-        natFumble = d20Used.includes(1);
-    } catch (_) {
-        // If d20 inspection fails, rely on flags only
-    }
-    
-    // Combine all sources (any source indicating crit/fumble is sufficient)
-    const isCritical = wfCrit || rollCrit || natCrit;
-    const isFumble = wfFumble || rollFumble || natFumble;
-    
+    // Source 3: BLACKSMITH'S OWN CLASSIFIER, not a second opinion about the same dice.
+    //
+    // This inspected the d20 itself and tested `includes(20)` -- a nat-20-only rule,
+    // which is the answer `classifyCritFumble` used to give before it learned to read
+    // the threshold a roll declared (2026-09-03). Fixing one and not the other left the
+    // module holding TWO answers to "was that a critical", so a character with a
+    // widened crit range was classified correctly on the core lane and incorrectly
+    // here -- on a midi table, the lane that actually runs.
+    //
+    // It could not simply call the good one: `utility-roll-classification.js` imports
+    // THIS file, so importing back would have been a cycle. Both now import the
+    // primitives from `utility-d20.js`, which imports nothing. That is what the split
+    // was for.
+    const d20 = extractActiveD20(attackRoll);
+    const nat = classifyCritFumble(d20, { roll: attackRoll });
+
+    // Sources are OR-ed, deliberately: midi's workflow can know things the dice cannot
+    // -- an effect that made a hit critical without a natural 20 -- so a workflow flag
+    // is additional evidence rather than a competing verdict. What is gone is the third
+    // source disagreeing with our own rule about the same die.
+    const isCritical = wfCrit || rollCrit || nat.isCritical;
+    const isFumble = wfFumble || rollFumble || nat.isFumble;
+
     return {
         isCritical,
         isFumble,
@@ -218,9 +215,10 @@ export function getCritFumbleFromWorkflow({ workflow, attackRoll = null }) {
             wfFumble,
             rollCrit,
             rollFumble,
-            natCrit,
-            natFumble,
-            d20Used: d20Active.length > 0 ? d20Active : d20Results
+            natCrit: nat.isCritical,
+            natFumble: nat.isFumble,
+            critMode: nat.critMode,
+            d20Used: d20 === null ? [] : [d20]
         }
     };
 }

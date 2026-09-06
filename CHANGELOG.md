@@ -9,6 +9,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Blacksmith's effect sweep no longer makes Times Up throw red toasts at the GM** (`scripts/api-effects.js`). When the sweep stopped yielding, both modules began reaching the same expired effect on the same tick on a v13 world with Times Up still installed. Blacksmith usually won, and the loser's rejection was not Blacksmith's to swallow: Times Up does not guard its delete, so the server's `ActiveEffect <id> does not exist!` surfaced through `ui.notifications.error` — several red toasts per turn.
+
+  Winning that race was never the point; the effect has to go, and who removes it does not matter. `deleteExpired` now waits a beat and re-reads before deleting: if anything else got there, it does nothing and nobody sees an error, and if nothing did, the effect is still present and it is removed — which is the guarantee that made removing the yield safe to begin with.
+
+  A check on the world's state rather than on whether a module is installed, so it stays inside Ground Rule 8, and the same shape as the defeated-status fix a day earlier. The lesson both share: **the cure for an unsuppressable error raised inside someone else's code is not to be the one who loses the race.** Predicted as "a console line" when the yield was removed, which understated it twice over — it is a toast, and it is raised by the other module rather than by us.
+
+- **`declarationFromModel` silently dropped everything the registry gained after it was written** (`scripts/manager-declaration-from-model.js`). The walk destructured a declaration's keys by name and returned exactly those, which made it a **second definition of a declaration's shape** — and a quietly truncating one. `promptFields` was the first casualty and found the flaw the day it shipped: a profile could declare fields with correct ids, labels, options and hints, `validateDeclaration` would accept the result because a declaration without `promptFields` is perfectly legal, an offline build gate would pass green, and the fields would never appear in the prompt window. Every check said yes and the feature did nothing.
+
+  That is the same class of failure the registry's reject-unknown-keys rule exists to prevent, one layer earlier than that rule can see — a key nothing **forwards** rather than a key nothing renders.
+
+  The walk now names only its own inputs (`pathPrefix`, `guidance`, `examples`, `extraFields`) and passes everything else through. Forwarding rather than rejecting by name is deliberate: this is a builder, not a gate. `validateDeclaration` is the single authority on what a declaration may contain, and a builder that also enforced the shape would need updating in lockstep with the registry forever — the same coupling, merely noisy instead of quiet. The next key the registry gains works here on the day it ships.
+
+  Reported by a consuming module against the published `api/declaration-from-model.mjs` rather than against the implementation, which is why it was a fact and not a guess.
+
+- **Blacksmith had two answers to "was that a critical", and only one of them was right** (`scripts/utility-d20.js` new, `scripts/utility-roll-classification.js`, `scripts/utility-midi-resolution.js`). `classifyCritFumble` learned to read the threshold a roll actually declared; `getCritFumbleFromWorkflow` kept its own d20 inspection and stopped at a natural 20. So a character with a widened critical range was classified correctly on the core dnd5e lane and incorrectly on the MIDI one — which, on a table running midi-qol with integration enabled, is the lane that runs.
+
+  It could not simply call the good one: `utility-roll-classification.js` imports the MIDI resolution module, so importing back would have been a cycle, and that cycle is why the duplicate grew in the first place. The d20 primitives now live in `utility-d20.js`, which **imports nothing** — a leaf both sides can reach. `utility-roll-classification.js` re-exports them, so no existing importer changed and no consumer has to know a function moved.
+
+  The workflow's own crit flags are still honoured and still OR-ed in: midi can know things the dice cannot, such as an effect making a hit critical without a natural 20, so a workflow flag is additional evidence. What is gone is a third source disagreeing with Blacksmith's own rule about the same die. `sources.critMode` now reports which rule that was.
+
+  Verified 2026-09-06 with Midi-QOL integration enabled: criticals are detected correctly through the MIDI lane. That covers the classifier reaching the right verdict, which is what this change was for; how many times a verdict is recorded is a separate question tracked in `testing/expiry-and-stats-lanes.md`.
+
+### Added
+
+- **A registered import profile can ask the author questions** (`scripts/registry-declarations.js`, `scripts/registry-json-import.js`, `documentation/api/api-importer.md`). Construction, validation, routing and the template dropdown all read the declaration registry; the prompt did not. A module could describe its data completely and could not ask a single question about it, while Blacksmith's own journal profiles drew Realm/Region/Site, folder fields and generation dropdowns from kind-level getters no declaration could reach.
+
+  This was the third member of a set whose other two were already done — `composeTemplateOptions` and `groupOptionCheckboxes` sit three lines apart in the same object literal, and `promptFields` was still `kind.promptFields ?? []`. It now composes the same way, with the same two rules borrowed rather than invented: the kind wins an id collision, and a declaration may add a field but never redefine one.
+
+  **Scoping is stamped, not declared.** `showForTemplate` is applied from the declaration's own id and setting it is a registration error, as is `showForField`. A prompt field is not self-identifying the way a template option is, so an unscoped declared field would appear on every other profile's prompt — one module's severity question turning up while somebody imports a Realm. That is the single way a naive union of these lists ships visibly broken.
+
+  The permitted keys are **read off the prompt window rather than chosen**, and a check confirms all eleven are genuinely rendered. Allowing one that nothing renders would produce the quietest failure this registry can make: the profile registers, validates, imports, and the author simply never sees the field it asked for — the same class of silent miss that `document` key rejection was added for.
+
+### Fixed
+
 - **Criticals and fumbles were never counted on a table running midi-qol with Blacksmith's integration switched off** (`scripts/stats-combat.js`). The core lane skipped counting them whenever the attack carried a midi workflow id, on the reasoning that midi's `RollComplete` handler counts them instead — but that handler returns immediately when `enableMidiIntegration` is off. The message still carries midi flags either way, so the core lane stood down for a lane that was not running, and every critical and fumble on a midi-generated attack was silently lost. A GM in that configuration has been reading zeroes.
 
   It is long-standing rather than new: the test was previously `key.startsWith("midi:")`, which was true in exactly the same circumstances, so this has been wrong for as long as both conditions have been possible together.

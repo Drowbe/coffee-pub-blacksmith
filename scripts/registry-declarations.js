@@ -89,6 +89,13 @@
  *                             since its template, guide and prompt schema all derive from the declaration.
  * @property {object} [ownership] - Per-profile ownership defaults. Never inherited from the kind:
  *                             a profile whose content is revealed deliberately must say so.
+ * @property {Array<{id: string, label: string, value?: string, hint?: string, fullWidth?: boolean,
+ *                   inputType?: 'text'|'select'|'textarea',
+ *                   options?: Array<{value: string, label?: string}>}>} [promptFields]
+ *                             Questions this profile asks the author before building. Merged with the
+ *                             kind's own fields, which win on an id collision, and scoped to this
+ *                             profile automatically -- `showForTemplate` is stamped from the
+ *                             declaration id and may NOT be declared. See `validatePromptFields`.
  */
 
 import { RULE_KINDS, hasNamedRule } from './manager-declaration-rules.js';
@@ -589,6 +596,106 @@ export function validateDeclaration(declaration) {
             if (!hasDerivation(name)) {
                 throw new Error(`${where}: no derivation named "${name}" is registered`);
             }
+        }
+    }
+    validatePromptFields(declaration, where);
+}
+
+/**
+ * Every key a `promptFields` entry may carry. Anything else is rejected by name.
+ *
+ * This list is the set the PROMPT WINDOW ACTUALLY RENDERS, read off
+ * `templates/window-json-import-body.hbs` and `JsonImportWindow._formatPromptFieldForTemplate`
+ * rather than chosen. Allowing a key nothing renders would produce the quietest
+ * failure this registry can make: the profile registers, validates, and the author
+ * simply never sees the thing it asked for.
+ *
+ * `showForTemplate` and `showForField` are renderable and deliberately absent -- the
+ * first is stamped by the composer, and the second is a cross-field condition whose
+ * vocabulary is the kind's rather than a declaration's. Add either only with a
+ * consumer that needs it.
+ */
+const PROMPT_FIELD_KEYS = new Set([
+    'id', 'label', 'value', 'inputType', 'options',
+    'fullWidth', 'hint', 'placeholder', 'rows', 'group', 'groupIcon'
+]);
+
+/** The input types the prompt window knows how to render. */
+const PROMPT_FIELD_INPUT_TYPES = new Set(['text', 'select', 'textarea']);
+
+/**
+ * Questions the profile wants to ask an author before it builds.
+ *
+ * WHY A DECLARATION MAY ASK AT ALL. Construction, validation, routing and the template
+ * dropdown all read the registry; the prompt UI did not, so a module could describe its
+ * data perfectly and could not ask one question about it. Blacksmith's own journal
+ * profiles got Realm/Region/Site and the generation dropdowns from kind-level getters no
+ * declaration could reach -- the same asymmetry `templateOptions` and `promptCheckboxes`
+ * already closed, left open on the third member of that set.
+ *
+ * `showForTemplate` IS NOT DECLARABLE, DELIBERATELY. It is stamped by the composer from
+ * the declaration's own id. A prompt field is not self-identifying the way a template
+ * option is, so an unscoped declared field appears on EVERY profile's prompt -- one
+ * module's `severity` question turning up while somebody imports a Realm. Letting a
+ * declaration set it would make that misconfiguration expressible, and there is no
+ * legitimate reason to name a different profile's template.
+ *
+ * @param {Declaration} declaration
+ * @param {string} where
+ */
+function validatePromptFields(declaration, where) {
+    if (declaration.promptFields === undefined) return;
+    if (!Array.isArray(declaration.promptFields)) {
+        throw new Error(`${where}: promptFields must be an array of field descriptors`);
+    }
+
+    const seen = new Set();
+    for (const field of declaration.promptFields) {
+        if (!field || typeof field !== 'object') {
+            throw new Error(`${where}: every promptFields entry must be an object`);
+        }
+        for (const key of Object.keys(field)) {
+            if (key === 'showForTemplate' || key === 'showForField') {
+                throw new Error(`${where}: promptFields may not set ${key}. Scoping is stamped from `
+                    + `the declaration id automatically; a field naming another profile's template `
+                    + `would appear on that profile's prompt`);
+            }
+            if (!PROMPT_FIELD_KEYS.has(key)) {
+                throw new Error(`${where}: unknown promptFields.${key}. Expected one of `
+                    + `${[...PROMPT_FIELD_KEYS].join(', ')}`);
+            }
+        }
+
+        const id = String(field.id || '').trim();
+        if (!id) throw new Error(`${where}: every promptFields entry requires an id`);
+        if (seen.has(id)) throw new Error(`${where}: duplicate promptFields id "${id}"`);
+        seen.add(id);
+
+        if (!String(field.label || '').trim()) {
+            throw new Error(`${where}: promptFields "${id}" requires a label`);
+        }
+
+        const inputType = field.inputType ?? 'text';
+        if (!PROMPT_FIELD_INPUT_TYPES.has(inputType)) {
+            throw new Error(`${where}: promptFields "${id}" inputType must be one of `
+                + `${[...PROMPT_FIELD_INPUT_TYPES].join(', ')}`);
+        }
+
+        // A select with nothing to select is the failure this catches: it renders as an
+        // empty dropdown, which reads as a bug in the window rather than in the profile.
+        if (inputType === 'select') {
+            if (!Array.isArray(field.options) || !field.options.length) {
+                throw new Error(`${where}: promptFields "${id}" is a select and requires a `
+                    + `non-empty options array`);
+            }
+            for (const option of field.options) {
+                if (!option || typeof option !== 'object' || option.value === undefined) {
+                    throw new Error(`${where}: promptFields "${id}" options must each carry a value`);
+                }
+            }
+        } else if (field.options !== undefined) {
+            throw new Error(`${where}: promptFields "${id}" is a ${inputType} field and cannot `
+                + `carry options`);
         }
     }
 }

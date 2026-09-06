@@ -355,6 +355,47 @@ function composeTemplateOptions(kind) {
     return [...stat, ...declared];
 }
 
+/**
+ * The prompt's fields: the kind's own, plus any a registered declaration asks for.
+ *
+ * The third member of a set whose other two were already done — `composeTemplateOptions`
+ * and `groupOptionCheckboxes` three lines apart in the same object literal, while
+ * `promptFields` stayed `kind.promptFields ?? []`. A module could describe its data
+ * completely and could not ask an author one question about it, so a generated injury
+ * scattered across journals the GM then re-filed by hand.
+ *
+ * TWO RULES, BOTH BORROWED FROM THE PRECEDENTS RATHER THAN INVENTED:
+ *
+ * The kind wins. A declaration may ADD a field, never redefine one the kind already
+ * offers — `composeTemplateOptions` filters ids already claimed and
+ * `groupOptionCheckboxes` filters ids already present, and this does the same. A
+ * satellite quietly changing the meaning of Blacksmith's own prompt field is not a
+ * capability worth having.
+ *
+ * Every declared field is SCOPED TO ITS OWN PROFILE. `showForTemplate` is stamped here
+ * from the declaration id and cannot be declared — see `validatePromptFields`. Without
+ * it every profile's questions appear on every other profile's prompt, which is the one
+ * way a naive union of these lists ships visibly broken.
+ */
+function composePromptFields(kind) {
+    const stat = kind.promptFields ?? [];
+    const claimed = new Set(stat.map(one => String(one?.id ?? '')));
+
+    const declared = [];
+    for (const declaration of getDeclarationsForKind(kind.id)) {
+        for (const field of declaration.promptFields ?? []) {
+            const id = String(field?.id ?? '');
+            if (!id || claimed.has(id)) continue;
+            // Not added to `claimed`: two profiles asking their own `severity` is
+            // normal and correct, because each is scoped to its own template and only
+            // one profile is ever selected at a time.
+            declared.push({ ...field, showForTemplate: declaration.id });
+        }
+    }
+
+    return [...stat, ...declared];
+}
+
 function groupOptionCheckboxes(kind) {
     const existing = new Set((kind.promptCheckboxes ?? []).map(one => one.id));
     const profiles = getDeclarationsForKind(kind.id).map(one => one.id);
@@ -411,7 +452,7 @@ export function openJsonImportWindow(kindId) {
         position: kind.position ?? { width: 920, height: 680 },
         templateOptions: composeTemplateOptions(kind),
         promptCheckboxes: [...(kind.promptCheckboxes ?? []), ...groupOptionCheckboxes(kind)],
-        promptFields: kind.promptFields ?? [],
+        promptFields: composePromptFields(kind),
         journalAreaUi: kind.journalAreaUi ?? null,
         journalLocationUi: kind.journalLocationUi ?? null,
         onBuildPrompt: kind.onBuildPrompt,

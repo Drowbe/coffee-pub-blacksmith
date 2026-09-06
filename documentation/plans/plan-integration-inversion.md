@@ -117,7 +117,7 @@ are therefore one unit and must not ship apart.**
             statistics, where the damage is silent and cumulative. Do this one with a live test
             available, not blind.
 
-- [ ] **3. One crit classifier.** Extract `classifyCritFumble` and its d20 helpers into a leaf module
+- [x] **3. One crit classifier.** DONE 2026-09-06 -- Extract `classifyCritFumble` and its d20 helpers into a leaf module
       both `utility-roll-classification.js` and `utility-midi-resolution.js` can import -- the current
       cycle (classification already imports resolution) is what blocks it. `getCritFumbleFromWorkflow`
       keeps only what is genuinely workflow-shaped: reading midi's own `isCritical`/`isFumble` flags as
