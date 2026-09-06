@@ -145,6 +145,7 @@ import { RollsAPI } from './api-rolls.js';
 import { EffectsAPI } from './api-effects.js';
 import { TokenInteractionsAPI } from './api-token-interactions.js';
 import { InventoryAPI } from './api-inventory.js';
+import { EquipLocationsAPI } from './api-equip-locations.js';
 import { GMRequestAPI } from './api-gm-request.js';
 import { PartyAPI } from './api-party.js';
 import { registerHandlebarsHelpers } from './utility-handlebars.js';
@@ -1322,6 +1323,7 @@ Hooks.once('init', async function() {
         effects: EffectsAPI,
         tokens: TokenInteractionsAPI,
         inventory: InventoryAPI,
+        equipLocations: EquipLocationsAPI,
         gmRequest: GMRequestAPI,
         party: PartyAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),

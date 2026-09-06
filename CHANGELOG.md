@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`api.equipLocations` answers where on a character an item goes** (`scripts/api-equip-locations.js`, `scripts/utility-equip-vocabulary.js`, `tools/check-equip-locations.mjs`). dnd5e has no body-slot concept anywhere — `DND5E.miscEquipmentTypes` is `clothing|ring|rod|trinket|vehicle|wand|wondrous` and nothing says a helm goes on the head — so every module that places an item on a character was going to grow its own guesser. `resolve(item)` returns `{location, grip, hands, versatile, confidence, source, matched}` from a frozen thirteen-value taxonomy, synchronously and with nothing persisted.
+
+  It returns a generic **location**, never a slot. A consumer's slots are its own layout, and a shared API returning them would hand every other module one window's opinions. The proof the line is drawn correctly is that Squire's `sheath` needs no taxonomy value at all — it falls out of `grip: 'off'`.
+
+  **The rule the whole thing exists for: when nothing can justify an answer it returns `null` and says so.** An API that always returns a location recreates the bug it replaces. `'none'` (deliberately not body equipment) and `null` (nobody knows) stay distinct, because collapsing them means re-guessing forever on items a player already dismissed. `source` and `confidence` let a consumer render a name-pattern guess as an unconfirmed suggestion and a dnd5e-derived answer as placed, which is what keeps a wrong guess visible instead of silently authoritative.
+
+  Designed with the Squire session that owns the character build tool; the taxonomy, the vocabulary and every structured rule came from that work. The weapon rules were verified by reading the dnd5e 5.3.3 `items` and `equipment24` packs directly — twice, independently — and the check tool asserts `resolve()` against those twelve weapons so the table cannot drift from the data it was built from.
+
 - **Compendium Search can be opened seeded, so a module does not have to build its own picker** (`scripts/window-compendium-search.js`, `documentation/api/api-window.md`). `openWindow('blacksmith-compendium-search', { type, subtype, query })` opens the palette already looking for something. Its registry opener previously took no arguments and silently dropped the options object `openWindow` hands it, which made the registry look like it supported something it did not.
 
   A caller opening this from its own UI usually knows what the user is after — "add a spell to this character" is not the same request as "open the search" — and without a seed a sibling reaching for the palette gets whatever state the user last left it in, which is why they would keep writing pickers instead.
