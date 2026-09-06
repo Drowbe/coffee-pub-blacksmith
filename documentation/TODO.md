@@ -28,44 +28,19 @@ nobody reads.
 Design, audit and sequencing: `documentation/plans/plan-integration-inversion.md`. Steps 1 and 2 ship
 together -- separately they double-count every attack.
 
-### Delete the six yields where our own lane stops, and make the correlation key ours
+### Stop the DAMAGE lane yielding to midi-qol
 
-`manager-roll-outcomes.js:70`, `stats-sources.js:301/364/825`, `stats-player.js:1174/1279`, and the key
-at `utility-message-resolution.js:363/530`. Our lane must always run; midi's workflow id becomes an
-alias recorded alongside our own key rather than the identity. One key space means one dedupe tracker,
-which is what stops the two lanes double-counting once both are live.
-Verify: with Midi-QOL Integration ON, one attack produces exactly one `blacksmith.rolls.attackResolved`
-and one damage entry in the combat statistics -- not two.
+The last of the six. `stats-sources.js:301` and `:940`, `stats-player.js:1174` and `:1279` still hand
+damage to the MIDI lane when integration is on. The attack half no longer does -- both lanes run and
+`CombatStats._alreadyProcessed` pairs them on `workflowId` -- but the two lanes describe DAMAGE in
+different shapes, this one per message and midi's per target, so they have no shared identity to
+deduplicate on yet.
 
-### One crit classifier
+**Do this with a live world, not blind.** Double-counting here writes into persisted campaign
+statistics, where the damage is silent and cumulative.
+Verify: with Midi-QOL Integration ON, one attack produces exactly one damage entry, and totals,
+biggest hit and the onHit/unlinked buckets read as they did before.
 
-Extract `classifyCritFumble` and its d20 helpers to a leaf module so both
-`utility-roll-classification.js` and `utility-midi-resolution.js` can import it; the existing cycle
-blocks it today. `getCritFumbleFromWorkflow` keeps only midi's own `isCritical`/`isFumble` flags as an
-additional signal and stops doing its own d20 reasoning, which currently stops at natural 20.
-Verify: a widened crit threshold reports a critical identically with integration on and off.
-
-### Author decision: remove the Times Up setting and its copy
-
-`enableTimesUpIntegration` in `settings.js` and `lang/en.json` now controls nothing -- the code it gated
-is gone (2026-09-04) and Blacksmith always expires effects itself. A registered setting that does
-nothing is worse than no setting, so it should go, but **Claude does not delete a user-facing setting**:
-removing a registration discards whatever a GM had chosen. Author's call and author's copy.
-
-Context that makes this safe rather than urgent: **Times Up is retired.** Its author shipped no v14
-version -- "core now provides the vast bulk of the functionality that times-up provided and it is no
-longer needed" -- and `times-up/module.json` caps at `"maximum": "13.999"`. midi-qol, by contrast, is
-continuing to v14. So this setting has an expiry date nobody here controls.
-
-Not to be removed with it: `timesUpOriginalSeconds` in `api-effects.js`. That reads a flag on our own
-documents and stays correct and necessary for as long as any world contains an effect Times Up
-converted -- which includes v14 worlds upgraded from v13.
-
-### Author decision: the Midi-QOL hint teaches the wrong model
-
-`lang/en.json` -- "use its workflows for attack, damage, and crit detection" describes the behaviour the
-integration inversion is removing. **Claude does not rewrite these**; settings copy is the author's.
-Needs proposed wording and the author's choice once the code is fully additive.
 
 ---
 
@@ -497,6 +472,17 @@ coverage with use; later, allow a compendium of RollTables as the source, which 
 ---
 
 ## Windows, menubar and toolbars
+
+### `api.dialog` cannot make a dialog resizable (reported by Squire 2026-09-06)
+
+`openDialog` builds `window: { title }` at `api-dialog.js:286` and passes nothing else, so every other
+ApplicationV2 window option -- `resizable`, `minimizable` -- is unreachable for a consumer. Squire hit
+it with a twenty-row mapping table that wanted resizing, and moved the screen to a tool window instead,
+so nothing is blocked today. Worth deciding before a second consumer hits the same wall.
+The design question is passthrough versus whitelist: forwarding a whole `window` object lets a caller
+overwrite `title`, while naming the two options we mean keeps the surface honest about what it supports.
+Verify: a caller passing `resizable: true` gets a dialog with a resize handle, and one passing nothing
+is byte-identical to today.
 
 ### Activity tab: a readable event feed beside the chat log (player request)
 
