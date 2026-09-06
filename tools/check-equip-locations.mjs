@@ -394,6 +394,17 @@ check(EquipLocationsAPI.getVocabulary()[0].id === 'test:circlet', 'position was 
 check(EquipLocationsAPI.resolve({ name: 'Iridescent Widget of Xanth', type: 'equipment', system: {} }).location === LOCATIONS.HEAD, 'a registered pattern did not take effect');
 
 check(!EquipLocationsAPI.registerVocabulary({ id: 'test:bad', location: 'elbow', pattern: /x/ }), 'a registration naming an unknown location was accepted');
+
+// An unknown key is REFUSED, not ignored. `index` for `position` would otherwise
+// register successfully with the position silently dropped, and a pattern
+// appended after vocab:carried never fires -- accepted, and does nothing.
+check(!EquipLocationsAPI.registerVocabulary({ id: 'test:typo', location: LOCATIONS.HEAD, pattern: /x/, index: 0 }), 'an unknown key (`index` for `position`) was ignored rather than refused');
+check(!EquipLocationsAPI.getVocabulary().some(e => e.id === 'test:typo'), 'a refused registration was added anyway');
+// Every permitted key must be one the code actually reads. A key allowed here
+// that nothing consumes is the same silent miss one layer up.
+for (const key of vocab.VOCABULARY_KEYS) {
+    check(['id', 'location', 'pattern', 'position'].includes(key), `permitted key "${key}" is not consumed by register()`);
+}
 check(!EquipLocationsAPI.registerVocabulary({ id: 'test:circlet', location: LOCATIONS.HEAD, pattern: /x/ }), 'a duplicate id was accepted');
 check(!EquipLocationsAPI.registerVocabulary({ id: 'test:nopattern', location: LOCATIONS.HEAD }), 'a registration with no pattern was accepted');
 check(!EquipLocationsAPI.unregisterVocabulary('vocab:head'), 'a built-in pattern was unregistered');

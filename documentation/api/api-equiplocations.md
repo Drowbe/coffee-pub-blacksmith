@@ -163,6 +163,11 @@ api.equipLocations.registerVocabulary({
 pattern appended after `vocab:carried` never fires if anything earlier matches. Namespace `id` with
 your module id; it is what `matched` reports back.
 
+**An unknown key is refused, not ignored.** `id`, `location`, `pattern` and `position` are the only
+keys accepted; anything else fails the registration with a console message naming the key. Writing
+`index` for `position` would otherwise register successfully with the position silently dropped, which
+looks accepted and does nothing.
+
 To override a built-in, register a narrower pattern ahead of it rather than removing it -- the
 built-in table stays the same for every other consumer in the world.
 

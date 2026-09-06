@@ -86,6 +86,13 @@ function builtInIds() {
     return new Set(builtIn().map(entry => entry.id));
 }
 
+/**
+ * Every key `register()` accepts. Anything else is refused rather than ignored.
+ * Each one is read by `register()` or returned by `getVocabulary()`; a key
+ * permitted here that nothing consumes is the same silent miss one layer up.
+ */
+const VOCABULARY_KEYS = Object.freeze(['id', 'location', 'pattern', 'position']);
+
 /** The live table. Null until first use -- see the lazy-build note above. */
 let _vocabulary = null;
 
@@ -121,7 +128,21 @@ export function getVocabulary() {
  * @param {number} [entry.position]    Index to splice at. Omitted appends to the end.
  * @returns {boolean} Whether it was registered.
  */
-export function register({ id, location, pattern, position } = {}) {
+export function register(entry = {}) {
+    // Reject an unknown key rather than ignoring it. A consumer writing `index`
+    // for `position` would otherwise register successfully with the position
+    // silently dropped -- and a pattern appended after `vocab:carried` never
+    // fires, so the registration looks accepted and does nothing. Pattern
+    // borrowed from `registry-declarations.js`, where a renamed key
+    // (`containerNameFormat` to `containerNameTransform`) was registered against
+    // its old spelling, nothing threw, and container names went untransformed.
+    const unknown = Object.keys(entry).filter(key => !VOCABULARY_KEYS.includes(key));
+    if (unknown.length) {
+        postConsoleAndNotification(MODULE.NAME, `equipLocations: vocabulary entry has unknown key(s): ${unknown.join(', ')}. Permitted: ${VOCABULARY_KEYS.join(', ')}`, '', false, false);
+        return false;
+    }
+
+    const { id, location, pattern, position } = entry;
     if (!id || typeof id !== 'string') {
         postConsoleAndNotification(MODULE.NAME, 'equipLocations: vocabulary entry needs a string id', '', false, false);
         return false;
@@ -198,4 +219,4 @@ function isKnownLocation(value) {
     return value === 'none' || Object.values(LOCATIONS).includes(value);
 }
 
-export { builtIn };
+export { builtIn, VOCABULARY_KEYS };
