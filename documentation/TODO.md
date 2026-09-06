@@ -498,6 +498,39 @@ coverage with use; later, allow a compendium of RollTables as the source, which 
 
 ## Windows, menubar and toolbars
 
+### Activity tab: a readable event feed beside the chat log (player request)
+
+Players asked for a Baldur's Gate 3 style activity log. Foundry's chat log mixes rolls, cards, whispers,
+OOC chat and module output into one stream, so following what actually HAPPENED in a fight means reading
+past everything else. The wanted shape is one short line per event -- `Youth Tra'an was hit for 19 Force
+damage.`, `The Dark Urge killed Youth Qun'irel.`, `The party gained 75 experience.` -- names and damage
+types coloured, no card chrome.
+
+Mechanism exists: `ui-sidebar-combat.js` already adds a custom sidebar tab (`cpb-chat-combat`) on v13,
+gated by `sidebarCombatChatEnabled`. Reuse that pattern rather than inventing a second one.
+
+**Decide the source before writing any UI, because it decides everything else.**
+
+- *Derived from events* (`api.rolls.on('attackResolved' | 'damageResolved' | ...)`) reads clean and needs
+  no parsing, but hooks are ephemeral: the tab is empty after every reload, and it can only show what we
+  emit. We emit no death and no XP event today, so two of the four lines in the request have no source.
+- *Derived from chat messages* survives reload and covers everything, but means re-deriving meaning from
+  rendered cards -- the thing `plan-rolls-classification.md` exists to stop doing.
+
+A third option worth pricing: emit the missing events (death via `DefeatedManager`, XP) and persist a
+capped ring of entries, so the feed is event-sourced AND survives a reload.
+
+**Visibility is not optional.** Entries must respect the outcome's `visibility` per user -- a blind GM roll
+must not appear in a player's feed -- and `damageResolved` fires on the GM client only, so anything
+player-facing needs the socket forward the attack lane already does.
+
+Scope question for the author: this may belong in a sibling rather than the hub. The argument for here is
+that it is pure consumption of `blacksmith.rolls.*` and would make Blacksmith consumer zero of its own
+API, and the sidebar-tab pattern is already here.
+
+Verify: an attack, a kill and an XP award each produce one correctly coloured line; a blind roll produces
+none for a player; the tab survives a reload with whatever the chosen source guarantees.
+
 ### The window framework does not own the frame
 
 Plan: **`documentation/plans/plan-window-framework.md`**. Not started. Of 15 `BlacksmithWindowBaseV2`
@@ -719,6 +752,36 @@ Plan: **`documentation/plans/plan-chat-cards.md`**, which now carries the full r
 simplification, the interactive cards, the skill-check and stats-card migrations awaiting live verification,
 imported journal page styling, and the CSS consolidation that cannot happen until they are verified.
 Verification owed is in `testing/chat-cards.md`.
+
+### Glowing roll callouts on the canvas: hit, miss and damage
+
+An on-canvas flash of the arithmetic when a roll resolves -- `20 + 5 + 5 + 1 = 31 Critical Hit!`,
+`2 + 3 + 6 = 11 Piercing Damage!` -- not a window and not a card. Big glowing text over the canvas that
+appears and fades. Styling follows the cinematic VS: `.cpb-cinematic-vs-flame` and the `cpb-vs-flare`
+keyframes in `styles/window-roll-cinematic.css:346-372` -- four stacked shadows from tight-and-white to
+wide-and-red, which is what reads as fire rather than a halo. Honour `prefers-reduced-motion`, as that
+rule already does.
+
+Subscribes to `blacksmith.rolls.attackResolved` and the damage lane via `api.rolls.on()`; it is a
+consumer of the rolls API, not a new detection site.
+
+**The payloads do not carry the arithmetic.** The attack outcome has `d20`, `total`, `isCritical` and
+`success` but no term breakdown, so `20 + 5 + 5 + 1` cannot be rendered from it today -- the parts have
+to come off the `Roll` and be added to the outcome. Decide there whether that is a new field on the
+outcome or a formatted string, since every subscriber inherits it.
+
+**Damage is the harder half and needs a decision before any UI.** `damageResolved` fires on damage
+*applied* (`Actor#applyDamage`), not on the damage roll -- so it can say "11 piercing" from its `damages`
+breakdown but cannot say `2 + 3 + 6`, and it fires once per target rather than once per roll. A callout
+showing a rolled total needs the damage ROLL, which nothing currently emits.
+
+Open questions the author owns: who sees a callout (roller only, everyone, GM-gated), what happens when
+several resolve at once, and whether it respects the outcome's `visibility` -- a blind roll flashing its
+total over the canvas would leak it.
+
+Verify: an attack and a damage roll each produce one callout with correct arithmetic and label; a
+critical reads as such; reduced-motion shows the static shadow stack; a blind roll shows nothing it
+should not.
 
 ### Roll outcome classification: migrate the last two detection sites
 
