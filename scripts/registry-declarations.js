@@ -267,6 +267,42 @@ function validateField(field, form, where, nested = false) {
     if (field.transform !== undefined && !hasTransform(field.transform)) {
         throw new Error(`${at}: no transform named "${field.transform}" is registered`);
     }
+    // IMAGE RESOLUTION, and the fallback is REQUIRED rather than optional.
+    //
+    // The whole point of resolving a path is that a miss lands somewhere visible
+    // instead of shipping a broken image, so a profile that declares the resolution
+    // and omits the destination has kept the defect it asked for help with. Wrong art
+    // is cosmetic; a dead path looks like success, which is worse than either.
+    //
+    // Rejecting the keys when the transform is absent catches the quieter half: a
+    // misspelled transform name leaves `imageRoots` sitting there doing nothing, and
+    // the author sees a declaration that reads as though it resolves.
+    const resolvesImages = field.transform === 'resolveImage';
+    if (field.imageRoots !== undefined) {
+        if (!Array.isArray(field.imageRoots)
+            || field.imageRoots.some(root => typeof root !== 'string' || !root.trim())) {
+            throw new Error(`${at}: imageRoots must be an array of non-empty directory strings`);
+        }
+        if (!resolvesImages) {
+            throw new Error(`${at}: imageRoots is only read by the resolveImage transform, `
+                + `which this field does not declare`);
+        }
+    }
+    if (field.imageFallback !== undefined) {
+        if (typeof field.imageFallback !== 'string' || !field.imageFallback.trim()) {
+            throw new Error(`${at}: imageFallback must be a non-empty path`);
+        }
+        if (!resolvesImages) {
+            throw new Error(`${at}: imageFallback is only read by the resolveImage transform, `
+                + `which this field does not declare`);
+        }
+    }
+    if (resolvesImages && field.imageFallback === undefined) {
+        throw new Error(`${at}: a resolveImage field requires imageFallback, the path used when `
+            + `nothing matches. Without it a miss produces no image and the defect this `
+            + `transform exists to prevent survives`);
+    }
+
     if (field.acceptsKeys !== undefined) {
         if (!Array.isArray(field.acceptsKeys)) {
             throw new Error(`${at}: acceptsKeys must be an array`);

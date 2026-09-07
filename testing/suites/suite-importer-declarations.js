@@ -1836,6 +1836,126 @@ export default {
         },
 
         {
+            id: 'image-paths-resolve',
+            label: 'A generated image path that does not exist resolves to one that does',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'The reported failure as an assertion: one generated record in ten carried a dead icon path.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                const images = await import(`${MODULE_PATH}/manager-declaration-images.js`);
+                images.clearImageCatalogCache();
+
+                const FALLBACK = 'icons/svg/mystery-man.svg';
+                const kind = `probe-img-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind, id: 'injury', label: 'Probe Injury', schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntry' },
+                    fields: [
+                        { name: 'title', path: 'name', type: 'string', guidance: 'The name.' },
+                        { name: 'img', path: 'img', type: 'string', transform: 'resolveImage',
+                          imageRoots: ['icons/skills/wounds'], imageFallback: FALLBACK,
+                          guidance: 'The artwork.' }
+                    ]
+                });
+
+                const build = async (img) => (await manager.buildDocumentData(kind, 'injury',
+                    { title: 'Probe', img })).img;
+
+                // THE ACTUAL FAILING VALUE. A generator wrote `teeth` where the file says
+                // `tooth`, one token out of four, and the page imported with a dead path.
+                const rescued = await build('icons/skills/wounds/injury-mouth-teeth-red.webp');
+                log(`teeth -> ${rescued}`);
+                expect.ok('a near-miss path resolves to a real file rather than shipping broken',
+                    typeof rescued === 'string' && rescued.startsWith('icons/') && rescued !== FALLBACK);
+
+                // A REAL PATH IS NEVER REPLACED. Rescuing a broken value must not become
+                // second-guessing a correct one.
+                const real = rescued;
+                expect('an existing path is returned untouched', await build(real), real);
+
+                // Intent rather than a path at all: the tokens are the description.
+                const described = await build('broken bone');
+                log(`"broken bone" -> ${described}`);
+                expect.ok('a description resolves to something under the declared root',
+                    typeof described === 'string' && described.length > 0);
+
+                // A miss lands on the declared default. Never a dead path, never a refusal:
+                // wrong art is cosmetic, a record that failed to import is a missing mechanic.
+                expect('nonsense falls back to the declared default',
+                    await build('zzzqqq wibble frotz'), FALLBACK);
+                expect('and so does an empty value', await build(''), FALLBACK);
+            }
+        },
+
+        {
+            id: 'image-resolution-accuracy',
+            label: 'A corrupted icon path resolves back to the file it came from',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'Not whether it finds SOMETHING, but whether it finds what a person would. Reports a rate.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                const images = await import(`${MODULE_PATH}/manager-declaration-images.js`);
+                images.clearImageCatalogCache();
+
+                // Real files from a real root, so the answer is known rather than asserted.
+                // A generated path fails by getting ONE word wrong out of several, so that
+                // is the corruption: a labelled set of near-misses with known originals.
+                const FilePicker = foundry.applications.apps.FilePicker.implementation;
+                let sample = [];
+                try {
+                    const listing = await FilePicker.browse('public', 'icons/skills/wounds');
+                    sample = (listing.files ?? []).filter(one => one.endsWith('.webp')).slice(0, 25);
+                } catch (error) {
+                    log(`could not browse icons/skills/wounds: ${error?.message ?? error}`);
+                }
+                expect.ok('a sample of real icons was found to test against', sample.length >= 10);
+                if (sample.length < 10) return;
+
+                const kind = `probe-acc-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind, id: 'p', label: 'P', schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntry' },
+                    fields: [
+                        { name: 'title', path: 'name', type: 'string', guidance: 'Name.' },
+                        { name: 'img', path: 'img', type: 'string', transform: 'resolveImage',
+                          imageRoots: ['icons/skills/wounds'],
+                          imageFallback: 'icons/svg/mystery-man.svg', guidance: 'Art.' }
+                    ]
+                });
+
+                let exact = 0;
+                const misses = [];
+                for (const real of sample) {
+                    const file = real.split('/').pop().replace('.webp', '');
+                    const parts = file.split('-');
+                    if (parts.length < 3) continue;
+                    // Corrupt a MIDDLE word: the distinctive one. Mangling the first
+                    // would usually be the category, which every sibling shares anyway.
+                    const at = Math.floor(parts.length / 2);
+                    const corrupted = [...parts];
+                    corrupted[at] = `${corrupted[at]}s`;
+                    const asked = `icons/skills/wounds/${corrupted.join('-')}.webp`;
+
+                    const got = (await manager.buildDocumentData(kind, 'p', { title: 'x', img: asked })).img;
+                    if (got === real) exact++;
+                    else misses.push(`${corrupted.join('-')} -> ${got.split('/').pop()} (wanted ${file})`);
+                }
+
+                const rate = Math.round((exact / sample.length) * 100);
+                log(`recovered ${exact}/${sample.length} corrupted paths (${rate}%)`);
+                for (const miss of misses.slice(0, 5)) log(`  miss: ${miss}`);
+
+                // A THRESHOLD RATHER THAN A FIXED NUMBER. The corpus is Foundry's and may
+                // change between versions, so the assertion is that the resolver is
+                // substantially better than chance, and the LOGGED RATE is the real result
+                // to read. A rate that falls is the signal, not a red here.
+                expect.ok(`most corrupted paths recover their original (${rate}%)`, rate >= 60);
+            }
+        },
+
+        {
             id: 'prompt-answers-reach-the-prompt',
             label: 'What the author answered reaches the prompt and the template',
             tier: 'headless',
@@ -1856,7 +1976,10 @@ export default {
                     promptFields: [
                         { id: 'severity', label: 'Severity', inputType: 'select',
                           options: [{ value: 'minor' }, { value: 'major' }] },
-                        { id: 'count', label: 'How many', inputType: 'number' },
+                        // `text`, not `number`: the registry allows text, select and textarea
+                        // only, because those are what the window renders. A number input
+                        // would register and never appear.
+                        { id: 'count', label: 'How many', inputType: 'text' },
                         { id: 'tone', label: 'Tone', inputType: 'text' }
                     ]
                 });

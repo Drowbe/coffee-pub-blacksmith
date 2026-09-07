@@ -104,8 +104,43 @@ function gmNotes(value) {
  */
 async function itemIcon(value, { entry }) {
     const supplied = typeof value === 'string' ? value.trim() : '';
+    // A SUPPLIED PATH IS PASSED THROUGH UNVERIFIED, deliberately, and it is worth
+    // saying why because the opposite looks obviously better.
+    //
+    // Item imports do carry the dead-path defect a consumer hit on journal pages: an
+    // invented path ships and the import reports success. Verifying here was tried and
+    // reverted the same day. `construction-parity` asserts that derived construction
+    // EQUALS the parser this profile replaced, and the parser passes the path through
+    // untouched -- so the moment this verifies, the two disagree on every value that
+    // fails verification, and nine parity assertions broke at once.
+    //
+    // Parity is the evidence the migration changed nothing, and spending it on an
+    // unrequested improvement is a bad trade. Fixing this properly means changing the
+    // parser and the transform together, with the fixtures, as its own piece of work.
+    // Tracked in TODO.md; `resolveImage` is the general form for profiles that want it.
     if (supplied) return supplied;
     return guessIconPath(entry);
+}
+
+/**
+ * A path that exists, from whatever the author or generator wrote.
+ *
+ * The general form of `itemIcon` for any profile: it searches the field's declared
+ * `imageRoots` and lands on its `imageFallback` when nothing matches, so a miss is a
+ * visible default rather than a dead path. See `manager-declaration-images.js` for why
+ * matching beats handing the generator a catalog.
+ *
+ * @param {*} value
+ * @param {{field: object}} context
+ * @returns {Promise<string>}
+ */
+async function resolveImage(value, { field }) {
+    const { resolveImagePath } = await import('./manager-declaration-images.js');
+    return resolveImagePath(value, {
+        roots: field?.imageRoots ?? [],
+        fallback: field?.imageFallback ?? '',
+        label: field?.name ?? 'image'
+    });
 }
 
 /**
@@ -461,6 +496,7 @@ function consumableRecharge(_value, { entry }) {
 
 /** @type {Record<string, Function>} */
 const TRANSFORMS = {
+    resolveImage,
     slug, titleCase, sentenceCase, attunementIfMagical, limitedUses,
     consumableUses, consumeOnEmpty, consumableRecharge,
     spellPreparation, castingActivation, spellRange, spellDuration, spellTarget, spellMaterials,

@@ -32,10 +32,16 @@
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Tokens, not literals. Every colour here was a hardcoded `rgba()` tuned by eye
+       against a dark window, so the resting state of a tab was invisible on a light
+       one -- pale text on a pale fill -- while only `.is-active` was themed. A tool
+       window that is not dark is the case that would have found it, and there was not
+       one yet, which is exactly how this kind of thing survives. Reported by the
+       Squire session 2026-09-06. */
+    background: var(--blacksmith-fill-hint, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--blacksmith-border-hint, rgba(255, 255, 255, 0.08));
     border-radius: var(--blacksmith-radius-md, 4px);
-    color: rgba(200, 200, 200, 0.72);
+    color: var(--blacksmith-text-muted, #ada39d);
     cursor: pointer;
     font-family: inherit;
     font-size: 0.82em;
@@ -52,13 +58,18 @@
 }
 
 .blacksmith-tab:hover:not(.is-active) {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: rgba(224, 224, 224, 0.9);
+    background: var(--blacksmith-fill-subtle, rgba(255, 255, 255, 0.10));
+    border-color: var(--blacksmith-border-subtle, rgba(255, 255, 255, 0.16));
+    color: var(--blacksmith-text-light, #bdbdae);
 }
 
 .blacksmith-tab.is-active {
+    /* The one fill that stays a literal, and deliberately: it is the accent colour at
+       low alpha, and `color-mix` on a var is the only way to express that without
+       hardcoding the accent a second time. The fallback repeats the old value so a
+       browser without `color-mix` is unchanged rather than untinted. */
     background: rgba(172, 159, 129, 0.15);
+    background: color-mix(in srgb, var(--blacksmith-window-accent-color, #ac9f81) 15%, transparent);
     border-color: var(--blacksmith-window-accent-color, #ac9f81);
     color: var(--blacksmith-window-accent-color, #ac9f81);
 }

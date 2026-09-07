@@ -209,6 +209,26 @@ it, and an affordance with no user is what got `rendered` deleted. Full reasonin
 **Verify:** a profile's derived prompt carries its anti-patterns and cross-field prose, and a generator
 produces a valid payload from the derived prompt alone.
 
+### Item imports ship invented image paths, and fixing it costs parity (opened 2026-09-07)
+
+`itemIcon` (`manager-declaration-transforms.js`) returns a supplied path unchanged, so a generator that
+invents a plausible path produces an item with a broken image and an import that reports success. It is the
+same defect that was fixed for declared journal fields with `resolveImage`, and it is latent here rather than
+introduced.
+
+**Verifying it in `itemIcon` alone does not work, and was tried.** `construction-parity` asserts that derived
+construction EQUALS the parser each Item profile replaced, and that parser passes the path through untouched.
+The moment the transform verifies, the two disagree on every value that fails verification: nine parity
+assertions broke at once, on 2026-09-07, and the change was reverted the same day. Parity is the evidence the
+whole Item migration changed nothing, and spending it on an unrequested improvement is a bad trade.
+
+Doing it properly means changing the parser and the transform TOGETHER, and deciding what the fixtures should
+assert -- a fixture carrying a path that no longer exists in the current Foundry is then a fixture failure
+rather than a behaviour difference, which is arguably what it should have been all along.
+
+**Verify:** an item payload naming a nonexistent icon imports with a real one or a declared default, and
+`construction-parity` still passes because the parser and the transform agree about what verification means.
+
 ### Five suite groups assert construction without validating the same shape
 
 `construction-parity`, `construction-errors`, `roundtrip-fixtures`, `field-group-value-gate`,

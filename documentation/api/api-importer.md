@@ -159,6 +159,37 @@ Other field properties:
 - `requiresWhen: 'otherField:value'` -- gate on another FIELD's value.
 - `fields` -- a nested declaration for object and array-of-object fields. Nested fields are validated exactly as top-level ones are, to any depth, and an error names its own path (`sidekick.role`, `results[2].resultType`). The template's worked example is derived from the same declaration, so the example cannot drift from what validation accepts.
 
+### Images: resolve what the generator wrote
+
+A field carrying an image path can declare `transform: 'resolveImage'`, and Blacksmith turns whatever was
+written into a path that exists.
+
+```javascript
+{ name: 'img', path: 'img', type: 'string', transform: 'resolveImage',
+  imageRoots: ['icons/skills/wounds'],          // where to look
+  imageFallback: 'icons/svg/blood.svg' }        // REQUIRED: where a miss lands
+```
+
+| Key | Meaning |
+|---|---|
+| `imageRoots` | Directories searched, recursively. Omit to verify only. |
+| `imageFallback` | The path used when nothing matches. **Required** -- a resolver whose miss produces nothing has kept the defect it was added to prevent. |
+
+**An existing path is always kept**, whether or not it sits under a declared root, so your own artwork is
+never replaced by a core icon that happens to share three words. A path that does NOT exist is matched
+against the roots on shared filename words, and anything below two words in common falls back rather than
+guessing. Every substitution and every fallback logs a line naming the field and the value.
+
+**Why matching rather than a catalog in the prompt.** There are 6,193 core icons, so a list cannot be
+complete; any subset is a guess about what your content needs; and a generator handed a list still has to
+match meaning to filename, which is the same problem moved somewhere it is done worse. Core icon filenames
+are already descriptive -- `injury-face-impact-orange.webp` -- so the tokens are the description. The
+failure this exists for was `injury-mouth-teeth-red.webp` against a real `injury-mouth-tooth-red.webp`:
+one word out of four, with no way for the generator to know.
+
+**A miss must never fail the import.** Wrong art is cosmetic; a record that failed to import is a missing
+mechanic; a dead path is worse than both, because it looks like success.
+
 ### Rules
 
 Cross-field validation comes from a **closed vocabulary**. Blacksmith derives the check, the guide line and the prompt sentence from the same entry, which is why a module selects a rule and never supplies a predicate.
