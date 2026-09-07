@@ -4764,22 +4764,14 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
 	});
 
-	// -- Times Up Integration --
-	// -- Same shape as enableMidiIntegration above, and for the same reason: Times Up
-	// -- rewrites effect durations and expires effects itself, so Blacksmith either yields
-	// -- expiry to it or supplies the baseline. Checked at RUNTIME
-	// -- (isTimesUpIntegrationEnabled in api-effects.js), so toggling applies live.
-	// -- Turning this off with Times Up installed means BOTH will expire effects and race;
-	// -- it exists for diagnosis, not as a normal operating mode.
-	game.settings.register(MODULE.ID, 'enableTimesUpIntegration', {
-		name: MODULE.ID + '.enableTimesUpIntegration-Label',
-		hint: MODULE.ID + '.enableTimesUpIntegration-Hint',
-		type: Boolean,
-		config: true,
-		scope: 'world',
-		default: true,
-		group: WORKFLOW_GROUPS.ROLLING_AND_PROGRESSION
-	});
+	// -- `enableTimesUpIntegration` WAS REGISTERED HERE and is deleted (2026-09-06).
+	// -- It chose whether Blacksmith yielded effect expiry to Times Up. Blacksmith now
+	// -- expires effects unconditionally, so both positions of the switch did the same
+	// -- thing and its hint described behaviour that no longer existed. A registered
+	// -- setting that controls nothing is worse than no setting: it tells a GM something
+	// -- false about how their world works.
+	// -- Existing worlds keep an orphaned value in their settings collection, which
+	// -- Foundry ignores harmlessly. Do not re-register this to "read it back".
 
 
 	// --------------------------------------

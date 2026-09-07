@@ -96,10 +96,10 @@ function roundSeconds() {
 // What remains is `timesUpOriginalSeconds`, which reads a flag on our own documents
 // and is not a tie to anything -- see its note.
 //
-// The `enableTimesUpIntegration` SETTING still registers in `settings.js` and now
-// controls nothing. Left for the author to remove, because it is user-facing and
-// deleting a registered setting discards whatever a GM had chosen. Flagged in
-// `documentation/TODO.md`.
+// The `enableTimesUpIntegration` SETTING is gone too, deleted from `settings.js` and
+// `lang/en.json` on 2026-09-06. Both positions of the switch did the same thing once
+// the sweep became unconditional, and its hint described behaviour that no longer
+// existed. Do not reintroduce it: there is nothing left for it to control.
 
 /**
  * The seconds a Times Up conversion stashed away, or null if it did not convert

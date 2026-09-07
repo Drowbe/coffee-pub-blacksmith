@@ -1,7 +1,7 @@
 import { MODULE } from './const.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { copyToClipboard } from './utility-common.js';
-import { appendAdditionalUserGuidance, prepareJsonImportText } from './utility-json-import-prompts.js';
+import { appendAdditionalUserGuidance, appendHouseStyle, prepareJsonImportText } from './utility-json-import-prompts.js';
 
 const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
 const AUTHORING_STATE_SETTING = 'jsonImporterAuthoringState';
@@ -427,8 +427,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             this._getPromptOptions(),
             (msg) => this._setBusy(true, msg)
         );
+        // House style LAST, after the user's own guidance, so it is the final word on
+        // presentation. It is a constraint on how prose is written rather than on what
+        // is written, so nothing a GM types in the guidance box should overturn it by
+        // sitting closer to the end of the prompt.
+        //
+        // Prompt tab only. The JSON tab produces a template and a guide for a HUMAN to
+        // fill in; telling a person not to use emoji in a document they are authoring
+        // by hand is not this window's business.
         return this.activeTab === 'prompt'
-            ? appendAdditionalUserGuidance(output, this.additionalGuidance)
+            ? appendHouseStyle(appendAdditionalUserGuidance(output, this.additionalGuidance))
             : output;
     }
 

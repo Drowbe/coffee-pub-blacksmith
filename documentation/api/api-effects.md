@@ -123,8 +123,13 @@ done so, `remaining` reports the seconds anyway, because that effect was authore
 rewrite is substrate variance rather than a change of meaning. You never branch on whether Times Up is
 installed - see the ownership rules on the wiki.
 
-The `enableTimesUpIntegration` world setting turns that off for diagnosis. It is not a normal operating
-mode: with Times Up installed and the integration off, both it and Blacksmith will expire the same effect.
+There is no setting for this and nothing to configure. The duration recovery reads a flag on your own
+documents, so it applies whenever the flag is present -- including in a world upgraded to Foundry v14,
+where Times Up cannot load but the effects it converted are still there.
+
+**Blacksmith always expires effects itself.** It does not yield that to any module, so an effect never
+lingers because something else was expected to remove it and did not. Where another sweeper is also
+running, whichever reaches an effect first removes it and the other does nothing.
 
 ## Expiry
 

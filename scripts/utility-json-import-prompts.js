@@ -45,6 +45,56 @@ export function composePrompt(parts) {
  * @param {string} guidance
  * @returns {string}
  */
+/**
+ * House style, stated to the generator once for every prompt this module builds.
+ *
+ * WHY IT LIVES IN BLACKSMITH AND NOT IN EACH MODULE. An import prompt is composed here
+ * from a declaration's guidance and examples. A satellite can keep its own strings
+ * clean, and they do, but nothing a satellite writes can tell the model generating a
+ * payload what not to introduce of its own. Four modules writing this separately is
+ * four chances for the fifth to forget, so it is said once and every profile registered
+ * afterwards inherits it without knowing it exists.
+ *
+ * APPENDED AT THE DELIVERY POINT rather than inside any one builder. Four kind-level
+ * builders (journals, items, actors, roll tables) and every declaration-driven profile
+ * produce prompt text by different routes, and `buildPromptSchemaText` is a COMPONENT
+ * that items compose into a larger prompt, so putting it there would repeat it inside
+ * itself. `_buildSelectedPrompt` is the one place all of them meet.
+ *
+ * PHRASED AS A SUBSTITUTION, NOT A PROHIBITION. "Do not use em dashes" leaves a model
+ * to pick a replacement and it often picks a comma splice or a parenthesis. Naming the
+ * alternatives is what makes the instruction act on the output.
+ *
+ * AND THE TEXT AROUND IT HAS TO OBEY IT. A prompt is the largest sample of house voice
+ * a generator sees, so an instruction delivered inside prose that breaks it argues with
+ * its own demonstration. Everything composed into a prompt uses `--` where a dash is
+ * genuinely wanted, which is the convention the documentation and code comments already
+ * use, so there is one house style rather than a prompt-only dialect.
+ */
+const HOUSE_STYLE = `========================================
+HOUSE STYLE
+========================================
+
+Applies to every piece of prose you write, including names, titles and headings.
+
+- Do not use em dashes or en dashes. Use a comma, a colon, or a full stop instead.
+- Do not use emoji, emoticons, or decorative symbols.
+- Write plain prose. No markdown emphasis, no bold, no italics, and no bullet glyphs
+  inside a field value unless that field's guidance says it takes formatted text.`;
+
+/**
+ * Add the house style to a finished prompt. Called at the single point every prompt
+ * passes through on its way to the clipboard or a text file.
+ *
+ * @param {string} prompt
+ * @returns {string}
+ */
+export function appendHouseStyle(prompt) {
+    const base = String(prompt ?? '').trim();
+    if (!base) return base;
+    return composePrompt([base, HOUSE_STYLE]);
+}
+
 export function appendAdditionalUserGuidance(prompt, guidance) {
     const base = String(prompt ?? '').trim();
     const text = String(guidance ?? '').trim();
