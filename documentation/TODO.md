@@ -473,6 +473,30 @@ coverage with use; later, allow a compendium of RollTables as the source, which 
 
 ## Windows, menubar and toolbars
 
+### Shared tool-window CSS still carries light-on-dark colour literals (opened 2026-09-06)
+
+`styles/window-list.css` was fixed when Squire's import screen took the base's default `toolTheme`
+(LIGHT) and rendered a window of invisible item names. **The same shape is still in
+`styles/window-form-controls.css`** -- near-white text like `rgba(224, 224, 224, 0.9)` and
+white-on-transparent surfaces, in a component consumed inside themed tool windows, with only four
+tool-token uses at the very bottom of the file.
+Not a mechanical swap like the list was: roughly a third of its colours are semantic
+(success/danger/warning greens, reds and ambers) and deciding whether those need light-theme variants
+is a design call, not a find-and-replace. A success green that reads on dark is often illegible on
+cream, and a token swap there trades invisible text for unreadable text. `window-common.css` and
+`window-template.css` are worth the same look.
+
+**The CSS is the symptom. The cause is that the DEFAULT theme is the one shared components are least
+tested against.** Every consumer sets a theme for its own reasons -- Squire's builds window is DARK
+because it is a wall of artwork, its import window is DARK because it opens from the builds window --
+so LIGHT is simultaneously what a new window gets for free and the path nobody exercises. Converting
+every literal fixes today's instances and not the next one. The two real fixes are a check that
+renders each shared component against all three themes, or making the default the theme that is
+actually exercised. Squire audited its five windows and is exposed by coincidence rather than design:
+the two using form controls both declare DARK, and the three on the default happen to use no controls.
+Verify: open a tool window declaring `toolTheme: LIGHT` containing form controls, and read every label,
+input and status pill without selecting the text.
+
 ### `api.dialog` cannot make a dialog resizable (reported by Squire 2026-09-06)
 
 `openDialog` builds `window: { title }` at `api-dialog.js:286` and passes nothing else, so every other

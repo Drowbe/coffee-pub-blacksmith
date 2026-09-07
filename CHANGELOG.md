@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **The Times Up Integration setting is deleted** (`scripts/settings.js`, `lang/en.json`, `documentation/api/api-effects.md`). It chose whether Blacksmith yielded effect expiry to Times Up. Blacksmith now expires effects unconditionally, so both positions of the switch did the same thing — and the hint still described a choice that no longer existed, telling a GM that turning it off would make two modules race and one fail noisily. Neither half is true any more. **A registered setting that controls nothing is worse than no setting**, because it is read as a description of how the world works.
+
+  Not a v14 consequence, despite Times Up being retired: it went inert the moment the sweep stopped yielding, on v13, with Times Up installed and running. Existing worlds keep an orphaned value in their settings collection, which Foundry ignores harmlessly.
+
+  Nothing about duration recovery changes. The reader that recovers a duration Times Up rewrote is not a setting and never was — it reads a flag on the world's own documents, so it keeps working in a v14 world upgraded from v13, where Times Up cannot load but the effects it converted are still there.
+
+### Changed
+
+- **The Midi-QOL Integration hint describes what the setting now does** (`lang/en.json`). It read "use its workflows for attack, damage, and crit detection", which described handing midi the job — the behaviour this release removed. Blacksmith does that work itself either way now; the setting adds midi's more precise hit and damage results on top. The old wording was not merely stale, it taught the model the code no longer follows, which is how the pattern kept being reintroduced.
+
 ### Added
 
 - **A suite-wide page on telling one monster from another** (`documentation/global/global-token-actor-identity.md`). Three modules made the same mistake within two days, independently, in code that had worked for months. Once each looked, it was **ten sites**: two in Blacksmith, two in Bibliosoph, seven in Squire. One was reported by a user; the other nine were found only by knowing what to grep for.
@@ -20,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   In `global/` because it is Foundry knowledge rather than any module's, so satellites link it instead of each learning it once.
 
 ### Fixed
+
+- **The shared list component was unreadable in the light and glass tool themes** (`styles/window-list.css`). Every colour in `blacksmith-list` was a light-on-dark literal — near-white titles at `rgba(232, 232, 232, 0.95)`, rows on `rgba(255, 255, 255, 0.025)` with white borders. Those are right under the DARK tool theme and wrong under LIGHT, where the titles all but vanish into the cream ground and the row edges disappear entirely. All ten now resolve through the tool-theme tokens the rest of the tool-window CSS already uses, keeping the old values as `var()` fallbacks so an unthemed context is unchanged.
+
+  **The base defaults `toolTheme` to LIGHT**, so this was reachable by any new window that simply took the default — and every consumer so far had set DARK, which is why it went unseen. Found by Squire building an import screen: the screenshot read as a consumer fighting the CSS, which is the expensive part of this failure mode rather than the contrast itself.
 
 - **Combat statistics called every copy of a monster by its prototype's name** (`scripts/stats-combat.js`, `scripts/utility-message-resolution.js`). The commonest way to field a group is to drop one monster and copy-paste it — nineteen cultists from one actor. Those copies are unlinked and each carries its own delta, but **a delta does not override `name`**, so `token.actor.name` returns the base actor's name for all of them. Target names were resolved actor-first and fell back to the token, which is backwards; attacker names had no token to fall back to at all.
 

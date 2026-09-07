@@ -19,6 +19,19 @@
 
   The img, meta, and action zones are optional.
   Add .is-active for a highlighted/selected state.
+
+  EVERY COLOUR HERE IS A TOOL-THEME TOKEN, and must stay one. This file
+  shipped with light-on-dark literals -- near-white titles on white-on-
+  transparent rows -- which are correct under the DARK tool theme and
+  unreadable under LIGHT, where the ground is cream and the row edges
+  vanish into it. The base defaults `toolTheme` to LIGHT, so a new window
+  that takes the default got the broken combination on its first render.
+
+  The failure mode is what makes it worth a comment: it looks like the
+  consumer's bug. Squire built an import screen, took the default, and
+  the screenshot read as someone fighting the CSS. The literals kept as
+  var() fallbacks are the old dark values, so an unthemed context is
+  unchanged.
 */
 
 /* ----- Container ----- */
@@ -36,20 +49,20 @@
     align-items: center;
     gap: 10px;
     padding: 6px 10px;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--blacksmith-tool-surface-sunken, rgba(255, 255, 255, 0.025));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.08));
     border-radius: var(--blacksmith-radius-md, 4px);
     transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .blacksmith-list-row:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.05));
+    border-color: var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.15));
 }
 
 .blacksmith-list-row.is-active {
-    background: rgba(172, 159, 129, 0.08);
-    border-color: rgba(172, 159, 129, 0.45);
+    background: var(--blacksmith-tool-surface-selected, rgba(172, 159, 129, 0.08));
+    border-color: var(--blacksmith-tool-accent, rgba(172, 159, 129, 0.45));
 }
 
 /* ----- Thumbnail image (left) ----- */
@@ -60,7 +73,7 @@
     object-fit: cover;
     border-radius: var(--blacksmith-radius-sm, 3px);
     flex-shrink: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.1));
 }
 
 /* Larger image variant */
@@ -82,7 +95,7 @@
 .blacksmith-list-row-title {
     font-size: 0.9em;
     font-weight: 600;
-    color: rgba(232, 232, 232, 0.95);
+    color: var(--blacksmith-tool-text, rgba(232, 232, 232, 0.95));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -90,7 +103,7 @@
 
 .blacksmith-list-row-meta {
     font-size: 0.78em;
-    color: rgba(180, 180, 180, 0.72);
+    color: var(--blacksmith-tool-text-muted, rgba(180, 180, 180, 0.72));
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -110,7 +123,7 @@
 .blacksmith-list-empty {
     padding: 16px 12px;
     text-align: center;
-    color: rgba(180, 180, 180, 0.6);
+    color: var(--blacksmith-tool-text-muted, rgba(180, 180, 180, 0.6));
     font-size: 0.85em;
     font-style: italic;
 }
