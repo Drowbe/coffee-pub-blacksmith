@@ -1,6 +1,14 @@
 # Plan: delivery as a first-class dimension of offense
 
-**Status: Implemented (phase 1).** Phases 2-4 not started. Written 2026-08-04.
+**Status: Implemented (phase 1), verified live 2026-09-06.** Phases 2-4 not started. Written 2026-08-04.
+
+Phase 1 reports correctly: a two-target save spell with both targets failing produced `delivery: 'save'`,
+`targets: 2`, `failedSaves: 2` from `postCheckSaves`. Phase 2 has the input it was waiting on.
+
+**The same run showed the gap is wider than this plan states.** Nothing was recorded for that cast at all --
+no attempts, no damage, measured before and after with `utilities/stats-snapshot.js`. A caster is not just
+counted as flawless, they are largely absent. Phase 2 must therefore also cache save activities, or their
+damage keeps taking the `unlinked` path.
 
 This plan is scaffolding. When it is implemented, its content is distributed — behaviour to
 `architecture-stats.md`, any public surface to `api-stats.md`, history to `CHANGELOG.md`, remaining

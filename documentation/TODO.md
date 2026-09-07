@@ -73,7 +73,7 @@ shipped, and the row says what is left. **Blocked** - waiting on something named
 | 4 | The window framework does not own the frame | Not started -- plan written | Audit Minstrel and Artificer first, not last | [Windows](#windows-menubar-and-toolbars) |
 | 5 | Finish the importer re-founding | In progress -- steps 0-4 shipped and live | Step 5, guide and prompt derivation | [Importer](#importer) |
 | 6 | Statistics are midi-first in load-bearing places | Not started -- audited 2026-08-04 | Per-statistic fix; the audit is in the plan | [Statistics](#statistics) |
-| 7 | Save-based offense drags hit rate toward 100% | Blocked -- phase 1 shipped, unverified | Read the phase 1 log in a live combat; what phase 2 does depends on it | [Statistics](#statistics) |
+| 7 | Save-based offense: casters are absent from the statistics, not merely flattered | Not started -- phase 1 verified live 2026-09-06 | Phase 2: count from `landedTargets`, and cache save activities so their damage stops taking the `unlinked` path | [Statistics](#statistics) |
 | 8 | The canvas surfaces have no contract | Not started -- plan written | Turn `getCanvasLayer()` into an API, with Herald's box as the second tenant | [Canvas](#canvas-pins-and-notes) |
 | 9 | Stylesheet cleanup -- retrofit the neutral overlay tokens | Not started | The token-adoption pass; verify no hex in `styles/` matches a `vars.css` value | [Design system](#design-system-and-css) |
 | 10 | Player frame rate | Not started, deliberately | Measure. Nothing is a confirmed defect yet and nothing should be optimised before it is | [Performance](#performance) |
@@ -303,8 +303,23 @@ makes cross-table comparison meaningless. Audit is in the plan; the fix is per-s
 
 midi sets `workflow.hitTargets` to every target for an activity with no attack roll, and we read it as "was
 hit" (`utility-midi-resolution.js:285`, `stats-sources.js:416`). A Fireball on five goblins records five
-hits and zero misses even when all five save. Phase 1 (carry `delivery` and `landedTargets`) is done pending
-live verification; phase 2 counts from `landedTargets` and is blocked on what that phase 1 log shows.
+hits and zero misses even when all five save.
+
+**UNBLOCKED 2026-09-06. Phase 1 was read in a live combat and reports correctly.** A two-target save spell
+with both targets failing produced, from `postCheckSaves`:
+
+    delivery: 'save'   targets: 2   failedSaves: 2   hadCachedAttack: false
+
+So `delivery` and the save outcomes arrive intact and phase 2 has the input it was waiting on.
+
+**What the same run also showed, and it is the sharper half:** the statistics recorded **nothing at all**
+for that cast -- no attempts, no damage, measured with `utilities/stats-snapshot.js` before and after. The
+core lane never caches a save activity (no attack roll means `attackTotal` stays null and the card is
+deferred forever), so its damage takes the `unlinked` path, and `postCheckSaves` records nothing by design.
+A caster is therefore not merely counted as flawless, they are largely **absent** from combat statistics.
+
+Phase 2 counts from `landedTargets` instead of `hitTargets`. It changes recorded numbers, so it wants the
+same before-and-after measurement discipline the midi lane work used: snapshot, one cast, snapshot.
 
 ### A round view and a combat view (opened 2026-08-27)
 

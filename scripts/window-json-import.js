@@ -1,6 +1,7 @@
 import { MODULE } from './const.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { copyToClipboard } from './utility-common.js';
+import { postConsoleAndNotification } from './api-core.js';
 import { appendAdditionalUserGuidance, appendHouseStyle, prepareJsonImportText } from './utility-json-import-prompts.js';
 
 const BODY_TEMPLATE = `modules/${MODULE.ID}/templates/window-json-import-body.hbs`;
@@ -576,15 +577,59 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         return state;
     }
 
+    /**
+     * The author's answers, read from the rendered controls.
+     *
+     * A CONTROL THAT CANNOT BE FOUND CONTRIBUTES NOTHING. It used to fall back to the
+     * field's declared `value`, which is the prefill -- so a lookup that missed returned
+     * the number the profile shipped with, dressed as the author's choice. Bibliosoph's
+     * `count` field declared `value: '10'`, their user typed 3, and the prompt said
+     * "How many: 10"; the generator obeyed and produced ten records. Every layer behaved
+     * and the answer was wrong before any of them saw it.
+     *
+     * That is the same defect as defaulting an unrecognised template key to `area`: a
+     * confident wrong answer where an absence was the truth. Absent now means absent,
+     * and `answeredPromptFields` already treats an absent answer as unanswered and says
+     * nothing about it -- which is also the right outcome for a text field the author
+     * genuinely left blank.
+     *
+     * The warning is the point. A silent substitution is what made this survive a live
+     * verification pass on both sides.
+     *
+     * @returns {Record<string, string>}
+     */
     _getPromptFieldState() {
         const state = {};
         const root = this.element;
-        if (!root) return state;
+        // Nothing is rendered yet: every control is legitimately unreadable, and the
+        // declared prefills are the only answer there is. Not the case below.
+        if (!root) {
+            for (const field of this.promptFields) {
+                const id = String(field?.id || '').trim();
+                if (id) state[id] = String(field.value ?? '').trim();
+            }
+            return state;
+        }
         for (const field of this.promptFields) {
             const id = String(field?.id || '').trim();
             if (!id) continue;
-            const input = root.querySelector(`[data-prompt-field="${id}"]`);
-            state[id] = input ? String(input.value ?? '').trim() : String(field.value ?? '').trim();
+            const matches = root.querySelectorAll(`[data-prompt-field="${id}"]`);
+            if (!matches.length) {
+                postConsoleAndNotification(MODULE.NAME,
+                    `JSON import: prompt field "${id}" is declared but has no rendered control, `
+                    + `so the author cannot have answered it. Omitted rather than substituting `
+                    + `its declared value.`, '', false, false);
+                continue;
+            }
+            // Two controls answering to one id is unresolvable rather than merely untidy:
+            // `querySelector` would silently pick whichever came first in the markup, which
+            // need not be the one the author typed into.
+            if (matches.length > 1) {
+                postConsoleAndNotification(MODULE.NAME,
+                    `JSON import: prompt field "${id}" matches ${matches.length} rendered controls. `
+                    + `Reading the last one; ids must be unique.`, '', false, false);
+            }
+            state[id] = String(matches[matches.length - 1].value ?? '').trim();
         }
         return state;
     }

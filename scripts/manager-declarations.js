@@ -181,6 +181,56 @@ function templateValue(field) {
  * @param {Record<string, unknown>} [options] - Option values gating `requiresOption` fields.
  * @returns {object} The template as a plain object; callers stringify.
  */
+/**
+ * The author's answers to a profile's own `promptFields`, paired with the declared
+ * field each one constrains when it names one.
+ *
+ * WHY THIS EXISTS. `options` was read in four places and every one of them asked the
+ * same question -- which fields to SHOW -- so nothing expressed what the author had
+ * actually answered. A profile could ask for a severity, a category and a count, render
+ * all three controls, collect all three values, and produce a prompt mentioning none of
+ * them. The author had no way to tell: the control was there, they filled it in, and the
+ * prompt looked complete. Reported by the Bibliosoph session on 2026-09-07 after their
+ * user asked for two records and received one.
+ *
+ * A FIELD CONSTRAINT IS RECOGNISED BY NAME, not by a new declaration key. A prompt field
+ * whose `id` matches a declared field's `name` is answering *about that field*, which is
+ * already unambiguous in the data -- `severity` is both the question and the field it
+ * constrains. That matters beyond prose: for these, the answer is a fact about the
+ * document being generated rather than a preference, and it seeds the template too.
+ *
+ * Anything else -- a count, a tone, a source book -- is an instruction about the
+ * GENERATION rather than about a field, and is stated in the author's own words using
+ * the label they were shown. There is deliberately no key distinguishing the two kinds
+ * yet: the name match covers every field-shaped case, and inventing a key before a
+ * consumer needs one is how `rendered` happened.
+ *
+ * UNANSWERED MEANS SILENT. An empty answer is omitted rather than emitted as its
+ * default, because a default presented to a generator as a choice is indistinguishable
+ * from one the author actually made. `false` and `0` are answers and are kept.
+ *
+ * @param {object} declaration
+ * @param {Record<string, unknown>} options
+ * @returns {Array<{id: string, label: string, value: unknown, field: object|null}>}
+ */
+function answeredPromptFields(declaration, options = {}) {
+    const byName = new Map(effectiveFields(declaration).map(field => [field.name, field]));
+    const answered = [];
+    for (const promptField of declaration.promptFields ?? []) {
+        const id = promptField?.id;
+        if (!id) continue;
+        const value = options?.[id];
+        if (value === undefined || value === null || value === '') continue;
+        answered.push({
+            id,
+            label: String(promptField.label ?? id),
+            value,
+            field: byName.get(id) ?? null
+        });
+    }
+    return answered;
+}
+
 export function buildTemplateObject(kindId, profileId, options = {}) {
     const declaration = getDeclaration(kindId, profileId);
     if (!declaration) {
@@ -197,6 +247,12 @@ export function buildTemplateObject(kindId, profileId, options = {}) {
         // can actually be expressed.
         if (field.requiresWhen) continue;
         data[field.name] = templateValue(field);
+    }
+    // THE AUTHOR'S ANSWER WINS over the derived example. A profile that asks for a
+    // severity and then hands back a template carrying the model's `initial` has shown
+    // the author their own choice being ignored, in the one artefact they copy verbatim.
+    for (const answer of answeredPromptFields(declaration, options)) {
+        if (answer.field && answer.field.name in data) data[answer.field.name] = answer.value;
     }
     return data;
 }
@@ -970,6 +1026,28 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
         .map(group => group.preamble);
     if (preambles.length) sections.push('', ...preambles);
+
+    // WHAT THE AUTHOR ASKED FOR, stated rather than left to be inferred. Last before the
+    // template so it is the nearest thing to the shape being filled in.
+    //
+    // A field-shaped answer is a CONSTRAINT, not a preference. Bibliosoph's `severity` and
+    // `category` decide which journal a page files into, so a generator treating one as a
+    // suggestion produces pages in the wrong destination -- wrong place, not merely wrong
+    // content. Those are phrased as a fixed value on the named field, and the template below
+    // carries the same value, so the two cannot disagree.
+    //
+    // Everything else is quoted in the author's own words, using the label they were shown.
+    // A count reads "How many: 2" because that is what the control said, and no key in the
+    // declaration format claims to know that "how many" means records rather than a field.
+    const answers = answeredPromptFields(declaration, options);
+    if (answers.length) {
+        sections.push('', 'THE AUTHOR HAS ALREADY ANSWERED THESE -- honour them exactly', '');
+        for (const answer of answers) {
+            sections.push(answer.field
+                ? `- ${answer.field.name.toUpperCase()} is fixed at ${JSON.stringify(answer.value)} for every record you produce. Do not choose another value.`
+                : `- ${answer.label}: ${JSON.stringify(answer.value)}`);
+        }
+    }
 
     sections.push('', 'JSON TEMPLATE', '', buildTemplateText(kindId, profileId, options));
     return sections.join('\n');

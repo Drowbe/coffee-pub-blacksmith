@@ -87,13 +87,23 @@
     for (const key of Object.keys(now)) delta[key] = now[key] - previous[key];
     console.table({ before: previous, after: now, delta });
 
-    // The whole point, stated so a reader does not have to remember it.
-    const suspicious = ['attempts', 'hits', 'crits', 'hitRecords']
-        .filter((key) => delta[key] >= 2);
-    if (suspicious.length) {
-        console.warn('BLACKSMITH | STATS SNAPSHOT rose by 2 or more:', suspicious.join(', '),
-            '-- if that was ONE attack against ONE target, this is a double count.');
-        ui.notifications.warn(`Stats Snapshot: ${suspicious.join(', ')} rose by 2+. See console.`);
+    // ONLY `attempts` IS A RELIABLE DOUBLE-COUNT SIGNAL, and only against a known
+    // number of swings.
+    //
+    // `attempts` increments once per ATTACK, never per target, so it is the one
+    // counter that maps to something the person running this can count themselves.
+    // `hits` and `hitRecords` legitimately rise once per TARGET, so a single swing at
+    // two creatures produces two of each and flagging that is noise -- an earlier
+    // version did, on a Scorching Ray at two targets, and reported a double count that
+    // was not one.
+    //
+    // So this states what was seen and leaves the judgement where it belongs. The
+    // reader knows how many times they attacked; the macro does not.
+    if (delta.attempts >= 2) {
+        console.warn(`BLACKSMITH | STATS SNAPSHOT attempts rose by ${delta.attempts}.`,
+            `\n  Correct if you made ${delta.attempts} attack rolls (several rays, several swings).`,
+            '\n  A DOUBLE COUNT if you made one. Attempts is per attack, never per target.');
+        ui.notifications.warn(`Stats Snapshot: attempts +${delta.attempts}. Correct only if you attacked that many times.`);
     } else {
         ui.notifications.info('Stats Snapshot: delta printed to console.');
     }

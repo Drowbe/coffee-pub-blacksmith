@@ -1836,6 +1836,61 @@ export default {
         },
 
         {
+            id: 'prompt-answers-reach-the-prompt',
+            label: 'What the author answered reaches the prompt and the template',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'Three controls rendered, three values collected, and the prompt mentioned none of them.',
+            run: async ({ expect, log }) => {
+                const { manager, registry } = await loadDeclarations();
+                const kind = `probe-answers-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind, id: 'crit', label: 'Probe Crit', schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntry' },
+                    fields: [
+                        { name: 'title', path: 'name', type: 'string', guidance: 'The name.' },
+                        { name: 'severity', path: 'system.severity', type: 'string',
+                          values: ['minor', 'major'], default: 'minor', guidance: 'How bad.' }
+                    ],
+                    // `severity` names a declared field; `count` and `tone` do not.
+                    promptFields: [
+                        { id: 'severity', label: 'Severity', inputType: 'select',
+                          options: [{ value: 'minor' }, { value: 'major' }] },
+                        { id: 'count', label: 'How many', inputType: 'number' },
+                        { id: 'tone', label: 'Tone', inputType: 'text' }
+                    ]
+                });
+
+                const answered = manager.buildPromptSchemaText(kind, 'crit', { severity: 'major', count: 2 });
+
+                // A field-shaped answer is a constraint: Bibliosoph's equivalent decides which
+                // journal a page files into, so treating it as a preference puts pages in the
+                // wrong destination rather than merely giving them the wrong content.
+                expect.ok('a field-shaped answer is stated as a fixed value',
+                    answered.includes('SEVERITY is fixed at "major"'));
+                // The failing report verbatim: the author picked one value and the template
+                // handed back the model's default.
+                const seeded = manager.buildTemplateObject(kind, 'crit', { severity: 'major', count: 2 });
+                expect('and the template carries it rather than the default', seeded.severity, 'major');
+
+                // A non-field answer is quoted in the author's own words. Nothing in the format
+                // claims to know that "how many" means records rather than a field.
+                expect.ok('a non-field answer appears with its label',
+                    answered.includes('How many: 2'));
+
+                // An unanswered control must say nothing. A default presented to a generator as
+                // a choice cannot be told apart from one the author actually made.
+                expect.ok('an unanswered field contributes no line', !answered.includes('Tone'));
+                const none = manager.buildPromptSchemaText(kind, 'crit', {});
+                expect.ok('and with nothing answered the section is absent',
+                    !none.includes('THE AUTHOR HAS ALREADY ANSWERED'));
+                expect('the template falls back to the declared default',
+                    manager.buildTemplateObject(kind, 'crit', {}).severity, 'minor');
+                if (!answered.includes('How many')) log(answered);
+            }
+        },
+
+        {
             id: 'journal-profile-prompt-routing',
             label: 'A declared journal profile gets its OWN prompt, not the area prompt',
             tier: 'headless',

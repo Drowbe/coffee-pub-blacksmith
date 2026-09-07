@@ -117,12 +117,28 @@ TokenDocument, and dnd5e writes actor uuids into `flags.dnd5e.targets` -- so it 
 message id, workflow id, target uuid. Any identity that crosses the lanes is normalised before
 comparison, never after.
 
-The items left need numbers watched rather than a symptom observed.
+**Several attacks from one activity: PASSED 2026-09-06**, and reconciled against the chat cards rather
+than against the code. Scorching Ray at two targets produced `attempts +2, hits +2, hitRecords +2,
+damageDealt +12`. The cards show two separate messages -- attack 19 for 7 damage, attack 13 for 5 -- and
+each target's hit points moved by its own ray's amount. Seven and five is twelve. Every recorded number
+maps to something visible on screen, which is the standard worth holding for a statistics change.
 
-- [ ] **One attack, TWO targets.** Midi ON. The only remaining case with no measurement behind it, and
-      the one the per-target scope exists for. Expect `attempts +1` and `damageDealt` equal to the SUM
-      across both creatures. Doubling either half means the target scope is still too coarse; a single
-      target's worth means it is too fine and one application was swallowed.
+**TWO THINGS IT DID NOT TEST**, recorded because at first glance it appeared to test both.
+
+**It did not test over-collapsing.** Two attacks sharing ONE chat message would be swallowed by the
+per-message guard, and that failure loses real data while no total ever looks wrong -- the harder of the
+two to notice. The rays carried distinct message ids, so the guard was never put in that position. dnd5e
+posts one card per activity use, which makes the case hard to reach and correspondingly hard to spot if
+it ever arrives. Not currently reproducible; noted so nobody reads the Scorching Ray result as covering
+it.
+
+**It did not test one attack roll against two targets.** Midi does this when several tokens are targeted
+and one d20 is checked against each AC, and it is the case the per-target damage scope was written for.
+Each ray rolls separately, so this is untouched. Worth a single weapon swing at two targeted tokens if
+the opportunity arises; not worth engineering, since the scope is proven for one target and for several
+messages and the untested case sits between two that pass.
+
+The items left need numbers watched rather than a symptom observed.
 
 - [ ] **A player's lifetime damage rises once.** Midi ON, a player character attacking. Read Total
       Damage in the player statistics before and after one swing. The combat totals are proven; the

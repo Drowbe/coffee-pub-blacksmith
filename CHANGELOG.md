@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The core lane now keeps any uuid carrying a `Token.` segment, and both lanes reduce to the bare token id before comparing. Verified 2026-09-06 with integration on: a 13-damage roll produced `damageDealt +13` with both lanes visibly running and one recording.
 
+  A second run reconciled the totals against the table rather than against the code. Scorching Ray at two targets recorded `attempts +2, hits +2, damageDealt +12`, and the chat cards show two separate messages: attack 19 for 7 damage, attack 13 for 5. Seven and five is twelve, and each target's hit points moved by its own ray's amount. Every recorded number maps to something a person can see.
+
+  It did **not** test the opposite failure, which is worth stating because it looked as though it had. Two attacks sharing one chat message would be swallowed by the per-message guard, and that would lose real data silently while no total ever looked wrong. The rays carried distinct message ids, so the guard was never put in that position. dnd5e posts one card per activity use, which makes the case hard to reach and correspondingly hard to notice if it ever arrives.
+
   **Three times in this release two lanes described one thing with differently-decorated identities** — message id, workflow id, target uuid. The rule that follows: any identity crossing the lanes is normalised before comparison, never after, and never compared in whatever shape its own lane happens to produce.
 
 ### Added
@@ -83,6 +87,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The suite's own diagnostic pointed at the wrong field. It prints RAW differences while `_canMerge` compares values filtered through `_identitySystem` and `_identityFlags`, so it reported `system keys differing: ["properties"]` -- a difference the predicate discards -- with the real cause two lines below. The diagnostic now says outright that its output is suspects rather than causes, because that misdirection has cost time twice.
 
 - **`mapped` is part of the documented compendium result shape** (`testing/suites/suite-compendiums.js`). The unscoped-search work added the key to every row from `search()` and `query()` and documented it in `api-compendiums.md`, but the suite's `RESULT_KEYS` was not updated, so the shape assertions failed against a row that was correct. The row shape is stated in three places and only two of them moved.
+
+- **A profile's `promptFields` collected answers that never reached the prompt** (`scripts/manager-declarations.js`). `options` was read in four places and all four asked the same question -- which fields to SHOW -- so nothing expressed what the author had answered. A profile could ask for a severity, a category and a count, render all three controls, collect all three values, and produce a prompt mentioning none of them. The author had no way to tell: the control was there, they filled it in, and the prompt looked complete.
+
+  The answers now reach both derived outputs. **A prompt field whose `id` matches a declared field's `name` is a constraint on that field**, stated as a fixed value and seeded into the JSON template, so the two cannot disagree -- previously the template handed back the model's `initial` for a field the author had just chosen a value for. That matters beyond content: a satellite's `severity` and `category` decide which journal a page files into, so a generator treating one as a preference produces pages in the wrong destination.
+
+  **Anything else is quoted in the author's own words**, using the label the control showed, because nothing in the declaration format claims to know that "how many" means records rather than a field. No key was added to distinguish the two kinds: the name match covers every field-shaped case, and inventing an affordance before a consumer needs one is what got `rendered` deleted. An unanswered control contributes nothing at all, since a default presented to a generator as a choice cannot be told apart from one the author made. Reported by the Bibliosoph session after their user asked for two records and received one.
+
+- **A prompt field whose control could not be read returned its declared prefill as the author's answer** (`scripts/window-json-import.js`). `_getPromptFieldState` fell back to the field's declared `value` whenever the lookup missed, so a miss produced the number the profile shipped with, dressed as a choice. Bibliosoph declared `value: '10'` on a count field, their user typed 3, the prompt said `How many: "10"`, and the generator faithfully produced ten records. Every layer behaved correctly and the answer was already wrong before any of them saw it.
+
+  An unreadable control now contributes **nothing**, and says so in the console naming the field. It is the same defect as defaulting an unrecognised template key to `area`, one layer along: a confident wrong answer standing in for an absence. Absent means absent, and an absent answer is already treated as unanswered and left out of the prompt, which is also the right result for a field the author genuinely left blank. Two controls answering to one id are reported too, rather than `querySelector` silently taking whichever appears first in the markup.
+
+  The fallback is kept for the one case where it is true: nothing rendered yet, where every control is legitimately unreadable and the prefills are the only answer there is.
 
 ### Removed
 
