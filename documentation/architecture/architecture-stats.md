@@ -76,13 +76,41 @@ non-midi path splits one attack across two unrelated system events, so something
 forward. The tracker **wrote that field and never read it** — it was pushing state to the adapter through a
 shared mutable variable. It is now an explicit hand-off in the direction the data actually flows.
 
-**`stats-combat.js` imports nothing from `utility-message-resolution.js` or `utility-midi-resolution.js`,
-and that is a load-bearing invariant.** midi-qol is optional by long-standing requirement — it is absent from
-`module.json`'s `requires`, its hooks register only inside `if (game.modules.get("midi-qol")?.active)`, and
-handlers on both paths re-check `isMidiIntegrationEnabled()` with opposite polarity so exactly one path counts
-any given attack. The accumulator being unable to name midi-qol is what makes that requirement structural
-rather than a convention. An import from either utility reappearing in `stats-combat.js` means event
-translation has leaked back in.
+**`stats-combat.js` imports nothing from `utility-message-resolution.js`, and that is a load-bearing
+invariant.** The accumulator being unable to name a foreign module is what makes midi-qol's optionality
+structural rather than conventional. An import from that utility reappearing here means event translation
+has leaked back in. (`isMidiIntegrationEnabled` is imported, and deliberately: it reads **Blacksmith's own
+setting**, which is the one question the accumulator is allowed to ask.)
+
+**BOTH LANES NOW RUN FOR EVERY EVENT. This paragraph used to say the opposite** — that handlers "re-check
+`isMidiIntegrationEnabled()` with opposite polarity so exactly one path counts any given attack" — and that
+arrangement was removed in September 2026. It was the shape where our own lane stopped because another
+module's might run, and when the module we deferred to did not run, nothing counted. A table played
+nineteen rounds with the dead still taking turns from the same mistake in `DefeatedManager`.
+
+What replaced it: the core dnd5e lane and the MIDI lane both read every message, and
+`CombatStats._alreadyProcessed` recognises an event it has already recorded whichever lane brought it.
+Correctness now depends on that guard rather than on the two lanes taking turns.
+
+**The guard is only as good as the identity, and identity is where this repeatedly went wrong.** Three
+separate defects in one week, each silent, each found only by comparing a number before and after:
+
+| Symptom | Cause |
+|---|---|
+| Every attack counted twice | Paired on `event.messageId`, a field NEITHER event carries. Both call it `attackMsgId`. |
+| Every attack counted twice, again | `_countSuccessfulOffense` keyed on the correlation key, whose namespaces cannot collide across lanes. |
+| Damage counted twice | The lanes decorate the target differently — actor uuid against token uuid — and under that, the core lane produced no token uuid at all and fell back to the base actor id. |
+
+The rule that follows, and the one to hold: **any identity crossing the lanes is normalised before
+comparison, never after, and never compared in whatever shape its own lane happens to produce.** A chat
+message arrives as `<id>` from one lane and `ChatMessage.<id>` from the other; a target as a token uuid from
+one and an actor uuid from the other. Reduce both to the bare id first.
+
+**Two yields remain and are correct.** `_onAttackRoll` and `_onDamageRoll` still return when midi
+integration is on. They record nothing — they forward a player's roll to the GM, and the recording happens
+on the chat lane — so removing the yield would gain nothing and would duplicate a socket payload that
+carries no identity the MIDI lane shares. **Yielding a duplicate forward is not yielding the work**, and the
+test for the difference is whether our own recording stops.
 
 `_ensureParticipantStats` and `_ensureCombatTotals` hand back live references into the accumulator, and the
 handlers write through them. That is the last of the reaching-in: a caller holding one of those references
@@ -137,6 +165,53 @@ total. `CPBPlayerStats._isAttackDuplicate` is the counterpart to `CombatSources.
 The general shape: **a new consumer of these messages needs its own dedupe, not a shared one.** The
 lanes deliberately do not share a tracker, because they can legitimately process the same event at
 different times — but every lane needs one, and a lane without one fails silently and upward.
+
+**Per CONSUMER, but no longer per SOURCE — the distinction matters and was not clear before.** The combat
+accumulator and the lifetime flags are different storage and keep separate trackers, which is what this
+section describes and it still holds. What changed in September 2026 is that within one consumer, the core
+dnd5e lane and the MIDI lane must dedupe *against each other*, because both now process every event where
+previously they took turns.
+
+They could not do that when this was written: `CombatSources._chatDedupe` and `_midiDedupe` keyed in
+namespaces that could never collide, so the same attack down both paths deduped against nothing. That was
+harmless only because one path always returned early. Removing the yields made it the thing standing
+between a table and doubled statistics, and it did not work — see the identity table above.
+
+The lifetime lane had the same gap and it was worse: its MIDI handlers had **no dedupe against its chat
+lane at all**, so the yield was the only thing keeping them apart. Both now mark the same
+`attack:<bare message id>` through `CPBPlayerStats._isAttackDuplicate`.
+
+## Delivery: why a caster's accuracy is not a statistic
+
+**The model treats the attack roll as the unit of offense.** Every accuracy figure derives from
+`hitTargets` and `missTargets` on an attack event. That is right for a creature swinging a weapon and
+wrong for one casting a save spell, and the failure is not that casters are missing from the numbers — it
+is that midi sets `hitTargets` to *every* target for an activity with no attack roll, so a Fireball on
+five goblins reads as five hits and zero misses even when all five save.
+
+Attack events therefore carry `delivery` (`attack`, `save`, `auto`, `unknown`) and `landedTargets`
+alongside `hitTargets`. Nothing counts from them yet, and one of the two things that would is closed.
+
+**Damage is fixed. Accuracy is declined.**
+
+A save card used to be deferred forever — the lane waited for an attack roll that was never coming, so the
+card was never cached and its damage took the `unlinked` path. Measured at the author's table on
+2026-09-06: a two-target save spell recorded *nothing*, no attempts and no damage. The lane now defers only
+when a roll is genuinely on its way, so a caster appears in damage totals.
+
+Accuracy is a different question and the answer is that **it cannot be built.** Who failed a save is not
+knowable from core dnd5e; only midi correlates save outcomes. A save-accuracy statistic would exist on midi
+tables and be absent everywhere else, which is a third-party module deciding what a core statistic means.
+
+That is the rule stated as a constraint rather than as a preference: **a third-party module may enhance,
+never replace core functionality**, and it forbids *building* a module-dependent feature just as firmly as
+it forbids yielding an existing one. Correct-but-unavailable is still a dependency, and a feature that
+appears when a module is installed teaches a user the module is required. See `CLAUDE.md` and TODO-GLOBAL
+Ground Rule 8.
+
+So `_processResolvedAttack` and the offense counter are both gated on a real attack roll. A save activity
+reaches the cache and stops there. Anything later that proposes counting from `landedTargets` runs into the
+same wall and should re-scope around what core dnd5e can answer rather than around what midi reports.
 
 ## The tiers
 

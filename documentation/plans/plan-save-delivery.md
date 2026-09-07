@@ -1,6 +1,23 @@
 # Plan: delivery as a first-class dimension of offense
 
-**Status: Implemented (phase 1), verified live 2026-09-06.** Phases 2-4 not started. Written 2026-08-04.
+**Status: phase 1 implemented and verified live. Phase 2 PARTLY DONE, its accuracy half DECLINED.**
+Phases 3-4 not started. Written 2026-08-04, revised 2026-09-07.
+
+**DONE (2026-09-07): save activities are cached, so a caster now appears in damage totals.** The core
+lane deferred any card with no attack total, which for a save meant deferring forever -- no roll was
+ever coming -- so the card was never cached and its damage took the `unlinked` path. It now defers only
+when a roll is genuinely coming.
+
+**DECLINED: counting hits and misses from `landedTargets`.** Who failed a save is not knowable from core
+dnd5e; only midi correlates save outcomes. A save-accuracy statistic would therefore exist on midi
+tables and be absent everywhere else, which is a third-party module deciding what a core statistic
+means. The author's rule: **enhance with a third-party module, never replace core functionality with
+one**, and a feature that only appears when a module is installed teaches a user the module is required.
+
+The plan anticipated this in August -- "doing this plan first would make the system more midi-dependent,
+not less" -- and attributed it to `successfulOffenseCount` being midi-only. That blocker is gone; this
+one is not, and it is not the kind that clears. Phases 3 and 4 inherit the same constraint and should be
+re-scoped around what core dnd5e can answer before either is started.
 
 Phase 1 reports correctly: a two-target save spell with both targets failing produced `delivery: 'save'`,
 `targets: 2`, `failedSaves: 2` from `postCheckSaves`. Phase 2 has the input it was waiting on.

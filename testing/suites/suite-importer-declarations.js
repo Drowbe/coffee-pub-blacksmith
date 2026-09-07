@@ -1926,6 +1926,7 @@ export default {
                 });
 
                 let exact = 0;
+                let wrongFamily = 0;
                 const misses = [];
                 for (const real of sample) {
                     const file = real.split('/').pop().replace('.webp', '');
@@ -1939,19 +1940,38 @@ export default {
                     const asked = `icons/skills/wounds/${corrupted.join('-')}.webp`;
 
                     const got = (await manager.buildDocumentData(kind, 'p', { title: 'x', img: asked })).img;
-                    if (got === real) exact++;
-                    else misses.push(`${corrupted.join('-')} -> ${got.split('/').pop()} (wanted ${file})`);
+                    if (got === real) { exact++; continue; }
+                    // WHERE a miss lands matters more than how many there are. A fallback is
+                    // honest and a GM sees it; a plausible icon from an unrelated family is
+                    // not visibly wrong at all. A consumer measured a change that moved exact
+                    // recovery by one record while taking wrong-in-a-different-family from 2
+                    // to 7, and a rate-only check called it neutral.
+                    const sameFamily = got.startsWith(`${real.slice(0, real.lastIndexOf('/'))}/`);
+                    if (got !== FALLBACK && !sameFamily) wrongFamily++;
+                    misses.push(`${corrupted.join('-')} -> ${got.split('/').pop()}`
+                        + `${got === FALLBACK ? ' [fallback]' : sameFamily ? ' [same family]' : ' [WRONG FAMILY]'}`
+                        + ` (wanted ${file})`);
                 }
 
                 const rate = Math.round((exact / sample.length) * 100);
-                log(`recovered ${exact}/${sample.length} corrupted paths (${rate}%)`);
+                log(`recovered ${exact}/${sample.length} corrupted paths (${rate}%), `
+                    + `${wrongFamily} wrong in a DIFFERENT family`);
                 for (const miss of misses.slice(0, 5)) log(`  miss: ${miss}`);
 
-                // A THRESHOLD RATHER THAN A FIXED NUMBER. The corpus is Foundry's and may
-                // change between versions, so the assertion is that the resolver is
-                // substantially better than chance, and the LOGGED RATE is the real result
-                // to read. A rate that falls is the signal, not a red here.
-                expect.ok(`most corrupted paths recover their original (${rate}%)`, rate >= 60);
+                // THE FLOOR IS HIGH BECAUSE THIS CORRUPTION IS THE ONE THE RESOLVER HANDLES
+                // DIRECTLY. It appends a letter to a middle word, which near-token scoring
+                // is built for, so anything much below full recovery means that scoring has
+                // regressed. It sat at 60 while the rate was 96, and a 60 floor would have
+                // hidden the whole of that gap -- the 96 itself was partly the length
+                // tiebreak guessing well, which the logged misses showed and the assertion
+                // could not.
+                //
+                // Still a threshold rather than an equality: the corpus is Foundry's and
+                // moves between versions. The LOGGED RATE is the result to read.
+                expect.ok(`corrupted paths recover their original (${rate}%)`, rate >= 90);
+                // The second assertion, and the one a rate cannot make. A fallback is a
+                // visible non-answer; an icon from an unrelated family is a silent wrong one.
+                expect(`no miss lands in an unrelated family (${wrongFamily})`, wrongFamily, 0);
             }
         },
 

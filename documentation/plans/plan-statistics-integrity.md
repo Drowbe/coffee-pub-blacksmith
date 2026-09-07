@@ -108,7 +108,27 @@ nothing erroring on either. Errors in both directions, so cross-table comparison
 
 The three worst were fixed 2026-08-04 and now live only in `CHANGELOG.md`: the MVP offense counter,
 player lifetime damage discarding uncorrelated damage, and the `return` that stopped one activity
-card yielding both an attack and its damage. What follows is what remains, worst first.
+card yielding both an attack and its damage.
+
+**The structural half of this finding is resolved (2026-09-03 to 09-07).** "Two tables get different
+numbers from the same fight" was caused less by individual statistics than by the arrangement underneath
+them: our own lanes stopped whenever midi's might run, so what got recorded depended on which module was
+installed. Every one of those yields is gone. Both lanes now read every event and deduplicate against each
+other, in combat statistics and in lifetime totals. A caster's damage, which was absent entirely, now
+records. The reasoning is in `architecture-stats.md`; the plan that tracked the work has been dissolved
+into it.
+
+**What that does not fix, and what this plan is still for:** the per-statistic disagreements below, where
+the two lanes both run and measure *different things*. Item 1 is the clearest — one lane records applied
+HP and the other the rolled total, so they disagree by resistance. Removing the yields makes those
+disagreements reachable on every table rather than hiding them behind a module check, which raises rather
+than lowers the priority.
+
+One item was closed as **not buildable** rather than fixed: a caster's accuracy. Who failed a save is not
+knowable from core dnd5e, so the statistic would exist on midi tables and nowhere else. See
+`architecture-stats.md` and `plan-save-delivery.md`.
+
+What follows is what remains, worst first.
 
 1. **DECIDED, BLOCKED ON THE EXPORT ABOVE - "damage dealt" means applied HP.**
    Settled 2026-08-04: it means **what actually came off the monster**, not what the dice said. midi

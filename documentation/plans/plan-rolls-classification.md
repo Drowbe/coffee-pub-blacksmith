@@ -1,6 +1,20 @@
 # Plan: Roll Outcome Classification API
 
-**Status: Phase 1 shipped in repo — shared utility, `module.api.rolls`, skill-check hooks. Phases 2–4 pending.**
+**Status: Phase 1 shipped. Phase 3's deferred item is DONE (2026-09-06). Phases 2 and 4 pending.**
+
+**The stats lane now delegates crit detection to the shared utility**, which phase 3 listed and then
+deferred. `getCritFumbleFromWorkflow` and the last hand-written `d20 === 20` in `stats-player.js` both call
+`classifyCritFumble`.
+
+It needed a structural change phase 3 did not anticipate: the classifier had to move to a **leaf module**
+(`utility-d20.js`), because `utility-roll-classification.js` imports the MIDI utility and so could never be
+imported by it. That cycle is why the MIDI lane grew its own crit reasoning in the first place, leaving the
+module with two answers to "was that a critical" where only one read the threshold a roll declared. See
+`architecture-rolls.md`.
+
+**Phase 3's verification line is now the wrong test and should be re-scoped.** It reads "MVP crit/fumble
+counts unchanged after migration". The point of the migration is that a widened critical range **changes**
+the count, correctly — an unchanged count would mean the shared classifier had not taken effect.
 
 Blacksmith already *knows* what rolls mean (hit, miss, crit, fumble, success vs DC) in four separate places. Sibling modules — especially **Bibliosoph** (crit/fumble/injury/reaction triggers, awareness for quick encounters) and **Regent** (skill lookups via Request Roll) — need a **subscription surface**, not another copy of the logic.
 

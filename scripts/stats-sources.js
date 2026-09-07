@@ -872,11 +872,10 @@ export class CombatSources {
         // already recorded regardless of which lane brought it -- both events carry the
         // same `workflowId`, which is what pairs them. See `_alreadyProcessed`.
         //
-        // The DAMAGE half still yields, and that is a known gap rather than a decision
-        // -- the two lanes describe damage in different shapes (this one per message,
-        // the MIDI one per target), so they have no shared identity yet to dedupe on.
-        // Getting that wrong writes double damage into persisted campaign statistics,
-        // so it waits for a live test. Tracked in `plan-integration-inversion.md`.
+        // The DAMAGE half no longer yields either, as of 2026-09-06. Both lanes read
+        // every message and `CombatStats._processDamageOrHealing` -- the point they both
+        // funnel into -- pairs them on the chat message PLUS the target, since one attack
+        // legitimately damages several creatures. See `architecture-stats.md`.
 
         // Prune expired cache entries
         CombatSources._pruneAttackCache();
@@ -908,17 +907,24 @@ export class CombatSources {
             // Deliberately NOT fixed here. Caching those deliveries moves their damage out of
             // `unlinked` and into `onHit`/`other`, which changes recorded numbers -- phase 2's job.
             // Phase 1 only makes the difference visible. See `plan-save-delivery.md`.
-            if (typeof attackEvent.attackTotal !== 'number') {
-                const awaitingRoll = attackEvent.delivery === 'attack' || attackEvent.delivery === 'unknown';
-                postConsoleAndNotification(MODULE.NAME, awaitingRoll
-                    ? 'Combat Stats - Attack deferred (no roll yet)'
-                    : 'Combat Stats - Attack deferred (no roll is coming: non-attack delivery)', {
+            // DEFER ONLY WHEN A ROLL IS ACTUALLY COMING.
+            //
+            // This returned for ANY card with no attack total, which meant a save or auto
+            // activity was deferred forever -- no roll was ever coming, so the card was
+            // never cached, so its damage took the `unlinked` path and the caster was
+            // largely absent from the statistics. Confirmed at the author's table
+            // 2026-09-06: a two-target save spell recorded nothing at all, no attempts
+            // and no damage.
+            //
+            // A save card is now allowed through to be CACHED, which is what lets its
+            // damage correlate. It is deliberately NOT counted for accuracy -- see the
+            // guard on `_processResolvedAttack` below.
+            const awaitingRoll = attackEvent.delivery === 'attack' || attackEvent.delivery === 'unknown';
+            if (typeof attackEvent.attackTotal !== 'number' && awaitingRoll) {
+                postConsoleAndNotification(MODULE.NAME, 'Combat Stats - Attack deferred (no roll yet)', {
                     messageId: message.id,
                     key: attackEvent.key,
-                    delivery: attackEvent.delivery,
-                    // false means the card will never resolve through this lane, so its damage lands
-                    // as `unlinked` no matter how long we wait.
-                    awaitingRoll
+                    delivery: attackEvent.delivery
                 }, true, false);
                 return;
             }
@@ -942,12 +948,33 @@ export class CombatSources {
                     ts: attackEvent.ts
                 });
 
-                await CombatStats._processResolvedAttack(attackEvent);
+                // ACCURACY IS COUNTED ONLY WHERE THERE WAS AN ATTACK ROLL.
+                //
+                // A save activity reaches here now so its damage can correlate, but its
+                // `hitTargets` is every target -- midi sets that unconditionally for an
+                // activity with no attack, and core dnd5e has no better answer. Counting
+                // it would record a Fireball on five goblins as five hits and zero misses
+                // even when all five saved, which is the "counted as flawless" bug this
+                // deliberately does not introduce in exchange for fixing the damage.
+                //
+                // The honest position: **who failed a save is not knowable from core
+                // dnd5e.** Only midi correlates save outcomes, so a save-accuracy
+                // statistic would be available on midi tables and absent elsewhere. That
+                // is a module deciding what a core statistic means, which is the shape
+                // this module spent 2026-09-03 to 09-06 removing. Left unbuilt on
+                // purpose; see `plan-save-delivery.md`.
+                if (typeof attackEvent.attackTotal === 'number') {
+                    await CombatStats._processResolvedAttack(attackEvent);
+                }
 
                 // MVP fairness, on the core lane. The midi handlers have always counted this and
                 // this lane never did, which made the MVP formula depend on whether midi was
                 // installed. Same test as the midi side, from the same field on the same event.
-                if (attackEvent.hitTargets?.length > 0) {
+                //
+                // Gated on a real attack roll for the same reason: a save spell's
+                // `hitTargets` is unconditional, so this would score an offense count for
+                // a spell every target resisted.
+                if (typeof attackEvent.attackTotal === 'number' && attackEvent.hitTargets?.length > 0) {
                     CombatSources._countSuccessfulOffense(
                         attackEvent.key,
                         game.actors.get(attackEvent.attackerActorId),

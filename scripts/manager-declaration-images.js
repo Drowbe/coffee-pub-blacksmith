@@ -79,6 +79,37 @@ async function filesUnder(root) {
     return found;
 }
 
+/**
+ * Whether two short words are within `budget` single-character edits of each other.
+ *
+ * Bounded rather than a full Levenshtein: the answer is only ever used as a yes/no, the
+ * budget is one or two, and a row that has already exceeded it cannot recover -- so the
+ * loop abandons a candidate the moment its best possible score is out of range. These
+ * are filename tokens, a handful of characters each, compared against a few thousand
+ * candidates only when a path has already failed to resolve outright.
+ *
+ * @param {string} a
+ * @param {string} b
+ * @param {number} budget
+ * @returns {boolean}
+ */
+function editDistanceWithin(a, b, budget) {
+    if (Math.abs(a.length - b.length) > budget) return false;
+    let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= a.length; i++) {
+        const current = [i];
+        let rowBest = i;
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + cost);
+            if (current[j] < rowBest) rowBest = current[j];
+        }
+        if (rowBest > budget) return false;
+        previous = current;
+    }
+    return previous[b.length] <= budget;
+}
+
 /** The meaningful words in a path or a description, lowercased. */
 function tokenise(value) {
     return String(value ?? '')
@@ -123,21 +154,106 @@ function bestMatch(candidates, wanted, preferredDir = '') {
         return { path, tokens };
     });
 
+    // A NEAR TOKEN COUNTS, at less than an exact one. Without this the corrupted word
+    // matches nothing at all, so the decision falls entirely to the words either side of
+    // it and every near-sibling ties exactly: `anatomy-organ-brain-pink-red` and
+    // `anatomy-organ-heart-pink-red` both score four against `...brains...`, and the
+    // winner is whichever the length tiebreak happens to prefer. That produced 96%
+    // recovery on a corrupted-path test, which read as accuracy and was substantially
+    // luck -- and its one miss was exactly this: `blood-cells-vessels-red` resolved to
+    // `blood-cells-red` while `blood-cells-vessel-red` sat there unrewarded.
+    //
+    // Prefix comparison rather than a stemmer, because the corruptions that matter are
+    // plurals and inflections -- `vessels`/`vessel`, `cells`/`cell`, `impacts`/`impact` --
+    // and a stemmer is a dictionary to maintain for a gain these filenames do not offer.
+    // Two thirds weight, so an exact match on a rarer word still outranks a near match.
+    const nearMatch = (token, tokens, consumed) => {
+        for (const candidate of tokens) {
+            if (consumed.has(candidate)) continue;
+            if (Math.abs(candidate.length - token.length) > 2) continue;
+            if (candidate.startsWith(token) || token.startsWith(candidate)) return candidate;
+            // Prefix alone was the first attempt and it only caught inflections. A
+            // generator misremembers the MIDDLE of a word as often as the end --
+            // `blooe` for `blood`, `forkee` for `forked`, `mediue` for `medium` -- and
+            // in none of those is either string a prefix of the other. Measured on a
+            // consumer's 73 shipped icons: every one of their ten wrong answers was
+            // this shape, and the correct file lost to a shorter real sibling that
+            // simply lacked the word, because an unmatched token scored the same
+            // whether it was one letter off or absent entirely.
+            const budget = token.length >= 4 && candidate.length >= 4 ? 2 : 1;
+            if (editDistanceWithin(token, candidate, budget)) return candidate;
+        }
+        return null;
+    };
+
     const scored = [];
     for (const { path, tokens } of tokenised) {
         let score = 0;
-        let shared = 0;
+        let exact = 0;
+        let near = 0;
+
+        // A CANDIDATE TOKEN IS SPENT ONCE. Exact matches claim theirs first, then a near
+        // match may only take a word nothing has taken already.
+        //
+        // Without this a single word answers for two, and it picks the wrong file rather
+        // than merely flattering the right one. `strike-blade-blooe-red` resolved to
+        // `strike-blade-claw-red`: `blade` matched the wanted `blade` exactly AND was
+        // within two edits of the corrupted `blooe`, so the wrong candidate scored four
+        // against the correct file's four and won on the tiebreak. The correct file had
+        // `blood` sitting there, one edit away, and no way to out-score a double count.
+        //
+        // Exact-first ordering matters as much as the spending: letting a near match take
+        // a word an exact match still needs reintroduces the same defect by another route.
+        const consumed = new Set();
         for (const token of wanted) {
-            if (!tokens.has(token)) continue;
-            shared++;
-            score += 1 / Math.log(1 + (frequency.get(token) ?? 1));
+            if (tokens.has(token)) {
+                exact++;
+                consumed.add(token);
+                score += 1 / Math.log(1 + (frequency.get(token) ?? 1));
+            }
         }
-        if (!shared) continue;
+        for (const token of wanted) {
+            if (tokens.has(token)) continue;
+            const approximate = nearMatch(token, tokens, consumed);
+            if (approximate) {
+                near++;
+                consumed.add(approximate);
+                score += (2 / 3) * (1 / Math.log(1 + (frequency.get(approximate) ?? 1)));
+            }
+        }
+        // THE BAR IS A FILTER ON CANDIDATES, NOT A TEST ON THE WINNER. This was applied by
+        // the caller to the best-scoring candidate's EXACT count, which is a different
+        // question and gave a wrong answer whenever the two disagreed: a candidate with one
+        // exact and two near tokens outranks one with two exact and one near, wins on
+        // weighted score, then fails the bar -- and the whole resolution falls back, past a
+        // qualified runner-up that was sitting right there. Six of a consumer's nine
+        // remaining failures were exactly that, including `strike-fise-stone` falling back
+        // while `strike-fist-stone` was present and matched two exact plus one near.
+        //
+        // A NEAR TOKEN RANKS A CANDIDATE BUT MAY NOT QUALIFY ONE. Two EXACT words is the
+        // bar, and this was briefly loosened to let near matches count toward it on the
+        // reasoning that a near token is evidence too. It is, for ranking. For admission
+        // it is far too weak: `cell` is one edit from `bell`, so `blood-cell-red` scored
+        // `bell-alarm-red-purple` at one exact plus one near and shipped a bell for blood
+        // cells. Measured over 73 shipped icons, that loosening moved exact recovery by a
+        // single record and took wrong-in-a-different-family from 2 to 7 -- every honest
+        // fallback became a confident wrong answer. A bell for blood cells, a pine cone
+        // for a glowing heart, a pickaxe for a stone fist.
+        //
+        // The per-candidate filter below IS the right half of that change and stays: it
+        // fixed six cases where a qualified file was discarded because the bar had been
+        // tested on the winner instead. Only the near-counts-toward-it half was wrong.
+        //
+        // The lesson is about which number to read. Exact recovery barely moved, so the
+        // headline rate said the change was neutral; the damage was entirely in the
+        // QUALITY of the misses, because a plausible icon from an unrelated family is not
+        // visibly wrong to a GM the way a fallback is.
+        if (exact < 2) continue;
         // The directory is the part a generator usually gets right, and it is evidence
         // in its own right: a near-miss filename in the intended folder beats a better
         // word overlap somewhere unrelated.
         if (preferredDir && path.startsWith(`${preferredDir}/`)) score *= 1.5;
-        scored.push({ path, score, shared });
+        scored.push({ path, score, shared: exact + near });
     }
     if (!scored.length) return null;
 
@@ -147,10 +263,12 @@ function bestMatch(candidates, wanted, preferredDir = '') {
         path: best.path,
         score: best.shared,
         weight: best.score,
-        // Reported rather than resolved. Two candidates this close means the value did
-        // not distinguish them, and a caller deserves to know the pick was near-arbitrary
-        // even though returning it still beats a generic fallback.
-        ambiguous: !!runnerUp && (best.score - runnerUp.score) < (best.score * 0.05)
+        // A GENUINE TIE ONLY. This was a 5% band and it fired on every single match,
+        // including four-word matches that were obviously right -- an always-firing
+        // warning carries no information and teaches the reader to skip it, which is
+        // worse than not warning at all. Near-token scoring separates true siblings now,
+        // so anything still tied to within a thousandth really is indistinguishable.
+        ambiguous: !!runnerUp && Math.abs(best.score - runnerUp.score) < (best.score * 0.001)
     };
 }
 
@@ -188,12 +306,27 @@ export async function resolveImagePath(supplied, { roots = [], fallback = '', la
 
     for (const root of roots) catalogs.push(...await filesUnder(root));
 
-    // TWO SHARED TOKENS MINIMUM. One is noise: every wound icon shares `injury`, so a
-    // single-token match returns an arbitrary member of a large set while looking
-    // deliberate. Below the threshold the fallback is the more honest answer.
+    // TWO SHARED TOKENS MINIMUM, applied inside `bestMatch` as a filter on every
+    // candidate rather than as a test on the one that wins. One token is noise: every
+    // wound icon shares `injury`, so a single-token match returns an arbitrary member of
+    // a large set while looking deliberate. Below the bar the fallback is more honest.
+    // TOKENISED FROM THE FILENAME, matching how candidates are tokenised.
+    //
+    // This passed the whole path while candidates were reduced to their basename, so
+    // directory words were scored against filenames that never contained them. Asking for
+    // `icons/sundries/gaming/dice-runee-brown.webp` put `gaming` into the wanted set, and
+    // `gaming-gambling-dice-gray` -- a different family entirely -- matched `gaming` and
+    // `dice`, cleared the two-exact bar on the strength of a directory word, and was then
+    // handsomely rewarded for it because `gaming` is rare across the corpus. The rarity
+    // weighting made the wrong signal count for more, not less.
+    //
+    // The directory is real evidence and keeps its influence through `suppliedDir` and the
+    // bonus below, which is where it was always meant to act. Spending it twice, once as a
+    // coincidence against filenames, is the defect. Found by a consumer who read both call
+    // sites rather than the behaviour.
     const suppliedDir = looksLikePath(wanted) ? wanted.slice(0, wanted.lastIndexOf('/')) : '';
-    const match = bestMatch(catalogs, tokenise(wanted), suppliedDir);
-    if (match && match.score >= 2) {
+    const match = bestMatch(catalogs, tokenise(wanted.split('/').pop()), suppliedDir);
+    if (match) {
         if (match.path !== wanted) {
             postConsoleAndNotification(MODULE.NAME,
                 `Import: ${label} "${wanted}" does not exist; using the closest match `

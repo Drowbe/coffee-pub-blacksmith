@@ -50,6 +50,16 @@ hub fast. Don't add feature code here that belongs in a sibling.
   to a sibling's docs; that mistake has been made once. The three directions are stated in TODO-GLOBAL
   Ground Rule 2 and enforced by `siblingWikiUrl` in `tools/wiki-sync.mjs`.
 - **Each module bundles its own compendiums.** Don't rely on cross-module content cohesion.
+- **The author's one-line version, and the one to hold in mind: use a third-party module to ENHANCE,
+  never to REPLACE core functionality.** The only modules Blacksmith depends on are the ones declared in
+  `module.json` -- `socketlib` and `lib-wrapper`. Everything else is optional and must stay optional.
+
+  **This also forbids building a feature that only works with a module installed.** Not just yielding an
+  existing one -- creating a new one. A save-accuracy statistic was declined on 2026-09-07 for exactly
+  this: only midi-qol correlates who failed a save, so the statistic would exist on midi tables and be
+  absent elsewhere. Correct-but-unavailable is still a dependency, and a feature that appears when a
+  module is installed teaches a user that the module is required.
+
 - **Blacksmith may accept information from another module. It never asks another module whether to do its
   job.** Subscribing to a foreign hook as an *additional* lane is fine — the native path must be complete
   without it. Reading another module's **settings**, gating our behaviour on its **presence**, or modelling

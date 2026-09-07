@@ -290,11 +290,49 @@ Roll meaning (crit, fumble, success vs DC, hit/miss vs AC) is centralized in `sc
 
 | Site | Role |
 |---|---|
-| `utility-roll-classification.js` | **Authority** — `extractActiveD20`, `classify()`, `buildSkillCheckOutcome` |
+| `utility-d20.js` | **Authority for crit and fumble** — `extractActiveD20`, `classifyCritFumble`. A LEAF: it imports nothing, so anything may import it |
+| `utility-roll-classification.js` | Authority for outcome SHAPE — `classify()`, `buildSkillCheckOutcome`. Re-exports the two above, so existing importers did not change |
 | `blacksmith.js` `handleSkillRollUpdate` | GM group/contested recalc; emits `blacksmith.rolls.skillCheckResolved` |
 | `manager-rolls.js` | Sounds/cinema d20 — migrated to `extractActiveD20` (Phase 2) |
 | `utility-message-resolution.js` | Attack hit/miss from chat messages — consumed by `classify()` |
-| `utility-midi-resolution.js` | MIDI crit/fumble — consumed by `classify()` and stats |
+| `utility-midi-resolution.js` | MIDI workflow shape — consumed by `classify()` and stats. Its crit reasoning now calls `classifyCritFumble` rather than testing for a natural 20 itself |
+
+**Why the primitives were split out (2026-09-06).** `utility-roll-classification.js` imports from
+`utility-midi-resolution.js`, so the MIDI module could never import back to reach the classifier and grew
+its own. The module then held **two answers to "was that a critical"**, and when the threshold-aware one
+was fixed the other kept stopping at a natural 20 — so a character with a widened crit range was classified
+correctly on the core lane and incorrectly on the MIDI one, which on a midi table is the lane that runs.
+A leaf module both can import is what ends that. **`utility-d20.js` must stay importless**; the moment it
+gains an import it can be in a cycle again and the duplicate will regrow.
+
+### The crit rule is the roll's, not the caller's
+
+`classifyCritFumble` reads the threshold **the roll itself declared**, in three steps: a live dnd5e roll
+answering `isCritical`/`isFumble`; failing that, `options.criticalSuccess` still carried on a *serialized*
+roll's d20 term, which is how most rolls reach us through a flag or a socket; and only then natural 20 /
+natural 1, for a roll that declared no threshold.
+
+There is no `critMode` input, and the deleted one is worth remembering: it read
+`CONFIG.DND5E.critical.threshold`, a **global**, which is not where a character's threshold lives — so it
+would not have fixed the case it was named for even if anything had called it, and nothing did. Every
+caller took the `'natural'` default, in Blacksmith and in all thirteen siblings, which is how a
+nat-20-only rule survived as a documented feature.
+
+The payload's `critMode` REPORTS which rule applied: `'declared'`, `'natural'`, or `'workflow'`. It is
+`'declared'` rather than `'system'` because reusing the deleted input's name for an output value misled a
+consuming module's session on first contact.
+
+### The correlation key is Blacksmith's
+
+`makeKey` returned `midi:<workflowId>` whenever a message carried one, so the identity of our own events —
+and everything keyed on it — was another module's identifier. It is now always attacker, item, activity and
+targets from `flags.dnd5e`; a workflow id rides along as an alias for anything that needs to correlate with
+a workflow.
+
+Changing it exposed the class of defect this repeats: `stats-combat.js` decided whether an attack came from
+the MIDI lane by **sniffing the shape of the key** — `key.startsWith("midi:")` — which worked only because
+the key used to BE midi's workflow id, and went permanently false the moment it stopped. **A key is an
+identity, not a type tag.** Anything needing to know where an event came from asks the event.
 
 **Hooks (subscription surface):**
 

@@ -23,13 +23,6 @@ nobody reads.
 
 ---
 
-## Module integrations
-
-Design, audit and sequencing: `documentation/plans/plan-integration-inversion.md`. Steps 1 and 2 ship
-together -- separately they double-count every attack.
-
----
-
 ## Request a Roll
 
 ### Decide which quick rolls ship as defaults
@@ -73,7 +66,7 @@ shipped, and the row says what is left. **Blocked** - waiting on something named
 | 4 | The window framework does not own the frame | Not started -- plan written | Audit Minstrel and Artificer first, not last | [Windows](#windows-menubar-and-toolbars) |
 | 5 | Finish the importer re-founding | In progress -- steps 0-4 shipped and live | Step 5, guide and prompt derivation | [Importer](#importer) |
 | 6 | Statistics are midi-first in load-bearing places | Not started -- audited 2026-08-04 | Per-statistic fix; the audit is in the plan | [Statistics](#statistics) |
-| 7 | Save-based offense: casters are absent from the statistics, not merely flattered | Not started -- phase 1 verified live 2026-09-06 | Phase 2: count from `landedTargets`, and cache save activities so their damage stops taking the `unlinked` path | [Statistics](#statistics) |
+| 7 | Save-based offense: caster damage fixed, caster ACCURACY declined as unknowable without midi | In progress -- caching done 2026-09-07, accuracy half closed | Verify a save spell now records damage; then re-scope phases 3-4 around what core dnd5e can answer | [Statistics](#statistics) |
 | 8 | The canvas surfaces have no contract | Not started -- plan written | Turn `getCanvasLayer()` into an API, with Herald's box as the second tenant | [Canvas](#canvas-pins-and-notes) |
 | 9 | Stylesheet cleanup -- retrofit the neutral overlay tokens | Not started | The token-adoption pass; verify no hex in `styles/` matches a `vars.css` value | [Design system](#design-system-and-css) |
 | 10 | Player frame rate | Not started, deliberately | Measure. Nothing is a confirmed defect yet and nothing should be optimised before it is | [Performance](#performance) |
