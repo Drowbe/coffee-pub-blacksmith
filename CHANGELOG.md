@@ -7,16 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **One attack was counted twice in the combat statistics when Midi-QOL Integration was on** (`scripts/stats-combat.js`, `scripts/stats-sources.js`). Introduced by this release's own change: the core lane stopped yielding midi-flagged attacks, so both lanes recorded, and the guard meant to pair them did not.
+
+  It paired on `event.messageId`, a field NEITHER event carries. Both call it `attackMsgId`, and both set it to the same chat card. The guard therefore fell through to `workflowId`, which the two lanes format differently, midi reporting `ChatMessage.<id>` where the core lane reads the raw flag, so nothing matched. `_countSuccessfulOffense` had the identical defect keyed on the correlation key, whose namespaces likewise never collide.
+
+  Both now pair on the chat message, compared as a bare id with any `Something.` prefix stripped, so the two lanes cannot diverge on formatting again. Nothing threw in either case; the numbers simply doubled, which is why this was measured with `utilities/stats-snapshot.js` rather than read off a card.
+
+  Verified 2026-09-06 with integration ON: one swing that hit produced attempts, hits and hit records each up by exactly one, with both lanes visibly running and only one recording. The same test before the fix gave two of each.
+
+  The mistake underneath it is worth naming, since this module spent the same week finding it in two sibling modules: **a field name was assumed rather than read.**
+
+- **Healing or damaging one copy of a monster from the Health window hit every copy** (`scripts/window-health.js`). Each row in that window is one token, and the list routinely holds several copies of one monster, because copy-pasting is how a GM fields a group. The row was keyed `actor:<actor.id>`, which every unlinked copy shares, so nineteen cultists had one selection between them: clicking any row selected all of them, and the operation that followed landed on all nineteen. Rows are now keyed on the token's uuid, which is what a row actually means.
+
+  The right identity was already on the row as `actorUuid` and simply was not the one being used.
+
+  Ninth instance of one class across the suite, and the first that APPLIES something rather than only displaying it. Found by grepping for the pattern after the Squire session reported an eighth, a window keyed on `actor.id` so that two copies fought over one application instance. The class is written up in `documentation/global/global-token-actor-identity.md`; the short form is that `actor.id` answers "the same kind of creature" and only `uuid` answers "the same creature".
+
 ### Changed
 
-- **Every generated prompt now states the house writing style, and the shipped prompts stop contradicting it** (`scripts/manager-declarations.js`, `prompts/*.txt`). `buildPromptSchemaText` emits a WRITING STYLE section telling the model not to use em dashes, and not to pad a field to look thorough.
+- **The shipped prompts stop contradicting the house style they carry** (`prompts/*.txt`). The house style itself is delivered by `appendHouseStyle` at the single point every prompt passes through on its way to the clipboard or a file, which is the correct home and was already built.
 
-  It belongs here and nowhere else because a satellite's profile has no prompt file: its entire prompt is derived from its declaration. A module can keep its own guidance strings perfectly clean and still receive a payload full of em dashes, because nothing it writes reaches the model doing the generating. Stated per-module it would be four modules writing the same sentence and a fifth forgetting; stated here it covers Bibliosoph's injuries, criticals, fumbles and inspiration, our own area, encounter and location profiles, Artificer's recipes, Librarian's codex and quests, and every profile registered after this.
+  A module can keep its own guidance strings perfectly clean and still receive a payload full of em dashes, because nothing a satellite writes reaches the model generating the payload. Stated per-module it would be four modules writing the same sentence and a fifth forgetting.
 
   The eleven shipped prompt files carried 70 em dashes between them, 50 in the Area profile alone. An instruction not to use a character, written in text full of it, argues with its own demonstration -- and a prompt is read by the model as an example of house voice, not only as a rule. All 70 are now the `--` the docs and code comments already use. Raised by the Bibliosoph session, who had done their own side and could not do this half.
 
+  **UI copy is swept too, and the rule is now written down.** Five settings hints in `lang/en.json` and one placeholder in `templates/window-roll-normal.hbs` were the only user-facing text carrying the character; each was fixed by punctuation alone, with no wording changed. `documentation/global/global-documentation-standard.md` states the rule for all fifteen modules, and had to be corrected in the same edit: it previously listed em dashes as typographic punctuation explicitly unaffected by the emoji ban, so recording the new rule beside it would have left the standard permitting and forbidding the same character.
+
+  The standard is explicit that this **binds new and edited text only**. Roughly 2,300 instances remain in documents and code comments and are deliberately not swept, because a mass rewrite of prose nobody is otherwise touching costs more review than it returns. The author's decision, taken with the counts in front of him.
+
+
+- **Every declared journal profile was handed the AREA prompt** (`scripts/registry-json-import-journals.js`). `buildJournalPrompt` routed on four literal template keys and then defaulted to the area prompt for everything else. There was no declaration branch at all, so a satellite that registered a journal profile got `IMPORT PROFILE: AREA`, `journaltype: "area"`, the area schema lock, narrative cards and conversations. A Bibliosoph user selected Critical Hit and received a prompt for a place.
+
+  **Import resolved the declaration correctly the whole time, which is what hid it.** The profile registered, validated, rendered its `promptFields` and imported; only the text in the middle was for something else, and nothing on either side reads that text. A profile now derives its prompt when it is declared and Blacksmith has no authored one, which is every satellite. `area`, `encounter` and `location` keep their authored prompts, since those carry framing and worked negative examples a declaration does not describe.
+
+  **The default was the defect, not the missing branch.** Falling through to `area` made an unhandled key produce a confident wrong answer instead of a complaint, and the author then wrote a payload against a schema they never chose and watched it fail import for reasons nothing explained. An unrecognised key is now refused by name. Reported by the Bibliosoph session, who also spotted that a house-style line added to `buildPromptSchemaText` earlier in this release would not have reached any satellite for the same reason. That line is removed: `appendHouseStyle` already covers every prompt at delivery, and duplicating it inside a component that items compose would have printed it twice.
 
 ### Removed
+
+- **`prompts/archive/` is deleted** (12 files). Nothing referenced the directory -- not `module.json`, not a single line of `scripts/` -- so it shipped in every release zip as text no code could reach. It surfaced while counting em dashes: 39 of them lived there, which is 39 instances of a style problem in files that cannot have one, because nothing reads them.
+
 
 - **The Times Up Integration setting is deleted** (`scripts/settings.js`, `lang/en.json`, `documentation/api/api-effects.md`). It chose whether Blacksmith yielded effect expiry to Times Up. Blacksmith now expires effects unconditionally, so both positions of the switch did the same thing — and the hint still described a choice that no longer existed, telling a GM that turning it off would make two modules race and one fail noisily. Neither half is true any more. **A registered setting that controls nothing is worse than no setting**, because it is read as a description of how the world works.
 

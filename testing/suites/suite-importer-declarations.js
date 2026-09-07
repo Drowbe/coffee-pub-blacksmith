@@ -1836,6 +1836,59 @@ export default {
         },
 
         {
+            id: 'journal-profile-prompt-routing',
+            label: 'A declared journal profile gets its OWN prompt, not the area prompt',
+            tier: 'headless',
+            group: 'Step 8 - Journal',
+            note: 'Every satellite profile silently received the area prompt; import was fine, so nothing showed it.',
+            run: async ({ expect, log }) => {
+                const { registry } = await loadDeclarations();
+                const importer = await import(`${MODULE_PATH}/registry-json-import.js`);
+                await import(`${MODULE_PATH}/registry-json-import-journals.js`);
+
+                // Through the kind's own hook, which is what the window calls. Testing
+                // the builder directly would not have caught this: the defect was in the
+                // ROUTING to it, and every piece it routes to works.
+                const onBuildPrompt = importer.getJsonImportKind('journal')?.onBuildPrompt;
+                expect.ok('the journal kind exposes a prompt builder', typeof onBuildPrompt === 'function');
+                if (typeof onBuildPrompt !== 'function') return;
+
+                const id = `probe-crit-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind: 'journal', id, label: 'Probe Critical', schemaVersion: 1, form: 'mapped',
+                    module: 'coffee-pub-bibliosoph',
+                    document: { documentName: 'JournalEntryPage', type: 'coffee-pub-bibliosoph.critical',
+                                containerNameFrom: 'bucket' },
+                    fields: [
+                        { name: 'title', path: 'name', type: 'string', required: true,
+                          guidance: 'The name of the critical hit.' },
+                        { name: 'bucket', role: 'input', type: 'string', values: ['slaughter', 'carnage'],
+                          guidance: 'Which table it belongs to.' }
+                    ]
+                });
+
+                const prompt = String(await onBuildPrompt(id, {}) ?? '');
+                if (!prompt) log('the profile produced no prompt at all');
+
+                // The failing symptom, stated as the assertion: a request for one profile
+                // returned a complete, confident prompt for a different one.
+                expect.ok('the prompt names the profile that was asked for',
+                    prompt.includes('PROBE CRITICAL'));
+                expect.ok('and describes its own fields', prompt.includes('BUCKET'));
+                expect.ok('it is NOT the area prompt',
+                    !prompt.includes('IMPORT PROFILE: AREA') && !prompt.includes('journaltype'));
+
+                // Defaulting an unhandled key to `area` is what made the above possible,
+                // so the default is the thing under test rather than the branch.
+                let threw = null;
+                try { await onBuildPrompt(`no-such-profile-${foundry.utils.randomID(4)}`, {}); }
+                catch (error) { threw = error?.message ?? ''; }
+                expect.ok('an unrecognised template key is refused rather than defaulted',
+                    threw !== null && threw.includes('No prompt is available'));
+            }
+        },
+
+        {
             id: 'journal-subtype-seam',
             label: 'A journal profile creates the page subtype it declares',
             tier: 'headless',

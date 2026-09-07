@@ -8,7 +8,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { createJournalEntry } from './utility-common.js';
 import { GEOGRAPHY_FIELD_LIST } from './manager-geography.js';
 import { getDeclaration, getDeclarationsForKind } from './registry-declarations.js';
-import { validateEntryDeep, buildDocumentData } from './manager-declarations.js';
+import { validateEntryDeep, buildDocumentData, buildPromptSchemaText } from './manager-declarations.js';
 // Side-effect import: registers the declared Journal profiles.
 import './declarations/declaration-journal.js';
 import { upsertJournalEntry } from './utility-journal-destination.js';
@@ -1240,6 +1240,33 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
     if (type === 'location') {
         await saveCampaignGeography(promptOptions);
         return buildLocationImportPrompt(promptOptions);
+    }
+
+    // A DECLARED PROFILE WITH NO AUTHORED PROMPT DERIVES ONE. Ordering is the whole
+    // of it: `area`, `encounter` and `location` are declared too, and each has an
+    // authored prompt carrying framing, campaign context and worked negative examples
+    // that a declaration does not describe. They are handled above, so reaching here
+    // means the key names a profile some module registered and Blacksmith has no
+    // authored text for -- a satellite's, every time.
+    //
+    // Until now there was no branch at all. Every declared satellite profile fell
+    // through to the line below and was handed the AREA prompt: `journaltype: "area"`,
+    // the area schema lock, narrative cards, conversations. A Bibliosoph user asked for
+    // a Critical Hit prompt and got a prompt for a place. The import path resolved the
+    // declaration correctly the whole time, which is what made it invisible -- the
+    // profiles registered, validated, rendered their `promptFields` and imported, and
+    // only the text in the middle was for something else.
+    if (type !== 'area' && getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, type)) {
+        return buildPromptSchemaText(JOURNAL_JSON_IMPORT_KIND_ID, type, promptOptions);
+    }
+
+    // AN UNRECOGNISED KEY IS AN ERROR, not an area prompt. Defaulting made an unhandled
+    // profile produce a confidently wrong prompt rather than a complaint, and the author
+    // then wrote a payload against a schema they never chose and watched it fail import
+    // for reasons nothing explained. The default was load-bearing for exactly one key.
+    if (type !== 'area') {
+        throw new Error(`No prompt is available for journal template "${type}". `
+            + `It is neither a built-in journal template nor a registered profile.`);
     }
 
     await saveCampaignGeography(promptOptions);

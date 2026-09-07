@@ -237,12 +237,12 @@
 			"keybindingQuickViewToggle-Hint": "Turn GM Quickview (clarity mode) on or off.",
 
 			"keybindingCompendiumSearch-Name": "Open Compendium Search",
-			"keybindingCompendiumSearch-Hint": "Open the Compendium Search palette, or bring it to the front if it is already open. Type to search your mapped compendiums, then drag a result onto a character sheet. Default: Ctrl+Space. Some systems use Ctrl+Space to switch keyboard layouts — rebind it here if yours does.",
+			"keybindingCompendiumSearch-Hint": "Open the Compendium Search palette, or bring it to the front if it is already open. Type to search your mapped compendiums, then drag a result onto a character sheet. Default: Ctrl+Space. Some systems use Ctrl+Space to switch keyboard layouts. Rebind it here if yours does.",
 
 			"compendiumSearchShowInMenubar-Label": "Compendium Search in Menubar",
 			"compendiumSearchShowInMenubar-Hint": "Show the Compendium Search button in the menubar. It is always available from the Blacksmith scene-controls toolbar and from its keyboard shortcut (default Ctrl+Space).",
 			"compendiumSearchPlayerAdd-Label": "Players Can Add From Compendium Search",
-			"compendiumSearchPlayerAdd-Hint": "Let players drag results out of Compendium Search onto their sheets. Turn this off to leave them the search itself — they can still look things up and open what they find, but not add it. Does not affect the GM.",
+			"compendiumSearchPlayerAdd-Hint": "Let players drag results out of Compendium Search onto their sheets. Turn this off to leave them the search itself: they can still look things up and open what they find, but not add it. Does not affect the GM.",
 
 			"quickViewMenubar-StateOn": "GM Quickview On",
 			"quickViewMenubar-StateOff": "GM Quickview Off",
@@ -301,7 +301,7 @@
 				"combatTrackerRollInitiativePlayer-Hint": "Roll initiative for player characters automatically each round.",
 
 				"combatTrackerHideInitiativeRoll-Label": "Hide Initiative Roll Cards",
-				"combatTrackerHideInitiativeRoll-Hint": "Suppress the chat card created when initiative is rolled. The roll still happens and the result appears in the combat tracker — it just won't clutter the chat log.",
+				"combatTrackerHideInitiativeRoll-Hint": "Suppress the chat card created when initiative is rolled. The roll still happens and the result appears in the combat tracker. It just won't clutter the chat log.",
 
 				"clearTargetsAfterTurn-Label": "Clear Targets After Turn",
 				"clearTargetsAfterTurn-Hint": "Automatically clear all targets when the turn changes in combat.",
@@ -484,7 +484,7 @@
 				"targetedPortraitsEnabled-Hint": "Display small circular portraits of the players who have targeted a token, floating above it. Each portrait shows that player's character image (or user avatar as a fallback) with a colored border matching their player color.",
 
 				"targetedPortraitsShape-Label": "Portrait Shape",
-				"targetedPortraitsShape-Hint": "Shape of each targeter portrait — Circle or Rounded Square.",
+				"targetedPortraitsShape-Hint": "Shape of each targeter portrait: Circle or Rounded Square.",
 
 				"targetedPortraitsSize-Label": "Portrait Size",
 				"targetedPortraitsSize-Hint": "Controls the size of the targeter portraits (1 = smallest, 10 = largest). Scales proportionally to the scene's grid size.",
@@ -896,7 +896,7 @@
 			"headingH3StackCompendiums-Hint": "",
 
 			"numCompendiums-Label": "Priority Slots",
-			"numCompendiums-Hint": "How many compendiums you want to search for this type, in priority order. Set only as many as you need — Priority 1 is checked first. Changing this takes effect after a reload. Every installed compendium that can supply this type is offered in the dropdowns below; the slots are your curated shortlist, not a filter on what exists.",
+			"numCompendiums-Hint": "How many compendiums you want to search for this type, in priority order. Set only as many as you need. Priority 1 is checked first. Changing this takes effect after a reload. Every installed compendium that can supply this type is offered in the dropdowns below; the slots are your curated shortlist, not a filter on what exists.",
 
 			"searchWorldFirst-Label": "Search World First",
 			"searchWorldFirst-Hint": "When enabled, will search for matches in the world before looking in compendiums. When disabled, will only search in the selected compendiums.",

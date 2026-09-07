@@ -165,11 +165,26 @@ export class HealthWindow extends BlacksmithToolWindowBaseV2 {
                 max: hp?.max || 0,
                 healthbarStatus: this._statusClass(hp),
                 fillPercent: this._fillPercent(hp?.value, hp?.max),
-                target: `actor:${actor?.id}`,
+                // THE TOKEN'S UUID, NOT THE ACTOR'S ID.
+                //
+                // This row is one TOKEN in a list of tokens, and the list routinely
+                // holds several copies of one monster -- copy-pasting is how a GM
+                // fields a group. Every copy is unlinked and carries its own hit
+                // points, but they all share the base actor's `id`, so keying the row
+                // on `actor.id` gave nineteen cultists ONE selection between them:
+                // clicking any of them selected all of them, and `_getOperationTokens`
+                // then returned every copy, so a heal or a damage aimed at one landed
+                // on all nineteen.
+                //
+                // `document.uuid` is unique per token and is what the row means.
+                // Ninth instance of this class across the suite, found 2026-09-06 by
+                // the sweep the Squire session prompted -- and the only one so far
+                // that APPLIES something rather than merely displaying it.
+                target: `token:${token?.document?.uuid ?? token?.id ?? ''}`,
                 actorUuid: actor?.uuid,
                 effectCount,
                 showEffectCount: effectCount > 1,
-                isSelected: this.selectedHealthTarget === `actor:${actor?.id}`,
+                isSelected: this.selectedHealthTarget === `token:${token?.document?.uuid ?? token?.id ?? ''}`,
                 isAggregate: false
             };
         }).filter((entry) => entry.max > 0 || entry.current > 0);
@@ -362,9 +377,12 @@ export class HealthWindow extends BlacksmithToolWindowBaseV2 {
         if (!target) return tokens;
         if (target === 'party') return tokens.filter((token) => token.actor?.hasPlayerOwner);
         if (target === 'npcs') return tokens.filter((token) => !token.actor?.hasPlayerOwner);
-        if (target.startsWith('actor:')) {
-            const actorId = target.slice('actor:'.length);
-            return tokens.filter((token) => token.actor?.id === actorId);
+        // One row means ONE token. Matching on the token's uuid is what keeps a heal
+        // aimed at one copy of a monster off the other eighteen -- see the note on
+        // `target` where the row is built.
+        if (target.startsWith('token:')) {
+            const uuid = target.slice('token:'.length);
+            return tokens.filter((token) => (token.document?.uuid ?? token.id) === uuid);
         }
         return tokens;
     }
@@ -452,9 +470,9 @@ export class HealthWindow extends BlacksmithToolWindowBaseV2 {
         if (!target) return;
         if (target === 'party' && tokens.length > 1 && tokens.some((t) => t.actor?.hasPlayerOwner)) return;
         if (target === 'npcs' && tokens.length > 1 && tokens.some((t) => !t.actor?.hasPlayerOwner)) return;
-        if (target.startsWith('actor:')) {
-            const actorId = target.slice('actor:'.length);
-            if (tokens.some((t) => t.actor?.id === actorId)) return;
+        if (target.startsWith('token:')) {
+            const uuid = target.slice('token:'.length);
+            if (tokens.some((t) => (t.document?.uuid ?? t.id) === uuid)) return;
         }
         this.selectedHealthTarget = null;
     }

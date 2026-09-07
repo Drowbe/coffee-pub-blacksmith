@@ -745,8 +745,24 @@ published or not; the rest of this list binds what publishes:
   README, the CHANGELOG, `TODO.md`, plans, and testing documents. Not in headings, prose, tables,
   example output, or as a status marker in a list. The rule is absolute so that nobody has to
   adjudicate whether a particular icon is decorative or load-bearing; if a mark is carrying meaning,
-  write the meaning. Checkably: no pictographic or dingbat character. Typographic punctuation -- em
-  dashes, arrows, section marks -- is not an icon and is unaffected.
+  write the meaning. Checkably: no pictographic or dingbat character. Typographic punctuation is not
+  an icon and is unaffected by this rule, but see the em dash rule below, which is separate.
+- **No em dashes.** Not in documents, not in code comments, not in UI copy, and not in the text a
+  generation prompt produces. Where a dash is genuinely wanted the house form is `--`; recasting the
+  sentence with a comma, a colon or a full stop is better still, and usually shorter. The rule is the
+  character, so it is checkable without anyone judging whether a particular dash is earning its place.
+
+  **This binds text you write or edit from now on. The existing body is deliberately not swept** --
+  roughly 2,300 instances remain across the suite's documents and code comments, and a mass rewrite of
+  prose nobody is otherwise touching costs more review than it returns. Fix them where you are already
+  editing the line.
+
+  Two places are swept and must stay clean, because they are read rather than skimmed: **UI copy**
+  (`lang/en.json`, template strings) and **generation prompts**. A prompt is read by a model as an
+  example of house voice, not only as a set of rules, so an instruction not to use a character in text
+  full of it argues with its own demonstration. Blacksmith states the rule once, in the prompt text
+  derived for every registered profile, so no satellite has to repeat it and none can forget it.
+
 - **No styled callout blocks.** A blockquote with a bold warning header is still a note about the
   module; state it as prose. Ordinary blockquotes for actual quotations are fine.
 - **ASCII quotes and apostrophes**, not curly ones.

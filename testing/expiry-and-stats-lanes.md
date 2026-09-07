@@ -89,20 +89,20 @@ and **the dead combatant did not take a turn** -- which is the whole reason this
 in the configuration that caused the original incident. One `dnd5edead0000000 already exists` error
 appeared; that is the known status-effect race, addressed below, and it did not prevent the mark.
 
-The items left are the ones that run needs to be repeated to measure, since they need numbers watched
-rather than a symptom observed.
+**One attack, one set of numbers: PASSED 2026-09-06**, with Midi-QOL Integration ON and measured with
+`utilities/stats-snapshot.js` rather than read off a card. One swing that hit produced
+`attempts +1, hits +1, hitRecords +1, damageDealt +9`, and the log shows both lanes running with only
+one recording: a single `OffenseCount +1 (chat)`, and `MIDI hitsChecked resolved` present but not
+counted.
 
-- [ ] **One attack, one set of NUMBERS.** Midi ON, in combat. Make one attack that hits, then read
-      attempts, hits and crits on the statistics card. Each must rise by exactly **one**, not two. Both
-      the core chat lane and the MIDI lane now process the attack; `CombatStats._alreadyProcessed` is
-      what stops the second one recording, pairing them on the `workflowId` both events carry.
+**It failed the first time and that is the useful half.** The same test on the first run gave +2 on all
+three. `CombatStats._alreadyProcessed` paired the lanes on `event.messageId`, a field neither event
+carries -- both call it `attackMsgId` -- so the guard fell through to `workflowId`, which the lanes
+format differently (`ChatMessage.<id>` against the raw flag). `_countSuccessfulOffense` had the same
+defect keyed on the correlation key, whose namespaces also never collide. **Nothing threw, the numbers
+simply doubled**, which is exactly why this is measured with a macro and not by looking.
 
-      **This is NOT covered by "crits worked with midi on" (author, 2026-09-06).** That confirmed
-      crit DETECTION -- the classifier reaching the right verdict through the MIDI lane, which is the
-      unification of the two classifiers and is genuinely proven. It says nothing about how many times
-      the verdict was RECORDED, and double-counting is the whole risk here. A crit counted twice looks
-      exactly like a crit counted once at the moment it fires; the difference is only visible in the
-      running totals.
+The items left need numbers watched rather than a symptom observed.
 
 - [ ] **An attack still counts when the MIDI lane says nothing.** Midi ON, in combat, but make an
       attack midi does not produce a workflow for. It must still be counted -- that is the whole point

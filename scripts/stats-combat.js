@@ -1564,9 +1564,33 @@ class CombatStats {
             }
         }
 
+        // THE CHAT MESSAGE IS THE IDENTITY THAT ACTUALLY PAIRS THE TWO LANES, and it
+        // is called `attackMsgId` on both -- `message.id` on the core event
+        // (`utility-message-resolution.js`), `workflow.itemCardId` on the MIDI one
+        // (`utility-midi-resolution.js`), and they are the same card.
+        //
+        // This first looked for `messageId`, which exists on NEITHER event. The guard
+        // therefore fell through to `workflowId`, which the two lanes format
+        // differently -- midi reports `ChatMessage.<id>` while the core lane reads the
+        // raw flag -- so nothing matched and one attack was counted twice. Measured at
+        // the author's table 2026-09-06: attempts, hits and hit records all +2 for a
+        // single swing. I guessed a field name instead of reading it, which is the
+        // same mistake this module has spent the week finding in other people's code.
+        //
+        // The bare id is compared, not the decorated one. A prefix is presentation and
+        // the two lanes do not agree on it, so anything carrying `Something.<id>` is
+        // reduced to `<id>` before it becomes an identity.
+        const bare = (value) => {
+            const text = String(value ?? '').trim();
+            if (!text) return null;
+            const dot = text.lastIndexOf('.');
+            return dot === -1 ? text : text.slice(dot + 1);
+        };
+
         const identities = [
-            event?.workflowId ? `${kind}:wf:${event.workflowId}` : null,
-            event?.messageId ? `${kind}:msg:${event.messageId}` : null,
+            bare(event?.attackMsgId) ? `${kind}:msg:${bare(event.attackMsgId)}` : null,
+            bare(event?.messageId) ? `${kind}:msg:${bare(event.messageId)}` : null,
+            bare(event?.workflowId) ? `${kind}:wf:${bare(event.workflowId)}` : null,
             event?.key ? `${kind}:key:${event.key}` : null
         ].filter(Boolean);
 

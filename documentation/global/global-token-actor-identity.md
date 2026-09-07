@@ -6,8 +6,8 @@ Practical knowledge about Foundry v13 unlinked tokens. Verified core-only.
 
 **Read this before writing any line that identifies a creature.** Three modules got the same
 thing wrong within two days -- Blacksmith, Bibliosoph and Squire, independently, in code that
-had worked for months. Once each looked, it was **ten sites**: two in Blacksmith, two in
-Bibliosoph, seven in Squire. One was reported by a user; the other nine were found only by
+had worked for months. Once each looked, it was **twelve sites**: three in Blacksmith, two in
+Bibliosoph, eight in Squire. One was reported by a user; the other eleven were found only by
 knowing what to grep for.
 
 It is not an obscure edge. It is what happens the first time a GM fields more than one of
@@ -79,7 +79,7 @@ is what anything applied should be written to.
 
 ## 4. What it looks like when you get it wrong
 
-None of these throws. All four shipped.
+None of these throws. All six shipped.
 
 | Symptom | Cause |
 |---|---|
@@ -87,6 +87,8 @@ None of these throws. All four shipped.
 | A card shows a damage number that does not match the token it is about | percentage computed from the **prototype's** max HP |
 | A toast names a creature that was not involved | `actor.getActiveTokens()[0]` -- an arbitrary copy |
 | Selecting a different copy does nothing; the panel refuses to switch | `currentActor?.id === actor?.id` reading "unchanged" |
+| Two copies fight over one window; opening the second shows the first's data | an application id built from `actor.id` |
+| A heal or damage aimed at one copy lands on all of them | a selectable row keyed on `actor.id` |
 
 **The first one is the dangerous one**, and not because it is the worst bug. It is the one
 that makes a GM report something else entirely. A display that calls nineteen creatures by one
@@ -106,9 +108,16 @@ wasted work.
 ## 5. Checking your own module
 
 ```
-grep -rn "\.id === .*\.id\|actor\?\.id ===" scripts/
-grep -rn "game\.actors\.get(" scripts/
+grep -rn "\.id === .*\.id\|actor\?\.id ===" scripts/     # comparisons
+grep -rn "game\.actors\.get(" scripts/                   # resolution
+grep -rnE '\$\{[a-zA-Z.?]*[Aa]ctor\??\.id\}' scripts/    # IDENTITY STRINGS
 ```
+
+**The third one matters and was added late.** The first two find comparisons and lookups; they
+do not find an `actor.id` baked into a string that then BECOMES an identity -- an application
+id, a row key, a dataset attribute, a socket payload. Two of the twelve sites were that shape,
+including the only one that applied damage, and neither of the first two greps would have
+reached them.
 
 For each hit, ask: **identify, apply, or aggregate?** The first two are wrong here and the
 third is right, and the answer is usually obvious once the question is asked. That it is

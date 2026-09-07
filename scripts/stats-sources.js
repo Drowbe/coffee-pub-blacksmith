@@ -126,10 +126,23 @@ export class CombatSources {
      * @param {Actor|null} attacker
      * @param {string} source - which lane counted it, for the log
      */
-    static _countSuccessfulOffense(key, attacker, source) {
+    static _countSuccessfulOffense(key, attacker, source, msgId = null) {
         if (!key || !attacker) return;
 
-        const offenseKey = `offense:${key}`;
+        // DEDUPE ON THE CHAT MESSAGE WHERE WE HAVE ONE, not on the key.
+        //
+        // The two lanes pass keys in different namespaces -- the core lane its own
+        // `attacker::item::activity::targets`, the MIDI lane `midi:<workflowId>` --
+        // so `offense:${key}` could never match across them and one attack counted
+        // its attacker's successful offense twice. Both lanes DO carry the same
+        // `attackMsgId`, which is the card the attack was posted on, so that is the
+        // identity when it is available. The key remains the fallback for callers
+        // that have no message, and behaves exactly as before for them.
+        //
+        // Measured at the author's table 2026-09-06, alongside the same defect in
+        // `CombatStats._alreadyProcessed`.
+        const bareId = String(msgId ?? '').trim().split('.').pop();
+        const offenseKey = bareId ? `offense:msg:${bareId}` : `offense:${key}`;
         if (!CombatSources._roundOffenseCache) CombatSources._roundOffenseCache = new Set();
         if (CombatSources._roundOffenseCache.has(offenseKey)) return;
         CombatSources._roundOffenseCache.add(offenseKey);
@@ -481,7 +494,7 @@ export class CombatSources {
         
         // MVP fairness: count successful offensive activations (attack-roll path)
         if (attackEvent.hitTargets?.length > 0) {
-            CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'hitsChecked');
+            CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'hitsChecked', attackEvent.attackMsgId);
         }
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI hitsChecked resolved', {
@@ -927,7 +940,8 @@ export class CombatSources {
                     CombatSources._countSuccessfulOffense(
                         attackEvent.key,
                         game.actors.get(attackEvent.attackerActorId),
-                        'chat'
+                        'chat',
+                        attackEvent.attackMsgId
                     );
                 }
 
@@ -1125,7 +1139,7 @@ export class CombatSources {
 
             // MVP fairness: count successful offensive activations (attack-roll path)
             if (attackEvent.hitTargets?.length > 0) {
-                CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'socket:hitsChecked');
+                CombatSources._countSuccessfulOffense(key, game.actors.get(attackEvent.attackerActorId), 'socket:hitsChecked', attackEvent.attackMsgId);
             }
         } catch (e) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI hitsChecked error', e, false, false);
