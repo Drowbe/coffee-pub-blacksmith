@@ -1853,7 +1853,11 @@ export default {
                 expect.ok('the journal kind exposes a prompt builder', typeof onBuildPrompt === 'function');
                 if (typeof onBuildPrompt !== 'function') return;
 
-                const id = `probe-crit-${foundry.utils.randomID(6)}`;
+                // LOWER CASE DELIBERATELY, and asserted below. `randomID` returns mixed
+                // case, and the router folds the template key to lower for its four
+                // literal comparisons -- so a mixed-case id was unroutable and this test
+                // threw before it could assert anything.
+                const id = `probe-crit-${foundry.utils.randomID(6).toLowerCase()}`;
                 registry.registerDeclaration({
                     kind: 'journal', id, label: 'Probe Critical', schemaVersion: 1, form: 'mapped',
                     module: 'coffee-pub-bibliosoph',
@@ -1867,8 +1871,10 @@ export default {
                     ]
                 });
 
-                const prompt = String(await onBuildPrompt(id, {}) ?? '');
-                if (!prompt) log('the profile produced no prompt at all');
+                let prompt = '';
+                try { prompt = String(await onBuildPrompt(id, {}) ?? ''); }
+                catch (error) { log(`onBuildPrompt threw: ${error?.message ?? error}`); }
+                expect.ok('a declared profile produces a prompt at all', prompt.length > 0);
 
                 // The failing symptom, stated as the assertion: a request for one profile
                 // returned a complete, confident prompt for a different one.
@@ -1880,6 +1886,21 @@ export default {
 
                 // Defaulting an unhandled key to `area` is what made the above possible,
                 // so the default is the thing under test rather than the branch.
+                // A capital in a profile id must still route. Nothing shipped has one,
+                // which is what would have kept this quiet until a satellite chose
+                // `Critical` over `critical` and got an error naming their own profile.
+                const mixed = `Probe-Crit-${foundry.utils.randomID(6)}`;
+                registry.registerDeclaration({
+                    kind: 'journal', id: mixed, label: 'Probe Mixed', schemaVersion: 1, form: 'mapped',
+                    document: { documentName: 'JournalEntry' },
+                    fields: [{ name: 'title', path: 'name', type: 'string', guidance: 'A name.' }]
+                });
+                let mixedPrompt = '';
+                try { mixedPrompt = String(await onBuildPrompt(mixed, {}) ?? ''); }
+                catch (error) { log(`mixed-case id threw: ${error?.message ?? error}`); }
+                expect.ok('a profile id containing a capital still routes',
+                    mixedPrompt.includes('PROBE MIXED'));
+
                 let threw = null;
                 try { await onBuildPrompt(`no-such-profile-${foundry.utils.randomID(4)}`, {}); }
                 catch (error) { threw = error?.message ?? ''; }

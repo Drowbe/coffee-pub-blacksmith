@@ -119,10 +119,21 @@ function explainNoMerge(log, existingSnapshot, incomingSnapshot) {
     const a = foundry.utils.deepClone(existingSnapshot.system ?? {});
     const b = foundry.utils.deepClone(incomingSnapshot.system ?? {});
     delete a.quantity; delete b.quantity;
-    log(`system keys differing: ${JSON.stringify(diffKeys(a, b))}`);
+    // EVERY LINE BELOW IS A RAW DIFFERENCE, and `_canMerge` does not compare raw values:
+    // it compares both sides through `_identitySystem` and `_identityFlags` first, which
+    // strip unrecognised `properties`, one-sided `identifier`, the RESET_PATHS, declared
+    // transient flags and empty `dnd5e.riders`. So a key listed here is a SUSPECT, not a
+    // cause, and the filtered ones are the usual reason a listed key is innocent.
+    //
+    // Worth saying loudly because it has already cost time twice: a run reported
+    // `system keys differing: ["properties"]` -- a difference the predicate discards -- and
+    // the real cause was the flags line, two below it. Read the whole block, not the first
+    // line, and check each suspect against the filters in `api-inventory.js` before chasing it.
+    log(`RAW differences follow; _canMerge compares FILTERED values, so these are suspects only`);
+    log(`system keys differing (raw): ${JSON.stringify(diffKeys(a, b))}`);
     log(`  flags at compare time - existing: ${JSON.stringify(existingSnapshot.flags ?? {})}`);
     log(`  flags at compare time - incoming: ${JSON.stringify(incomingSnapshot.flags ?? {})}`);
-    log(`  flag paths differing: ${JSON.stringify(diffKeys(existingSnapshot.flags, incomingSnapshot.flags))}`);
+    log(`  flag paths differing (raw): ${JSON.stringify(diffKeys(existingSnapshot.flags, incomingSnapshot.flags))}`);
     log(`  registry excludes: ${JSON.stringify(requireApi('inventory').inventory.getTransientFlags())}`);
     for (const key of diffKeys(a, b)) {
         log(`  ${key}: existing=${JSON.stringify(a[key])} incoming=${JSON.stringify(b[key])}`);
@@ -141,12 +152,26 @@ async function countWrites(actors, fn) {
     const counts = new Map();
     const restore = [];
     for (const actor of actors) {
-        counts.set(actor.id, { create: 0, update: 0, delete: 0 });
+        // ITEM WRITES ARE THE CONTRACT; everything else is recorded but not counted.
+        //
+        // The wrapper used to increment on every `*EmbeddedDocuments` call whatever the
+        // embedded type, so dnd5e's own reactive writes landed in the total. It recomputes
+        // encumbrance on every item write and creates or deletes an ActiveEffect to do it
+        // -- which is the very behaviour the batching exists to avoid triggering N times --
+        // so those effect writes were counted against the batch and a correct two-write
+        // transfer reported five.
+        //
+        // Filtering cannot hide a batching regression: an unbatched Item delete is still an
+        // Item delete and still counts. `other` is logged beside the total so a surprise
+        // there is visible rather than silently dropped.
+        counts.set(actor.id, { create: 0, update: 0, delete: 0, other: 0 });
         for (const method of ['createEmbeddedDocuments', 'updateEmbeddedDocuments', 'deleteEmbeddedDocuments']) {
             const original = actor[method].bind(actor);
             restore.push(() => { delete actor[method]; });
             actor[method] = (...args) => {
-                counts.get(actor.id)[method.replace('EmbeddedDocuments', '').toLowerCase()]++;
+                const entry = counts.get(actor.id);
+                if (args[0] === 'Item') entry[method.replace('EmbeddedDocuments', '').toLowerCase()]++;
+                else entry.other++;
                 return original(...args);
             };
         }

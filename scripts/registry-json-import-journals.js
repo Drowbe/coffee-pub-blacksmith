@@ -1256,8 +1256,18 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
     // declaration correctly the whole time, which is what made it invisible -- the
     // profiles registered, validated, rendered their `promptFields` and imported, and
     // only the text in the middle was for something else.
-    if (type !== 'area' && getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, type)) {
-        return buildPromptSchemaText(JOURNAL_JSON_IMPORT_KIND_ID, type, promptOptions);
+    // LOOKED UP BY THE KEY AS GIVEN, then by the lowercased one. `type` is folded to
+    // lower case for the four literal comparisons above, which is right for them and
+    // wrong here: a profile id is case-sensitive in the registry, so folding it first
+    // means any profile whose id carries a capital can never be routed and lands on the
+    // error below instead. No shipped profile is affected -- every id is lower case --
+    // which is exactly what would have let it sit until a satellite chose `Critical`.
+    const profileKey = String(templateKey ?? '');
+    const declared = getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, profileKey)
+        ? profileKey
+        : (getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, type) ? type : null);
+    if (type !== 'area' && declared) {
+        return buildPromptSchemaText(JOURNAL_JSON_IMPORT_KIND_ID, declared, promptOptions);
     }
 
     // AN UNRECOGNISED KEY IS AN ERROR, not an area prompt. Defaulting made an unhandled

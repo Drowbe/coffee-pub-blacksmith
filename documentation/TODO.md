@@ -28,20 +28,6 @@ nobody reads.
 Design, audit and sequencing: `documentation/plans/plan-integration-inversion.md`. Steps 1 and 2 ship
 together -- separately they double-count every attack.
 
-### Stop the DAMAGE lane yielding to midi-qol
-
-The last of the six. `stats-sources.js:301` and `:940`, `stats-player.js:1174` and `:1279` still hand
-damage to the MIDI lane when integration is on. The attack half no longer does -- both lanes run and
-`CombatStats._alreadyProcessed` pairs them on `workflowId` -- but the two lanes describe DAMAGE in
-different shapes, this one per message and midi's per target, so they have no shared identity to
-deduplicate on yet.
-
-**Do this with a live world, not blind.** Double-counting here writes into persisted campaign
-statistics, where the damage is silent and cumulative.
-Verify: with Midi-QOL Integration ON, one attack produces exactly one damage entry, and totals,
-biggest hit and the onHit/unlinked buckets read as they did before.
-
-
 ---
 
 ## Request a Roll

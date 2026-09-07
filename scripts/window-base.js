@@ -66,6 +66,30 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
         return merged;
     }
 
+    /**
+     * Scroll offsets to put back after the next render. Called by `render` below,
+     * never by a subclass directly.
+     *
+     * **RETURNS A BAG, AND A SUBCLASS IS MEANT TO ADD TO IT.** Override, call
+     * `super`, spread the result, and add your own keys:
+     *
+     *     _saveScrollPositions() {
+     *         const saved = super._saveScrollPositions?.() ?? {};
+     *         return { ...saved, rail: this.element?.querySelector('.my-rail')?.scrollTop ?? 0 };
+     *     }
+     *
+     * That shape is why this returns an object rather than a number: `super` ignores
+     * keys it did not write, so a window with several scrollers costs one override
+     * and no coordination. **The base handles ONE element**, the template body, and
+     * a second scroller nested inside it is invisible to that selector -- which is a
+     * real case, not a hypothetical, and the reason this note exists.
+     *
+     * **Do not restore scroll yourself in `_onRender`.** `render` restores inside
+     * `requestAnimationFrame`, after layout; a synchronous write in `_onRender`
+     * happens before it and is one reflow away from being silently discarded. A
+     * Squire window did exactly that, worked by luck, and was fixed to this shape
+     * on 2026-09-06.
+     */
     _saveScrollPositions() {
         const root = this._getRoot();
         const body = root?.querySelector?.('.blacksmith-window-template-body');

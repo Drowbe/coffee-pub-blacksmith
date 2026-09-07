@@ -10,6 +10,8 @@ import { postConsoleAndNotification, isPlayerCharacter } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { resolveAttackMessage, resolveDamageMessage, hydrateFirstRoll } from './utility-message-resolution.js';
 import { getWorkflowId, buildAttackEventFromWorkflow, isMidiIntegrationEnabled } from './utility-midi-resolution.js';
+// The leaf module, so this cannot make a cycle. See `utility-d20.js`.
+import { classifyCritFumble } from './utility-d20.js';
 import { CombatSources } from './stats-sources.js';
 
 // Default stats structure
@@ -920,6 +922,17 @@ class CPBPlayerStats {
             ts: attackEvent.ts
         });
 
+        // PAIRED WITH THE CHAT LANE, which marks `attack:<message.id>` through the same
+        // helper. Both lanes now read every attack, so this is what keeps one swing from
+        // being recorded twice into a player's LIFETIME totals, where a double is silent
+        // and permanent.
+        //
+        // The bare message id is the shared identity: this lane's key is
+        // `midi:ChatMessage.<id>` and the chat lane's is the plain `<id>`, so the prefix
+        // is stripped before comparing. Same reduction as `CombatStats._alreadyProcessed`
+        // makes, and for the same reason -- the two lanes do not agree on decoration.
+        if (CPBPlayerStats._isAttackDuplicate(`attack:${String(key).split('.').pop()}`)) return;
+
         // Process the resolved attack event (records hits/misses)
         await CPBPlayerStats._processResolvedAttack(attackEvent);
 
@@ -1167,13 +1180,20 @@ class CPBPlayerStats {
             return;
         }
 
-        // If MIDI integration is on and this message is part of a MIDI workflow, ignore it here.
-        // We resolve attacks/damage from MIDI workflow hooks instead (hitsChecked + preTargetDamageApplication)
-        // to avoid racing the activation-card mutation lifecycle; with integration disabled the
-        // core lane reclaims these messages.
-        if (isMidiIntegrationEnabled() && hasMidi) {
-            return;
-        }
+        // NO YIELD. This returned for any midi-flagged message and left player statistics
+        // entirely to the MIDI workflow hooks -- so on a table where those did not fire,
+        // a player's lifetime hits, misses and damage recorded nothing at all, silently.
+        // That is the shape TODO-GLOBAL Ground Rule 8 refuses.
+        //
+        // Both lanes now read every message. What makes that safe is that they finally
+        // share an identity: this lane marks `attack:<message.id>` through
+        // `_isAttackDuplicate`, and the MIDI lane marks the same string after reducing
+        // its own `midi:ChatMessage.<id>` key to the bare id. Whichever arrives first
+        // records; the other recognises the swing and leaves it alone.
+        //
+        // Before that pairing existed the MIDI lane had NO dedupe against this one at
+        // all, so removing this yield without it would have doubled every lifetime total
+        // on a midi table -- silently, and permanently, since these totals persist.
 
         // DIAGNOSTIC: Log only system roll messages (reduced noise)
         const authorName = message.author?.name ?? 
@@ -1274,10 +1294,19 @@ class CPBPlayerStats {
             const isNewSwing = !CPBPlayerStats._isAttackDuplicate(`attack:${message.id}`);
             if (isNewSwing && isPlayerCharacter(attackerActor)) {
 
-                // Detect crit/fumble from the attack message roll itself (fallback for core dnd5e only)
-                // MIDI-QOL uses the RollComplete hook (authoritative), so skip chat parsing when MIDI is active
-                const hasMidiActive = isMidiIntegrationEnabled();
-                if (!hasMidiActive) {
+                // Detect crit/fumble from the attack message roll itself.
+                //
+                // THIS USED TO BE SKIPPED WHENEVER MIDI WAS ACTIVE, on the reasoning that
+                // midi's `RollComplete` is authoritative. That reasoning stopped holding
+                // the moment both lanes began reading every message: the chat lane can now
+                // WIN the race, record the swing, and the MIDI lane is then correctly
+                // deduped away -- taking its staged crit with it. The crit would be lost
+                // by whichever lane did not run, which is the same defect that left
+                // criticals uncounted in the combat statistics until 2026-09-06.
+                //
+                // Whichever lane records now also carries the verdict. Where midi wins it
+                // supplies its own, which can know things the dice cannot.
+                {
                     const roll = hydrateFirstRoll(message);
                     if (roll) {
                         // Find all d20 terms
@@ -1297,8 +1326,12 @@ class CPBPlayerStats {
                                 const d20Result = active?.result;
 
                                 if (typeof d20Result === "number") {
-                const isCritical = d20Result === 20;
-                const isFumble = d20Result === 1;
+                // The module's one classifier, not a fourth copy of `d20 === 20`.
+                // That test is wrong for any character whose critical range is wider
+                // than a natural twenty, and this file held the last hand-rolled
+                // version of it. `classifyCritFumble` reads the threshold the roll
+                // itself declared and falls back to nat 20 only when it declared none.
+                const { isCritical, isFumble } = classifyCritFumble(d20Result, { roll });
 
                                     // Store crit/fumble info in the attack event for later use
                                     attackEvent.isCritical = isCritical;

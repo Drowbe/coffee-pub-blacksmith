@@ -454,6 +454,30 @@ function _identityFlags(flags, ignoreFlags) {
     for (const path of new Set([...(ignoreFlags ?? []), ..._transientFlags])) {
         _deletePathAndEmptyParents(copy, path);
     }
+
+    // EMPTY `dnd5e.riders` ENTRIES ARE ABSENCE, not identity, and are normalised away for the
+    // same reason `system.properties` and `system.container` are: our payload always carries
+    // the key and a stored row often does not, so comparing them made merging depend on which
+    // path produced the document rather than on what the item is.
+    //
+    // A POPULATED riders array is identity and stays. It names the specific activity and effect
+    // ids an enchantment applied (`dnd5e.mjs:11974` reads `riders.activity` and checks whether
+    // it includes an id), so two rows differing there are genuinely different items. dnd5e makes
+    // the same distinction itself, branching on `!riders.activity.size && !riders.effect.size`
+    // (`dnd5e.mjs:18497`) -- empty means no riders, which is what an absent flag also means.
+    //
+    // Found by the inventory harness on 2026-09-06: four checks failed at once because a
+    // transferred payload carried `flags.dnd5e.riders.activity: []` that the target row did not,
+    // so two identical stacks refused to merge and arrived as a second row. The suite's own
+    // diagnostic pointed at `system.properties` instead, which is a raw-snapshot difference that
+    // `_identitySystem` already filters -- the flags line below it was the real one.
+    const riders = copy?.dnd5e?.riders;
+    if (riders && typeof riders === 'object') {
+        for (const [key, value] of Object.entries(riders)) {
+            if (Array.isArray(value) && value.length === 0) delete riders[key];
+        }
+        if (!Object.keys(riders).length) _deletePathAndEmptyParents(copy, 'dnd5e.riders');
+    }
     return copy;
 }
 

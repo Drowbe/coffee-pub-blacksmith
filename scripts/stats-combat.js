@@ -1906,7 +1906,10 @@ class CombatStats {
             targetActorIds,
             targetTokenUuids,
             timestamp: damageEvent.ts,
-            trackDamageMoments
+            trackDamageMoments,
+            // The card this damage was posted on. Pairs this with the MIDI lane's
+            // per-target arrival for the same application. See `_processDamageOrHealing`.
+            msgId: damageEvent.damageMsgId ?? damageEvent.attackMsgId ?? null
         });
     }
 
@@ -2000,12 +2003,36 @@ class CombatStats {
         targetActorIds = [],
         targetTokenUuids = [],
         timestamp = null,
-        trackDamageMoments = true
+        trackDamageMoments = true,
+        msgId = null
     }) {
         if (!game.user.isGM) return;
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
         if (!item?.parent) return;
+
+        // BOTH DAMAGE LANES MEET HERE, so this is where one application is kept from
+        // being counted twice. The core lane arrives via `_processResolvedDamage` with
+        // a whole message; the MIDI lane arrives per target from
+        // `preTargetDamageApplication`. Different routes, different shapes, same event.
+        //
+        // Identity is the message PLUS the target, not the message alone: one attack
+        // legitimately damages several creatures and each is its own application.
+        // Amount is deliberately NOT part of it -- two lanes can report the same hit as
+        // 9 and 9, and including it would only matter if they disagreed, in which case
+        // counting both is the wrong answer anyway.
+        //
+        // `msgId` is optional and the guard is skipped without one. A caller with no
+        // message cannot be paired with anything, and dropping it on suspicion would
+        // lose real damage; a duplicate is visible in the totals, a missing one is not.
+        if (msgId) {
+            const bareMsg = String(msgId).split('.').pop();
+            const targets = targetTokenUuids.length ? targetTokenUuids : targetActorIds;
+            const scope = targets.length ? targets.join('|') : 'no-target';
+            if (this._alreadyProcessed(isHealing ? 'heal' : 'damage', {
+                key: `${bareMsg}::${scope}`
+            })) return;
+        }
 
         const actor = item.parent;
         const { current: attackerStats, combat: attackerCombatStats } = this._ensureParticipantStats(actor, {

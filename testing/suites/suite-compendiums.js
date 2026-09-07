@@ -40,6 +40,13 @@ import { requireApi, settingRow } from '../harness-lib.js';
 const TIER_RANK = { exact: 0, startsWith: 1, includes: 2 };
 const RESULT_KEYS = [
     'uuid', 'name', 'type', 'documentClass', 'img', 'source', 'sourceLabel', 'sourcePackage', 'matchType',
+    // Whether the GM mapped the row's source, or an unscoped scan reached past the mapping
+    // to find it. Always present: with `allSources` off it is true on every row, which is
+    // the truth rather than a placeholder. Added to the API and its doc by the unscoped
+    // search work and not here, so this list failed the run that introduced it -- the row
+    // shape is stated in three places (the constructor, `api-compendiums.md`, and this
+    // list) and only two of them moved.
+    'mapped',
     // Present on EVERY row from search() and query() alike, null when the call did not
     // involve economics. Asserted as always-present precisely because a key that comes and
     // goes with the call that made it is the trap this shape exists to avoid.

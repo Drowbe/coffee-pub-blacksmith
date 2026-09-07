@@ -7,7 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A suite-wide page on ApplicationV2 traps** (`documentation/global/global-applicationv2-traps.md`), plus the docblock that would have prevented one of them (`scripts/window-base.js`). Four behaviours that are correct, documented nowhere obvious, and produce symptoms pointing at the wrong thing. Each cost a real session, three of them this week.
+
+  A redraw replaces an element's **contents** and keeps the element, so a listener bound to the root accumulates one copy per render, and it presents as a **dialog** bug rather than a listener bug. Scroll restoration returns a bag a subclass is meant to extend, and happens inside `requestAnimationFrame` after layout, so restoring in `_onRender` is one reflow from being discarded. Grepping a method name does not find calls made on `this`, which is how a live polymorphic override was read as dead code and nearly deleted. And a stack line number that does not match the current source means the runtime is stale rather than the fix regressed, which is how a session produced a detailed and entirely wrong analysis of a sibling module's bug.
+
+  `_saveScrollPositions` now carries the note that would have saved the session that fell into it: return a bag, add your own keys, call `super`, and do not restore scroll yourself. The base handles one element, and a second scroller nested inside it is invisible to that selector.
+
+  In `global/` because it is Foundry knowledge rather than any module's, and because every one of these was found by a satellite rather than by the hub.
+
 ### Fixed
+
+- **The damage and player-statistics lanes stopped standing down for midi-qol** (`scripts/stats-sources.js`, `scripts/stats-combat.js`, `scripts/stats-player.js`). The last of the yields. Both lanes now read every message, in combat statistics and in a player's lifetime totals alike, so nothing goes unrecorded because the lane we deferred to did not run.
+
+  Damage pairs on the chat message **plus the target**, not the message alone: one attack legitimately damages several creatures and each is its own application. Both routes funnel into `_processDamageOrHealing`, which is where that is decided.
+
+  Player statistics needed the pairing built rather than fixed, because the MIDI lane there had **no deduplication against the chat lane at all** and the yield was the only thing keeping them apart. Removing it without that would have doubled every lifetime total on a midi table, silently and permanently.
+
+  Two yields are kept and now say why in situ, because they look identical to the ones removed and are not: `_onAttackRoll` and `_onDamageRoll` record nothing, so yielding costs nothing, while removing it would forward a duplicate from a player's client whose socket payload shares no identity with the MIDI lane and therefore cannot be paired. **Yielding a duplicate forward is not yielding the work.**
+
+  One consequence of both lanes running, caught before it shipped: the player lane skipped reading crit from the chat roll whenever midi was active, on the reasoning that midi's `RollComplete` was authoritative. With both lanes live the chat lane can now win the race, record the swing, and the MIDI lane is correctly deduplicated away, taking its staged crit with it. Whichever lane records now carries the verdict. That reading also held the last hand-written `d20 === 20` in the statistics; it now calls the module's one classifier, so a widened critical range counts in lifetime totals as it already did elsewhere.
 
 - **One attack was counted twice in the combat statistics when Midi-QOL Integration was on** (`scripts/stats-combat.js`, `scripts/stats-sources.js`). Introduced by this release's own change: the core lane stopped yielding midi-flagged attacks, so both lanes recorded, and the guard meant to pair them did not.
 
@@ -43,6 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Import resolved the declaration correctly the whole time, which is what hid it.** The profile registered, validated, rendered its `promptFields` and imported; only the text in the middle was for something else, and nothing on either side reads that text. A profile now derives its prompt when it is declared and Blacksmith has no authored one, which is every satellite. `area`, `encounter` and `location` keep their authored prompts, since those carry framing and worked negative examples a declaration does not describe.
 
   **The default was the defect, not the missing branch.** Falling through to `area` made an unhandled key produce a confident wrong answer instead of a complaint, and the author then wrote a payload against a schema they never chose and watched it fail import for reasons nothing explained. An unrecognised key is now refused by name. Reported by the Bibliosoph session, who also spotted that a house-style line added to `buildPromptSchemaText` earlier in this release would not have reached any satellite for the same reason. That line is removed: `appendHouseStyle` already covers every prompt at delivery, and duplicating it inside a component that items compose would have printed it twice.
+
+- **Two identical stacks refused to merge because one carried an empty `dnd5e.riders` flag** (`scripts/api-inventory.js`). A transferred payload arrives with `flags.dnd5e.riders.activity: []` that the target row does not have, and `_identityFlags` treated any undeclared flag as identity-bearing, so the arriving stack landed as a second inventory row instead of merging. Four harness checks failed on it at once.
+
+  An empty riders entry is absence, not identity, and is now normalised away for exactly the reason `system.properties` and `system.container` already are: our payload always writes the key and a stored row often does not, so comparing them made merging depend on which path produced the document rather than on what the item is. **A populated riders array stays in identity** -- it names the specific activity and effect ids an enchantment applied (`dnd5e.mjs:11974`), so two rows differing there really are different items. dnd5e draws the same line itself, branching on `!riders.activity.size && !riders.effect.size` (`dnd5e.mjs:18497`).
+
+  The suite's own diagnostic pointed at the wrong field. It prints RAW differences while `_canMerge` compares values filtered through `_identitySystem` and `_identityFlags`, so it reported `system keys differing: ["properties"]` -- a difference the predicate discards -- with the real cause two lines below. The diagnostic now says outright that its output is suspects rather than causes, because that misdirection has cost time twice.
+
+- **`mapped` is part of the documented compendium result shape** (`testing/suites/suite-compendiums.js`). The unscoped-search work added the key to every row from `search()` and `query()` and documented it in `api-compendiums.md`, but the suite's `RESULT_KEYS` was not updated, so the shape assertions failed against a row that was correct. The row shape is stated in three places and only two of them moved.
 
 ### Removed
 

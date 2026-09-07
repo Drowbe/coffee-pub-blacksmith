@@ -310,7 +310,14 @@ export class CombatSources {
         if (!game.settings.get(MODULE.ID, 'trackCombatStats')) return;
         if (!game.combat?.started) return;
 
-        // MIDI lane is authoritative for damage; avoid double counting by also forwarding core damage rolls.
+        // THIS YIELD STAYS, and it is the same case as `_onAttackRoll` below: it is not
+        // the Category B shape. This handler RECORDS NOTHING. Damage is recorded from
+        // the chat lane through `_processResolvedDamage`, which now always runs, so
+        // removing this would gain nothing.
+        //
+        // What it would cost is a duplicate SOCKET FORWARD from a player's client, whose
+        // payload carries no identity the MIDI lane shares, so `_processDamageOrHealing`
+        // could not pair it. Yielding a duplicate forward is not yielding the work.
         if (isMidiIntegrationEnabled()) {
             if (!game.user.isGM) {
                 postConsoleAndNotification(MODULE.NAME, 'STATS SOCKETS | Skip cpbTrackDamage (MIDI active)', {}, true, false);
@@ -689,7 +696,10 @@ export class CombatSources {
                 isCritical: false,
                 targetActorIds,
                 targetTokenUuids,
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                // `midi:ChatMessage.<id>`; the chokepoint reduces it to the bare id so
+                // it pairs with the core lane's plain message id.
+                msgId: key
             });
 
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI healing processed', {
@@ -724,7 +734,8 @@ export class CombatSources {
             targetActorIds,
             targetTokenUuids,
             timestamp: Date.now(),
-            trackDamageMoments: isOnHit
+            trackDamageMoments: isOnHit,
+            msgId: key
         });
 
         postConsoleAndNotification(MODULE.NAME, 'Combat Stats | MIDI damage processed', {
@@ -963,10 +974,16 @@ export class CombatSources {
         // carrying the damage roll resolved as an attack again, hit the dedupe, and returned. No
         // damage was recorded at all on this path, which is why a landed hit showed 0 damage
         // dealt and no biggest hit while the hit rate was correct.
-        // The yield, now scoped to damage alone. See the note at the top of this
-        // handler for why it is still here and what would remove it.
-        if (isMidiIntegrationEnabled() && hasMidi) return;
-
+        // THE DAMAGE YIELD IS GONE TOO (2026-09-06). Both lanes now read every message
+        // and `CombatStats._processDamageOrHealing` -- the single point they both funnel
+        // into -- recognises an application it has already recorded, pairing them on the
+        // chat message plus the target. That last part matters: one attack legitimately
+        // damages several creatures, so the message alone is too coarse an identity.
+        //
+        // It was held back deliberately until the attack half was proven at a table,
+        // because a double count here writes into persisted campaign statistics where it
+        // is silent and cumulative. The attack half was measured, failed, was fixed and
+        // re-measured before this followed.
         const damageEvent = resolveDamageMessage(message);
         if (!damageEvent) return;
 
@@ -1201,7 +1218,8 @@ export class CombatSources {
                     isHealing: true,
                     isCritical: false,
                     targetTokenUuids,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    msgId: key
                 });
                 return;
             }
@@ -1221,7 +1239,8 @@ export class CombatSources {
                 isCritical: isOnHit ? isCritical : false,
                 targetTokenUuids,
                 timestamp: Date.now(),
-                trackDamageMoments: isOnHit
+                trackDamageMoments: isOnHit,
+                msgId: key
             });
         } catch (e) {
             postConsoleAndNotification(MODULE.NAME, 'Combat Stats | Socket MIDI preTargetDamageApplication error', e, false, false);

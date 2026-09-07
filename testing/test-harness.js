@@ -138,49 +138,63 @@ async function runHeadless(suite, check) {
 /**
  * Report a completed run.
  *
- * FAILURES FIRST, and each on its own console call. The whole point of a run is the failures, and a
- * single console.log carrying every assertion is the one shape that hides them: Chrome truncates a
- * very long string, so a 476-assertion run with 13 failures printed the passes and cut off before
- * reaching any of them. That happened, and it made the only informative part of the run unreadable.
+ * TWO CONSTRAINTS, AND THEY PULL AGAINST EACH OTHER.
  *
- * The full pass list still goes out, after the failures and inside a collapsed group so it does not
- * bury them. Per-suite counts come first, because "which suite broke" is the next question after
- * "how many".
+ * FAILURES GET THEIR OWN CONSOLE CALL EACH. A single log carrying every assertion is the
+ * one shape that hides them: Chrome truncates a very long string, so a 476-assertion run
+ * with 13 failures printed the passes and cut off before reaching any of them. That
+ * happened, and it made the only informative part of the run unreadable. It was then
+ * briefly re-introduced by someone fixing the second constraint below, so: the failures
+ * are separate calls, and that is not an accident to tidy up.
+ *
+ * NONE OF THEM USE `console.error`. Foundry wraps `console.error` and `ui.notifications`,
+ * so every failing line arrived trailing eight frames of `libWrapper` and `foundry.mjs`
+ * stack, which buried the counts line just as effectively from the other direction.
+ * Nothing here is an exception -- the run completed and this is its result -- so it is
+ * logged, not thrown.
+ *
+ * Every line carries the same prefix, so the console filter box alone shows the run and
+ * nothing else. That matters because a live world logs steadily while the suites execute.
+ *
+ * The whole report also goes to the clipboard, because the next thing anyone does with a
+ * failing run is paste it to somebody, and selecting it out of a live console by hand is
+ * how the counts line gets dropped.
+ *
+ * Per-suite counts come first, because "which suite broke" is the next question after
+ * "how many". The full pass list goes last, inside a collapsed group.
  */
+const PREFIX = 'BLACKSMITH HARNESS |';
+
 function reportRun(all, label) {
     const failed = all.filter(r => !r.pass);
     const passed = all.length - failed.length;
 
-    console.log(`BLACKSMITH HARNESS | ${label}: ${passed}/${all.length} assertions passed`);
-
-    // Per-suite tally, so a broken suite is visible without reading anything else.
     const bySuite = new Map();
     for (const result of all) {
         const entry = bySuite.get(result.suite) ?? { pass: 0, fail: 0 };
         entry[result.pass ? 'pass' : 'fail']++;
         bySuite.set(result.suite, entry);
     }
-    for (const [suite, tally] of bySuite) {
-        const line = `  ${tally.fail ? 'FAIL' : 'ok  '}  ${suite}: ${tally.pass}/${tally.pass + tally.fail}`;
-        if (tally.fail) console.error(line); else console.log(line);
-    }
 
-    // Every failure, individually, so none can be truncated away.
+    // Built once for the clipboard, printed in pieces for the console.
+    const lines = [`${PREFIX} ${label}: ${passed}/${all.length} assertions passed`];
+    for (const [suite, tally] of bySuite) {
+        lines.push(`${PREFIX}   ${tally.fail ? 'FAIL' : 'ok  '}  ${suite}: ${tally.pass}/${tally.pass + tally.fail}`);
+    }
     if (failed.length) {
-        console.error(`BLACKSMITH HARNESS | ${failed.length} FAILURE(S):`);
+        lines.push(`${PREFIX} ${failed.length} FAILURE(S):`);
         failed.forEach((r, index) => {
-            console.error(
-                `  ${index + 1}. ${r.suite}/${r.check}  ${r.label}`
+            lines.push(`${PREFIX}   ${index + 1}. ${r.suite}/${r.check}  ${r.label}`
                 + `\n        actual:   ${display(r.actual)}`
-                + `\n        expected: ${display(r.expected)}`
-            );
+                + `\n        expected: ${display(r.expected)}`);
         });
     }
 
-    // Passes last and collapsed. Chunked because a single string can still be cut.
+    for (const line of lines) console.log(line);
+
     if (passed) {
         const group = console.groupCollapsed ?? console.log;
-        group.call(console, `BLACKSMITH HARNESS | ${passed} passing assertion(s)`);
+        group.call(console, `${PREFIX} ${passed} passing assertion(s)`);
         const passLines = all.filter(r => r.pass).map(r => `PASS  ${r.suite}/${r.check}  ${r.label}`);
         for (let start = 0; start < passLines.length; start += 40) {
             console.log(passLines.slice(start, start + 40).join('\n'));
@@ -188,12 +202,17 @@ function reportRun(all, label) {
         if (console.groupEnd) console.groupEnd();
     }
 
+    // Async and able to reject when the window is unfocused. Nothing waits on it: a failed
+    // copy must not change what the run reports, so the console stays the source of truth.
+    const report = lines.join('\n');
+    navigator.clipboard?.writeText?.(report)?.catch?.(() => {});
+
     if (failed.length) {
-        ui.notifications.error(`${failed.length} of ${all.length} assertions FAILED — see console (F12).`);
+        ui.notifications.error(`${failed.length} of ${all.length} assertions FAILED. Console (F12), filter: BLACKSMITH HARNESS. Also copied to the clipboard.`);
     } else {
-        ui.notifications.info(`All ${all.length} assertions passed.`);
+        ui.notifications.info(`All ${all.length} assertions passed. Copied to the clipboard.`);
     }
-    return { all, failed };
+    return { all, failed, report };
 }
 
 /** Run every headless check in every suite and report once. */
