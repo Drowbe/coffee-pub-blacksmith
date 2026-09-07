@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Damage was counted twice with Midi-QOL Integration on, and the target identity underneath it was the base actor** (`scripts/stats-combat.js`). Two defects, the second hidden by the first.
+
+  The lanes decorate the target differently: the core lane produces the actor uuid `Scene.<s>.Token.<t>.Actor.<a>`, the MIDI lane the token uuid. Different strings for one creature, so the per-target scope never matched and a 12-damage roll recorded 24.
+
+  Underneath that, **the core lane was not producing a token uuid at all.** It kept one only when `fromUuid` returned a `TokenDocument`, and dnd5e writes ACTOR uuids into `flags.dnd5e.targets`, so the list stayed empty and it fell back to `targetActorIds` — the base actor id. Unpairable with the other lane, and shared by every copy of a monster, so two cultists would have shared one damage identity even after the decoration was reconciled.
+
+  The core lane now keeps any uuid carrying a `Token.` segment, and both lanes reduce to the bare token id before comparing. Verified 2026-09-06 with integration on: a 13-damage roll produced `damageDealt +13` with both lanes visibly running and one recording.
+
+  **Three times in this release two lanes described one thing with differently-decorated identities** — message id, workflow id, target uuid. The rule that follows: any identity crossing the lanes is normalised before comparison, never after, and never compared in whatever shape its own lane happens to produce.
+
 ### Added
 
 - **A suite-wide page on ApplicationV2 traps** (`documentation/global/global-applicationv2-traps.md`), plus the docblock that would have prevented one of them (`scripts/window-base.js`). Four behaviours that are correct, documented nowhere obvious, and produce symptoms pointing at the wrong thing. Each cost a real session, three of them this week.

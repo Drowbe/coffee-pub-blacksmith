@@ -1891,7 +1891,25 @@ class CombatStats {
                 const targetDoc = await fromUuid(targetUuid);
                 const targetActorDoc = targetDoc?.actor ?? targetDoc;
                 if (targetActorDoc?.id) targetActorIds.push(targetActorDoc.id);
-                if (targetDoc?.documentName === "Token" && targetDoc.uuid) targetTokenUuids.push(targetDoc.uuid);
+
+                // KEEP A TOKEN-BEARING UUID WHENEVER THE TARGET HAS A TOKEN, not only
+                // when `fromUuid` happened to hand back a TokenDocument.
+                //
+                // dnd5e writes ACTOR uuids into `flags.dnd5e.targets` -- the
+                // `Scene.<s>.Token.<t>.Actor.<a>` form -- so `documentName` is "Actor"
+                // and this list stayed EMPTY on the core lane. `_processDamageOrHealing`
+                // then fell back to `targetActorIds`, which is the BASE actor id: shared
+                // by every copy of a monster, and unable to pair with the MIDI lane,
+                // which passes a token uuid. One hit was recorded twice, 24 for a roll of
+                // 12, measured 2026-09-06.
+                //
+                // The original uuid string already contains the token, so it is kept as
+                // written. That fixes the pairing and, separately, stops damage being
+                // scoped by an identity that nineteen copies of one monster share.
+                const tokenUuid = targetDoc?.documentName === "Token"
+                    ? targetDoc.uuid
+                    : (/Token\.[^.]+/.test(String(targetUuid)) ? String(targetUuid) : null);
+                if (tokenUuid) targetTokenUuids.push(tokenUuid);
             } catch (_) {}
         }
 
@@ -2027,8 +2045,32 @@ class CombatStats {
         // lose real damage; a duplicate is visible in the totals, a missing one is not.
         if (msgId) {
             const bareMsg = String(msgId).split('.').pop();
+
+            // THE TARGET HAS TO BE NORMALISED TOO, and this is the second time the two
+            // lanes have been caught decorating one identity differently. For the same
+            // creature they produce:
+            //
+            //     core lane   Scene.<s>.Token.<t>.Actor.<a>     the ACTOR uuid
+            //     MIDI lane   Scene.<s>.Token.<t>               the TOKEN uuid
+            //
+            // Different strings, same target, so the scopes never matched and one hit
+            // was counted twice: 24 recorded for a damage roll of 12, measured at the
+            // author's table 2026-09-06.
+            //
+            // The token id is the common part and the right granularity anyway -- an
+            // application is to a token, and two copies of one monster share everything
+            // above it. Anything without a `Token.` segment falls through unchanged,
+            // which covers a bare actor id from the socket path.
+            const tokenOf = (value) => {
+                const text = String(value ?? '');
+                const match = text.match(/Token\.([^.]+)/);
+                return match ? match[1] : text;
+            };
+
             const targets = targetTokenUuids.length ? targetTokenUuids : targetActorIds;
-            const scope = targets.length ? targets.join('|') : 'no-target';
+            const scope = targets.length
+                ? targets.map(tokenOf).sort().join('|')
+                : 'no-target';
             if (this._alreadyProcessed(isHealing ? 'heal' : 'damage', {
                 key: `${bareMsg}::${scope}`
             })) return;

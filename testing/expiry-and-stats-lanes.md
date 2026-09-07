@@ -102,7 +102,32 @@ format differently (`ChatMessage.<id>` against the raw flag). `_countSuccessfulO
 defect keyed on the correlation key, whose namespaces also never collide. **Nothing threw, the numbers
 simply doubled**, which is exactly why this is measured with a macro and not by looking.
 
+**Damage, one attack one target: PASSED 2026-09-06.** A 13-damage roll produced `damageDealt +13` with
+both lanes visibly running -- `Damage Resolved: damageTotal: 13` from the core lane and `MIDI damage
+processed: amount: 13` from the other -- and only one recording.
+
+**It also failed first, and the second failure was underneath the first.** The initial run gave +24 for
+a roll of 12. The two lanes decorate the target differently, the core lane producing the ACTOR uuid
+(`Scene.<s>.Token.<t>.Actor.<a>`) and the MIDI lane the TOKEN uuid, so the scopes never matched. Under
+that, the core lane was not producing a token uuid at all -- it kept one only when `fromUuid` returned a
+TokenDocument, and dnd5e writes actor uuids into `flags.dnd5e.targets` -- so it fell back to
+`targetActorIds`, the BASE actor id, which is both unpairable and shared by every copy of a monster.
+
+**Three times in one session two lanes described one thing with differently-decorated identities**:
+message id, workflow id, target uuid. Any identity that crosses the lanes is normalised before
+comparison, never after.
+
 The items left need numbers watched rather than a symptom observed.
+
+- [ ] **One attack, TWO targets.** Midi ON. The only remaining case with no measurement behind it, and
+      the one the per-target scope exists for. Expect `attempts +1` and `damageDealt` equal to the SUM
+      across both creatures. Doubling either half means the target scope is still too coarse; a single
+      target's worth means it is too fine and one application was swallowed.
+
+- [ ] **A player's lifetime damage rises once.** Midi ON, a player character attacking. Read Total
+      Damage in the player statistics before and after one swing. The combat totals are proven; the
+      player lane logged its intended update twice in the 2026-09-06 run with identical before-values,
+      which reads as one application but is not conclusive from a log alone.
 
 - [ ] **An attack still counts when the MIDI lane says nothing.** Midi ON, in combat, but make an
       attack midi does not produce a workflow for. It must still be counted -- that is the whole point
@@ -135,10 +160,6 @@ The items left need numbers watched rather than a symptom observed.
 
       Same setup as Squire's token-switching test, which passed live on 2026-09-06 -- so if four copies
       are already on the canvas for that, this costs one extra glance at the statistics card.
-
-- [ ] **Damage is unchanged.** Midi ON. Damage totals, biggest hit and the onHit/unlinked buckets must
-      read exactly as before this change. The damage half still yields deliberately, so this is
-      confirming no accidental effect, not testing new behaviour.
 
 ## Not owed here
 
