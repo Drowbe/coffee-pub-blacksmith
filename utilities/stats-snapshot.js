@@ -1,0 +1,100 @@
+// ============================================
+// COMBAT STATS SNAPSHOT - Script Macro
+// ============================================
+// Prints the combat statistics counters, and the difference since the last time
+// it was run. Paste into a script macro and run it before and after an attack.
+//
+// WHAT IT IS FOR. The remaining midi-qol work stops the statistics DAMAGE lane
+// yielding to midi, so both lanes will record and something has to prove they do
+// not both record the SAME thing. There is no way to check that by looking: a
+// damage figure counted twice looks exactly like one counted once at the moment
+// it lands, and the error is only visible in a running total.
+//
+// So the test is a comparison, and a comparison needs a baseline taken BEFORE the
+// change. That is what this produces. Run it now, keep the output, and the same
+// fight after the change must produce the same numbers.
+//
+// WHY A MACRO RATHER THAN READING THE CARD. The card rounds, aggregates and omits.
+// This reads the counters the code actually increments, which is where a double
+// count appears first and unambiguously.
+//
+// GM only: the statistics live on the GM client.
+// ============================================
+
+(() => {
+    const MODULE_ID = 'coffee-pub-blacksmith';
+
+    if (!game.user.isGM) {
+        ui.notifications.warn('Stats Snapshot: GM only.');
+        return;
+    }
+
+    const combat = game.combat;
+    if (!combat) {
+        ui.notifications.warn('Stats Snapshot: no combat. Start one first.');
+        return;
+    }
+
+    // Read the live in-memory object rather than the persisted flag: the flag is
+    // written on a debounce, so straight after an attack it is behind.
+    // `api.stats.combat` is a namespace of query METHODS; the class holding the live
+    // counters is exposed separately as `api.stats.CombatStats` (`api-stats.js:209`).
+    const api = game.modules.get(MODULE_ID)?.api;
+    const stats = api?.stats?.CombatStats ?? null;
+    const totals = stats?.combatStats?.totals ?? null;
+
+    if (!totals) {
+        ui.notifications.error('Stats Snapshot: could not reach the combat statistics. Is trackCombatStats on?');
+        console.warn('BLACKSMITH | STATS SNAPSHOT no totals', { api: !!api, stats: !!stats });
+        return;
+    }
+
+    const now = {
+        attempts: totals.attacks?.attempts ?? 0,
+        hits: totals.attacks?.hits ?? 0,
+        misses: totals.attacks?.misses ?? 0,
+        crits: totals.attacks?.crits ?? 0,
+        fumbles: totals.attacks?.fumbles ?? 0,
+        damageDealt: totals.damage?.dealt ?? 0,
+        damageTaken: totals.damage?.taken ?? 0,
+        healingGiven: totals.healing?.given ?? 0,
+        kills: totals.kills ?? 0,
+        // The per-hit records, because a doubled TOTAL and a doubled RECORD are
+        // different bugs: the first is one increment applied twice, the second is
+        // the whole event processed twice. They need telling apart.
+        hitRecords: stats.currentStats?.hits?.length ?? 0,
+        missRecords: stats.currentStats?.misses?.length ?? 0
+    };
+
+    const previous = globalThis.__cpbStatsSnapshot ?? null;
+    globalThis.__cpbStatsSnapshot = now;
+
+    const midiOn = (() => {
+        try {
+            return !!game.modules.get('midi-qol')?.active
+                && game.settings.get(MODULE_ID, 'enableMidiIntegration') !== false;
+        } catch { return false; }
+    })();
+
+    console.log(`BLACKSMITH | STATS SNAPSHOT (round ${combat.round}, midi lane ${midiOn ? 'ON' : 'off'})`);
+    if (!previous) {
+        console.table(now);
+        ui.notifications.info('Stats Snapshot: baseline taken. Make one attack, then run again.');
+        return;
+    }
+
+    const delta = {};
+    for (const key of Object.keys(now)) delta[key] = now[key] - previous[key];
+    console.table({ before: previous, after: now, delta });
+
+    // The whole point, stated so a reader does not have to remember it.
+    const suspicious = ['attempts', 'hits', 'crits', 'hitRecords']
+        .filter((key) => delta[key] >= 2);
+    if (suspicious.length) {
+        console.warn('BLACKSMITH | STATS SNAPSHOT rose by 2 or more:', suspicious.join(', '),
+            '-- if that was ONE attack against ONE target, this is a double count.');
+        ui.notifications.warn(`Stats Snapshot: ${suspicious.join(', ')} rose by 2+. See console.`);
+    } else {
+        ui.notifications.info('Stats Snapshot: delta printed to console.');
+    }
+})();

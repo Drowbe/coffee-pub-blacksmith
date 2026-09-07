@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Every generated prompt now states the house writing style, and the shipped prompts stop contradicting it** (`scripts/manager-declarations.js`, `prompts/*.txt`). `buildPromptSchemaText` emits a WRITING STYLE section telling the model not to use em dashes, and not to pad a field to look thorough.
+
+  It belongs here and nowhere else because a satellite's profile has no prompt file: its entire prompt is derived from its declaration. A module can keep its own guidance strings perfectly clean and still receive a payload full of em dashes, because nothing it writes reaches the model doing the generating. Stated per-module it would be four modules writing the same sentence and a fifth forgetting; stated here it covers Bibliosoph's injuries, criticals, fumbles and inspiration, our own area, encounter and location profiles, Artificer's recipes, Librarian's codex and quests, and every profile registered after this.
+
+  The eleven shipped prompt files carried 70 em dashes between them, 50 in the Area profile alone. An instruction not to use a character, written in text full of it, argues with its own demonstration -- and a prompt is read by the model as an example of house voice, not only as a rule. All 70 are now the `--` the docs and code comments already use. Raised by the Bibliosoph session, who had done their own side and could not do this half.
+
+
 ### Removed
 
 - **The Times Up Integration setting is deleted** (`scripts/settings.js`, `lang/en.json`, `documentation/api/api-effects.md`). It chose whether Blacksmith yielded effect expiry to Times Up. Blacksmith now expires effects unconditionally, so both positions of the switch did the same thing — and the hint still described a choice that no longer existed, telling a GM that turning it off would make two modules race and one fail noisily. Neither half is true any more. **A registered setting that controls nothing is worse than no setting**, because it is read as a description of how the world works.

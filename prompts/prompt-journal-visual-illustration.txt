@@ -29,7 +29,7 @@ Use every field above. Do not invent a different scene, cast, or location than d
 
 The subject may be:
 - A scene or environment (including inns, shops, markets, churches, harbors, ships, boats)
-- A single character in a setting — use Subject type **Character (in scene)** for bar, deck, camp, etc. (not a portrait bust; use **Portrait Image** for tight NPC headshots)
+- A single character in a setting -- use Subject type **Character (in scene)** for bar, deck, camp, etc. (not a portrait bust; use **Portrait Image** for tight NPC headshots)
 - A single object or artifact
 
 The subject must dominate the frame and be the clear focal point of the composition.

@@ -4,38 +4,38 @@ IMPORT PROFILE: AREA
 
 journaltype: always "area".
 
-You are generating structured JSON for Coffee Pub Blacksmith import—not a prose handout.
+You are generating structured JSON for Coffee Pub Blacksmith import -- not a prose handout.
 The importer links actors and items by exact name, renders Foundry journal HTML, and displays narrative cards.
 
 PORTING EXISTING CONTENT (same rules as authoring from scratch)
 If the user asks you to adapt, reuse, or recreate material from existing notes, chats, wikis, or prior exports, treat the IMPORT PROFILE as a fixed contract. The failure mode to avoid: reconstructing the scene's narrative in a self-invented JSON shape that "preserves the writing" but does not match the importer.
-- Map every idea into the allowed keys only (see SCHEMA LOCK below). Rumors, hooks, connections, cast lists, or stat-like blobs must land in preparation, area.narrative, discoverablefacts, conversations, or string-array linkers — never as new top-level or sibling keys under blocks.
+- Map every idea into the allowed keys only (see SCHEMA LOCK below). Rumors, hooks, connections, cast lists, or stat-like blobs must land in preparation, area.narrative, discoverablefacts, conversations, or string-array linkers -- never as new top-level or sibling keys under blocks.
 - Use "exact importer JSON" logic, not "good JSON" or generic worldbuilding-export logic.
 
 Each area is one playable scene: a shop, room, chamber, clearing, district block, wilderness node, dungeon space, or similar.
 
 Other journal profiles (same universal envelope, different blocks):
-- location — encyclopedia (realm, site, region); not this profile
-- encounter, injury, character — future profiles
+- location -- encyclopedia (realm, site, region); not this profile
+- encounter, injury, character -- future profiles
 
 Outputs:
-1. AREA JSON (envelope + blocks) — required first response for a new scene
-2. Images — **not** part of this prompt. After import, use Foundry **Illustration Image** / **Portrait Image** copy prompts with card text. JSON `imagetitle` is **not** the generation prompt (see IMAGETITLE below).
+1. AREA JSON (envelope + blocks) -- required first response for a new scene
+2. Images -- **not** part of this prompt. After import, use Foundry **Illustration Image** / **Portrait Image** copy prompts with card text. JSON `imagetitle` is **not** the generation prompt (see IMAGETITLE below).
 
 
 --------------------------------
-SCHEMA LOCK (AREA — wrong shape breaks Blacksmith import)
+SCHEMA LOCK (AREA -- wrong shape breaks Blacksmith import)
 --------------------------------
 
 Under "blocks", ONLY these keys are valid for this profile: "preparation", "area", "encounter", "conversations". Do not add any other sibling keys (no rumors, connections, keynpcs, npcs, cast, interactives, scene, metadata, hooks, or custom wrappers).
 
-blocks.area MUST include a "title" STRING — the clean on-page heading for the area section (a sibling of "narrative"/"narrativecard", never a field inside "narrative"). ALWAYS set it explicitly; do NOT reuse scenetitle verbatim. scenetitle is the page/tab label and often carries an ordering prefix or code for sorting pages (e.g. "02 Main Room"); blocks.area.title is the human heading with that stripped (e.g. "Main Room"). Relationship: the envelope `area` is the clean geographic area name, `blocks.area.title` normally matches it, and `scenetitle` is that name plus any ordering prefix/code. The prefix comes from the user/context — do not invent one.
+blocks.area MUST include a "title" STRING -- the clean on-page heading for the area section (a sibling of "narrative"/"narrativecard", never a field inside "narrative"). ALWAYS set it explicitly; do NOT reuse scenetitle verbatim. scenetitle is the page/tab label and often carries an ordering prefix or code for sorting pages (e.g. "02 Main Room"); blocks.area.title is the human heading with that stripped (e.g. "Main Room"). Relationship: the envelope `area` is the clean geographic area name, `blocks.area.title` normally matches it, and `scenetitle` is that name plus any ordering prefix/code. The prefix comes from the user/context -- do not invent one.
 
-blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not add a "title" inside "narrative". Do not use "atmosphere" as an object with sight/sound/smell keys — fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
+blocks.area MUST include "narrative" as an object with exactly three STRING fields: "description", "layout", "atmosphere". Do not put a scene description as a bare string on blocks.area. Do not add a "title" inside "narrative". Do not use "atmosphere" as an object with sight/sound/smell keys -- fold sensory detail into those three strings (usually atmosphere carries mood in one paragraph).
 
-blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". (imagetitle: short UI caption — see IMAGETITLE section.)
+blocks.area.narrativecard MUST use exactly: "title", "description", "imagetitle", "image". Player-facing card prose goes in "description" (HTML allowed). Never use "text", "body", or "content" instead of "description". (imagetitle: short UI caption -- see IMAGETITLE section.)
 
-blocks.preparation (include whenever the scene has actors, rewards, purpose, or GM notes): "actors" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name — short blurb". Never an array of objects with name/type/details.
+blocks.preparation (include whenever the scene has actors, rewards, purpose, or GM notes): "actors" and "rewards" are ARRAYS OF STRINGS only, each string one line in the form "Actor or Item Name -- short blurb". Never an array of objects with name/type/details.
 
 blocks.area uses "interactivedetails" (ARRAY OF STRINGS), never "interactives" and never objects per line.
 
@@ -50,21 +50,21 @@ Common wrong → correct:
 - conversations name "Commoner" / "Scout" / bare role token → personal name or diegetic handle (CONVERSATIONS.NAME)
 - blocks.area.threats / blocks.area.rewards → blocks.preparation.actors / blocks.preparation.rewards
 - legacy "threats" key → "actors"
-- [{ "name": "...", "details": "..." }] in actors → "Name — details" strings
+- [{ "name": "...", "details": "..." }] in actors → "Name -- details" strings
 - keynpcs: [...] → conversations: [ { "name": "...", "keycharacter": true, ... } ]
 
 
 --------------------------------
-IMAGETITLE (UI CAPTION ABOVE THE IMAGE — NOT A PROMPT)
+IMAGETITLE (UI CAPTION ABOVE THE IMAGE -- NOT A PROMPT)
 --------------------------------
 
 The importer renders `narrativecard.imagetitle` as a **short heading displayed above** the card image in Foundry (figure-style caption). It is **not** an image-generation prompt, **not** latent metadata for tools, and **not** a stand-in for a missing `imageprompt` field (that key does not exist in this schema).
 
 Rules:
-- **Short human-readable display text** — typically about **3 to 7 words** (stay under ~60 characters if you must go slightly longer).
+- **Short human-readable display text** -- typically about **3 to 7 words** (stay under ~60 characters if you must go slightly longer).
 - Evocative or poetic is fine; **brevity** beats visual specification.
 - **Never** use comma-separated trait lists, lighting/camera/composition/mood/style instructions, aspect ratios, or generic "prompt speak".
-- **Never** pack race, class, hair, skin, expression, or rendering directions into `imagetitle` — those live in `description` (and in the separate **Portrait Image** / **Illustration Image** prompts when generating art — not in JSON).
+- **Never** pack race, class, hair, skin, expression, or rendering directions into `imagetitle` -- those live in `description` (and in the separate **Portrait Image** / **Illustration Image** prompts when generating art -- not in JSON).
 
 Good examples: "Harlowe Behind the Bar", "Words Beneath the Noise", "Ash-Stained Laborer", "Night Cargo Rumors", "The River Never Sleeps"
 Bad (reads like an image model prompt): "Crowded river tavern interior warm rim light ink wash patrons at oak bar 16:9 cinematic"
@@ -78,21 +78,21 @@ IMPORTER SEMANTICS (CRITICAL)
 
 Two field classes:
 
-LINKER FIELDS (machine-consumed — use exact official names so the importer can link them on import; name catalogs may be appended below, and when they are, choose from those):
-- blocks.preparation.actors[] — every creature or NPC of note in the scene, one per line as "Name — short blurb". Include BOTH:
-  - generic types using the exact stat-block / catalog name so they link: "Goblin — …", "Commoner — …", "Veteran — …"
-  - named individuals worth calling out in the narrative, by their proper name: "Bob the Barber — …", "Phil the Terrible — a named goblin, …". A named entry links when the name matches a world/compendium actor; otherwise it still renders (bold name + blurb), so always name the individual rather than collapsing them into the bare type.
+LINKER FIELDS (machine-consumed -- use exact official names so the importer can link them on import; name catalogs may be appended below, and when they are, choose from those):
+- blocks.preparation.actors[] -- every creature or NPC of note in the scene, one per line as "Name -- short blurb". Include BOTH:
+  - generic types using the exact stat-block / catalog name so they link: "Goblin -- …", "Commoner -- …", "Veteran -- …"
+  - named individuals worth calling out in the narrative, by their proper name: "Bob the Barber -- …", "Phil the Terrible -- a named goblin, …". A named entry links when the name matches a world/compendium actor; otherwise it still renders (bold name + blurb), so always name the individual rather than collapsing them into the bare type.
   Generic types and named individuals can coexist (e.g. list "Goblin" for the rank-and-file AND "Phil the Terrible" for their named leader).
-- blocks.preparation.rewards[] — prefer item names: "Item Name — note" or plain loot text (gp, clues)
-- blocks.area.interactivedetails[] — "Item Name — detail" for gear; "Trap — detail", "Lever — detail" for non-items
-- blocks.conversations[].name — see CONVERSATIONS.NAME below (must be a person’s name for cast entries, not a bare role token)
+- blocks.preparation.rewards[] -- prefer item names: "Item Name -- note" or plain loot text (gp, clues)
+- blocks.area.interactivedetails[] -- "Item Name -- detail" for gear; "Trap -- detail", "Lever -- detail" for non-items
+- blocks.conversations[].name -- see CONVERSATIONS.NAME below (must be a person’s name for cast entries, not a bare role token)
 
 CONVERSATIONS.NAME (persons, not role labels)
-If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact world/compendium actor name that is already a proper name — choose from the catalogs below when they are provided).
+If you include someone in `blocks.conversations`, they are part of the **cast** for the scene. `name` must be a **specific personal name** (given name, nickname, or an exact world/compendium actor name that is already a proper name -- choose from the catalogs below when they are provided).
 
-Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **actors[]** / encounter tactics when you mean generic creatures — not as the `conversations[].name` for a character the scene treats as an individual. (A genuinely named individual — "Bob the Barber" — may appear in BOTH actors[] and conversations[]: the roster line and the full cast entry serve different purposes.)
+Do **not** use bare stat-block role words as `name` for those entries: **never** `"Commoner"`, `"Scout"`, `"Guard"`, `"Bandit"`, `"Noble"`, `"Spy"`, `"Merchant"`, `"Veteran"`, or similar alone. Those strings belong in **actors[]** / encounter tactics when you mean generic creatures -- not as the `conversations[].name` for a character the scene treats as an individual. (A genuinely named individual -- "Bob the Barber" -- may appear in BOTH actors[] and conversations[]: the roster line and the full cast entry serve different purposes.)
 
-If you need a minor figure without a full name, give a short **diegetic handle** that is still a name-like label (e.g. "Rope-Call Marta", "Third-shift Porter") — not the creature type. If someone is only anonymous crowd dressing with no lines, **omit** them from `conversations` instead of using a role token as `name`.
+If you need a minor figure without a full name, give a short **diegetic handle** that is still a name-like label (e.g. "Rope-Call Marta", "Third-shift Porter") -- not the creature type. If someone is only anonymous crowd dressing with no lines, **omit** them from `conversations` instead of using a role token as `name`.
 
 PROSE FIELDS (write for the table):
 - blocks.preparation.purpose[], gmnotes[]
@@ -101,22 +101,22 @@ PROSE FIELDS (write for the table):
 - blocks.encounter.* (except use exact actor names inside tactics if referencing creatures)
 - narrativecard description HTML (player-facing prose)
 
-Anti-examples (actors[] — invented group descriptors will NOT link and are not individuals):
-- "Corrupt Caravan Escorts — …" (use the stat-block type: Guard, Veteran, Bandit, etc. — or name the individual if one stands out)
-- "Fearful Townsfolk — …" (use Commoner, Noble — or name the individual, e.g. "Bob the Barber")
+Anti-examples (actors[] -- invented group descriptors will NOT link and are not individuals):
+- "Corrupt Caravan Escorts -- …" (use the stat-block type: Guard, Veteran, Bandit, etc. -- or name the individual if one stands out)
+- "Fearful Townsfolk -- …" (use Commoner, Noble -- or name the individual, e.g. "Bob the Barber")
 
 Good examples (actors[]):
-- "Veteran — watches the door, blows whistle at first spell"  (generic type → links)
-- "Goblin — rank-and-file, throws rocks from cover"  (generic type → links)
-- "Phil the Terrible — a named goblin; barks orders from the back"  (named individual)
-- "Dellik — hides behind crates; surrenders if surrounded"  (named individual)
+- "Veteran -- watches the door, blows whistle at first spell"  (generic type → links)
+- "Goblin -- rank-and-file, throws rocks from cover"  (generic type → links)
+- "Phil the Terrible -- a named goblin; barks orders from the back"  (named individual)
+- "Dellik -- hides behind crates; surrenders if surrounded"  (named individual)
 
 Anti-examples (rewards / interactives):
 - "hanging maps", "stacked crates" (use Map, Crowbar, Crate when linkable)
 
 Good examples:
-- "Crowbar — wedged in the warped floorboard"
-- "Spy — leans on the counter, feigning indifference"
+- "Crowbar -- wedged in the warped floorboard"
+- "Spy -- leans on the counter, feigning indifference"
 
 
 --------------------------------
@@ -149,7 +149,7 @@ When DEFAULT NARRATIVE CARD IMAGE is non-empty, set blocks.area.narrativecard.im
 When DEFAULT CHARACTER CARD IMAGE is non-empty, set blocks.conversations[].narrativecard.image to that path for each key NPC (keycharacter: true).
 When a default image path is empty, leave image as "" on that card type.
 
-breadcrumb: realm > region > site > area (envelope `area` is the clean leaf — do NOT append blocks.area.title on top of it, and never use scenetitle's ordering prefix; omit empty levels; must match envelope and LOCATION PATH)
+breadcrumb: realm > region > site > area (envelope `area` is the clean leaf -- do NOT append blocks.area.title on top of it, and never use scenetitle's ordering prefix; omit empty levels; must match envelope and LOCATION PATH)
 
 
 --------------------------------
@@ -159,10 +159,10 @@ NARRATIVE CARDS (DEFAULT: INCLUDE)
 "Optional" means omit only when the scene has no entrance beat and no NPC presence.
 
 ALWAYS include:
-- blocks.area.narrativecard — entrance / first impression (title, description HTML, imagetitle as short UI caption per IMAGETITLE section, image "" or path)
+- blocks.area.narrativecard -- entrance / first impression (title, description HTML, imagetitle as short UI caption per IMAGETITLE section, image "" or path)
 - blocks.conversations[].narrativecard for each key NPC (set keycharacter: true when they matter to the scene); same imagetitle rules
 
-Order within "blocks.conversations": list every key character (keycharacter: true) before any non-key characters (keycharacter: false). Same roster may appear in another order in source notes — reorder for this preference (importer preserves array order in the journal HTML).
+Order within "blocks.conversations": list every key character (keycharacter: true) before any non-key characters (keycharacter: false). Same roster may appear in another order in source notes -- reorder for this preference (importer preserves array order in the journal HTML).
 
 Card description: brief, no secrets; HTML allowed (p, strong, em, br).
 Use image: "" only when no default image path was provided for that card type; otherwise use the default path verbatim.
@@ -193,23 +193,23 @@ BLOCKS FOR THIS PROFILE
 
 blocks.preparation
 - purpose[]: session goals (prose)
-- actors[]: LINKER — "Name — blurb" per entry; the scene roster of monsters, generic NPCs, and named NPCs/monsters worth calling out (generic types use exact catalog names; named individuals use their proper name)
+- actors[]: LINKER -- "Name -- blurb" per entry; the scene roster of monsters, generic NPCs, and named NPCs/monsters worth calling out (generic types use exact catalog names; named individuals use their proper name)
 - rewards[]: LINKER when gear/loot items; plain text for gp or non-item rewards
 - gmnotes[]: GM-only (prose)
 
 blocks.area
 - title (REQUIRED): clean area section heading, with any scenetitle ordering prefix/code stripped (e.g. scenetitle "02 Main Room" → title "Main Room"). Always set it; never leave it blank or copy scenetitle verbatim.
 - narrative (required): description, layout, atmosphere
-- narrativecard (default include): title, description, imagetitle (short caption only — see IMAGETITLE section), image
-- interactivedetails[]: LINKER or labeled entries — see semantics
+- narrativecard (default include): title, description, imagetitle (short caption only -- see IMAGETITLE section), image
+- interactivedetails[]: LINKER or labeled entries -- see semantics
 - discoverablefacts[]: objective truths (prose)
 
 blocks.encounter (omit if no encounter to run)
 - overview, tactics[], triggers[], specialconditions[]
 
 blocks.conversations (omit if no NPCs)
-- Prefer array order: every key character (keycharacter: true) first, then non-key characters (keycharacter: false) — see NARRATIVE CARDS above
-- Each row represents an individual at the scene: `name` must be a personal name or diegetic handle — never a bare role token like Commoner or Scout (see CONVERSATIONS.NAME above)
+- Prefer array order: every key character (keycharacter: true) first, then non-key characters (keycharacter: false) -- see NARRATIVE CARDS above
+- Each row represents an individual at the scene: `name` must be a personal name or diegetic handle -- never a bare role token like Commoner or Scout (see CONVERSATIONS.NAME above)
 - name (LINKER when world/compendium actor exists), keycharacter, snapshot[], theyknow[], theyveheard[], theywant[]
 - narrativecard (default for keycharacter)
 
@@ -221,8 +221,8 @@ blocks SHAPE (reference)
 "blocks": {
   "preparation": {
     "purpose": ["PURPOSE"],
-    "actors": ["Goblin — blurb", "Phil the Terrible — named goblin, blurb"],
-    "rewards": ["Item Name — note"],
+    "actors": ["Goblin -- blurb", "Phil the Terrible -- named goblin, blurb"],
+    "rewards": ["Item Name -- note"],
     "gmnotes": ["GMNOTE"]
   },
   "area": {
@@ -238,7 +238,7 @@ blocks SHAPE (reference)
       "imagetitle": "Short Caption Above Image",
       "image": ""
     },
-    "interactivedetails": ["Trap — detail", "Crowbar — detail"],
+    "interactivedetails": ["Trap -- detail", "Crowbar -- detail"],
     "discoverablefacts": ["FACT"]
   },
   "encounter": { "overview": "", "tactics": [], "triggers": [], "specialconditions": [] },
@@ -264,19 +264,19 @@ blocks SHAPE (reference)
 }
 
 
---- COMPENDIUM ACTORS (actors[] and linkable NPC names — exact spelling only) ---
+--- COMPENDIUM ACTORS (actors[] and linkable NPC names -- exact spelling only) ---
 [ADD-COMPENDIUM-ACTORS-HERE]
 --- END COMPENDIUM ACTORS ---
 
---- COMPENDIUM ITEMS (rewards[] and item-like interactivedetails[] — exact spelling only) ---
+--- COMPENDIUM ITEMS (rewards[] and item-like interactivedetails[] -- exact spelling only) ---
 [ADD-COMPENDIUM-ITEMS-HERE]
 --- END COMPENDIUM ITEMS ---
 
---- WORLD ACTORS (named NPCs in this world — exact spelling for conversations[].name) ---
+--- WORLD ACTORS (named NPCs in this world -- exact spelling for conversations[].name) ---
 [ADD-WORLD-ACTORS-HERE]
 --- END WORLD ACTORS ---
 
---- WORLD ITEMS (homebrew/world items — exact spelling) ---
+--- WORLD ITEMS (homebrew/world items -- exact spelling) ---
 [ADD-WORLD-ITEMS-HERE]
 --- END WORLD ITEMS ---
 
@@ -287,7 +287,7 @@ USAGE
 
 When generating an area journal:
 - match LOCATION PATH and envelope geography fields
-- always set a clean blocks.area.title (strip any scenetitle ordering prefix — "02 Main Room" → "Main Room")
+- always set a clean blocks.area.title (strip any scenetitle ordering prefix -- "02 Main Room" → "Main Room")
 - use linker rules for actors, rewards, and item interactives
 - include area and key NPC narrativecards by default
 - give every `conversations` cast member a personal name or diegetic handle (see CONVERSATIONS.NAME)

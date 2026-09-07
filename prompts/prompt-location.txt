@@ -2,7 +2,7 @@
 LOCATION ENTRY (JSON ONLY)
 ========================================
 
-Generate a valid FoundryVTT **location** encyclopedia entry as JSON. **Do not** generate an image in this task — use **Illustration Image** in Import JSON for card art, then set `"locationimage"` to that Foundry path.
+Generate a valid FoundryVTT **location** encyclopedia entry as JSON. **Do not** generate an image in this task -- use **Illustration Image** in Import JSON for card art, then set `"locationimage"` to that Foundry path.
 
 You are writing an encyclopedia-style location entry for a Dungeons and Dragons 5E campaign.
 

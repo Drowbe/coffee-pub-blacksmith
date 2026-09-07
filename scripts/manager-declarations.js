@@ -960,6 +960,18 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         ...shown.map(field => describe(field))
     ];
 
+    // HOUSE STYLE FOR GENERATED PROSE, stated once for every profile any module
+    // declares. A satellite can keep its own guidance clean and still receive a
+    // payload full of em dashes, because nothing it writes reaches the model doing
+    // the generating -- this text does. Per-module would be four modules writing the
+    // same sentence and a fifth forgetting.
+    //
+    // It sits beside the schema rather than in a `.txt` because a satellite's profile
+    // has no `.txt`: its whole prompt is derived from its declaration, right here.
+    sections.push('', 'WRITING STYLE -- applies to every string you produce', '',
+        '- Do not use em dashes. Use a comma, a colon, or a full stop instead.',
+        '- Write plainly. Do not pad a field to look thorough.');
+
     const sentences = authoringRuleSentences(declaration, options);
     if (sentences.length) {
         sections.push('', 'RULES -- output that breaks one of these is rejected on import', '',

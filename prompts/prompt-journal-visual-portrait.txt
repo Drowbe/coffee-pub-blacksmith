@@ -2,7 +2,7 @@
 PORTRAIT IMAGE (CHARACTER / NPC)
 ========================================
 
-Composed with **JOURNAL IMAGE — CORE** above (expectations only). **All style rules for this image type are in this profile.**
+Composed with **JOURNAL IMAGE -- CORE** above (expectations only). **All style rules for this image type are in this profile.**
 
 This is for a Dungeons and Dragons campaign.
 
@@ -47,7 +47,7 @@ Do not alter framing or camera angle.
 
 
 --------------------------------
-STYLE RULES (PORTRAIT — FULL)
+STYLE RULES (PORTRAIT -- FULL)
 --------------------------------
 
 Painterly ink-and-wash illustration style with visible hand-drawn linework, sketch-like outlines, and textured brush strokes. Strong pen lines define facial structure, wrinkles, scars, and anatomy. Subtle cross-hatching and loose ink strokes remain visible.
@@ -67,4 +67,4 @@ ASPECT RATIO
 - Square canvas only
 - Single character only
 
-Optional: the user may paste narrativecard **description** or conversation context below for additional character detail — do not contradict prefilled facets unless the user asks to revise them.
+Optional: the user may paste narrativecard **description** or conversation context below for additional character detail -- do not contradict prefilled facets unless the user asks to revise them.

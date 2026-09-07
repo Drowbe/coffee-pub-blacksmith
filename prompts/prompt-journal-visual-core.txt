@@ -1,5 +1,5 @@
 ========================================
-JOURNAL IMAGE — CORE (PORTRAIT COPY)
+JOURNAL IMAGE -- CORE (PORTRAIT COPY)
 ========================================
 
 Shared expectations for **Portrait Image** copy (composed with the portrait profile below). Illustration Image uses its own self-contained prompt.
