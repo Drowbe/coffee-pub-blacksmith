@@ -110,6 +110,11 @@ function editDistanceWithin(a, b, budget) {
     return previous[b.length] <= budget;
 }
 
+/** The directory part of a path-shaped value, or '' when it has none. */
+function suppliedDirOf(value) {
+    return looksLikePath(value) ? value.slice(0, value.lastIndexOf('/')) : '';
+}
+
 /** The meaningful words in a path or a description, lowercased. */
 function tokenise(value) {
     return String(value ?? '')
@@ -296,20 +301,74 @@ export async function resolveImagePath(supplied, { roots = [], fallback = '', la
     // Its own directory is browsed before any root, because that is one request and
     // walking `icons/` is thousands. Almost every value reaching here is already
     // correct, and the correct ones must not pay for the broken ones.
+    // DEDUPLICATED, because the supplied directory is usually INSIDE a declared root and
+    // would otherwise be walked twice. Two consequences, both silent:
+    //
+    // The same file scored twice produced two entries with identical scores, so the
+    // ambiguity flag was true for every winner that sat in the supplied directory -- it
+    // was tying with itself. That is why a four-word exact match still reported "another
+    // candidate scored as well", spotted by a consumer reading one line of a live import
+    // log on a resolution that was otherwise correct.
+    //
+    // And every token in the supplied directory was counted twice in the frequency map,
+    // so the rarity weighting believed those words were half as distinctive as they are.
+    // Quiet, corpus-dependent, and exactly the sort of thing that shows up as a couple of
+    // unexplained percent in an accuracy measurement.
+    const seen = new Set();
     const catalogs = [];
+    const add = (files) => {
+        for (const file of files) {
+            if (seen.has(file)) continue;
+            seen.add(file);
+            catalogs.push(file);
+        }
+    };
+
     if (looksLikePath(wanted)) {
         const ownDir = wanted.slice(0, wanted.lastIndexOf('/'));
         const siblings = await filesUnder(ownDir);
         if (siblings.includes(wanted)) return wanted;
-        catalogs.push(...siblings);
+        add(siblings);
     }
 
-    for (const root of roots) catalogs.push(...await filesUnder(root));
+    for (const root of roots) add(await filesUnder(root));
 
     // TWO SHARED TOKENS MINIMUM, applied inside `bestMatch` as a filter on every
     // candidate rather than as a test on the one that wins. One token is noise: every
     // wound icon shares `injury`, so a single-token match returns an arbitrary member of
     // a large set while looking deliberate. Below the bar the fallback is more honest.
+    // AN EXACT FILENAME ANYWHERE BEATS ANY SCORE. The generator got the name right and
+    // the folder wrong, which is a solved problem the moment it is recognised rather than
+    // scored: token overlap can and did prefer a differently-named file in a better
+    // position over an identically-named one elsewhere. Measured over 76 paths whose
+    // directory was corrupted and filename kept, both failures were this and nothing else.
+    //
+    // It changes no case that currently succeeds: an exact filename already wins on score
+    // in every one of them, so the rule only decides the cases where it loses.
+    //
+    // Preferring the supplied directory among equals matters because a name can repeat
+    // across families -- `bolt-blue.webp` under `magic/lightning` and `magic/air` are
+    // different pictures, and the folder the author wrote is the only thing distinguishing
+    // them.
+    if (looksLikePath(wanted)) {
+        const askedFile = wanted.split('/').pop();
+        const identical = catalogs.filter(path => path.split('/').pop() === askedFile);
+        if (identical.length) {
+            const preferred = identical.find(path => suppliedDirOf(wanted)
+                && path.startsWith(`${suppliedDirOf(wanted)}/`)) ?? identical[0];
+            if (identical.length > 1) {
+                postConsoleAndNotification(MODULE.NAME,
+                    `Import: ${label} "${wanted}" does not exist, but ${identical.length} files share `
+                    + `its name. Using "${preferred}".`, '', false, false);
+            } else {
+                postConsoleAndNotification(MODULE.NAME,
+                    `Import: ${label} "${wanted}" does not exist; the same filename does, at `
+                    + `"${preferred}". Using it.`, '', false, false);
+            }
+            return preferred;
+        }
+    }
+
     // TOKENISED FROM THE FILENAME, matching how candidates are tokenised.
     //
     // This passed the whole path while candidates were reduced to their basename, so
@@ -324,7 +383,7 @@ export async function resolveImagePath(supplied, { roots = [], fallback = '', la
     // bonus below, which is where it was always meant to act. Spending it twice, once as a
     // coincidence against filenames, is the defect. Found by a consumer who read both call
     // sites rather than the behaviour.
-    const suppliedDir = looksLikePath(wanted) ? wanted.slice(0, wanted.lastIndexOf('/')) : '';
+    const suppliedDir = suppliedDirOf(wanted);
     const match = bestMatch(catalogs, tokenise(wanted.split('/').pop()), suppliedDir);
     if (match) {
         if (match.path !== wanted) {

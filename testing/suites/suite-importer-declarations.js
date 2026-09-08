@@ -1880,6 +1880,15 @@ export default {
                 expect.ok('a description resolves to something under the declared root',
                     typeof described === 'string' && described.length > 0);
 
+                // THE OTHER FAILURE AXIS: the filename is right and the FOLDER is wrong,
+                // which is the more common generator mistake and was not covered until a
+                // consumer measured it. An exact filename anywhere beats any token score,
+                // because token overlap can otherwise prefer a differently-named file in a
+                // better-scoring position over an identically-named one elsewhere.
+                const misfiled = `icons/magic/earth/${real.split('/').pop()}`;
+                expect('a right filename under a wrong folder resolves to the real file',
+                    await build(misfiled), real);
+
                 // A miss lands on the declared default. Never a dead path, never a refusal:
                 // wrong art is cosmetic, a record that failed to import is a missing mechanic.
                 expect('nonsense falls back to the declared default',

@@ -301,6 +301,34 @@ then correctly predicted 307 from that. The failure mode is not the arithmetic -
 count makes a genuine regression look like sloppy counting, so the next red gets explained away instead of
 read.
 
+### A broken instrument does not mean a worthless signal
+
+The image resolver's ambiguity flag was reported as firing on 79% of resolutions, then withdrawn by the
+consumer reporting it: their capture had matched a word the message never used, so they had already
+produced one false number from it and concluded the whole signal was noise.
+
+It was not. The flag was firing on nearly everything because the candidate pool contained every file in
+the supplied directory twice, so the winner tied with ITSELF -- a real defect that also double-counted
+those tokens in the rarity weighting. It was found only because they kept quoting the raw log line from
+the other module's output while distrusting their own count of it.
+
+The correction is narrower than "trust your instrument", and the consumer stated it better than the
+incident does: distrusting a demonstrably broken instrument is right; concluding that the SIGNAL is
+worthless because your reading of it was is the error. Report the raw observation and withdraw the
+derived number.
+
+### Cheap measurement beats a plausible assumption
+
+Both parties believed the directory was the weaker of the two failure axes for image resolution. Nobody
+had grounds; it simply sounded right, and effort was about to go there. The measurement was cheap enough
+to run anyway and said the two axes were equal at 97% -- and the axis that had NOT been suspected turned
+out to have a one-line fix taking it to 100%, while the suspected one was already as good as it was
+going to get.
+
+The general form: an assumption about where a system is weak is a hypothesis, and it is usually cheaper
+to measure than to act on. What protected this feature was not better judgement about which axis
+mattered, it was that measuring both cost less than optimising one.
+
 ### A checker cannot see an exemption it never exercises
 
 The registry exempted any top-level field with nested shape from needing a document path, so such a field
@@ -394,6 +422,35 @@ makes it work.
 Deliberately not built. An affordance with no user is the defect that got `rendered` deleted, and this one
 cannot be judged without a generation run, because the only measure of a prompt is what a generator produces
 from it.
+
+## Correct for one consumer is not correct
+
+A mechanism built while one module used it encodes assumptions that only the second module can
+falsify, and this seam produced four in a week. None was a slip; each was a reasonable design whose
+uniqueness assumption was invisible until something violated it.
+
+- **A prompt field id is not unique in the DOM.** `composePromptFields` deliberately does not claim an
+  id across profiles, because two profiles each asking their own `severity` is correct when only one is
+  selected at a time. With four declared profiles there are four `[data-prompt-field="count"]` inputs,
+  all but one hidden and each carrying the prefill its own profile declared. Both the read and the write
+  path picked by POSITION -- first in markup order, and later last -- and neither is reliably the one the
+  author typed into. The symptom was a prefill arriving as an answer with nothing missing and nothing to
+  warn about. Visibility is the discriminator, because it is what the window's own visibility pass uses.
+- **A template key routed to a default.** Four literal comparisons and then `area` for everything else,
+  which was right while `area` was the only declared journal profile and silently wrong for every
+  satellite afterwards.
+- **A folder came from a field named by convention.** Fine while the only profiles were ours and all
+  declared it; invisible to the first consumer who did not know the key existed.
+- **An assertion counted the shipped profiles.** True until a satellite registered one, then failing
+  because the mechanism worked.
+
+The shared shape: **a rule that reads as a fact about the data is often a fact about the population.**
+"Ids are unique", "the fallback is area", "profiles declare `foldername`", "there are three journal
+profiles" were all true statements about a world with one consumer in it.
+
+The practical form, since the second consumer is not usually available to ask: when a lookup can return
+more than one thing, decide which one deliberately rather than taking the first; and when a default
+exists, check whether it is a real default or the only case that had been written yet.
 
 ## Two readers of one contract is the recurring defect
 

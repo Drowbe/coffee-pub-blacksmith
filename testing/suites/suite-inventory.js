@@ -164,14 +164,45 @@ async function countWrites(actors, fn) {
         // Filtering cannot hide a batching regression: an unbatched Item delete is still an
         // Item delete and still counts. `other` is logged beside the total so a surprise
         // there is visible rather than silently dropped.
-        counts.set(actor.id, { create: 0, update: 0, delete: 0, other: 0 });
+        counts.set(actor.id, { create: 0, update: 0, delete: 0, other: 0, foreign: 0, calls: [] });
         for (const method of ['createEmbeddedDocuments', 'updateEmbeddedDocuments', 'deleteEmbeddedDocuments']) {
             const original = actor[method].bind(actor);
             restore.push(() => { delete actor[method]; });
             actor[method] = (...args) => {
                 const entry = counts.get(actor.id);
-                if (args[0] === 'Item') entry[method.replace('EmbeddedDocuments', '').toLowerCase()]++;
-                else entry.other++;
+                const size = Array.isArray(args[1]) ? args[1].length : -1;
+                // A CALL THAT WRITES NOTHING IS NOT A WRITE, and this is not pedantry:
+                // chris-premades reacts to each of our item deletions by issuing its own
+                // `deleteEmbeddedDocuments('Item', [])` with an EMPTY array. Three of them
+                // per transfer, on the source actor, inside our timing window. They cost no
+                // round trip and cause no encumbrance recompute, but they were counted, and
+                // a correct two-write transfer therefore reported five.
+                //
+                // The contract is about the writes THIS module makes and the recomputes they
+                // provoke. Another module's no-ops are neither, and we do not get to stop it
+                // making them. Recorded as `foreign` so they stay visible rather than being
+                // silently discarded -- if that count ever grows, or those arrays stop being
+                // empty, this is where it shows.
+                if (size === 0) {
+                    entry.foreign++;
+                } else if (args[0] === 'Item') {
+                    entry[method.replace('EmbeddedDocuments', '').toLowerCase()]++;
+                } else {
+                    entry.other++;
+                }
+                // EVERY CALL RECORDED, with its size and the frame that made it.
+                //
+                // A count alone said four Item deletes for three whole takes, and the code
+                // has exactly one batched delete in it. Reading further could not settle
+                // which was lying, and two rounds of reasoning about a contradiction like
+                // that produced wrong answers earlier in this work. The caller frame turns
+                // it into a fact: either the batch is being split somewhere, or something
+                // outside the transfer is deleting on this actor while it runs.
+                const frame = (new Error().stack ?? '').split('\n')
+                    .map(one => one.trim())
+                    .filter(one => one.startsWith('at ') && !one.includes('suite-inventory'))[1] ?? '?';
+                entry.calls.push(`${method.replace('EmbeddedDocuments', '')}(${args[0]}, `
+                    + `${Array.isArray(args[1]) ? args[1].length : '?'}) <- ${frame}`);
                 return original(...args);
             };
         }
@@ -187,6 +218,9 @@ async function countWrites(actors, fn) {
 /** Total writes recorded for one actor. */
 function totalWrites(counts, actor) {
     const entry = counts.get(actor.id) ?? {};
+    // `other`, `foreign` and `calls` are diagnostics and are deliberately not counted:
+    // the contract is about the Item writes this module makes, not about non-Item writes
+    // or another module's empty reactions to ours.
     return (entry.create ?? 0) + (entry.update ?? 0) + (entry.delete ?? 0);
 }
 
@@ -1362,8 +1396,14 @@ export default {
                         sourceActorUuid: corpse.uuid, targetActorUuid: looter.uuid, items
                     }));
 
-                    log(`source writes: ${JSON.stringify(counts.get(corpse.id))}`);
-                    log(`target writes: ${JSON.stringify(counts.get(looter.id))}`);
+                    const src = counts.get(corpse.id);
+                    const tgt = counts.get(looter.id);
+                    log(`source writes: create=${src.create} update=${src.update} delete=${src.delete} `
+                        + `other=${src.other} foreign-noop=${src.foreign}`);
+                    for (const call of src.calls) log(`  source call: ${call}`);
+                    log(`target writes: create=${tgt.create} update=${tgt.update} delete=${tgt.delete} `
+                        + `other=${tgt.other} foreign-noop=${tgt.foreign}`);
+                    for (const call of tgt.calls) log(`  target call: ${call}`);
                     expect('every entry succeeded', value.ok, true);
                     expect.ok('source took at most two writes for five items', totalWrites(counts, corpse) <= 2);
                     expect.ok('target took at most two writes for five items', totalWrites(counts, looter) <= 2);

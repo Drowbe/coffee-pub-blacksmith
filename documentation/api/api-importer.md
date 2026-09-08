@@ -159,6 +159,19 @@ Other field properties:
 - `requiresWhen: 'otherField:value'` -- gate on another FIELD's value.
 - `fields` -- a nested declaration for object and array-of-object fields. Nested fields are validated exactly as top-level ones are, to any depth, and an error names its own path (`sidekick.role`, `results[2].resultType`). The template's worked example is derived from the same declaration, so the example cannot drift from what validation accepts.
 
+### A concrete example in `guidance` is read as the answer
+
+`guidance` is one sentence and a generator treats it as instruction, so naming a specific VALUE there
+tends to produce that value rather than that shape. A consumer put a real icon path in an image field's
+guidance as an illustration and got the same dagger on two quite different records, because the example
+read as the answer rather than the format.
+
+Say what the field IS and, where a format needs showing, choose an illustration nothing would plausibly
+want: `such as 1d8` is safe for damage dice because the value is dictated by the item, while a complete
+file path or a full sentence of prose is not. If you need a starting value rather than a description,
+that is what `example` is for -- it goes in the template, where an author edits it, instead of into the
+prompt where a model obeys it.
+
 ### Images: resolve what the generator wrote
 
 A field carrying an image path can declare `transform: 'resolveImage'`, and Blacksmith turns whatever was
