@@ -153,7 +153,7 @@ Recognising damage cannot rely on `dnd5e.roll.type` or on "no d20 anywhere on th
 activity card the first describes the card as a usage and the second is false, because the attack's d20
 is sitting beside the damage. The rolls themselves are the evidence, which is what `isDamageRoll` tests.
 
-## Dedupe is per lane, and the lanes must agree
+## Dedupe is per consumer, and within a consumer the lanes must agree
 
 `stats-combat.js` and `stats-player.js` consume the same messages independently and reach different
 storage — the combat accumulator and the lifetime actor flags. Both therefore need the same correlation

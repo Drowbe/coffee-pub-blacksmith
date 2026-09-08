@@ -213,21 +213,43 @@ const outcome = rolls.classify({ workflow, attackRoll });
 |---|---|---|
 | `ChatMessage` (skill-check card) | `tokenId` — which row to classify | `skillCheck` outcome or `null` |
 | `ChatMessage` (attack) | — | `attack` outcome or `null` |
-| Foundry `Roll` or plain result object | `dc`, `actorId`, `tokenId`, `critMode` | `roll` outcome |
-| `{ workflow, attackRoll }` | `critMode` | `attack` outcome or `null` |
+| Foundry `Roll` or plain result object | `dc`, `actorId`, `tokenId` | `roll` outcome |
+| `{ workflow, attackRoll }` | — | `attack` outcome or `null` |
 
 ### `extractActiveD20(rollOrResult)`
 
 Returns the kept d20 face (handles advantage/disadvantage). Shared helper for custom modules.
 
-### Crit mode
+### How crit and fumble are decided
 
-| `critMode` | Behavior |
+**There is no option for this, and the one that used to exist was removed.** The rule is whatever the
+roll itself declared, not a caller's preference, so a critical means the same thing to every consumer of
+`blacksmith.rolls.*`.
+
+Three sources, in order:
+
+1. A live dnd5e roll answering `isCritical` / `isFumble`. dnd5e computes `total >= options.criticalSuccess`,
+   and that threshold is stamped onto the die from the activity, which is how a widened critical range
+   reaches a roll at all.
+2. Failing that, the `criticalSuccess` / `criticalFailure` still carried on a **serialized** roll's d20
+   term. Most rolls reach us this way, through a flag or a socket.
+3. Natural 20 / natural 1, only for a roll that declared no threshold.
+
+A midi workflow's own crit flags are additionally honoured where present, because a workflow can know
+things the dice cannot — an effect that made a hit critical without a natural 20.
+
+**`critMode` on the payload REPORTS which rule applied.** It is an output, never an input:
+
+| Value | Meaning |
 |---|---|
-| `'natural'` (default) | Crit = 20, fumble = 1 on active d20 |
-| `'system'` | Crit uses dnd5e crit threshold when available; fumble = 1 |
+| `'declared'` | The roll stated a threshold and it was used |
+| `'natural'` | The roll stated none, so nat 20 / nat 1 |
+| `'workflow'` | The verdict came from a midi-qol workflow |
 
-MIDI/system attack rolls may also set `isCritical` / `isFumble` from workflow or roll flags before nat-20 fallback.
+The removed input was called `critMode: 'system'`, and the name is not reused for a reported value on
+purpose: doing so read as the option having survived and misled a consuming module on first contact. It
+read `CONFIG.DND5E.critical.threshold`, a global, which is not where a character's threshold lives, so it
+would not have worked even if anything had called it. Nothing did.
 
 ## Request a Roll (related, not replaced)
 

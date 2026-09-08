@@ -276,6 +276,25 @@ promptFields: [
 
 The author's answers arrive in the `promptOptions` your `onBuildPrompt` already receives, keyed by `id`.
 
+**If your profile has no `onBuildPrompt` -- which is the normal case for a declared profile, since
+Blacksmith derives the prompt from the declaration -- the answers reach the generated text on their own,
+and how depends on the id:**
+
+- **An id matching a declared field's `name` becomes a CONSTRAINT on that field.** The prompt states it
+  as a fixed value and the JSON template carries the same value, so the two cannot disagree. Use this
+  where the answer decides something structural: a `severity` or `category` that selects the destination
+  journal is not a preference, and a generator treating it as one files pages in the wrong place.
+- **Any other id is quoted in the author's own words**, using the label the control showed -- `How many:
+  2`. Nothing in the format claims to know that "how many" means records rather than a field, so say what
+  you mean in the label.
+- **An unanswered field contributes nothing.** A default presented to a generator as a choice cannot be
+  told apart from one the author made.
+
+**`value` is a prefill, and an untouched prefill IS the answer.** It is rendered into the control, so if
+the author does not change it, that is what they submitted and that is what the prompt will say. Use it
+for a value that is genuinely the common case, not as an illustration of the format -- the format belongs
+in `hint`.
+
 | Key | |
 |---|---|
 | `id`, `label` | Required. `id` must be unique within the profile. |

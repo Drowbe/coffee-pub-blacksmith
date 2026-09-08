@@ -78,20 +78,30 @@ Effect names and statuses are returned by the normalization API, but description
 
 ## Expiry arbitration
 
-Foundry core does not expire effects. Times Up does, and it is optional. That left every consuming module
-with three moves and no correct one:
+Neither Foundry core nor dnd5e expires effects — dnd5e 5.3.3 carries no expiry code at all. Something has
+to, or every timed effect in a world lingers forever, so **Blacksmith does, in every configuration.**
 
-| A satellite could | Result |
-|---|---|
-| Always delete on expiry | Races Times Up wherever it is installed |
-| Never delete on expiry | Effects linger forever in worlds without it |
-| Check whether Times Up is installed and defer | Forbidden — a satellite branching on a third-party module |
+**It used to yield to Times Up and no longer does (2026-09-04).** That was the shape where our own sweep
+stopped because another module's might run, and if the module we deferred to did not run, nothing expired
+anything. It was also a functional tie to a module that is now retired: Times Up ships no Foundry v14
+version, so a Blacksmith that only swept when Times Up was present would have silently stopped expiring
+anything the day a table upgraded.
 
-**The loser of that race cannot even fail quietly.** Foundry notifies from inside the socket response
-handler — `SocketInterface.#handleError` calls `ui.notifications.error` *before* `reject`
-(`client/helpers/socket-interface.mjs`) — so a caller's `catch` is strictly too late, and a pre-flight
-existence check only narrows the window rather than closing it. Arbitration therefore has to live in the
-one layer permitted to know Times Up is there, which is this one.
+**The loser of the race cannot fail quietly, which is why the sweep waits rather than hurries.** Foundry
+notifies from inside the socket response handler — `SocketInterface.#handleError` calls
+`ui.notifications.error` *before* `reject` (`client/helpers/socket-interface.mjs`) — so a caller's `catch`
+is strictly too late. That is not hypothetical: with both sweepers live on v13, Blacksmith usually won and
+Times Up's unguarded delete produced red toasts at the GM, several per turn, observed 2026-09-06.
+
+`deleteExpired` therefore **waits a beat and re-reads before deleting**. If anything else got there we do
+nothing and nobody sees an error; if nothing did, the effect is still present and we remove it, which is
+the guarantee that made removing the yield safe. Winning was never the point — the effect has to go, and
+who removes it does not matter.
+
+That is a check on the WORLD'S STATE rather than on whether a module is installed, which is what keeps it
+inside TODO-GLOBAL Ground Rule 8. The same shape solves the defeated-status race in `manager-defeated.js`,
+and the general form is worth keeping: **the cure for an unsuppressable error raised inside someone else's
+code is not to be the one who loses the race.**
 
 `sweepExpired` runs on the GM only, on `updateWorldTime` and on combat turn/round changes, because seconds
 durations and rounds durations advance on different clocks and neither implies the other. The GM check
@@ -101,10 +111,9 @@ evaluates undefined on every client and registers nothing anywhere.
 Two separations are load-bearing:
 
 - **`blacksmith.effects.expired` means the clock ran out, not that the document is gone.** Removal is
-  carried by Foundry's own `deleteActiveEffect`, which fires whoever deleted. Keeping them apart is what
-  lets the layer yield deletion to Times Up without the event's meaning changing.
-- **Consumers must not delete on expiry.** Exactly one actor deletes in every configuration: Times Up when
-  it is present and the integration is on, this layer otherwise.
+  carried by Foundry's own `deleteActiveEffect`, which fires for whoever deleted. Keeping them apart is
+  what lets another sweeper win the race without the event's meaning changing.
+- **Consumers must not delete on expiry.** One actor deletes, and it is this layer.
 
 Announced effects are remembered per session so the event fires once rather than on every subsequent tick;
 the record is dropped when the effect is deleted, so a re-applied effect can expire again.

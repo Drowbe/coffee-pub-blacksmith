@@ -222,6 +222,28 @@ rather than a behaviour difference, which is arguably what it should have been a
 **Verify:** an item payload naming a nonexistent icon imports with a real one or a declared default, and
 `construction-parity` still passes because the parser and the transform agree about what verification means.
 
+### The importer is absent from the README and from every user guide (opened 2026-09-08)
+
+`README.md` does not mention JSON import anywhere. The "What it does" list carries eight capabilities and
+this is not one of them, despite being a substantial GM feature: import for journals, items, actors and
+roll tables, derived authoring templates, and generated AI prompts. A GM reading the product page has no
+way to learn it exists.
+
+Deferred past this release by the author, along with the user guides it belongs beside -- see TODO-GLOBAL,
+"Write Blacksmith's user guides AFTER the satellites migrate", which already records that `userguide-gm.md`
+owes a JSON import section.
+
+The two are one piece of work rather than two: a README bullet says the feature exists, and the guide says
+how to use it. Worth writing them together so the bullet can point at the guide.
+
+**What the guide owes, gathered while the importer was rebuilt:** that Validate and Import are separate
+steps and why; what a template and a prompt each are for; that a re-import UPDATES rather than duplicates;
+and that a page lands in the WORLD first and the compendium second. That last one is not obvious and cost
+a sibling module real confusion -- their pages looked missing because the picker reads the compendium.
+
+**Verify:** a GM who has never used the importer can find it from the README and run one import from the
+guide alone.
+
 ### Five suite groups assert construction without validating the same shape
 
 `construction-parity`, `construction-errors`, `roundtrip-fixtures`, `field-group-value-gate`,
