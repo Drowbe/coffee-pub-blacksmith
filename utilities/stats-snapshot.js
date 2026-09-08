@@ -45,7 +45,7 @@
 
     if (!totals) {
         ui.notifications.error('Stats Snapshot: could not reach the combat statistics. Is trackCombatStats on?');
-        console.warn('BLACKSMITH | STATS SNAPSHOT no totals', { api: !!api, stats: !!stats });
+        console.warn('>>>> STATS could not reach the counters', { api: !!api, stats: !!stats });
         return;
     }
 
@@ -76,16 +76,26 @@
         } catch { return false; }
     })();
 
-    console.log(`BLACKSMITH | STATS SNAPSHOT (round ${combat.round}, midi lane ${midiOn ? 'ON' : 'off'})`);
+    // A MARKER THAT SURVIVES A BUSY CONSOLE. A live world logs steadily -- Curator
+    // swapping a dead token's image, Squire rebuilding a tray, midi narrating a
+    // workflow -- so a plain prefix is easy to lose by the time you scroll back. `>>>>`
+    // filters cleanly and matches nothing else in the suite.
+    const MARK = '>>>> STATS';
+    console.log(`${MARK} (round ${combat.round}, midi lane ${midiOn ? 'ON' : 'off'}) -- filter the console for: ${MARK}`);
     if (!previous) {
         console.table(now);
-        ui.notifications.info('Stats Snapshot: baseline taken. Make one attack, then run again.');
+        ui.notifications.info(`Baseline taken. Act, then run again. Console filter: ${MARK}`);
         return;
     }
 
     const delta = {};
     for (const key of Object.keys(now)) delta[key] = now[key] - previous[key];
     console.table({ before: previous, after: now, delta });
+
+    // The delta again as one line, because `console.table` does not survive being
+    // copied out of the console and pasting a table is how the numbers get mangled.
+    const moved = Object.entries(delta).filter(([, v]) => v !== 0);
+    console.log(`${MARK} DELTA: ${moved.length ? moved.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(', ') : 'nothing changed'}`);
 
     // ONLY `attempts` IS A RELIABLE DOUBLE-COUNT SIGNAL, and only against a known
     // number of swings.
@@ -100,7 +110,7 @@
     // So this states what was seen and leaves the judgement where it belongs. The
     // reader knows how many times they attacked; the macro does not.
     if (delta.attempts >= 2) {
-        console.warn(`BLACKSMITH | STATS SNAPSHOT attempts rose by ${delta.attempts}.`,
+        console.warn(`>>>> STATS attempts rose by ${delta.attempts}.`,
             `\n  Correct if you made ${delta.attempts} attack rolls (several rays, several swings).`,
             '\n  A DOUBLE COUNT if you made one. Attempts is per attack, never per target.');
         ui.notifications.warn(`Stats Snapshot: attempts +${delta.attempts}. Correct only if you attacked that many times.`);

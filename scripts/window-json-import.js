@@ -258,7 +258,11 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const field of this.promptFields) {
             const id = String(field?.id || '').trim();
             if (!id) continue;
-            const input = root.querySelector(`[data-prompt-field="${id}"]`);
+            // The VISIBLE control, for the reason given on `_activePromptFieldInput`.
+            // Reading the first in markup order wrote another profile's prefill over the
+            // author's answer, which is the same defect as the read path and had to be
+            // fixed in both: one restores the stale value the other just discarded.
+            const { input } = this._activePromptFieldInput(root, id);
             if (input) field.value = String(input.value ?? '').trim();
         }
 
@@ -598,6 +602,35 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
      *
      * @returns {Record<string, string>}
      */
+    /**
+     * The control the author is actually looking at for a prompt field id.
+     *
+     * IDS ARE NOT UNIQUE IN THE DOM, BY DESIGN. `composePromptFields` deliberately does
+     * not claim an id across profiles -- two profiles each asking their own `severity` is
+     * normal, because each is scoped to its own template and only one profile is selected
+     * at a time. So a kind with four declared profiles renders four inputs answering to
+     * `[data-prompt-field="count"]`, and all but one are hidden.
+     *
+     * Reading by position is therefore always wrong: `querySelector` takes the first in
+     * markup order and this used to read the last, and neither is reliably the one the
+     * author typed into. The symptom is a prefill arriving as if it were an answer, with
+     * nothing missing and nothing to warn about -- the element is found, it is simply the
+     * wrong element, still carrying the `value` its profile declared.
+     *
+     * Visibility is the discriminator because it is what the window itself uses:
+     * `_updatePromptFieldVisibility` sets `row.hidden`, so the control inside no hidden
+     * ancestor is the live one.
+     *
+     * @param {HTMLElement} root
+     * @param {string} id
+     * @returns {{input: HTMLElement|null, total: number, visible: number}}
+     */
+    _activePromptFieldInput(root, id) {
+        const matches = [...root.querySelectorAll(`[data-prompt-field="${id}"]`)];
+        const shown = matches.filter(one => !one.closest('[hidden]'));
+        return { input: shown[0] ?? null, total: matches.length, visible: shown.length };
+    }
+
     _getPromptFieldState() {
         const state = {};
         const root = this.element;
@@ -613,23 +646,27 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const field of this.promptFields) {
             const id = String(field?.id || '').trim();
             if (!id) continue;
-            const matches = root.querySelectorAll(`[data-prompt-field="${id}"]`);
-            if (!matches.length) {
+            const { input, total, visible } = this._activePromptFieldInput(root, id);
+            if (!input) {
+                // Nothing VISIBLE. Either the field belongs to another profile, in which
+                // case it is not this prompt's question at all, or it is genuinely absent.
+                // Both mean the author did not answer it, and its declared prefill is not
+                // an answer they gave.
+                if (total) continue;
                 postConsoleAndNotification(MODULE.NAME,
                     `JSON import: prompt field "${id}" is declared but has no rendered control, `
                     + `so the author cannot have answered it. Omitted rather than substituting `
                     + `its declared value.`, '', false, false);
                 continue;
             }
-            // Two controls answering to one id is unresolvable rather than merely untidy:
-            // `querySelector` would silently pick whichever came first in the markup, which
-            // need not be the one the author typed into.
-            if (matches.length > 1) {
+            // Several controls for one id is expected across profiles and is not reported.
+            // Several VISIBLE at once is a real collision, and the pick is arbitrary.
+            if (visible > 1) {
                 postConsoleAndNotification(MODULE.NAME,
-                    `JSON import: prompt field "${id}" matches ${matches.length} rendered controls. `
-                    + `Reading the last one; ids must be unique.`, '', false, false);
+                    `JSON import: prompt field "${id}" has ${visible} controls visible at once. `
+                    + `Reading the first; ids must be unique within a template.`, '', false, false);
             }
-            state[id] = String(matches[matches.length - 1].value ?? '').trim();
+            state[id] = String(input.value ?? '').trim();
         }
         return state;
     }
