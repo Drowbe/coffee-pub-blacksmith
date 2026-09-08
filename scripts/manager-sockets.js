@@ -389,13 +389,13 @@ class SocketManager {
         // Sound: play with duration on all clients (each stops after duration)
         this.socket.register("playSoundWithDuration", (payload) => {
             if (payload?.sound != null && typeof payload.duration === 'number' && payload.duration > 0) {
-                playSoundLocalWithDuration(payload.sound, payload.volume ?? 0.7, payload.duration);
+                playSoundLocalWithDuration(payload.sound, payload.volume ?? 0.5, payload.duration);
             }
         });
         // Sound: start looping (stop via stopSoundByPath or stopSoundByKey when key is used)
         this.socket.register("playSoundLooping", (payload) => {
             if (payload?.sound != null) {
-                playSoundLoopingLocal(payload.sound, payload.volume ?? 0.7, payload.key ?? null);
+                playSoundLoopingLocal(payload.sound, payload.volume ?? 0.5, payload.key ?? null);
             }
         });
         this.socket.register("stopSoundByPath", (payload) => {

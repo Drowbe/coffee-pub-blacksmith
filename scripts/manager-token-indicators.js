@@ -1672,7 +1672,7 @@ export class TokenIndicatorManager {
             // from the same event, so broadcasting would double the sound
             const sound = this._bloodHitSound;
             if (sound && sound !== 'sound-none' && sound !== 'none') {
-                void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7, false, false);
+                void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.5, false, false);
             }
 
             const duration = 1100 + rand() * 400;

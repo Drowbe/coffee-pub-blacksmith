@@ -844,7 +844,7 @@ export function clamp(value, min, max) {
  * @param {number} duration - Seconds to play before stopping.
  * @returns {Promise<void>}
  */
-export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) {
+export async function playSoundLocalWithDuration(sound, volume = 0.5, duration) {
     if (!sound || sound === 'none' || sound === 'sound-none' || typeof duration !== 'number' || duration <= 0) return;
     try {
         const played = await foundry.audio.AudioHelper.play({
@@ -886,7 +886,7 @@ export async function playSoundLocalWithDuration(sound, volume = 0.7, duration) 
 const _loopingSoundsByPath = new Map(); // path -> Sound (single token / no key)
 const _loopingSoundsByKey = new Map();  // key (e.g. tokenId) -> Sound (multiple tokens)
 
-export async function playSoundLoopingLocal(sound, volume = 0.7, key = null) {
+export async function playSoundLoopingLocal(sound, volume = 0.5, key = null) {
     if (!sound || sound === 'none' || sound === 'sound-none') return;
     try {
         const pathNorm = (sound || '').replace(/\\/g, '/');
@@ -960,12 +960,12 @@ export function stopSoundByPathLocal(path) {
  * Play a sound that loops until stopped. Broadcasts to all other clients so everyone hears it;
  * call stopSoundByPath(path, true) or stopSoundByKey(key, true) to stop on all clients.
  * @param {string} sound - Path to the sound file.
- * @param {number} [volume=0.7] - Volume 0–1.
+ * @param {number} [volume=0.5] - Volume 0–1.
  * @param {boolean} [broadcast=true] - If true, other clients also start the loop.
  * @param {string} [key] - Optional key (e.g. tokenId) so multiple tokens can play at once; stop with stopSoundByKey(key, true).
  * @returns {Promise<void>}
  */
-export async function playSoundLooping(sound, volume = 0.7, broadcast = true, key = null) {
+export async function playSoundLooping(sound, volume = 0.5, broadcast = true, key = null) {
     if (!sound || sound === 'none' || sound === 'sound-none') return;
     if (sound === 'sound' || sound === 'undefined') return;
     try {
@@ -1031,7 +1031,7 @@ export async function stopSoundByPath(path, broadcast = true) {
 /**
  * Play a sound with specified path and volume.
  * @param {string} [sound='sound'] - The path to the sound file.
- * @param {number} [volume=0.7] - The volume of the sound (0 to 1).
+ * @param {number} [volume=0.5] - The volume of the sound (0 to 1).
  * @param {boolean} [loop=false] - Whether the sound should loop.
  * @param {boolean|object} [broadcast=true] - If true, plays for all clients. If false, plays only for the local client.
  *                                           Can also be an object to configure specific recipients.
@@ -1040,7 +1040,7 @@ export async function stopSoundByPath(path, broadcast = true) {
  *                              If broadcast is true, all clients stop after duration via socket.
  * @returns {Promise<void>}
  */
-export async function playSound(sound = 'sound', volume = 0.7, loop = false, broadcast = true, duration = 0) {
+export async function playSound(sound = 'sound', volume = 0.5, loop = false, broadcast = true, duration = 0) {
     if (sound === 'none' || sound === 'sound-none') return;
     
     // Safety check for undefined constants

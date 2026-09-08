@@ -173,7 +173,7 @@ export async function sendHurryUpNudge(targetName, targetActor, scope = 'direct'
                 speaker: ChatMessage.getSpeaker({ alias: game.user?.name })
             });
             if (soundPath) {
-                const volume = getSettingSafely(MODULE.ID, 'timerSoundVolume', 0.7);
+                const volume = getSettingSafely(MODULE.ID, 'timerSoundVolume', 0.5);
                 void playSound(soundPath, volume);
             }
         }

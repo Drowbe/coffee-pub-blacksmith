@@ -148,6 +148,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Found by instrumenting rather than reasoning: the counter now records every call with its size and calling frame, which named the module in one run after two rounds of reading the code had ruled out every explanation it could see. The check had been failing since the counter was written, and both earlier attempts to fix it -- scoping to `Item` writes, then re-reading the batching -- were aimed at the wrong half. **Verified:** headless 1437/1437 across 19 suites on 2026-09-08, inventory 258/258.
 
+- **The contested-roll result sound played louder than everything around it** (`scripts/manager-rolls.js`, `scripts/api-core.js`, and seven other call sites). A cinematic contested roll ends on `SOUNDVERSUS`, played with `COFFEEPUB.SOUNDVOLUMELOW` -- a constant that does not exist. `resources/config-volumes.json` defines MAX, LOUD, NORMAL and SOFT and nothing else, so the value was `undefined`, which triggered `playSound`'s default parameter and played the loudest moment of the roll at 0.7 while the success and failure sounds beside it played at 0.5. Reported from play as incredibly loud, which is exactly what it was.
+
+  **The default is now 0.5 across the sound API**, matching `SOUNDVOLUMENORMAL` rather than sitting above it. Every fallback moved with it: the four `playSound*` signatures, the two socket handlers, `ManagerUtilities.playSound`, the four `?? 0.7` guards written beside `SOUNDVOLUMENORMAL` (which is 0.5, so the guard contradicted the value it guarded), and the timer notification's setting fallback, whose registered default was already 0.5.
+
+  A missing constant reads as `undefined` and a default parameter quietly supplies a number, so nothing throws and nothing logs: the only symptom is a sound at the wrong volume, and only in the one path that named the constant wrong. A comment in `utility-asset-lookup.js` records the same class biting before, when `SOUNDVOLUMENORMAL` resolved to an id string instead of a number.
+
+  **`tools/check-coffeepub-constants.mjs` is new** and makes the class checkable rather than remembered. It reads the same JSON the runtime reads instead of keeping its own list -- a checker with a private copy of the answer is the defect it exists to catch, one layer up -- and it enforces both halves: a name nothing defines, and a numeric fallback that disagrees with the constant it stands in for. 75 references against 201 defined constants. Proved by injecting each fault and watching it exit non-zero.
+
 ### Removed
 
 - **`prompts/archive/` is deleted** (12 files). Nothing referenced the directory -- not `module.json`, not a single line of `scripts/` -- so it shipped in every release zip as text no code could reach. It surfaced while counting em dashes: 39 of them lived there, which is 39 instances of a style problem in files that cannot have one, because nothing reads them.

@@ -482,7 +482,7 @@ class ToastManager {
             requestAnimationFrame(() => toast.element.classList.add('visible'));
 
             if (sound && sound !== 'sound-none') {
-                void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7, false, false);
+                void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.5, false, false);
             }
 
             if (duration > 0) {

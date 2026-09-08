@@ -228,7 +228,7 @@ async function menuViewHealth(side, label) {
 }
 
 export class CombatBarManager {
-    static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7) {
+    static playUiSound(soundPath, volume = window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.5) {
         try {
             if (!soundPath) return;
             playSound(soundPath, volume, false, false);

@@ -2102,7 +2102,13 @@ export async function updateCinemaOverlay(rollResults, context) {
                     const resolvedGroupSound = await resolveRequestRollSound(
                         flags.contestedRoll ? 'SOUNDVERSUS' : resultClass === 'success' ? 'SOUNDSUCCESS' : resultClass === 'failure' ? 'SOUNDFAILURE' : 'SOUNDVERSUS'
                     );
-                    if (resolvedGroupSound) playSound(resolvedGroupSound, COFFEEPUB.SOUNDVOLUMELOW);
+                    // SOUNDVOLUMENORMAL, and the name matters: `COFFEEPUB.SOUNDVOLUMELOW`
+                    // was read here and no such constant exists. `resources/config-volumes.json`
+                    // defines MAX, LOUD, NORMAL and SOFT only, so this resolved to `undefined`,
+                    // which triggered `playSound`'s default parameter and played the contested
+                    // result LOUDER than the success and failure sounds beside it rather than
+                    // quieter. Reported from play as "incredibly loud".
+                    if (resolvedGroupSound) playSound(resolvedGroupSound, COFFEEPUB.SOUNDVOLUMENORMAL);
                     fadeOutAndRemove(groupResultsTime);
                 };
 

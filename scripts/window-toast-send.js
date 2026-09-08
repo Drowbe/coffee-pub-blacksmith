@@ -722,7 +722,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     _previewSound() {
         const sound = this._getRoot()?.querySelector('[name="toast-sound"]')?.value;
         if (!sound || sound === 'sound-none') return;
-        void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.7, false, false);
+        void playSound(sound, window.COFFEEPUB?.SOUNDVOLUMENORMAL ?? 0.5, false, false);
     }
 
     _clearImage(inputName) {
