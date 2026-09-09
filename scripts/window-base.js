@@ -232,6 +232,11 @@ export class BlacksmithWindowBaseV2 extends HandlebarsApplicationMixin(Applicati
     }
 
     setPosition(position = {}) {
+        // Core's `#applyPosition` reads `this.element.style` with no guard, so a call after the frame
+        // is gone throws `Cannot read properties of null (reading 'style')`. That is reachable: the
+        // restore below is deferred to an animation frame, and a window closed inside that frame --
+        // opened and dismissed quickly, or closed by code -- lands here with no element.
+        if (!this.element) return undefined;
         const result = super.setPosition(position);
         clearTimeout(this._positionSaveTimer);
         this._positionSaveTimer = setTimeout(() => this._saveWindowPosition(), 250);
