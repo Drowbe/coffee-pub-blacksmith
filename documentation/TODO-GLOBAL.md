@@ -1855,6 +1855,46 @@ conversion.
 **Remaining:** Merchant adopts it and reports back; delete this entry when they have. Worth telling Curator
 too -- loot generation is the same question.
 
+## Campaign manager and backup (raised by the author 2026-09-09)
+
+**Everything about running a campaign's content is manual today.** Updating campaign compendiums, moving
+world content in and out of packs, and keeping any kind of backup are all hand work, done by the author,
+with no tooling and no record of what changed. The ask is a **campaign manager** that makes those routine,
+plus a **backup** path so the campaign is recoverable.
+
+**This is not hypothetical maintenance -- there is currently no backup at all.** The `Drowbe/Burden-of-Knowledge`
+GitHub repo was deleted 2026-07-16 (see Done, last entry: public, 1.29 GB, redistributing subscription
+assets -- deleting it was correct and is not to be undone). It had also stopped functioning as a backup
+well before that: last push 2026-02-27 against roughly 350 uncommitted local changes. The author moves
+data over the network now. So the live campaign -- 1.4 GB, 27 declared packs, 199 roll tables, the actual
+game -- has no off-machine copy and no restore story. That is the part with a deadline attached to it,
+and it is worth separating from the convenience half of the request.
+
+**Scope, unscoped -- these are the questions to settle before any of it is built:**
+
+- **Where does it live?** Almost certainly NOT Blacksmith. The direction of travel is features moving OUT
+  of the hub, and this is a large feature with its own UI. Vault is the nearest existing name but Vault is
+  asset DELIVERY ("optional assets for the suite"), a different job -- do not fold it in there by name
+  association. A new module is the likely answer; that is the author's call, not one to assume.
+- **Backup of what, to where?** The packs, the world's own documents, or both? Local copy, a private remote,
+  or an export the author moves himself? Note the licence constraint that killed the last one: a
+  subscription grants the right to USE an asset, not to REDISTRIBUTE it, so anything that pushes assets to
+  a hosted remote has to be private and has to stay private. An asset-excluding backup of just the
+  structured content is a smaller, safer, and probably more useful first target.
+- **What does "manage world content" cover?** Pack round-tripping, bulk edits, moving documents between
+  world and compendium, diffing a pack against the world -- each is a separate feature and they do not all
+  have to ship together.
+
+**Related, and probably the same programme:** the world-hygiene tooling the author described 2026-07-19 --
+automated cleanup of Foundry artifacts, stale links, plain-text references that should be document links,
+schema-invalid enum values left by since-fixed tools. That work is captured under "Journal Tools -- de-clunk
+refactor" in `TODO.md` with a plan scaffold at `documentation/plans/plan-journal-tools-refactor.md`. A
+campaign manager that can see every document in a world is the natural host for those detectors, so scope
+the two together rather than building a second content-walking layer later.
+
+**Not started. Nothing is blocked on it and it blocks nothing** -- but the no-backup state is a standing
+risk that gets worse the longer the campaign runs.
+
 ## Open questions for Drowbe
 
 1. **Mirror scope** — all 48 docs, or only the consumer-facing API surface + README-as-Home?
