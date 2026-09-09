@@ -2347,7 +2347,7 @@ function _onRenderJournalDoubleClick(app, html, data) {
 Hooks.once('ready', () => {
     // Register journal hooks through HookManager only (avoids duplicate callbacks).
     HookManager.registerHook({
-        name: 'renderJournalSheet',
+        name: 'renderJournalEntrySheet',
         description: 'Blacksmith: Enable journal double-click editing for GMs',
         context: 'blacksmith-journal-double-click',
         priority: 3,
@@ -2356,7 +2356,7 @@ Hooks.once('ready', () => {
 
     // Register renderJournalPageSheet hook (fires when journal pages are switched in v13 ApplicationV2)
     HookManager.registerHook({
-        name: 'renderJournalPageSheet',
+        name: 'renderJournalEntryPageSheet',
         description: 'Blacksmith: Enable journal double-click editing for GMs (page-level)',
         context: 'blacksmith-journal-double-click-page',
         priority: 3,

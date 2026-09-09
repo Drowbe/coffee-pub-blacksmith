@@ -206,14 +206,14 @@ export class JournalPagePins {
         // HookManager only: avoids double-firing the same callback (previously also used Hooks.on here).
         this._hookManagerIds = [
             HookManager.registerHook({
-                name: 'renderJournalSheet',
+                name: 'renderJournalEntrySheet',
                 description: 'Blacksmith: add journal page pin control (entry sheet)',
                 context: 'journal-page-pins-sheet',
                 priority: 3,
                 callback: this._boundRenderSheet
             }),
             HookManager.registerHook({
-                name: 'renderJournalPageSheet',
+                name: 'renderJournalEntryPageSheet',
                 description: 'Blacksmith: add journal page pin control (page sheet)',
                 context: 'journal-page-pins-page',
                 priority: 3,

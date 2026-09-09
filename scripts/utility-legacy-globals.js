@@ -29,35 +29,53 @@ import { postConsoleAndNotification } from './api-core.js';
  * running client. It is a claim that the namespaced form on the right is the one to write.
  */
 export const LEGACY_GLOBALS = [
-    // foundry.utils -- namespaced in v11, and the family v14 actually removed.
-    { name: 'mergeObject', modern: 'foundry.utils.mergeObject' },
-    { name: 'duplicate', modern: 'foundry.utils.duplicate' },
-    { name: 'deepClone', modern: 'foundry.utils.deepClone' },
-    { name: 'diffObject', modern: 'foundry.utils.diffObject' },
-    { name: 'flattenObject', modern: 'foundry.utils.flattenObject' },
-    { name: 'expandObject', modern: 'foundry.utils.expandObject' },
-    { name: 'filterObject', modern: 'foundry.utils.filterObject' },
-    { name: 'getType', modern: 'foundry.utils.getType' },
-    { name: 'setProperty', modern: 'foundry.utils.setProperty' },
-    { name: 'getProperty', modern: 'foundry.utils.getProperty' },
-    { name: 'hasProperty', modern: 'foundry.utils.hasProperty' },
-    { name: 'invertObject', modern: 'foundry.utils.invertObject' },
-    { name: 'randomID', modern: 'foundry.utils.randomID' },
-    { name: 'isNewerVersion', modern: 'foundry.utils.isNewerVersion' },
+    // --- foundry.utils ---
+    ...['mergeObject','duplicate','deepClone','diffObject','flattenObject','expandObject','filterObject',
+        'getType','setProperty','getProperty','hasProperty','invertObject','randomID','isNewerVersion',
+        'benchmark','timeSince','formatFileSize','parseS3URL','getRoute','fetchWithTimeout',
+        'fetchJsonWithTimeout','debounce','throttle','deepFreeze','escapeHTML','logCompatibilityWarning',
+        'isEmpty','encodeURL','srcExists','saveDataToFile','readTextFromFile','Semaphore','Color',
+        'Collection','StringTree','WordTree','BitMask'].map(n => ({ name: n, modern: `foundry.utils.${n}` })),
 
-    // Constants and audio.
-    { name: 'CONST', modern: 'foundry.CONST' },
-    { name: 'AudioHelper', modern: 'foundry.audio.AudioHelper' },
+    // --- foundry.audio ---
+    ...['AudioHelper','Sound','AudioContainer'].map(n => ({ name: n, modern: `foundry.audio.${n}` })),
 
-    // Application V1 and friends.
+    // --- dice terms. `Roll` itself survives, which is what makes this family easy to miss. ---
+    ...['Die','DiceTerm','NumericTerm','OperatorTerm','PoolTerm','ParentheticalTerm','StringTerm',
+        'FunctionTerm','RollTerm','Coin','FateDie','MersenneTwister'].map(n => ({ name: n, modern: `foundry.dice.terms.${n}` })),
+
+    // --- Application V1 and the sidebar family ---
     { name: 'Application', modern: 'foundry.applications.api.ApplicationV2' },
     { name: 'FormApplication', modern: 'foundry.applications.api.ApplicationV2 + HandlebarsApplicationMixin' },
     { name: 'Dialog', modern: 'foundry.applications.api.DialogV2' },
+    { name: 'DocumentSheet', modern: 'foundry.applications.api.DocumentSheetV2' },
     { name: 'FilePicker', modern: 'foundry.applications.apps.FilePicker.implementation' },
     { name: 'TextEditor', modern: 'foundry.applications.ux.TextEditor.implementation' },
     { name: 'ContextMenu', modern: 'foundry.applications.ux.ContextMenu' },
-    { name: 'DragDrop', modern: 'foundry.applications.ux.DragDrop' }
+    { name: 'DragDrop', modern: 'foundry.applications.ux.DragDrop' },
+    { name: 'Tabs', modern: 'foundry.applications.ux.Tabs' },
+    { name: 'SearchFilter', modern: 'foundry.applications.ux.SearchFilter' },
+    ...['DocumentDirectory','SidebarTab','SidebarDirectory','PlayerList','PermissionConfig','WorldConfig',
+        'HeadsUpDisplay','TextureUtils'].map(n => ({ name: n, modern: `see foundry.applications.* / foundry.canvas.* for ${n}` }))
 ];
+
+/**
+ * Names confirmed ABSENT from `globalThis` on Foundry 14.367 (dnd5e 5.3.3), 2026-09-09.
+ *
+ * Recorded so the probe can report what a LATER generation removed on top of these, which is the
+ * question that actually matters when v15 lands. Not authoritative for any other version.
+ */
+export const REMOVED_IN_14_367 = new Set([
+    'mergeObject','duplicate','deepClone','diffObject','flattenObject','expandObject','filterObject',
+    'getType','setProperty','getProperty','hasProperty','invertObject','randomID','isNewerVersion',
+    'benchmark','timeSince','formatFileSize','parseS3URL','getRoute','fetchWithTimeout',
+    'fetchJsonWithTimeout','debounce','throttle','deepFreeze','escapeHTML','logCompatibilityWarning',
+    'isEmpty','encodeURL','Semaphore','StringTree','WordTree','BitMask','AudioHelper','Sound',
+    'AudioContainer','DocumentDirectory','SidebarTab','SidebarDirectory','PlayerList','PermissionConfig',
+    'WorldConfig','HeadsUpDisplay','Die','DiceTerm','NumericTerm','OperatorTerm','PoolTerm',
+    'ParentheticalTerm','StringTerm','FunctionTerm','RollTerm','Coin','FateDie','MersenneTwister',
+    'TextureUtils'
+]);
 
 /**
  * Probe the running client for every entry in {@link LEGACY_GLOBALS}.
@@ -76,11 +94,15 @@ export function probeLegacyGlobals() {
         (exists ? present : removed).push(row);
     }
 
+    // Anything removed that 14.367 still had is news: a later generation took it away.
+    const newlyRemoved = removed.filter(r => !REMOVED_IN_14_367.has(r.name));
+
     return {
         generation: game?.release?.generation ?? 'unknown',
         version: game?.version ?? game?.release?.version ?? 'unknown',
         present,
-        removed
+        removed,
+        newlyRemoved
     };
 }
 
@@ -118,6 +140,15 @@ export function showLegacyGlobals() {
  */
 export function reportLegacyGlobalsAtStartup() {
     const result = probeLegacyGlobals();
+
+    if (result.newlyRemoved.length) {
+        console.warn(
+            `[${MODULE.ID}] Foundry ${result.version} has removed ${result.newlyRemoved.length} global(s) that `
+            + `14.367 still had: ${result.newlyRemoved.map(r => r.name).join(', ')}. `
+            + 'This generation is newer than anything Blacksmith has been checked against. '
+            + 'Run blacksmithLegacyGlobals() and re-scan the suite for these names.'
+        );
+    }
 
     if (result.removed.length) {
         console.warn(

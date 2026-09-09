@@ -70,14 +70,14 @@ export class EncounterToolbar {
 
         this._coreHookIds = [
             HookManager.registerHook({
-                name: 'renderJournalSheet',
+                name: 'renderJournalEntrySheet',
                 description: 'Encounter Toolbar: Add encounter toolbars to journal sheets',
                 context: 'encounter-toolbar-journal',
                 priority: 3,
                 callback: this._onRenderJournalSheet.bind(this)
             }),
             HookManager.registerHook({
-                name: 'renderJournalPageSheet',
+                name: 'renderJournalEntryPageSheet',
                 description: 'Encounter Toolbar: Add encounter toolbars to journal pages (v13 ApplicationV2)',
                 context: 'encounter-toolbar-journal-page',
                 priority: 3,

@@ -32,17 +32,20 @@ export class HookManager {
         },
         renderJournalSheet: {
             since: 'v13',
-            replacement: null,
+            replacement: 'renderJournalEntrySheet',
             note: 'Journal sheets became ApplicationV2 (JournalEntrySheet), so the v12 class name never '
-                + 'fires. For header-bar entries use getHeaderControlsJournalEntrySheet -- verified live '
-                + 'on 14.364; scripts/manager-journal-tools.js is a working example.'
+                + 'fires. Verified by instrumenting Hooks.callAll on 14.367 while opening a journal: the '
+                + 'names that fire are renderJournalEntrySheet, renderJournalEntryPageSheet and '
+                + 'getHeaderControlsJournalEntrySheet. THE ARGUMENTS DIFFER -- the ApplicationV2 hook '
+                + 'passes a native HTMLElement where the V1 one passed jQuery.'
         },
         renderJournalPageSheet: {
             since: 'v13',
-            replacement: null,
+            replacement: 'renderJournalEntryPageSheet',
             note: 'Journal sheets became ApplicationV2 (JournalEntrySheet), so the v12 class name never '
-                + 'fires. For header-bar entries use getHeaderControlsJournalEntrySheet -- verified live '
-                + 'on 14.364; scripts/manager-journal-tools.js is a working example.'
+                + 'fires. Verified by instrumenting Hooks.callAll on 14.367 while opening a journal. '
+                + 'THE ARGUMENTS DIFFER -- the ApplicationV2 hook passes a native HTMLElement where the '
+                + 'V1 one passed jQuery.'
         }
     };
 
