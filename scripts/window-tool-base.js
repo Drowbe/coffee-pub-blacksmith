@@ -368,13 +368,24 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
             });
         }
 
-        for (const control of super._getHeaderControls?.() ?? []) {
-            if (control?.visible === false || !control?.label) continue;
+        // Core's own generator, not a re-implementation of it. `_headerControlContextEntries` fires the
+        // `getHeaderControls` hook, honours a function-valued `visible`, and -- the part that matters --
+        // resolves each control's `action` against `options.actions` into a callable handler.
+        //
+        // WHY THIS IS NOT A LOOP OVER `_getHeaderControls()` ANY MORE: that returns the raw control
+        // descriptors, and this code used to invoke them with `control.onClick?.call(this, null)`.
+        // v14's core controls are declared `{icon, label, action}` with NO `onClick`, so the optional
+        // chain made every inherited control a SILENT no-op -- the menu entry rendered, the click did
+        // nothing, and nothing threw. That is exactly why tool windows would not detach on v14 while
+        // ordinary windows would, since ordinary windows use core's header menu and never came through
+        // here. Found 2026-09-09. Any future core control that ships as an action rather than a
+        // handler would have failed the same way.
+        for (const entry of this._headerControlContextEntries?.() ?? []) {
+            if (!entry?.label) continue;
             items.push({
-                name: localize(control.label),
-                icon: control.icon || 'fa-solid fa-circle',
-                disabled: Boolean(control.disabled),
-                callback: () => control.onClick?.call(this, null)
+                name: localize(entry.label),
+                icon: entry.icon || 'fa-solid fa-circle',
+                callback: () => entry.onClick?.(null, null)
             });
         }
 
