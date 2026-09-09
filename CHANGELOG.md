@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Roll Remaining in the combat bar stopped after the first combatant** (`scripts/ui-combat-tracker.js`). `_rollRemainingInitiatives` looped over the unrolled combatants calling `combatant.rollInitiative()` once each. Replaced with a single `await combat.rollAll()`.
+
+  **The loop broke the feature three ways, and the first one was only visible with Dice So Nice installed.** DSN batches concurrent rolls through `DiceBox.startUnifiedBatch`; rapid successive rolls race it and it throws `Cannot read properties of null (reading 'rolling')`. The loop had **no per-combatant try/catch**, so that rejection propagated out of the first `await` and every remaining combatant went unrolled — the reported symptom, a button that appears to do nothing after one roll. Third, it ignored combatant **groups**, which v14 added: core resolves a grouped combatant to `combatant.group.activeCombatant` so a group rolls once rather than per member, and skips combatants the user does not own.
+
+  `Combat#rollAll` is not "roll everyone" despite the name — its own filter is `combatant.initiative === null`, so it *is* roll-remaining, and it passes the whole set to one `rollInitiative(ids)` call. **Verified on 14.367 that it leaves already-rolled combatants alone** before swapping it in: two combatants pre-set to 99 and 98 kept those values while the null ones rolled. Then verified end to end — four combatants, three unrolled, all four rolled, zero unrolled, zero console errors.
+
+  The general shape is worth keeping: **a loop of individual document operations is not a substitute for the batched API core provides.** It serialises work the platform expects to batch, and without per-iteration error handling any one failure silently truncates the rest.
+
 - **`foundry.utils.objectsEqual` is deprecated on v14 and was warning on every combat update** (`scripts/api-inventory.js`, `scripts/stats-adversaries.js`). Renamed to `foundry.utils.equals` in v14, removal in v16. Three call sites: two identity comparisons in the inventory merge check, and the adversary-record write that runs from the XP manager's `updateCombat` callback -- which is why it surfaced as a warning on a live combat rather than sitting quiet.
 
   **Both names are read rather than swapping to the new one**, via `const deepEquals = foundry.utils.equals ?? foundry.utils.objectsEqual;`. `equals` is confirmed present on 14.367 and behaves identically for object inputs -- but **whether it exists on v13 is unknown**, and `compatibility.minimum` is still 13. Swapping outright would have fixed v14 by breaking the generation we still ship for. Same shape as the combat-tracker selector fix above and the pattern Cartographer and Librarian adopted for their own deprecations.
