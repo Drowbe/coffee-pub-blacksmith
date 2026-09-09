@@ -908,11 +908,27 @@ class CombatTracker {
 
         postConsoleAndNotification(MODULE.NAME, `Rolling initiative for ${remainingCombatants.length} remaining combatants`, "", true, false);
 
-        // Roll initiative for each remaining combatant
-        for (const combatant of remainingCombatants) {
-            await combatant.rollInitiative();
-            postConsoleAndNotification(MODULE.NAME, `Rolled initiative for ${combatant.name}`, "", true, false);
-        }
+        // ONE BATCHED CALL, not a loop of individual rolls. `Combat#rollAll` selects exactly the
+        // combatants we want -- its own filter is `combatant.initiative === null` -- and passes the whole
+        // set to `rollInitiative(ids)` in a single call.
+        //
+        // The loop this replaces called `combatant.rollInitiative()` once per combatant, which broke the
+        // feature three ways:
+        //
+        //   1. Dice So Nice batches concurrent rolls through `DiceBox.startUnifiedBatch`. Rapid successive
+        //      rolls race it and it throws `Cannot read properties of null (reading 'rolling')`.
+        //   2. The loop had no per-combatant try/catch, so that throw propagated out of the first
+        //      `await` and EVERY REMAINING COMBATANT WENT UNROLLED. That is the reported symptom: the
+        //      button appears to do nothing after the first roll.
+        //   3. It ignored combatant GROUPS, which v14 added. `rollAll` resolves a grouped combatant to
+        //      `combatant.group.activeCombatant` so a group rolls once rather than per member, and it
+        //      also skips combatants this user does not own.
+        //
+        // Verified on 14.367: `rollAll()` leaves already-rolled combatants untouched (two pre-set to 99
+        // and 98 kept those values) and rolls only the null ones, so this is a true drop-in for
+        // "roll remaining" rather than a re-roll of everybody.
+        await combat.rollAll();
+        postConsoleAndNotification(MODULE.NAME, `Rolled initiative for ${remainingCombatants.length} combatants`, "", true, false);
     }
 
     /**
