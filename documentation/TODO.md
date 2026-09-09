@@ -1086,17 +1086,21 @@ the bulk of the work; it belongs in `utilities/` and should report what it chang
 `documentation/plans/plan-migration-v14.md` is the migration guidance for the whole suite. This is the narrower
 list: v14 breakage observed in a running world. `module.json` declares `maximum: 14`, so these are ours.
 
-### Prove the Scene Config tab injector on v14
+### Prove the Scene Config tab injector in a POPPED-OUT sheet on v14
 
-`manager-scene-config.js` anchors on `nav.tabs` and `footer.form-footer` rather than tab ids, but v14
-restructured the sheet -- parts are now `tabs/basics/grid/levels/visibility/environment/misc/footer`, so
-`lighting` and `ambience` are gone -- and it has never been rendered there. Two risks the anchors do not
-cover: v14's **pop-out windows** (the injector builds nodes against the host `document`) and its **async
-`_insertElement`**, which changes the render-pass timing the duplicate-tab guard depends on.
-Probes and the by-hand steps are in `testing/v14-darkness.md`. The nav/footer half needs only a bare v14;
-the rest needs Blacksmith installed there.
-Verify: the Geography tab appears once, its Time of Day box round-trips a save, and both survive popping
-the sheet out.
+**Mostly done -- measured live on 14.367, 2026-09-09.** The sheet restructure is real (`lighting` and
+`ambience` gone, `environment`/`levels`/`visibility`/`misc` new) but both anchors survived, and the
+injector produces exactly one nav entry and one panel on first render, after a forced re-render, and
+after switching tabs away and back -- so v14's async `_insertElement` does not defeat the duplicate guard.
+The nav entry is an `<a>`, matching core's own; the old `useButton` worry recorded in the testing doc was
+inverted. Clicking activates the panel, and the Time of Day checkbox round-trips a save to the document.
+
+**What remains is the pop-out, and only that.** The injector builds nodes with `document.createElement`
+against the *host* document; a detached window is a different `document`, which is the classic failure and
+the one thing nothing above exercises. It **cannot be driven from a script** -- `detachWindow()` leaves
+`app.element` null with no second page appearing, consistent with the browser blocking a `window.open`
+with no user activation. Needs a human clicking the pop-out control; same class of gap as drag-and-drop
+into a popped-out window. By-hand steps in `testing/v14-darkness.md`.
 
 **Settled 2026-09-03, do not re-investigate.** The `canvasReady`-never-fires-on-load bug was
 `DarknessManager`'s alone: all ten registrations were audited and every other one already reaches its load

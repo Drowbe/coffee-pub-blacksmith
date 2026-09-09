@@ -24,52 +24,52 @@ claims were re-verified; the pointers were not, and have certainly moved.
 
 ---
 
-## Still owed: the Scene Config tab injector on v14
+## Settled on v14.367 — the Scene Config tab injector passed live
 
-Nothing here is about darkness — the driver is clear. It is about `manager-scene-config.js`, which the
-Geography tab (and its Time of Day checkbox) rides on.
+Removed from this file because they are proven, recorded here only so nobody re-runs them. Measured
+2026-09-09 on Foundry 14.367 / dnd5e 5.3.3 with Blacksmith 14.1.0, against a real `SceneConfig`.
 
-**The sheet was restructured.** v13 parts were `tabs / basics / grid / lighting / ambience / footer`.
-v14.364 reports `tabs / basics / grid / levels / visibility / environment / misc / footer`: `lighting` and
-`ambience` are gone, `environment` replaces them, and `levels`, `visibility` and `misc` are new. The
-injector anchors on generic selectors rather than tab ids, and `tabs` and `footer` both survive — so it
-*should* be fine. It has never been rendered against this sheet.
+The sheet **was** restructured — v14 reports `basics / grid / levels / visibility / environment / misc /
+footer`, so `lighting` and `ambience` are gone. The injector anchors on generic selectors, and both
+anchors survived: `nav.sheet-tabs` matches (`class="sheet-tabs tabs top-tabs"`) and `footer.form-footer`
+matches. It injects correctly:
 
-### Probe: open any Scene Config on v14, then run this
+- **Exactly one nav entry and one panel**, on first render, after a forced `render()`, and after switching
+  tabs away and back. No duplication — so v14's async `_insertElement` does not defeat the guard.
+- **The nav entry is an `<a>`, matching core's own `<a>` entries.** Note this contradicts the old
+  `useButton` worry recorded here: v14's Scene Config nav children are `A`, not `BUTTON`, and our entry is
+  built as the same element core uses. Nothing to change.
+- **Clicking it activates the panel** — `tabGroups` becomes `{"sheet":"coffee-pub-blacksmith-geography"}`,
+  the panel takes `.active`, and it is visible.
+- **The save round-trips.** Toggling the Time of Day checkbox and submitting persisted
+  `flags.coffee-pub-blacksmith.darknessFollowsClock` to the document; the value was restored afterwards, so
+  the test scene is unchanged.
 
-```js
-const app = [...foundry.applications.instances.values()].find(a => a.constructor.name === 'SceneConfig');
-const root = app?.element;
-const nav = root?.querySelector('.sheet-tabs[data-group], .tabs[data-group], .sheet-tabs, .tabs, nav.tabs');
-console.log('SceneConfig found:', !!root);
-console.log('nav selector matches:', !!nav, nav?.className);
-console.log('nav children are:', nav?.firstElementChild?.tagName);
-console.log('footer.form-footer matches:', !!root?.querySelector('footer.form-footer'));
-console.log('tab panels:', [...(root?.querySelectorAll('.tab[data-tab]') ?? [])].map(e => e.dataset.tab).join(', '));
-console.log('OUR TAB PRESENT:', !!root?.querySelector('[data-tab="coffee-pub-blacksmith-geography"]'));
-console.log('our panel present:', !!root?.querySelector('.tab[data-tab="coffee-pub-blacksmith-geography"]'));
-console.log('Time of Day box:', !!root?.querySelector('[name="flags.coffee-pub-blacksmith.darknessFollowsClock"]'));
-console.log('tabGroups:', JSON.stringify(app?.tabGroups));
-```
+Artificer injects a tab into the same sheet and the two coexist — 8 nav entries, one each.
 
-`OUR TAB PRESENT: false` with `nav selector matches: true` means the anchors are fine and the injection
-logic is not; `nav selector matches: false` means the selector list in `SceneConfigManager.injectTabs`
-needs a v14 entry. `nav children are:` decides `useButton` — if it is no longer `BUTTON`, the nav entry is
-built as the wrong element and will not be styled or clickable as a tab.
+---
 
-### Then, by hand
+## Still owed: the injector in a POPPED-OUT Scene Config
 
-1. **Save the sheet.** Confirm the Geography values and the Time of Day box round-trip. v14 deprecates the
-   `-=` / `==` update operators for `DataFieldOperator` values; nothing here uses them, but flag writes go
-   through the same submit path.
-2. **Pop the Scene Config out into its own window** — new in v14. The injector builds nodes with
-   `document.createElement` against the *host* document and uses `CSS.escape`; a detached window is a
-   different `document`, and an element created in one and inserted into another is the classic failure.
-   Confirm the tab still appears, and that switching to it still shows the panel.
-3. **Check the tab does not duplicate.** ApplicationV2's `_insertElement` is async in v14, which changes
-   render-pass timing — exactly what the "both halves present means this pass is done" guard depends on.
-   Switch tabs back and forth and re-render the sheet; there must be exactly one Geography tab and one
-   panel.
+The one item that could not be driven from a script, and the highest-risk of the three, because the
+injector builds nodes with `document.createElement` against the **host** document while a detached window
+is a different `document`. An element created in one document and inserted into another is the classic
+failure, and nothing above exercises it.
+
+**`detachWindow()` cannot be tested from a script.** Calling it left `app.element` null with no second page
+appearing among the CDP targets — consistent with the browser blocking a `window.open` that has no user
+activation behind it. This needs a human clicking the pop-out control; it is the same class of gap as
+drag-and-drop into a popped-out window.
+
+By hand:
+
+1. Open any Scene Config, pop it out into its own window.
+2. Confirm the Geography tab still appears **exactly once**, and that clicking it still shows the panel.
+3. Toggle Time of Day and save from the popped-out window; confirm the flag persists.
+4. Re-attach the window and confirm there is still exactly one tab.
+
+Failure looks like: the tab missing entirely, appearing twice after re-attaching, or present but with an
+empty panel.
 
 ---
 
