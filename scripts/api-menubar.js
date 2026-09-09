@@ -4684,9 +4684,7 @@ class MenuBar {
     }
 
     static _getLeaderEntries() {
-        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-            : 3;
+        const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
 
         return game.actors
             .filter(actor => actor.type === 'character' && actor.hasPlayerOwner)

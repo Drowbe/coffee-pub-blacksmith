@@ -133,9 +133,7 @@ export function isCurrentUserPartyLeader(moduleId = MODULE.ID) {
  */
 export function ownsAnyCharacter(user) {
     if (!user) return false;
-    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-        ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-        : 3;
+    const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
     return !!game.actors?.find((a) => {
         if (a.type !== 'character') return false;
         try {
@@ -686,6 +684,7 @@ export async function resolveWildcardPath(path) {
         const pattern = parts.pop();
         const dir = parts.join('/');
 
+        const FilePicker = foundry.applications.apps.FilePicker.implementation;
         const response = await FilePicker.browse('data', dir);
         if (!response?.files?.length) return path;
 

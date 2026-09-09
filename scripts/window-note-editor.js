@@ -155,7 +155,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             callback: (page) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
                 if (!this.noteUuid || page?.uuid !== this.noteUuid) return;
-                if (page.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) return;
+                if (page.testUserPermission(game.user, foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) return;
                 this._discarded = true;
                 ToastAPI.show({
                     title: 'Note unshared',
@@ -232,7 +232,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
         return Object.entries(users)
             .filter(([id, level]) => (
                 id !== 'default'
-                && level === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+                && level === foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
                 && !game.users.get(id)?.isGM
             ))
             .map(([id]) => id);

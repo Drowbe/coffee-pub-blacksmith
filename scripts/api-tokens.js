@@ -21,9 +21,9 @@ export function getDefaultTokenData() {
     
     // Fallback: Create a default token data structure
     return {
-        displayName: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
-        displayBars: CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
-        disposition: CONST.TOKEN_DISPOSITIONS.NEUTRAL,
+        displayName: foundry.CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
+        displayBars: foundry.CONST.TOKEN_DISPLAY_MODES.OWNER_HOVER,
+        disposition: foundry.CONST.TOKEN_DISPOSITIONS.NEUTRAL,
         vision: true,
         lockRotation: false,
         actorLink: false,

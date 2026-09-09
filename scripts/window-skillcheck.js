@@ -2236,7 +2236,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             postConsoleAndNotification(MODULE.NAME, 'CPB | Cinematic Mode flag set to:', messageData.isCinematic, true, false);
 
             // Create the chat message
-            // v13: CONST.CHAT_MESSAGE_TYPES is deprecated, use style instead
+            // v13: foundry.CONST.CHAT_MESSAGE_TYPES is deprecated, use style instead
             // Since this is a roll request (not an actual roll), use OTHER style
             // `rollMode` is deliberately NOT passed to create(). Foundry applies a
             // roll mode through applyRollMode/whisper, and whispering this card would
@@ -2247,7 +2247,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 user: game.user.id,
                 speaker: ChatMessage.getSpeaker(),
                 ...(await SkillCheckDialog.formatChatMessage(messageData)),
-                style: CONST.CHAT_MESSAGE_STYLES.OTHER
+                style: foundry.CONST.CHAT_MESSAGE_STYLES.OTHER
             });
 
             // Register API callback so the calling module receives roll results when players roll
@@ -3962,7 +3962,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             user: game.user.id,
             speaker: ChatMessage.getSpeaker(),
             ...(await SkillCheckDialog.formatChatMessage(messageData)),
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER
+            style: foundry.CONST.CHAT_MESSAGE_STYLES.OTHER
         });
 
         if (typeof options.onRollComplete === 'function') {

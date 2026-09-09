@@ -423,7 +423,7 @@ export async function createJournalEntry(journalData) {
                 type: "text",
                 text: {
                     content: compiledHtml,
-                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+                    format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                 }
             });
         } else {
@@ -433,7 +433,7 @@ export async function createJournalEntry(journalData) {
                 type: "text",
                 text: {
                     content: compiledHtml,
-                    format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+                    format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                 }
             }]);
         }
@@ -448,7 +448,7 @@ export async function createJournalEntry(journalData) {
                     type: "text",
                     text: {
                         content: compiledHtml,
-                        format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+                        format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
                     }
                 }
             ],
@@ -494,7 +494,7 @@ async function createAreaJournalEntry(journalData, folder) {
         type: 'text',
         text: {
             content: compiledHtml,
-            format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+            format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
         }
     };
 
@@ -608,7 +608,7 @@ async function createLocationJournalEntry(journalData, folder) {
         type: "text",
         text: {
             content: compiledHtml,
-            format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
+            format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML
         }
     };
 

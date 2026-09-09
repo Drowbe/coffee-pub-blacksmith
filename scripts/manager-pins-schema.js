@@ -251,10 +251,10 @@ MIGRATION_MAP.set(5, (pin) => {
 // Migration from v5 to v6: Decouple legacy access presets from visibility — canonical `blacksmithAccess` + preserved `blacksmithVisibility`
 MIGRATION_MAP.set(6, (pin) => {
     const migrated = foundry.utils.deepClone(pin);
-    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-    const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
-    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+    const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+    const LIMITED = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.LIMITED ?? 1;
+    const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+    const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
     const cfg = typeof migrated.config === 'object' && migrated.config && !Array.isArray(migrated.config)
         ? { ...migrated.config }
         : {};

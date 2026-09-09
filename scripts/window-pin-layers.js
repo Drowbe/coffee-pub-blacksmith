@@ -22,10 +22,10 @@ function esc(value) {
 
 /** Access preset for a pin; matches Configure Pin (`window-pin-configuration.js`). */
 function browsePinAccessMode(p) {
-    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-    const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
-    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+    const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+    const LIMITED = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.LIMITED ?? 1;
+    const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+    const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
     const rawDefault = typeof p?.ownership?.default === 'number' ? p.ownership.default : NONE;
     const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
     if (ownershipDefault >= OWNER) return 'public';
@@ -1828,9 +1828,9 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         const current = BROWSE_ACCESS_CYCLE.includes(rawDataset) ? rawDataset : browsePinAccessMode(pin);
         const idx = BROWSE_ACCESS_CYCLE.indexOf(current);
         const next = BROWSE_ACCESS_CYCLE[(idx + 1) % BROWSE_ACCESS_CYCLE.length];
-        const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-        const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+        const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+        const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+        const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
         const ownership = { ...(pin.ownership && typeof pin.ownership === 'object' ? pin.ownership : {}), default: OBSERVER };
         const config = { ...(pin.config && typeof pin.config === 'object' ? pin.config : {}) };
         if (next === 'gm') {

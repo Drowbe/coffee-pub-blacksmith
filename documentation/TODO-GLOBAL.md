@@ -379,7 +379,7 @@ until a consuming module hit it in production (CHANGELOG 13.8.5). So when a doc 
 
 **Plans are scaffolding** (see CLAUDE.md): transitional, dismantled into TODO/architecture/API/CHANGELOG,
 deleted when complete. Three rules — a plan declares its status; a plan is never a source of truth; complete
-means delete. **One plan needs dismantling; two are legitimately live** (`migration-v14.md`,
+means delete. **One plan needs dismantling; two are legitimately live** (`plan-migration-v14.md`,
 `plan-journal-tools-refactor.md` — both Planned, both keep).
 
 - [ ] **`plan-assets.md` (1,569 lines)** — status line added 2026-08-07 (Planned); the rest of this item stands. Trim the Vault feature spec (~1502–1515)
@@ -1064,7 +1064,7 @@ unaffected.
 
 ## Suite legacy `Dialog` migration — `api.dialog` is the vehicle
 
-**Recounted 2026-08-07.** Application V1 `Dialog` is deprecated in v13, and `plans/migration-v14.md`
+**Recounted 2026-08-07.** Application V1 `Dialog` is deprecated in v13, and `plans/plan-migration-v14.md`
 already names finishing the V2 migration as a v14 forcing function. `api.dialog` shipped in 13.12.2; the
 contract is `documentation/api/api-dialog.md`.
 

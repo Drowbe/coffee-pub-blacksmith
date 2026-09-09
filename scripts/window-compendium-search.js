@@ -1003,9 +1003,7 @@ function registerCompendiumSearchKeybinding() {
         const KM = foundry?.helpers?.interaction?.KeyboardManager;
         const controlMod = KM?.MODIFIER_KEYS?.CONTROL;
         const modifiers = controlMod != null ? [controlMod] : ['Control'];
-        const precedence = (typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined)
-            ? CONST.KEYBINDING_PRECEDENCE_NORMAL
-            : undefined;
+        const precedence = foundry.CONST?.KEYBINDING_PRECEDENCE_NORMAL;
         game.keybindings.register(MODULE.ID, 'openCompendiumSearch', {
             name: MODULE.ID + '.keybindingCompendiumSearch-Name',
             hint: MODULE.ID + '.keybindingCompendiumSearch-Hint',

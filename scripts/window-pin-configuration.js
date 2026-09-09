@@ -470,10 +470,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }));
 
         // Permissions (GM only): access level + independent visibility mode
-        const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-        const LIMITED = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED : 1;
-        const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-        const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+        const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+        const LIMITED = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.LIMITED ?? 1;
+        const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+        const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
         const isGM = !!game.user?.isGM;
         const rawDefault = typeof pin.ownership?.default === 'number' ? pin.ownership.default : NONE;
         const ownershipDefault = rawDefault === LIMITED ? OBSERVER : rawDefault;
@@ -967,6 +967,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         applyIconModeState();
 
         nativeHtml.querySelector('.blacksmith-pin-config-browse')?.addEventListener('click', async () => {
+            const FilePicker = foundry.applications.apps.FilePicker.implementation;
             const picker = new FilePicker({
                 type: 'image',
                 callback: (path) => {
@@ -1026,9 +1027,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 const accessSelect = nativeHtml.querySelector('.blacksmith-pin-config-access-default');
                 const visSelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');
                 if (accessSelect || visSelect) {
-                    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-                    const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-                    const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+                    const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+                    const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+                    const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
                     const selectedAccess = String(accessSelect?.value || 'gm').toLowerCase();
                     let defaultLevel = OBSERVER;
                     if (selectedAccess === 'public') defaultLevel = OWNER;

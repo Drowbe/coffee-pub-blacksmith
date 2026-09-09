@@ -99,7 +99,7 @@ export async function buildLocationJournalPage(journalData) {
         // derivations run, so a module-owned subtype needs no change here.
         page: {
             name: strTitle,
-            text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
+            text: { content, format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
         }
     };
 }

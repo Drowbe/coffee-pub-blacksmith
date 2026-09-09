@@ -1083,7 +1083,7 @@ the bulk of the work; it belongs in `utilities/` and should report what it chang
 
 ## Foundry v14
 
-`documentation/plans/migration-v14.md` is the migration guidance for the whole suite. This is the narrower
+`documentation/plans/plan-migration-v14.md` is the migration guidance for the whole suite. This is the narrower
 list: v14 breakage observed in a running world. `module.json` declares `maximum: 14`, so these are ours.
 
 ### Prove the Scene Config tab injector on v14

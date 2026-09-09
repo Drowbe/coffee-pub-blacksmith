@@ -838,9 +838,7 @@ export class QuickViewUtility {
     const modifiers = controlMod != null ? [controlMod] : ['Control'];
     try {
       const precedence =
-        typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined
-          ? CONST.KEYBINDING_PRECEDENCE_NORMAL
-          : undefined;
+        foundry.CONST?.KEYBINDING_PRECEDENCE_NORMAL;
       game.keybindings.register(MODULE.ID, 'toggleQuickView', {
         name: MODULE.ID + '.keybindingQuickViewToggle-Name',
         hint: MODULE.ID + '.keybindingQuickViewToggle-Hint',

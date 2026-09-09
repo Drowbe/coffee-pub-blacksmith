@@ -8,9 +8,9 @@ import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './manager-pins-permission-icons.js';
 
 /** Foundry ownership levels (align with Configure Pin). */
-const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
 
 /** Client setting key for last-used journal pin toolbar choices. */
 const TOOLBAR_PREFS_KEY = 'clientJournalPinToolbarPrefs';
@@ -1522,7 +1522,7 @@ export class JournalPagePins {
         const grid = canvas?.grid;
         if (!grid || !local) return local;
         if (typeof grid.getSnappedPoint === 'function') {
-            const modes = typeof CONST !== 'undefined' ? CONST.GRID_SNAPPING_MODES : null;
+            const modes = foundry.CONST?.GRID_SNAPPING_MODES ?? null;
             const behavior = { resolution: 1 };
             if (modes?.CENTER) behavior.mode = modes.CENTER;
             return grid.getSnappedPoint({ x: local.x, y: local.y }, behavior);

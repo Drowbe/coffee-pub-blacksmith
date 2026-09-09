@@ -453,7 +453,7 @@ function registerNotePinEvents() {
                 ui.notifications.warn('That note no longer exists.');
                 return;
             }
-            if (!note.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
+            if (!note.testUserPermission(game.user, foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
                 ui.notifications.warn('You do not have permission to read that note.');
                 return;
             }

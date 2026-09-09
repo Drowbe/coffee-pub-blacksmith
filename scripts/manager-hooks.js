@@ -8,8 +8,13 @@ import { postConsoleAndNotification } from './api-core.js';
 export class HookManager {
     static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
     static contexts = new Map(); // context -> Set(callbackId)
-    /** @type {boolean} One-time console hint when remapping deprecated `renderChatMessage` */
-    static _didWarnRenderChatMessageRemap = false;
+    /**
+     * Callers already warned about the deprecated `renderChatMessage` remap, keyed by caller.
+     * A single boolean here would name only the first offender and hide every one after it --
+     * which is how a stale hardcoded list of module names outlived the modules that had fixed it.
+     * @type {Set<string>}
+     */
+    static _warnedRenderChatMessageRemap = new Set();
     
     /**
      * Generate unique callback ID
@@ -43,11 +48,16 @@ export class HookManager {
 
         // Foundry v13+: registering `renderChatMessage` attaches to a deprecated hook; remap silently (console only, once per session).
         if (name === 'renderChatMessage') {
-            if (!HookManager._didWarnRenderChatMessageRemap) {
-                HookManager._didWarnRenderChatMessageRemap = true;
+            // Name the actual caller rather than a hardcoded list: the list went stale (it named
+            // two modules that had already migrated and omitted the two that had not), and one
+            // shared flag meant only the first registrant was ever reported.
+            const caller = context || description || 'unknown caller';
+            if (!HookManager._warnedRenderChatMessageRemap.has(caller)) {
+                HookManager._warnedRenderChatMessageRemap.add(caller);
                 console.warn(
-                    `[${MODULE.ID}] HookManager: legacy hook "renderChatMessage" is registered as "renderChatMessageHTML" (Foundry v13+). ` +
-                    'Update registerHook({ name: "renderChatMessageHTML" }) in consumer modules (e.g. Squire, Crier, SCRIBE) to remove this warning.'
+                    `[${MODULE.ID}] HookManager: "${caller}" registers the legacy hook "renderChatMessage"; ` +
+                    'remapping to "renderChatMessageHTML" (Foundry v13+). ' +
+                    'Change that registration to registerHook({ name: "renderChatMessageHTML" }) to remove this warning.'
                 );
             }
             name = 'renderChatMessageHTML';

@@ -269,7 +269,7 @@ async function journalAreaContent(data, entry) {
     // created without every derivation knowing about it.
     data.pages = [{
         name: sceneTitle || area || 'Area',
-        text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
+        text: { content, format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
     }];
     return data;
 }

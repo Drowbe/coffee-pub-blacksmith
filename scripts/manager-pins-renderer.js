@@ -39,7 +39,7 @@ function _getPinAccessMode(pinData) {
 
 /** Pin editing GM-only — ownership default NONE (strict GM-only document access on pin). */
 function _isPinGmOnlyAccess(pinData) {
-    const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
+    const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
     const rawDefault = pinData?.ownership?.default;
     if (typeof rawDefault !== 'number') return false;
     return rawDefault <= NONE;
@@ -1228,9 +1228,9 @@ class PinDOMElement {
 
         // 5. Pin Visibility, 6. Pin Editing (GM only)
         if (game.user?.isGM) {
-            const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE : 0;
-            const OBSERVER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER : 2;
-            const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER : 3;
+            const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
+            const OBSERVER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OBSERVER ?? 2;
+            const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
 
             coreItems.push({
                 name: 'Pin visibility',

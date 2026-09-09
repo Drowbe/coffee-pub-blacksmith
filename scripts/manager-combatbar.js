@@ -2727,7 +2727,7 @@ export class CombatBarManager {
      * @returns {{key: string, label: string}}
      */
     static getCombatantDisposition(combatant) {
-        const D = CONST.TOKEN_DISPOSITIONS;
+        const D = foundry.CONST.TOKEN_DISPOSITIONS;
         const raw = combatant?.token?.disposition;
         const value = Number.isFinite(Number(raw)) ? Number(raw) : D.NEUTRAL;
         const key = value === D.FRIENDLY ? 'friendly'
@@ -3727,7 +3727,7 @@ export class CombatBarManager {
         const bloodOverlay = CombatBarManager.getBloodOverlay(actor);
 
         const ownerUsers = (game.users?.contents || [])
-            .filter((u) => actor?.testUserPermission?.(u, CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
+            .filter((u) => actor?.testUserPermission?.(u, foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER));
         const nonGmOwners = ownerUsers
             .filter((u) => !u?.isGM)
             .map((u) => u.name)
@@ -4370,7 +4370,7 @@ export class CombatBarManager {
         if (!actor) return false;
         if (game.user?.isGM) return true;
         try {
-            return actor.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
+            return actor.testUserPermission(game.user, foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER);
         } catch (_error) {
             return !!actor.isOwner;
         }

@@ -372,9 +372,7 @@ export class TokenIndicatorManager {
         if (!combat?.started) return set;
         const combatant = combat.combatant;
         if (!combatant) return set;
-        const OWN = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-            ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-            : 3;
+        const OWN = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
         const actor = combatant.actor;
         if (actor) {
             for (const u of game.users) {

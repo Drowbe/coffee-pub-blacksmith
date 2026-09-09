@@ -114,7 +114,7 @@ export class ChatCardsAPI {
         const messageData = {
             content,
             speaker: speaker ?? ChatMessage.getSpeaker({ user: game.user.id }),
-            style: CONST.CHAT_MESSAGE_STYLES.OTHER,
+            style: foundry.CONST.CHAT_MESSAGE_STYLES.OTHER,
             flags: messageFlags
         };
         if (whisper) messageData.whisper = whisper;

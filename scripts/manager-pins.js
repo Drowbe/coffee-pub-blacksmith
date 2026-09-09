@@ -22,12 +22,8 @@ import {
 } from './manager-pins-schema.js';
 // normalizePinGroup is still used for tag normalization (tags use the same key-normalization function)
 
-const OWNER = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-    ? CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
-    : 3;
-const NONE = typeof CONST !== 'undefined' && CONST.DOCUMENT_OWNERSHIP_LEVELS
-    ? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE
-    : 0;
+const OWNER = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.OWNER ?? 3;
+const NONE = foundry.CONST?.DOCUMENT_OWNERSHIP_LEVELS?.NONE ?? 0;
 
 /** @typedef {{ id: string; x: number; y: number; size: { w: number; h: number }; style: object; text?: string; image?: string; iconText?: string; config: object; moduleId: string; type?: string; tags?: string[]; ownership: { default: number; users?: Record<string, number> }; version: number }} PinData */
 /** @typedef {PinData & { sceneId?: string }} ApiPinData */

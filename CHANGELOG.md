@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Two classes of un-namespaced Foundry global, both of which Foundry v14 removes** (`scripts/`, 25 files). Neither was a live bug on v13, where the bare globals still resolve; both would have thrown on v14.
+
+  `FilePicker` was referenced bare at two sites — `api-core.js` (wildcard token path resolution) and `window-pin-configuration.js` (the pin image browse button) — with no local binding from the namespace. Four other sites in the repo already opened with `const FilePicker = foundry.applications.apps.FilePicker.implementation;`, so this was an unfinished sweep rather than a choice; the two stragglers now follow the same pattern. These were the more urgent of the two classes: with no namespaced form to fall back to, they throw on first use rather than lying dormant.
+
+  `CONST` was referenced bare at 131 sites across 23 files, now `foundry.CONST`. About half were written as `typeof CONST !== 'undefined' && CONST.X ? CONST.X.Y : N` and are now `foundry.CONST?.X?.Y ?? N`, which guards on the stable `foundry` global instead of on the identifier that is going away.
+
+  **Every numeric fallback was checked against the constant it stands in for rather than merely assumed safe.** All the ownership literals are correct — `NONE` 0, `LIMITED` 1, `OBSERVER` 2, `OWNER` 3 — and the keybinding and grid-snapping sites fall back to `undefined` and `null`, which are the right absent values. This mattered because the same sweep in Minstrel turned up a fallback that was falsy-safe and wrong: `PLAYLIST_MODES.DISABLED ?? 0` would have created playlists in sequential mode, since `DISABLED` is `-1` and `0` is `SEQUENTIAL`.
+
+  `foundry.CONST` was confirmed against a real consumer before the sweep, not taken on trust: dnd5e 5.3.3 uses `foundry.CONST.TOKEN_DISPOSITIONS` in `dnd5e.mjs`. Verified by `grep` returning no bare reference of either kind, `node --check` on all 25 touched files as ES modules, and `check-imports`, `check-coffeepub-constants`, `check-quick-rolls`, `check-note-reminders` and `check-styles-loaded` all passing.
+
+  Verified live 2026-09-09 on v13, exercising both fixed FilePicker paths and the widest of the rewritten CONST paths: the pin configuration image browser opened, a wildcard token path resolved to real art on an encounter card, pin layer player visibility toggled and read correctly from a player client, the QuickView and Compendium Search keybindings both fired, and skill check and chat cards rendered with correct message styling. **This proves the rewrite did not break v13; it does not prove v14.** Every site here was already working before the sweep — the change is that these paths no longer depend on globals v14 removes, and confirming that needs a v14 world.
+
+- **The `renderChatMessage` remap warning named the wrong modules and could only ever report one of them** (`scripts/manager-hooks.js`). The text hardcoded "Squire, Crier, SCRIBE". Squire had no such registration at all and Crier had already migrated, so two of the three named modules were innocent; the two that were actually still registering the legacy name — SCRIBE and Vault — went unnamed, Vault entirely.
+
+  The single `_didWarnRenderChatMessageRemap` boolean was the reason the list could rot unnoticed: it fired once per session, so only the first registrant was ever reported and every later one was silently swallowed. It is now a `Set` keyed by the caller's `context` (falling back to `description`), and the warning names that caller instead of a hardcoded list. A stale list cannot outlive the modules that fixed themselves, and a second offender can no longer hide behind the first.
+
+  The two real registrations were fixed in their own repos (SCRIBE `scripts/scribe.js`, Vault `scripts/vault.js`); Scribe's callback already normalised jQuery to native DOM, so the v13 signature change was a non-event. Verified live 2026-09-09: the world loads with no remap warning in the console.
+
 ## [13.23.0]
 
 ### Fixed

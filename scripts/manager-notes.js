@@ -287,7 +287,7 @@ export class NotesManager {
         // interchangeable and are not; passing the pin shape to a document fails
         // validation with "is not a mapping of user IDs and document permission
         // levels". Use toPinOwnership() to convert.
-        const ownership = { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE };
+        const ownership = { default: foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE };
 
         // EVERY non-GM user is named explicitly, including the ones being denied.
         // `ownership` is an ObjectField, so an update MERGES into what is stored --
@@ -296,12 +296,12 @@ export class NotesManager {
         // level in place, which made granting access work and revoking it silently
         // do nothing. Stating everyone makes the merge deterministic.
         for (const user of game.users) {
-            if (!user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
+            if (!user.isGM) ownership[user.id] = foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE;
         }
 
         if (visibility === NOTE_VISIBILITY.PARTY) {
             for (const user of game.users) {
-                if (!user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+                if (!user.isGM) ownership[user.id] = foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
             }
         }
         // Named people, the third shape. Additive to the author rather than instead
@@ -316,14 +316,14 @@ export class NotesManager {
             // real user never reaches the document at all.
             const userId = typeof entry === 'string' ? entry : entry?.id;
             if (userId && game.users.get(userId)) {
-                ownership[userId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+                ownership[userId] = foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
             }
         }
-        if (authorId) ownership[authorId] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+        if (authorId) ownership[authorId] = foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         // GMs always own. Without this a GM could write a private note and then be
         // unable to open it, which has happened in every system that forgot it.
         for (const user of game.users) {
-            if (user.isGM) ownership[user.id] = CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
+            if (user.isGM) ownership[user.id] = foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER;
         }
         return ownership;
     }
@@ -345,7 +345,7 @@ export class NotesManager {
             users[key] = level;
         }
         return {
-            default: ownership.default ?? CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
+            default: ownership.default ?? foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE,
             users
         };
     }
@@ -436,7 +436,7 @@ export class NotesManager {
             ui.notifications.error('No notes journal is selected. A GM sets one in Blacksmith settings.');
             return null;
         }
-        if (!journal.testUserPermission(game.user, CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
+        if (!journal.testUserPermission(game.user, foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER)) {
             ui.notifications.error('You do not have permission to create notes in that journal.');
             return null;
         }
@@ -1105,7 +1105,7 @@ export function noteAccessBadge({ total = 0, selected = 0 } = {}) {
 export function noteAccessMode(note) {
     const players = noteAccessUsers();
     const owners = players.filter((user) => (
-        note?.ownership?.[user.id] === CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
+        note?.ownership?.[user.id] === foundry.CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER
     ));
     return noteAccessBadge({ total: players.length, selected: owners.length });
 }

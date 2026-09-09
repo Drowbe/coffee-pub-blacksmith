@@ -248,7 +248,7 @@ export async function buildEncounterJournalPage(journalData) {
         journalName: strArea || strSceneTitle || 'Unnamed Entry',
         page: {
             name: strSceneTitle || strArea || 'Encounter',
-            text: { content, format: CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
+            text: { content, format: foundry.CONST.JOURNAL_ENTRY_PAGE_FORMATS.HTML }
         }
     };
 }

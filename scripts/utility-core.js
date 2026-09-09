@@ -382,9 +382,7 @@ export class CoreUIUtility {
             const controlMod = KM?.MODIFIER_KEYS?.CONTROL;
             const modifiers = controlMod != null ? [controlMod] : ['Control'];
             const precedence =
-                typeof CONST !== 'undefined' && CONST.KEYBINDING_PRECEDENCE_NORMAL !== undefined
-                    ? CONST.KEYBINDING_PRECEDENCE_NORMAL
-                    : undefined;
+                foundry.CONST?.KEYBINDING_PRECEDENCE_NORMAL;
             game.keybindings.register(MODULE.ID, 'toggleInterfaceHide', {
                 name: MODULE.ID + '.keybindingToggleInterfaceHide-Name',
                 hint: MODULE.ID + '.keybindingToggleInterfaceHide-Hint',
