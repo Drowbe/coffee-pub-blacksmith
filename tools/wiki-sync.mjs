@@ -119,7 +119,21 @@ function label(rel) {
   const spaced = base.replace(/-/g, ' ');
   const titled = spaced.charAt(0).toUpperCase() + spaced.slice(1);
   // Sentence case mangles the acronyms that appear in guide names -- "Gm", "Api", "Ui".
-  return titled.replace(/\b(Gm|Api|Ui|Npc|Css|Json|Uuid|Dc)\b/g, (m) => m.toUpperCase());
+  //
+  // Done per word and case-insensitively, which a single case-sensitive regex could not be. Sentence
+  // casing capitalises only the LEADING character, so `\b(Api)\b` matched an acronym in first position
+  // and nothing after it: `architecture-blacksmith-api` gave "Blacksmith api". Plurals missed even in
+  // first position -- `apis-foo` gave "Apis foo". Found by the Herald session on 2026-09-09, which
+  // renamed its file to dodge it; this file is copied to every module, so the next one would not have
+  // known to.
+  const ACRONYMS = new Set(['gm', 'api', 'ui', 'npc', 'css', 'json', 'uuid', 'dc']);
+  return titled.split(' ').map((word) => {
+    const bare = word.toLowerCase();
+    if (ACRONYMS.has(bare)) return bare.toUpperCase();
+    const singular = bare.replace(/s$/, '');
+    if (bare !== singular && ACRONYMS.has(singular)) return `${singular.toUpperCase()}s`;
+    return word;
+  }).join(' ');
 }
 
 // ---- Fence-aware link rewriting ----
