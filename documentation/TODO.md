@@ -509,6 +509,26 @@ coverage with use; later, allow a compendium of RollTables as the source, which 
 
 ## Windows, menubar and toolbars
 
+### The Health window sizes badly when detached into its own window (opened 2026-09-09)
+
+**Found by the author while testing v14's pop-out**, immediately after the tool-window detach fix landed.
+Detaching works now; the Health window just does not size correctly once it is in a native browser window.
+Every other tool window tested fine, so this is specific to how this one sizes itself rather than to the
+detach path.
+
+The likely reason it is the odd one out: `window-health.js` declares `height: 'auto'` and adapts its
+height to its content. Attached, `'auto'` resolves against a floating frame inside the Foundry viewport;
+detached, the frame **is** the browser window, so "fit the content" and "fill the window" are no longer
+the same instruction and the usual `setPosition` arithmetic has nothing sensible to fit to. That is a
+hypothesis from reading the options, **not a diagnosis** -- nobody has measured it detached yet.
+
+Worth checking at the same time, because they share the cause if the hypothesis holds: any other window
+using `height: 'auto'` plus content-driven resizing. This is also the first thing in the suite to depend
+on how our window bases behave inside a detached document, so whatever is learned here belongs in
+`architecture-blacksmith.md` rather than only in the fix.
+
+Not urgent -- the window works attached, which is how it is used.
+
 ### Shared tool-window CSS still carries light-on-dark colour literals (opened 2026-09-06)
 
 `styles/window-list.css` was fixed when Squire's import screen took the base's default `toolTheme`

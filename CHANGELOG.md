@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Tool windows would not detach on v14** (`scripts/window-tool-base.js`). Ordinary windows use Foundry's native header menu; tool windows route their controls into Blacksmith's `UIContextMenu`, and that conversion invoked each inherited control with `control.onClick?.call(this, null)`.
+
+  v14 declares its core header controls as `{icon, label, action}` with **no `onClick`**, so the optional chain made every inherited control a **silent no-op** — the menu entry rendered, the click did nothing, and nothing threw. Only tool windows were affected, because only they came through this code.
+
+  Replaced the hand-rolled walk with core's own `_headerControlContextEntries()` generator, which resolves each control's `action` against `options.actions` into a real callable. Two things come free with it: the `getHeaderControls` hook now fires for tool windows, and a function-valued `visible` is honoured — so the menu shows just **Detach Window** on an attached window instead of both Detach and Re-attach. Verified live on 14.367; the author confirmed detaching works.
+
+  **The general shape: re-implementing a platform walk instead of consuming it dates the moment the platform adds a case.** Any future core control shipped as an `action` rather than a handler would have failed the same way, equally silently.
+
+- **Every window carried duplicate "Detach Window / Re-attach Window" entries on v14** (26 files across `scripts/`). v14 added `window.controls: [detach, attach]` to core's `ApplicationV2.DEFAULT_OPTIONS` for the new pop-out feature, and the class-chain option merge **concatenates** `window.controls` rather than replacing it.
+
+  Our window bases and their subclasses each declared options as `mergeObject(mergeObject({}, super.DEFAULT_OPTIONS ?? {}), {...})`. That inner copy of super's defaults was always redundant — Foundry already walks the prototype chain and merges every level — but on v14 it made each copying level **re-contribute core's pair**. Measured: one copying level yielded 4 controls, two yielded 6, and Merchant's `ShopWindow`, three levels deep, showed the pair four times.
+
+  Removed the copy at all 29 sites (the first argument is now `{}`). Verified against a throwaway three-level hierarchy that custom controls still survive, scalar options still inherit down, and subclass additions still apply — with exactly one detach/attach pair at any depth. The two window bases carry a comment saying the `{}` is deliberate, since this is precisely the kind of thing a later tidy-up restores into a bug.
+
+  **The same pattern is in nine sibling modules** (28 sites) and is not fixed by this change; each module owns its own copy.
+
 - **Roll Remaining in the combat bar stopped after the first combatant** (`scripts/ui-combat-tracker.js`). `_rollRemainingInitiatives` looped over the unrolled combatants calling `combatant.rollInitiative()` once each. Replaced with a single `await combat.rollAll()`.
 
   **The loop broke the feature three ways, and the first one was only visible with Dice So Nice installed.** DSN batches concurrent rolls through `DiceBox.startUnifiedBatch`; rapid successive rolls race it and it throws `Cannot read properties of null (reading 'rolling')`. The loop had **no per-combatant try/catch**, so that rejection propagated out of the first `await` and every remaining combatant went unrolled — the reported symptom, a button that appears to do nothing after one roll. Third, it ignored combatant **groups**, which v14 added: core resolves a grouped combatant to `combatant.group.activeCombatant` so a group rolls once rather than per member, and skips combatants the user does not own.
