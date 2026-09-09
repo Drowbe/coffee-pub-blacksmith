@@ -919,9 +919,14 @@ moves**: every injury key there belongs to the health mechanic, not the importer
 
 ### Regent — encounter and narrative generators
 
-**Held until the seam exists.** Regent is the only live consumer of Blacksmith's encounter journal builder,
-through `api.createJournalEntry` on the API root rather than the import window
-(`window-query.js:2009`, `:1598`).
+**SEQUENCED 2026-09-09 by the author: migrate Regent to the import system AFTER the v14 migration, not
+during it.** The seam is ready and the hold above is lifted, so nothing blocks the work but ordering. The
+v14 sweep is live-ready-today work across fifteen modules; this is a schema migration that changes what
+Regent's generators emit, and landing the two together would make a v14 regression and an importer
+regression indistinguishable. Start it once the suite is verified on v14.
+
+Regent is the only live consumer of Blacksmith's encounter journal builder, through
+`api.createJournalEntry` on the API root rather than the import window (`window-query.js:2009`, `:1598`).
 
 The recommendation is NOT that Regent retires its generators. Their CR arithmetic, party/monster/NPC
 worksheets, canvas drag-drop, difficulty setting, treasure and linked encounters are encounter DESIGN tooling
@@ -930,18 +935,26 @@ it hand-writes in two places (`window-query.js:2191` and `:2410`) -- replaced by
 `api.importer.getAuthoringGuide('journal', profile)` composed with their own direction, which is the
 `composesOwnAuthoring` pattern Roll Table and Actor already use.
 
-Three defects found in Regent on 2026-08-31 while confirming usage, none yet reported to them:
+Four defects found in Regent on 2026-08-31 while confirming usage. **All four re-verified on disk 2026-09-09
+and reported to the Regent session that day** -- the first was also confirmed against the live v14 client.
+The line numbers below drifted between the two dates; the 2026-09-09 readings are given where they moved.
 
-- Its Narrative Wordsmith instructs the generator to emit `JOURNALTYPE: "Narrative"` (`:2242`), and Blacksmith
-  now THROWS on NARRATIVE. **That path cannot work against current Blacksmith** -- two copies of one schema in
-  two repos, exactly the divergence the importer exists to end.
-- Its `INJURY` branch calls `buildInjuryJournalEntry(journalData)` (`:1603`), which is **imported nowhere in
-  Regent**. A free identifier, so `ReferenceError` on first use. Dead on arrival.
+- Its Narrative Wordsmith instructs the generator to emit `JOURNALTYPE: "Narrative"` (`:2242`, now `:2224`),
+  and Blacksmith now THROWS on NARRATIVE. **That path cannot work against current Blacksmith** -- two copies
+  of one schema in two repos, exactly the divergence the importer exists to end.
+  **Confirmed live 2026-09-09** by calling `api.createJournalEntry` with all four spellings: `"Narrative"`
+  and `"narrative"` both throw `Legacy narrative journals are not supported`; `"Encounter"` and `"area"`
+  both create an entry. Regent's `catch` swallows the throw into a notification, so the user gets a toast
+  and no journal, with nothing in the console.
+- Its `INJURY` branch calls `buildInjuryJournalEntry(journalData)` (`:1603`, now `:1595`), which is **imported
+  nowhere in Regent** -- re-checked 2026-09-09, still the only occurrence of the name in `scripts/`. A free
+  identifier, so `ReferenceError` on first use. Dead on arrival.
 - `api.createJournalEntry` is a legacy API-root surface Regent depends on. Step 8 either keeps it working or
   ships Regent a declared replacement in the same release.
 - **Regent's four geography fields are dropped on every encounter import, silently.** Both its prompt
   templates instruct the generator to emit `sceneparent`, `scenearea`, `sceneenvironment` and
-  `scenelocation` (`window-query.js:2191`, `:2410`). Blacksmith reads **none of those names** anywhere --
+  `scenelocation` (`window-query.js:2191`, `:2410`; now `:2173` and `:2392`). Blacksmith reads **none of
+  those names** anywhere --
   the encounter builder reads `realm`, `region`, `site` and `area`. So the import succeeds, the journal is
   created, and its entire breadcrumb is missing. This is worse than the two defects above because both of
   those fail; this one reports success.
