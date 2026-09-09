@@ -76,6 +76,7 @@ import { JOURNAL_JSON_IMPORT_KIND_ID } from './registry-json-import-journals.js'
 import { XpManager } from './manager-xp.js';
 import { SocketManager } from './manager-sockets.js';
 import { HookManager } from './manager-hooks.js';
+import { reportLegacyGlobalsAtStartup } from './utility-legacy-globals.js';
 import { GeographyManager, HABITATS, HABITAT_KEYS, normalizeHabitats } from './manager-geography.js';
 import { initializeSceneGeography } from './ui-scene-geography.js';
 import {
@@ -667,6 +668,11 @@ Hooks.once('ready', async () => {
         // Initialize HookManager (infrastructure layer)
         LoadingProgressManager.logActivity("Initializing hook system...");
         HookManager.initialize();
+
+        // Which legacy Foundry globals still resolve on THIS generation. Warns only when something is
+        // actually gone, so it is silent on a client where nothing changed. Runs before the subsystems
+        // below so a generation that removed a global says so ahead of whatever breaks because of it.
+        reportLegacyGlobalsAtStartup();
 
         LoadingProgressManager.logActivity("Initializing roll outcome hooks...");
         RollOutcomesManager.initialize();

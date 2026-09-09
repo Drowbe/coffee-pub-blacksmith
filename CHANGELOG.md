@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **A startup probe reporting which legacy Foundry globals still resolve on the running generation** (`scripts/utility-legacy-globals.js`, wired into `ready` in `blacksmith.js`). Warns only when something is actually gone, so it is silent on a client where nothing changed; the full table is on demand via `blacksmithLegacyGlobals()`.
+
+  It exists because of a concrete failure on 2026-09-09: two sessions catalogued 91 call sites across six categories on the shared belief that "v14 removes the un-namespaced globals", and sized a week of work around it. One line of console output refuted the premise. On 14.364 `CONST`, `Dialog`, `Application` and `FormApplication` all still resolve, and only `mergeObject`, `AudioHelper` and `duplicate` were gone. The real migration was two lines in one file; every other site was deprecation debt with no deadline. **The counts were accurate — the assumption underneath them was never asked.** This asks it in the first five minutes rather than the last, and will ask it again for v15 without anyone re-deriving the answer.
+
+  The module documents the one piece of JavaScript that makes this class of bug invisible: `typeof` is the only expression that does not throw on an undeclared identifier. `X?.y` and `X.y ?? z` both throw `ReferenceError`, because optional chaining and nullish coalescing guard a null or undefined *value*, never an unresolvable *binding*. That is not academic — roughly a quarter of the suite's `CONST` sites are written as `CONST?.FOO ?? {}`, which reads as migration-ready defensive code and is exactly as fatal as the bare form. Those are the sites a human audit skips, which is why the sweep has to be grep-driven and never eyeball-driven.
+
+- **`HookManager` now warns when a module registers a hook name Foundry has retired** (`scripts/manager-hooks.js`). The single `renderChatMessage` remap became a `LEGACY_HOOKS` table with an explicit `replacement` per entry: a string is substituted with a warning, `null` means the capability moved to a differently-shaped hook and warns without remapping.
+
+  **The `null` case is the dangerous one and the reason this exists: registering a retired hook name succeeds.** It returns a callback id and logs normally, and the callback simply never runs. Eight such registrations sat across four Coffee Pub modules for a full version — `renderJournalSheet` and `renderJournalPageSheet`, dead since journal sheets became ApplicationV2 — each one propped up by a `MutationObserver` or polling interval added later by someone who never learned why the hook had failed. Nothing in a console said so.
+
+  Hardcoding this table is safe where hardcoding the old warning's module list was not, and the code says why: **that list encoded which modules were guilty, so it rotted the moment a module fixed itself.** By 2026-09 it named two modules that had already migrated and missed two that had not. This table encodes Foundry's API history, and a renamed hook never un-renames.
+
+- **`blacksmithSilentHooks()`** — reports registered hook names that have not fired this session, for the retired names nobody has thought to list yet. Deliberately framed as a lead rather than a verdict: `deleteToken` is silent in a session where nobody deleted a token, and that is correct. What it catches is a name still silent *after* you have exercised the feature that should trigger it.
+
+- **`node tools/check-legacy-surfaces.mjs`** — guards both tables' shape, that every advertised console command is wired to `window`, and that Blacksmith registers no hook name the table can auto-remap (a plain rename with no design decision attached). It reports, without failing, registrations of a retired name that has no automatic replacement, since those need a port rather than a rename. It currently names **six** in `blacksmith.js`, `ui-journal-encounter.js` and `ui-journal-pins.js` — real, and outstanding.
+
 ## [14.0.0]
 
 ### Fixed

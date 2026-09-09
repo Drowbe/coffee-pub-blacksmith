@@ -9,12 +9,49 @@ export class HookManager {
     static hooks = new Map(); // hookName -> { hookId, callbacks: [], registeredAt }
     static contexts = new Map(); // context -> Set(callbackId)
     /**
-     * Callers already warned about the deprecated `renderChatMessage` remap, keyed by caller.
-     * A single boolean here would name only the first offender and hide every one after it --
-     * which is how a stale hardcoded list of module names outlived the modules that had fixed it.
+     * Hook names Foundry has renamed or retired, and what to do about each.
+     *
+     * `replacement` is a name we can safely substitute. `null` means the capability moved to a
+     * differently-shaped hook, so only the caller can decide what to do and we warn without remapping.
+     *
+     * **This table encodes Foundry's API history, not which modules are guilty.** The distinction is the
+     * whole reason it is safe to hardcode: the warning here used to carry a list of module names, and it
+     * rotted the moment a module fixed itself -- by 2026-09 it named two modules that had already migrated
+     * and missed two that had not. A renamed hook never un-renames, so this list ages in one direction.
+     *
+     * A `null` entry is the dangerous case and the reason this exists: registering a retired hook name
+     * SUCCEEDS. It returns a callback id and reports normally, and the callback simply never runs. Eight
+     * such registrations sat across four Coffee Pub modules for a full version, each one propped up by a
+     * MutationObserver or a polling interval added later by someone who never learned why the hook failed.
+     */
+    static LEGACY_HOOKS = {
+        renderChatMessage: {
+            since: 'v13',
+            replacement: 'renderChatMessageHTML',
+            note: 'The v13 hook passes a native HTMLElement where the v12 one passed jQuery.'
+        },
+        renderJournalSheet: {
+            since: 'v13',
+            replacement: null,
+            note: 'Journal sheets became ApplicationV2 (JournalEntrySheet), so the v12 class name never '
+                + 'fires. For header-bar entries use getHeaderControlsJournalEntrySheet -- verified live '
+                + 'on 14.364; scripts/manager-journal-tools.js is a working example.'
+        },
+        renderJournalPageSheet: {
+            since: 'v13',
+            replacement: null,
+            note: 'Journal sheets became ApplicationV2 (JournalEntrySheet), so the v12 class name never '
+                + 'fires. For header-bar entries use getHeaderControlsJournalEntrySheet -- verified live '
+                + 'on 14.364; scripts/manager-journal-tools.js is a working example.'
+        }
+    };
+
+    /**
+     * Legacy registrations already warned about, keyed `hookName::caller`.
+     * Keyed rather than a single flag so a second offender cannot hide behind the first.
      * @type {Set<string>}
      */
-    static _warnedRenderChatMessageRemap = new Set();
+    static _warnedLegacyHooks = new Set();
     
     /**
      * Generate unique callback ID
@@ -46,21 +83,28 @@ export class HookManager {
             throw new Error(`HookManager: name must be a string for ${name}`);
         }
 
-        // Foundry v13+: registering `renderChatMessage` attaches to a deprecated hook; remap silently (console only, once per session).
-        if (name === 'renderChatMessage') {
-            // Name the actual caller rather than a hardcoded list: the list went stale (it named
-            // two modules that had already migrated and omitted the two that had not), and one
-            // shared flag meant only the first registrant was ever reported.
+        // Retired hook names: remap where a safe replacement exists, warn loudly where none does.
+        // Names the actual caller rather than a hardcoded module list -- see LEGACY_HOOKS above.
+        const legacy = HookManager.LEGACY_HOOKS[name];
+        if (legacy) {
             const caller = context || description || 'unknown caller';
-            if (!HookManager._warnedRenderChatMessageRemap.has(caller)) {
-                HookManager._warnedRenderChatMessageRemap.add(caller);
-                console.warn(
-                    `[${MODULE.ID}] HookManager: "${caller}" registers the legacy hook "renderChatMessage"; ` +
-                    'remapping to "renderChatMessageHTML" (Foundry v13+). ' +
-                    'Change that registration to registerHook({ name: "renderChatMessageHTML" }) to remove this warning.'
-                );
+            const warnKey = `${name}::${caller}`;
+            if (!HookManager._warnedLegacyHooks.has(warnKey)) {
+                HookManager._warnedLegacyHooks.add(warnKey);
+                const head = `[${MODULE.ID}] HookManager: "${caller}" registers "${name}", retired in ${legacy.since}.`;
+                if (legacy.replacement) {
+                    console.warn(
+                        `${head} Remapping to "${legacy.replacement}" -- register that name instead to remove ` +
+                        `this warning. ${legacy.note}`
+                    );
+                } else {
+                    console.warn(
+                        `${head} THIS HOOK NEVER FIRES: the registration below will succeed and the callback ` +
+                        `will never run. There is no automatic replacement. ${legacy.note}`
+                    );
+                }
             }
-            name = 'renderChatMessageHTML';
+            if (legacy.replacement) name = legacy.replacement;
         }
         
         if (typeof callback !== 'function') {
@@ -88,6 +132,10 @@ export class HookManager {
             const hookRunner = (...args) => {
                 const entry = this.hooks.get(name);
                 if (!entry) return;
+
+                // Counted so `blacksmithSilentHooks()` can name registrations that never fired --
+                // the symptom of a retired hook name that is not yet in LEGACY_HOOKS.
+                entry.firedCount = (entry.firedCount ?? 0) + 1;
                 
                 // Create stable copy (already sorted on insert)
                 const list = entry.callbacks.slice();
@@ -613,6 +661,56 @@ export class HookManager {
     /**
      * Initialize the HookManager and set up lifecycle hooks
      */
+    /**
+     * Registered hook names that have not fired this session.
+     *
+     * **A silent hook is a lead, not a verdict.** `deleteToken` is silent in a session where nobody
+     * deleted a token, and that is correct. What the report is for is the other case: a name that has
+     * been retired, where registration succeeds and the callback never runs. That failure is invisible
+     * at the call site -- `registerHook` returns an id and logs normally -- so without this the only
+     * symptom is a feature quietly not working, which is how eight dead journal-hook registrations
+     * survived a full version across four Coffee Pub modules.
+     *
+     * Read it after exercising the feature you care about: a hook still silent once you have used the
+     * thing that should trigger it is worth checking against the Foundry version's hook list.
+     *
+     * @returns {{name: string, callbacks: number, contexts: string[], known: boolean}[]}
+     */
+    static getSilentHooks() {
+        const silent = [];
+        for (const [name, entry] of this.hooks.entries()) {
+            if ((entry.firedCount ?? 0) > 0) continue;
+            silent.push({
+                name,
+                callbacks: entry.callbacks?.length ?? 0,
+                contexts: [...new Set((entry.callbacks ?? []).map(cb => cb.context || cb.description || '?'))],
+                known: Object.prototype.hasOwnProperty.call(HookManager.LEGACY_HOOKS, name)
+            });
+        }
+        return silent.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    /**
+     * Console-friendly form of `getSilentHooks()`.
+     */
+    static showSilentHooks() {
+        const silent = HookManager.getSilentHooks();
+        const fired = this.hooks.size - silent.length;
+        console.groupCollapsed(`[${MODULE.ID}] Silent hooks: ${silent.length} of ${this.hooks.size} registered names have not fired (${fired} have)`);
+        if (!silent.length) console.log('Every registered hook has fired at least once this session.');
+        else {
+            console.log('Silence is normal for a hook whose trigger has not happened yet. Investigate a name that stays silent AFTER you exercise the feature.');
+            console.table(silent.map(h => ({
+                hook: h.name,
+                callbacks: h.callbacks,
+                registeredBy: h.contexts.join(', ').slice(0, 60),
+                'known retired': h.known ? 'YES - see LEGACY_HOOKS' : ''
+            })));
+        }
+        console.groupEnd();
+        return silent;
+    }
+
     static initialize() {
         // Set up auto-cleanup for common lifecycles
         Hooks.on('canvasTearDown', () => {
@@ -627,7 +725,7 @@ export class HookManager {
         postConsoleAndNotification(
             MODULE.NAME,
             'Hook Manager | Initialization',
-            'Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats()',
+            'Initialized with console commands: blacksmithHooks(), blacksmithHookDetails(), blacksmithHookStats(), blacksmithSilentHooks()',
             true,
             false
         );
@@ -638,6 +736,7 @@ export class HookManager {
             window.blacksmithHooks = () => HookManager.showHooks();
             window.blacksmithHookDetails = () => HookManager.showHookDetails();
             window.blacksmithHookStats = () => HookManager.getStats();
+            window.blacksmithSilentHooks = () => HookManager.showSilentHooks();
             
             // Short aliases for quick debugging
             window.showHooks = () => HookManager.showHooks();
