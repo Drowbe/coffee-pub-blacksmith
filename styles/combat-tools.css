@@ -172,6 +172,10 @@ body:not(.gm) #combat-tracker .combatant {
     overflow-y: auto;
 }
 
+/* The popout section keeps its `#combat-popout` id on v14, but the list inside it moved from
+   `#combat-tracker` (v12) to `ol.combat-tracker`. Both are listed so one file serves v13 and v14 --
+   `minimum` is still 13. Verified on 14.367: `#combat-popout` resolves, `#combat-tracker` does not. */
+.combat-tracker-resizable #combat-popout .combat-tracker,
 .combat-tracker-resizable #combat-popout #combat-tracker {
     height: 100%;
     overflow-y: auto;

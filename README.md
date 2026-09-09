@@ -3,7 +3,8 @@
 ![Latest Release](https://img.shields.io/github/v/release/Drowbe/coffee-pub-blacksmith)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/Drowbe/coffee-pub-blacksmith/release.yml?event=push)
 ![GitHub all releases](https://img.shields.io/github/downloads/Drowbe/coffee-pub-blacksmith/total)
-![Foundry v13 and v14](https://img.shields.io/badge/foundry-v13%20%7C%20v14-green)
+![Foundry v13](https://img.shields.io/badge/foundry-v13-yellow)
+![Foundry v14](https://img.shields.io/badge/foundry-v14-green)
 ![MIT License](https://img.shields.io/badge/license-MIT-blue)
 
 ## What it is

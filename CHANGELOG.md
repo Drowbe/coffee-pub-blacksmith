@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **The resizable combat tracker's inner list rule did not match on v14** (`styles/combat-tools.css`). The popout keeps its `#combat-popout` id, but the list inside it moved from `#combat-tracker` (v12) to `ol.combat-tracker`, so `.combat-tracker-resizable #combat-popout #combat-tracker` selected nothing and the list lost its `height: 100%` and `overflow-y: auto`. Now lists both forms, because `compatibility.minimum` is still 13 and one stylesheet has to serve both generations.
+
+  Verified on 14.367 by popping the tracker out and adding the body class the way `ui-combat-tools.js:516` does: all three resizable rules apply — `#combat-popout` gets `resize: both`, `.window-content` resolves its height, and `ol.combat-tracker.plain` gets `height: 200px, overflow-y: auto`.
+
+  **Most of this file was already correct and the scope of the problem was overstated twice before being measured.** A sweep for CSS reaching into core Foundry DOM flagged eleven `#combat-tracker` rules as dead; reading them showed all but one already pair the dead id with a working `.combat-tracker` or bare `.combatant` selector, added in an earlier v13 pass. Only the popout's inner rule genuinely had no working half. The lesson is the one the whole v14 audit kept teaching: a grep that counts selector occurrences cannot tell a dead rule from a dead half of a live rule.
+
+### Known
+
+- **`styles/sidebar-style.css:56` targets `#roll-privacy`, which no longer exists on v14** and has no direct replacement. `#chat-controls` now contains `div#message-modes.split-button` instead, and the dead rule applied a margin tuned for a vertical roll-privacy control. Left unchanged rather than repointed, because the correct value for a differently-shaped control is a visual judgement and not a mechanical substitution.
+- The dead `#combat-tracker` halves elsewhere in `combat-tools.css` are v12 leftovers that match nothing on v13 or v14. They are harmless — each is paired with a selector that does match — and are left in place rather than swept immediately before a play session.
+
 ## [14.1.0]
 
 ### Added
