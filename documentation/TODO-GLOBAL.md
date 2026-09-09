@@ -1064,20 +1064,29 @@ unaffected.
 
 ## Suite legacy `Dialog` migration — `api.dialog` is the vehicle
 
-**Recounted 2026-08-07.** Application V1 `Dialog` is deprecated in v13, and `plans/plan-migration-v14.md`
+**Recounted 2026-09-09.** Application V1 `Dialog` is deprecated in v13, and `plans/plan-migration-v14.md`
 already names finishing the V2 migration as a v14 forcing function. `api.dialog` shipped in 13.12.2; the
 contract is `documentation/api/api-dialog.md`.
 
+**Blacksmith is done and has been since before the first count — the remaining work is entirely in the
+satellites.** 22 legacy call sites across six modules. Two of them, Regent and Scribe, were missing from
+this table altogether, and Bibliosoph was recorded as finished while carrying two; a module absent from a
+migration table reads as "nothing to do", which is why the recount added every module rather than only the
+ones already listed.
+
 | Module | `DialogV2` | legacy `Dialog` | Since 2026-07-30 |
 |---|---|---|---|
-| **Blacksmith** | **57** | **0** | clean, and further ahead |
-| Bibliosoph | 10 | 0 | **done** (was 2 legacy) |
-| Cartographer | 6 | 0 | done |
+| **Blacksmith** | **75** | **0** | clean; 57 -> 75 since the last count |
+| Bibliosoph | 10 | **2** | **recorded done on 2026-08-07 and is not** -- `Dialog.confirm` at `window-messages.js:512` and `:553` |
+| Cartographer | 7 | 0 | done |
+| Librarian | 1 | 0 | done -- not previously listed |
 | Squire | 1 | 0 | **done** (was 21 legacy) |
 | Crier / Herald / Minstrel / Vault | 0 | 0 | none to migrate |
-| Monarch | 0 | **11** | barely moved (was 12) |
-| Curator | 2 | 2 | one retired (was 3) |
-| Artificer | 1 | 2 | unchanged |
+| Monarch | 0 | **12** | the bulk of the remaining work: 11 in `monarch.js`, 1 in `replace-name.js` |
+| Curator | 5 | **3** | moved on V2 (2 -> 5) but legacy went 2 -> 3 |
+| Regent | 0 | **2** | not previously listed -- `window-query.js:981` and `:1126` |
+| Artificer | 1 | 2 | unchanged -- `utils/helpers.js:76`, `window-skills.js:544` |
+| Scribe | 0 | **1** | not previously listed -- `scribe.js:1115` |
 | Regent | 0 | 2 | unchanged |
 | Scribe | 0 | 1 | unchanged |
 

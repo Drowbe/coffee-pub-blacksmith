@@ -72,6 +72,27 @@ Substantial expansion: token-facing changes, durations/expiry events, registry, 
 
 **Implications:** modules that read/write effect changes, patch sheets, or assume v13 field paths need a careful pass.
 
+**Verified on a live v14.364 / dnd5e 5.3.3 world, 2026-09-09 -- and the answer for Blacksmith is "do
+nothing".** A probe created an effect with the v13 shape, top-level `changes: [{key, mode: 2, value: "1"}]`,
+and core returned `system.changes: [{key, type: "add", value: 1, phase: "initial", priority: 0}]`. **Foundry's
+shim performs both halves of the migration** -- it relocates the array under `system` AND converts the numeric
+`mode` to the string `type`, supplying `phase` and `priority` defaults.
+
+The consequence is counter-intuitive and worth stating plainly: **for a module declaring `minimum: 13,
+maximum: 14`, emitting the LEGACY shape is correct.** It is native on v13 and shimmed on v14, so one codebase
+serves both generations with no `game.release.generation` branch. Emitting the modern shape is what would
+break, because `system.changes` does not exist on v13. `scripts/parsers/parse-item.js:552` passes
+caller-supplied changes through verbatim and therefore needs no change.
+
+The `type` vocabulary is a lowercase of `ACTIVE_EFFECT_MODES`, confirmed across ~2,400 real changes in the
+author's world: `custom`, `multiply`, `add`, `downgrade`, `upgrade`, `override` (numerics 0-5, unchanged on
+v14 -- `foundry.CONST.ACTIVE_EFFECT_MODES` still exists). Recorded here because nothing needs it yet and the
+shim is borrowed time: when core drops it, this is the map, and the decision above flips.
+
+`ActiveEffect#type` in the document schema is the DataModel SUBTYPE (`base`, `enchantment`), not the change's
+`type`. They are different fields with the same name at different levels, and confusing them is the easy
+mistake here.
+
 ### ProseMirror; TinyMCE removed
 
 v14 completes migration to **ProseMirror**; **TinyMCE is removed** from core (14.354). An **external integration API** exists if a package wants to bring TinyMCE back.

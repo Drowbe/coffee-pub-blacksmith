@@ -2,7 +2,7 @@
   "id": "coffee-pub-blacksmith",
   "title": "Coffee Pub Blacksmith",
   "description": "Quality of life, gameplay frameworks, automation, and aesthetic improvements.",
-  "version": "13.23.0",
+  "version": "14.0.0",
   
   "manifest": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/module.json",
   "download": "https://github.com/Drowbe/coffee-pub-blacksmith/releases/latest/download/coffee-pub-blacksmith.zip",
@@ -61,17 +61,6 @@
   "styles": [
     "styles/default.css",
     "styles/notes-gm.css"
-  ],
-  "files": [
-    "resources/config-volumes.json",
-    "resources/config-nameplates.json",
-    "resources/narratives-stats-mvp.json",
-    "resources/asset-defaults/assets-background-cards.json",
-    "resources/asset-defaults/assets-icons.json",
-    "resources/asset-defaults/assets-sounds.json",
-    "resources/asset-defaults/assets-banners.json",
-    "resources/asset-defaults/assets-skillchecks.json",
-    "resources/pin-taxonomy.json"
   ],
   "esmodules": [
     "scripts/const.js",

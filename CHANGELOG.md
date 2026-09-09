@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [14.0.0]
 
 ### Fixed
 
@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `foundry.CONST` was confirmed against a real consumer before the sweep, not taken on trust: dnd5e 5.3.3 uses `foundry.CONST.TOKEN_DISPOSITIONS` in `dnd5e.mjs`. Verified by `grep` returning no bare reference of either kind, `node --check` on all 25 touched files as ES modules, and `check-imports`, `check-coffeepub-constants`, `check-quick-rolls`, `check-note-reminders` and `check-styles-loaded` all passing.
 
   Verified live 2026-09-09 on v13, exercising both fixed FilePicker paths and the widest of the rewritten CONST paths: the pin configuration image browser opened, a wildcard token path resolved to real art on an encounter card, pin layer player visibility toggled and read correctly from a player client, the QuickView and Compendium Search keybindings both fired, and skill check and chat cards rendered with correct message styling. **This proves the rewrite did not break v13; it does not prove v14.** Every site here was already working before the sweep — the change is that these paths no longer depend on globals v14 removes, and confirming that needs a v14 world.
+
+- **`module.json` declared a `files` key, which Foundry does not recognise** (`module.json`). Foundry logged "The \"Coffee Pub Blacksmith\" module's manifest contained the following unknown keys: \"files\"" on every load. There is no `files` key in the manifest schema, and nothing read it: the nine `resources/*.json` it listed are fetched at runtime by direct path (`modules/<id>/resources/...`), and the release workflow zips `resources/` wholesale, so the key was neither shipping those files nor loading them. Removed; nothing about what ships or loads changes.
 
 - **The `renderChatMessage` remap warning named the wrong modules and could only ever report one of them** (`scripts/manager-hooks.js`). The text hardcoded "Squire, Crier, SCRIBE". Squire had no such registration at all and Crier had already migrated, so two of the three named modules were innocent; the two that were actually still registering the legacy name — SCRIBE and Vault — went unnamed, Vault entirely.
 
