@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`foundry.utils.objectsEqual` is deprecated on v14 and was warning on every combat update** (`scripts/api-inventory.js`, `scripts/stats-adversaries.js`). Renamed to `foundry.utils.equals` in v14, removal in v16. Three call sites: two identity comparisons in the inventory merge check, and the adversary-record write that runs from the XP manager's `updateCombat` callback -- which is why it surfaced as a warning on a live combat rather than sitting quiet.
+
+  **Both names are read rather than swapping to the new one**, via `const deepEquals = foundry.utils.equals ?? foundry.utils.objectsEqual;`. `equals` is confirmed present on 14.367 and behaves identically for object inputs -- but **whether it exists on v13 is unknown**, and `compatibility.minimum` is still 13. Swapping outright would have fixed v14 by breaking the generation we still ship for. Same shape as the combat-tracker selector fix above and the pattern Cartographer and Librarian adopted for their own deprecations.
+
+  Verified on 14.367: `foundry.utils.equals` and `objectsEqual` both resolve, and `equals` matches `objectsEqual` on `{a:1}/{a:1}`, `{a:1}/{a:2}`, `null/null` and `[1,2]/[1,2]`. Confirmed served after a cache-bypassing reload with no bare call remaining.
+
+### Verified
+
+- **Pop-out windows work on both Blacksmith window bases** -- the one v14 feature that, had it broken, every module in the suite would have inherited. Raised by the Merchant session as something that should precede the per-module passes; it did not, and ten modules shipped before it was known either way.
+
+  v14's API is `detachWindow()` / `attachWindow()`, with `detach`/`attach` header controls in `ApplicationV2.DEFAULT_OPTIONS` and a `_canDetach()` guard. Tested on `BlacksmithToolWindowBaseV2` (Librarian's codex browser, 17,716 nodes) and `BlacksmithFullscreenWindowBaseV2` (Merchant's shop window): module CSS follows into the detached document as inline `<style>` -- 15 of our rules present -- computed background, colour, font and padding are identical attached and detached, `this.element` resolves at every stage, the node count is preserved so the element is moved rather than rebuilt, reattach is clean, and zero console errors across the cycle.
+
+  **Delegation fires exactly once at every stage on both bases**, which was the specific risk: a moved element keeps its listeners, so `_attachFrameListeners` running again on detach would double-fire. Measured by registering a throwaway action and counting how many times ApplicationV2's own delegation invoked it -- Merchant's test design, and better than counting DOM events, which would have measured the browser rather than the framework.
+
+  **An earlier reading of this as broken was wrong.** A first probe looked for `link[rel=stylesheet]` hrefs matching the module id, found none, and concluded module CSS had not followed. Foundry carries it as inline `<style>`. Drag-and-drop across documents remains untested and is not synthesisable.
+
 - **The resizable combat tracker's inner list rule did not match on v14** (`styles/combat-tools.css`). The popout keeps its `#combat-popout` id, but the list inside it moved from `#combat-tracker` (v12) to `ol.combat-tracker`, so `.combat-tracker-resizable #combat-popout #combat-tracker` selected nothing and the list lost its `height: 100%` and `overflow-y: auto`. Now lists both forms, because `compatibility.minimum` is still 13 and one stylesheet has to serve both generations.
 
   Verified on 14.367 by popping the tracker out and adding the body class the way `ui-combat-tools.js:516` does: all three resizable rules apply — `#combat-popout` gets `resize: both`, `.window-content` resolves its height, and `ol.combat-tracker.plain` gets `height: 200px, overflow-y: auto`.

@@ -11,6 +11,175 @@ This document collects **official sources**, **notable breaking changes**, a **p
 
 ---
 
+## MEASURED FINDINGS — read this before auditing anything
+
+**Everything in this section was measured on a live Foundry 14.367 / dnd5e 5.3.3 client on 2026-09-09**,
+during the suite-wide migration, by driving the client over the Chrome DevTools Protocol. It supersedes
+the speculative sections below, which were written before anyone had run v14. Eleven module sessions asked
+the same four questions; this is the answer, so read it rather than asking the hub to retype it.
+
+### The rulings (manifest, badge, pin)
+
+- **`compatibility: {minimum: "13", verified: "14", maximum: "14"}`** — the author's words: **"until 13
+  breaks."** v13 is not being dropped.
+- **Pin `coffee-pub-blacksmith` at `>= 14.1.0`.** Honourable alongside `minimum: "13"`, because Blacksmith
+  14.1.0 itself declares `minimum: "13"` — a v13 world runs both.
+- **Versions:** each module bumps its own line. A satellite's first v14 release is `14.0.0`.
+- **README badge — two badges, not one**, after downloads and before the licence badge:
+
+      ![Foundry v13](https://img.shields.io/badge/foundry-v13-yellow)
+      ![Foundry v14](https://img.shields.io/badge/foundry-v14-green)
+
+  **Yellow = supported, green = verified.** The green badge is a verification claim in a place people read,
+  so it lands in the **same commit** that sets `verified: "14"` — never before. A single combined
+  `v13 | v14` badge is wrong: it cannot say which generation is verified. Licence badge is
+  `license-MIT-blue`.
+
+### What v14 actually removed — and what it did NOT
+
+**The premise that cost the suite hours was "v14 removes the un-namespaced globals". It does not.** Probing
+187 globals found **55 removed**:
+
+| Family | Names |
+|---|---|
+| `foundry.utils` aliases (32) | `mergeObject duplicate deepClone diffObject flattenObject expandObject filterObject getType setProperty getProperty hasProperty invertObject randomID isNewerVersion benchmark timeSince formatFileSize parseS3URL getRoute fetchWithTimeout fetchJsonWithTimeout debounce throttle deepFreeze escapeHTML logCompatibilityWarning isEmpty encodeURL Semaphore StringTree WordTree BitMask` |
+| `foundry.audio` (3) | `AudioHelper Sound AudioContainer` |
+| dice terms (12) | `Die DiceTerm NumericTerm OperatorTerm PoolTerm ParentheticalTerm StringTerm FunctionTerm RollTerm Coin FateDie MersenneTwister` — **`Roll` itself survives**, which makes this family easy to miss |
+| sidebar/apps (7) | `DocumentDirectory SidebarTab SidebarDirectory PlayerList PermissionConfig WorldConfig HeadsUpDisplay` |
+| other (1) | `TextureUtils` |
+
+**Only the BARE ALIASES are gone. The `foundry.utils` NAMESPACE is alive** — `foundry.utils.mergeObject`
+and friends all work. This sentence has been misread once; it matters, because the two readings have
+opposite consequences.
+
+**Still present and working:** `CONST`, `Dialog`, `Application`, `FormApplication`, `DocumentSheet`,
+`ActorSheet`, `ItemSheet`, `JournalSheet`, `FilePicker`, `TextEditor`, `ContextMenu`, `DragDrop`, `Tabs`,
+`SearchFilter`, `Roll`, `Canvas`, every document class, `saveDataToFile`, `readTextFromFile`, `srcExists`,
+`Color`, `Collection`. 132 of 187 resolve.
+
+`blacksmithLegacyGlobals()` prints the live table and warns when a **newer** generation removes something
+14.367 still had.
+
+### The three failure modes that actually bit modules
+
+**1. A hook named after a renamed Application class registers successfully and never fires.** No error, no
+warning, the feature silently does nothing. This caught five modules:
+
+| Dead name | Live name | Module |
+|---|---|---|
+| `renderJournalSheet` | `renderJournalEntrySheet` | Blacksmith (3 files), Herald, Scribe |
+| `renderJournalPageSheet` | `renderJournalEntryPageSheet` | same |
+| `renderActorSheet5e` | `renderActorSheetV2` | Squire |
+| `renderItemSheet` | `renderDocumentSheetV2` | Artificer |
+| `renderDialog` | `renderDependencyResolution` | Monarch |
+
+`HookManager.LEGACY_HOOKS` auto-remaps the known ones and warns naming the caller; `blacksmithSilentHooks()`
+lists registered names that have not fired. **Prefer core's system-agnostic hook over a system-specific
+one** — `renderDocumentSheetV2` filtered on `app.document.documentName` beats `renderItemSheet5e`, which
+dnd5e can rename again.
+
+**Watch for double-registration:** a module holding both a legacy name and its modern equivalent gets two
+live callbacks once the remap lands. Herald was double-emitting a socket message per journal open.
+
+**2. CSS reaching into core DOM fails silently.** v14 moved several elements from classes to IDs, and
+restructured DialogV2:
+
+| Dead | Live |
+|---|---|
+| `#interface > section.ui-left` (and `-middle`, `-right`) | `section#ui-left` etc. |
+| `#combat-tracker` | `ol.combat-tracker` inside `section#combat` |
+| `#roll-privacy` | gone; `#chat-controls` holds `div#message-modes.split-button` |
+| `.dialog-buttons` | `footer.form-footer` |
+| `.dialog-button` / `[data-button="x"]` | plain `button` with `[data-action="x"]` |
+| `canvas.background` | never existed on any version — the background is a PIXI mesh |
+| `.editor-toolbar` | no match on 14.367 |
+
+Surviving: `#combat-popout`, `#interface`, `#notifications`, `#ui-left` (as an **ID**), `.dialog-content`,
+`prose-mirror`, `.editor-container`, `.editor-menu`, `.editor-content`, **both** `.ProseMirror` and
+`.prosemirror` (same element), `.form-group`, `.application`.
+
+`.dialog` is present on the `<dialog>` root but **not dependably selectable while open as a modal** — scope
+from `.application` instead.
+
+**When fixing these, match BOTH structures rather than swapping** — `minimum: "13"` means the old selector
+is not hypothetical. Librarian's pattern: `:is(.dialog-buttons, .form-footer) :is(.dialog-button, button)`.
+
+**3. A property removed from a global that survives.** `CONST.CHAT_MESSAGE_TYPES` is gone while bare
+`CONST` lives, so **no removed-globals scan catches it**. Use `CONST.CHAT_MESSAGE_STYLES`
+(`{OTHER:0, OOC:1, IC:2, EMOTE:3}`). **Grep your own `CONST.*` reads and confirm each property.** An
+unguarded read throws; a guarded one degrades to a literal that may be silently wrong.
+
+### Confirmed unchanged — do not spend time on these
+
+**Font Awesome 7 is a non-issue.** Legacy `fas` / `far` / `fab` aliases all resolve, and every unusual
+glyph tested rendered (`fa-chart-network`, `fa-wagon-covered`, `fa-wheat-awn`, `fa-sack-xmark`,
+`fa-feather-pointed`, `fa-store-slash`, `fa-beer-mug-empty`, `fa-book-atlas`, `fa-user-group-simple`,
+`fa-crow`, `fa-hand-holding-heart`). Zero blanks. Family resolves as "Font Awesome 7 Pro".
+
+PIXI **7.4.3**, `canvas.app.stage/renderer/view` intact · `foundry.applications.handlebars.renderTemplate`
+and `loadTemplates` · `TextEditor.enrichHTML` · `foundry.applications.apps.FilePicker.implementation` ·
+`ChatMessage.getSpeaker` / `applyRollMode` · `CONFIG.Canvas.polygonBackends.sight.testCollision` ·
+`CONFIG.Token.movement.actions[x].teleport` (`blink` and `displace` both `true`) ·
+`foundry.applications.instances` (a Map) · `ApplicationV2.prototype._insertElement` ·
+`canvas.scene._viewPosition` and `animatePan` · `Actor#toggleStatusEffect` · `Combat#endCombat` ·
+`JournalEntryPageProseMirrorSheet.EDIT_PARTS` (exactly `header, content, footer` — nothing added or
+renamed).
+
+**`JournalEntryPage` subtype declaration and `TypeDataModel` validation are intact at production scale** —
+342 Librarian codex pages load with 0 validation failures and render custom sheets; Bibliosoph's three
+subtypes likewise.
+
+**There is still no `endCombat`/`combatEnd` hook.** Ending a combat deletes the document, so `deleteCombat`
+remains the signal. Verified by running a full combat: `combatStart`, `updateCombat`, `deleteCombat`,
+`combatRound`, `combatTurn`, `createCombatant`, `updateCombatant`, `preUpdateCombat`, `preDeleteCombat` all
+fire.
+
+**v14 adds a THIRD setting scope.** `CONST.SETTING_SCOPES` is `{CLIENT, WORLD, USER}` and
+`game.settings.storage` is a 3-entry Map. Code treating scope as a world/client binary drops user-scoped
+settings silently. `game.settings.storage.get("world")` is **not** localStorage-shaped despite core's own
+comment: `WorldSettings` has `getSetting`/`getItem` and **no `removeItem`/`setItem`** — delete through
+`doc.delete()`. Deleting an orphaned Setting is safe; `_castType` never runs on delete. And **`game.systems`
+does not exist** in a world context — only `game.system`.
+
+### Method notes — every one of these was earned by getting it wrong first
+
+- **A grep that counts occurrences cannot tell a dead thing from the dead half of a live one.** Four false
+  positives in one day, including an "11 dead CSS rules" claim where the real number was one.
+- **`grep -E` with a pattern containing `(` is an unterminated group.** grep exits 2 and prints nothing, so
+  `2>/dev/null | wc -l` reports `0` — indistinguishable from clean. Use `-F` for anything with regex
+  punctuation, and **never suppress grep's stderr in a survey**.
+- **A guard can sit on the preceding line.** Excluding lines that *contain* a guard yields false positives.
+- **Scope greps to what actually ships.** `_backups/` and `testing/` inflated one audit roughly twofold, and
+  a file absent from `esmodules` is never loaded at all.
+- **To check whether a `CONST` property exists without a loaded world**, grep the installed bundle at
+  `<install>/resources/app/public/scripts/foundry.mjs` — **with `CHAT_MESSAGE_TYPES` as a negative
+  control.** A grep that finds a string proves only that the string is somewhere in 7.6 MB. A grep
+  returning **0** for a property known to be removed proves the search distinguishes present from absent.
+  Without the control it is a text search, not evidence.
+- **Distinguish "does not match" from "cannot match in this state."** A theme-scoped selector correctly
+  returns 0 when the element is in another theme. Force the state transiently and re-read before reporting
+  breakage.
+- **An absence found on one version is evidence about that version only.** There is no Foundry v13 on the
+  author's machine — one install, 14.367.0, one `foundry.mjs`. **"Removed in v14" is unproven here**; the
+  honest form is *"absent on 14.367, history unknown"* — enough to guard against, not enough to delete on.
+  Two sessions asserted v13 checks they had not performed. **Phrase CHANGELOGs accordingly.**
+- **`minimum: "13"` is asserted but untested.** Nobody in this migration could verify the v13 half. It is
+  probably fine — the work removed deprecated usage rather than adopting v14-only APIs, which is the
+  direction that preserves compatibility — but it is untested rather than tested.
+
+### Driving a live client
+
+Launch Foundry with `--remote-debugging-port=9222` and drive it over the DevTools Protocol using Node's
+built-in `WebSocket`: `fetch('http://localhost:9222/json/list')` for the `/game` target, then
+`Runtime.evaluate`. `Page.reload {ignoreCache: true}` is required to pick up edited ES modules, and Foundry
+re-reads `module.json` only at **server** start, so a module's reported version lags a page reload.
+
+**Never `await` a call that opens a user-facing dialog** — the promise resolves on a button click and the
+evaluation blocks forever. Fire it, wait a fixed interval, then close. **Do not synthesise a `contextmenu`
+or a drag**: a half-working synthetic pointer sequence gives worse data than none, and the failure mode
+usually under test is "the wrong handler claimed the event". Restore any state you change, and prefer
+reading an existing document over creating one.
+
 ## Authoritative resources
 
 | Resource | Use |

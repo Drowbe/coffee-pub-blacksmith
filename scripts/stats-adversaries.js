@@ -99,7 +99,10 @@ function snapshotCombatant(combatant) {
  */
 async function _write(combat, record) {
     try {
-        if (foundry.utils.objectsEqual(getAdversaryRecord(combat), record)) return;
+        // v14 renamed `objectsEqual` to `equals` (removal in v16); v13 may only have the old name and
+        // `minimum` is still 13, so prefer the new and fall back rather than swapping.
+        const deepEquals = foundry.utils.equals ?? foundry.utils.objectsEqual;
+        if (deepEquals(getAdversaryRecord(combat), record)) return;
         await combat.setFlag(MODULE.ID, FLAG_KEY, record);
     } catch (error) {
         postConsoleAndNotification(MODULE.NAME, 'Adversary Record: capture failed', error, false, false);

@@ -538,8 +538,12 @@ function _canMerge(existing, incoming, ignoreFlags) {
     }
     if ((incoming.effects ?? []).length) return false;
 
-    if (!foundry.utils.objectsEqual(_identitySystem(existingSource, existing.type), _identitySystem(incomingSystem, incoming.type))) return false;
-    if (!foundry.utils.objectsEqual(_identityFlags(existing._source?.flags, ignoreFlags), _identityFlags(incoming.flags, ignoreFlags))) return false;
+    // `objectsEqual` is deprecated in v14 (renamed `equals`, removal in v16) but `equals` may not exist
+    // on v13, and `module.json` still declares `minimum: 13`. Preferring the new name with the old as
+    // fallback is correct on both generations; swapping outright would fix v14 by breaking v13.
+    const deepEquals = foundry.utils.equals ?? foundry.utils.objectsEqual;
+    if (!deepEquals(_identitySystem(existingSource, existing.type), _identitySystem(incomingSystem, incoming.type))) return false;
+    if (!deepEquals(_identityFlags(existing._source?.flags, ignoreFlags), _identityFlags(incoming.flags, ignoreFlags))) return false;
 
     return true;
 }
