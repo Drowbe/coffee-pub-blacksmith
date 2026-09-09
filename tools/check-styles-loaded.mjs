@@ -61,7 +61,13 @@ while (queue.length) {
     }
 
     checked++;
-    const css = readFileSync(path, 'utf8');
+    const raw = readFileSync(path, 'utf8');
+    // Strip block comments before matching. A COMMENTED-OUT `@import` is the most likely thing to find
+    // in a load list -- commenting one out is how people disable a stylesheet -- and counting it as real
+    // makes the tool demand a file the author deliberately removed. Reported by the Regent session
+    // 2026-09-09, where `/* @import "regent-window-query.css"; */` was flagged as a missing file.
+    // Non-greedy and dot-matches-newline, because these are usually block comments spanning a line.
+    const css = raw.replace(/\/\*[\s\S]*?\*\//g, '');
     for (const match of css.matchAll(/@import\s+(?:url\()?["']([^"']+)["']/g)) {
         const target = basename(match[1]);
         if (!existsSync(join(STYLES_DIR, target))) {
@@ -84,7 +90,13 @@ while (queue.length) {
 for (const file of readdirSync(STYLES_DIR).filter((f) => f.endsWith('.css'))) {
     checked++;
     if (!reached.has(file)) {
-        problems.push(`"${file}" is on disk but nothing loads it -- no @import reaches it and module.json does not declare it. Every rule in it is dead and nothing will error.`);
+        // TWO OPPOSITE CAUSES, AND THIS CHECK CANNOT TELL THEM APART. Either the file is obsolete and
+        // should go, or its rules are still referenced by live templates and somebody forgot to import
+        // it. The message says both, because "nothing loads this" reads as "delete it" and the wrong
+        // reading throws away working CSS. Raised by the Regent session 2026-09-09: a 258-line
+        // stylesheet flagged here turned out to define classes its own worksheet templates still
+        // render, so it was missing styling rather than dead code -- the inverse of the assumed case.
+        problems.push(`"${file}" is on disk but nothing loads it -- no @import reaches it and module.json does not declare it. TWO OPPOSITE CAUSES, and this check cannot tell them apart: the file is obsolete and should be deleted, OR its rules are still used by live templates and it was never imported. Grep the templates for its class names before deleting -- removing a stylesheet the markup still uses trades dead code for missing styling, which is worse and harder to spot.`);
         continue;
     }
     // A stylesheet has to DO something: carry a rule, or import one. `default.css` is

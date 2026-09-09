@@ -38,9 +38,25 @@ export class UIContextMenu {
         const root = rootOption || document.body;
         const doc = root.ownerDocument || document;
 
+        // A menu opened from inside a fullscreen surface must be raised above it, or it is invisible.
+        //
+        // `.context-menu` sits at 10000 and the fullscreen surface at 200000, so the default loses.
+        // `.context-menu-above-dialogs` (999999) exists for exactly this and window-fullscreen.css
+        // already says the surface "stays below the global context menu, which a fullscreen window may
+        // open for itself" -- but that only held when a caller remembered to pass the class. Now the
+        // menu detects its own container, so the guarantee the ladder claims is the one it delivers.
+        //
+        // Raised on the argument rather than a repro: the Merchant session found the identical bug for
+        // toasts (a refusal fired inside a full-screen shop and nothing appeared), and confirmed its own
+        // only `uiContextMenu.show` call is from a Tool window that can never be fullscreen -- so the
+        // module that would demonstrate this is simply not the one that found it. 2026-09-09.
+        const inFullscreen = !!(root?.closest?.('.blacksmith-window-fullscreen')
+            || root?.closest?.('.blacksmith-window-fullscreen-root'));
+        const stackingClass = inFullscreen ? 'context-menu-above-dialogs' : '';
+
         const menu = doc.createElement('div');
         menu.id = id;
-        menu.className = `context-menu ${className}`.trim();
+        menu.className = `context-menu ${stackingClass} ${className}`.replace(/\s+/g, ' ').trim();
         menu.style.visibility = 'hidden';
         menu.style.left = '0px';
         menu.style.top = '0px';

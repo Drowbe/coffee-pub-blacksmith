@@ -42,6 +42,13 @@ These are **two different** supported surfaces on `game.modules.get('coffee-pub-
 
 `extends` is evaluated when your module script is evaluated, and `module.api` cannot be read then: `game` does not exist yet, so a top-level `game.modules.get('coffee-pub-blacksmith')` throws `Cannot read properties of undefined (reading 'get')`. ES modules cache a failed evaluation, so that throw disables your module for the rest of the session rather than being retried on the next access.
 
+**The dangerous version of this mistake is the defensive one, and it does not throw.** A resolver written
+with optional chaining -- `game?.modules?.get('coffee-pub-blacksmith')?.api?.BlacksmithWindowBaseV2` --
+never errors at evaluation time. It simply yields `undefined` every time, so the fallback base is used on
+every render and the `module.api` branch never runs once. **That is worse than the crash**: a thrown error
+is found the day it ships, while a silent fallback looks correct and can run for months. Reported by the
+Regent session on 2026-09-09, where it had done exactly that.
+
 Import the base class from the API bridge, which is a real ES module and therefore resolves at evaluation time:
 
 ```javascript
@@ -164,6 +171,10 @@ Four things matter for a tool that is ephemeral or can have several instances op
   share one key and overwrite each other's saved position — the second opens on top of the first. This does
   not cost theme persistence: the theme and title-bar keys are gated by their own `rememberToolTheme` /
   `rememberTitlebarMode` flags, so a user's Glass choice still persists.
+  **Set it also if you persist bounds yourself, for a different reason: the base restores position in
+  `_onFirstRender`, which runs AFTER the subclass constructor.** A subclass that restores its own bounds
+  writes first and the base writes second, so the base silently wins and the subclass's restore appears to
+  do nothing. Regent persists to a world setting rather than `localStorage` and hit exactly this.
 - **Options are frozen.** Use `setToolTheme()` / `setToolTitlebarMode()`; never assign `this.options.toolTheme`.
 - **Watch the growth axis.** `height: 'auto'` with `resizable: false` is the Tool default; the body scrolls
   and the base clamps to `maxHeight: calc(100vh - 16px)`. If your content is a list that can get long, check
