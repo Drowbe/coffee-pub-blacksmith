@@ -2126,7 +2126,7 @@ export class JournalToolsWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'journal-tools-window';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'journal-tools-window',
             classes: ['journal-tools-window'],

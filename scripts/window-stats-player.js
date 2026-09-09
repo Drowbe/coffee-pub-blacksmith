@@ -13,7 +13,7 @@ export class PlayerStatsWindow extends BlacksmithWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-player-stats-window',
             classes: ['blacksmith-stats', 'blacksmith-player-stats'],

@@ -62,7 +62,7 @@ export class DiceTrayWindow extends BlacksmithToolWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-dicetray-window',
             classes: ['blacksmith-dicetray-tool-window'],

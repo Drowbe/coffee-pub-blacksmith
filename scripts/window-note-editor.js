@@ -66,7 +66,7 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
     static _open = new Map();
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-note-editor-window',
             classes: ['blacksmith-note-editor', 'blacksmith-notes-tool-window'],

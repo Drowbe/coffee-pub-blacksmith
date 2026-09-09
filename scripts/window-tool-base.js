@@ -26,8 +26,19 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-tool-root';
     static WINDOW_STYLE = BLACKSMITH_WINDOW_STYLES.TOOL;
 
+    // The first argument is `{}` ON PURPOSE. Do NOT restore the
+    // `foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {})` that used to sit here.
+    //
+    // Foundry already walks the prototype chain and merges every level's DEFAULT_OPTIONS, so copying
+    // super's into our own was always redundant -- and on v14 it is actively wrong. v14 added
+    // `window.controls: [detach, attach]` (the new pop-out feature) to core's ApplicationV2 defaults, and
+    // the chain merge CONCATENATES `window.controls` rather than replacing it. So every level that copied
+    // super's options re-contributed core's pair: measured 2026-09-09, one copying level yielded 4
+    // controls, two yielded 6, and Merchant's ShopWindow -- three copying levels deep -- showed the
+    // "Detach Window / Re-attach Window" pair FOUR times in its header menu.
+    // Without the copy it is 2 at any depth, and custom controls added by a subclass still survive.
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             classes: ['blacksmith-window-tool'],
             position: { width: 360, height: 'auto' },

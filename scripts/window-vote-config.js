@@ -21,7 +21,7 @@ export class VoteConfig extends BlacksmithWindowBaseV2 {
     }
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'vote-config',
             classes: ['coffee-pub-blacksmith', 'vote-config'],

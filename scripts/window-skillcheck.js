@@ -50,7 +50,7 @@ function cinematicThemeSuffix(messageData) {
 
 export class CinematicOverlay extends BlacksmithFullscreenWindowBaseV2 {
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'cpb-cinematic-overlay',
             classes: ['blacksmith-window-fullscreen', 'cpb-cinematic'],
@@ -148,7 +148,7 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'skill-check-dialog';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'skill-check-dialog',
             classes: ['coffee-pub-blacksmith', 'skill-check-dialog'],

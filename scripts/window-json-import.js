@@ -14,7 +14,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
     static _sessionAuthoringState = new Map();
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-json-import-window',
             classes: ['coffee-pub-blacksmith', 'blacksmith-json-import-window-app', 'blacksmith-json-import-window'],

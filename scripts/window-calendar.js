@@ -38,7 +38,7 @@ export class CalendarWindow extends BlacksmithToolWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: CALENDAR_WINDOW_ID,
             classes: ['blacksmith-calendar-tool-window'],

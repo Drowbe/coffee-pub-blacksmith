@@ -18,7 +18,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 
 class CombatantCardToolWindow extends BlacksmithToolWindowBaseV2 {
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             classes: ['blacksmith-window-tool', 'blacksmith-combatant-tool-window'],
             position: { width: 300, height: 'auto' },

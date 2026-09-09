@@ -182,8 +182,11 @@ export class BlacksmithFullscreenWindowBaseV2 extends BlacksmithWindowBaseV2 {
         }
     };
 
+    // `{}` is deliberate -- see the note in `window-tool-base.js`. Copying `super.DEFAULT_OPTIONS` here
+    // is redundant (Foundry merges the chain itself) and on v14 duplicates core's new
+    // `window.controls: [detach, attach]`, because the chain merge concatenates that array.
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             tag: 'div',
             classes: ['blacksmith-window-fullscreen'],

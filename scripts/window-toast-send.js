@@ -87,7 +87,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: APP_ID,
             classes: ['blacksmith-toast-send-window'],

@@ -1065,7 +1065,7 @@ class XpDistributionWindow extends BlacksmithWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'xp-distribution-window',
             classes: ['xp-distribution-window'],

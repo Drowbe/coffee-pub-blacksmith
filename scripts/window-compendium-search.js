@@ -125,7 +125,7 @@ export class CompendiumSearchWindow extends BlacksmithToolWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: APP_ID,
             // Listed in full: mergeObject replaces arrays rather than merging them,

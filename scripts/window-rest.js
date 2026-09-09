@@ -44,7 +44,7 @@ const APP_ID = 'blacksmith-rest-window';
 export class RestWindow extends BlacksmithToolWindowBaseV2 {
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: APP_ID,
             classes: ['blacksmith-window-tool', 'blacksmith-rest-tool-window'],

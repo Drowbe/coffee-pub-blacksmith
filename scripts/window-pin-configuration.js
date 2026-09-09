@@ -23,7 +23,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-pin-config';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-pin-config',
             classes: ['blacksmith-window', 'blacksmith-pin-config-window'],

@@ -1196,7 +1196,7 @@ class RollWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'roll-window';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'roll-window',
             classes: ['roll-window'],

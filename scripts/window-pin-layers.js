@@ -66,7 +66,7 @@ class BulkPinTagsWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: BULK_TAGS_APP_ID,
             classes: ['blacksmith-pin-layers-window', 'blacksmith-pin-bulk-tags-window'],
@@ -359,7 +359,7 @@ class ManageCustomPinTagsWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: CUSTOM_TAGS_APP_ID,
             classes: ['blacksmith-pin-layers-window', 'blacksmith-custom-pin-tags-window'],
@@ -700,7 +700,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: APP_ID,
             classes: ['blacksmith-pin-layers-window'],

@@ -36,7 +36,7 @@ export class RollBuilderWindow extends BlacksmithToolWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-tool-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-roll-builder',
             classes: ['blacksmith-rollbuilder-tool-window'],

@@ -22,7 +22,7 @@ export class GMNotesWindow extends BlacksmithWindowBaseV2 {
     static ROOT_CLASS = 'blacksmith-window-template-root';
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: APP_ID,
             classes: ['blacksmith-gm-notes-window'],

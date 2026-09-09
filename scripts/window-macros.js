@@ -51,7 +51,7 @@ export class MacrosWindow extends BlacksmithToolWindowBaseV2 {
     static activeWindow = null;
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
+        {},
         {
             id: 'blacksmith-macros-window',
             classes: ['blacksmith-macros-tool-window'],
