@@ -1,9 +1,11 @@
 # Plan: Blacksmith's user guides
 
-**Status: In progress -- the guide list is settled and the first drafts are written from source; none
-has been walked in a running world.** Live scaffolding, opened 2026-09-10 when the author lifted the
-2026-08-31 deferral ("write Blacksmith's user guides AFTER the satellites migrate") and asked to take them
-on.
+**Status: Implemented (drafts) -- all seventeen guides are written from source and published; none
+has been walked in a running world, and `userguide-settings.md` stays held.** The per-guide unwalked
+claims are `TODO.md` entries. This file goes when the walking is done and the coverage table has moved
+into the standard's adoption notes or been thrown away. Live scaffolding, opened 2026-09-10 when the
+author lifted the 2026-08-31 deferral ("write Blacksmith's user guides AFTER the satellites migrate")
+and asked to take them on.
 
 **On completion:** the guides are the deliverable and live in `userguides/`; the per-guide unwalked
 claims are `TODO.md` entries and are deleted as each guide is walked; the shipped history goes to
@@ -38,7 +40,7 @@ says nothing about what a person does.
 |---|---|---|
 | The Blacksmith bar | Across the top of the screen | `userguide-menubar.md` |
 | Party leader | The bar, right side; votes | `userguide-menubar.md`, `userguide-votes.md` |
-| Movement modes (normal, none, combat, follow, conga) | The bar, right side | `userguide-menubar.md` |
+| Movement modes (Wander, Locked, Combat, Conga, Fastest Path, Request) | The bar, right side | `userguide-menubar.md` |
 | Session timer | The bar, right side | `userguide-timers.md` |
 | Dice tray | The bar | `userguide-menubar.md` |
 | Health window | The bar | `userguide-menubar.md` |
@@ -88,10 +90,10 @@ long. Split any of them the moment its getting-long symptom appears.
 
 ### What is deliberately NOT here
 
-- **Sibling modules' tools on the bar.** The product screenshot shows Encounter, Broadcast, Cartographer,
-  Curator, Minstrel and Librarian buttons on the bar. Those are the siblings' registrations, and each
-  gets one clause in the menubar guide ("other Coffee Pub modules add their own buttons here") and no
-  more, per rule 6.
+- **Sibling modules' tools on the bar.** The product screenshot shows Broadcast, Cartographer, Curator,
+  Minstrel and Librarian buttons on the bar beside Blacksmith's own Encounter button. Those five are the
+  siblings' registrations, and together they get one clause in the menubar guide ("other Coffee Pub
+  modules add their own buttons here") and no more, per rule 6.
 - **The API and the design system.** A user guide reader does not build against the module.
 - **Why anything works the way it does.** Rationale is architecture.
 

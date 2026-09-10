@@ -70,6 +70,7 @@ shipped, and the row says what is left. **Blocked** - waiting on something named
 | 8 | The canvas surfaces have no contract | Not started -- plan written | Turn `getCanvasLayer()` into an API, with Herald's box as the second tenant | [Canvas](#canvas-pins-and-notes) |
 | 9 | Stylesheet cleanup -- retrofit the neutral overlay tokens | Not started | The token-adoption pass; verify no hex in `styles/` matches a `vars.css` value | [Design system](#design-system-and-css) |
 | 10 | Player frame rate | Not started, deliberately | Measure. Nothing is a confirmed defect yet and nothing should be optimised before it is | [Performance](#performance) |
+| 11 | Walk the user guides | In progress -- seventeen drafted from source 2026-09-10, none walked | The player guide first, on a second client; then one guide per session | [Documentation](#documentation) |
 
 ---
 
@@ -229,12 +230,9 @@ this is not one of them, despite being a substantial GM feature: import for jour
 roll tables, derived authoring templates, and generated AI prompts. A GM reading the product page has no
 way to learn it exists.
 
-Deferred past this release by the author, along with the user guides it belongs beside -- see TODO-GLOBAL,
-"Write Blacksmith's user guides AFTER the satellites migrate", which already records that `userguide-gm.md`
-owes a JSON import section.
-
-The two are one piece of work rather than two: a README bullet says the feature exists, and the guide says
-how to use it. Worth writing them together so the bullet can point at the guide.
+The guide half landed 2026-09-10: `userguides/userguide-import.md` carries all four facts below and the GM
+guide points at it. What remains is the README bullet, which is the author's voice: one line under "What it
+does" saying JSON import exists, pointing at the guide.
 
 **What the guide owes, gathered while the importer was rebuilt:** that Validate and Import are separate
 steps and why; what a template and a prompt each are for; that a re-import UPDATES rather than duplicates;
@@ -1140,6 +1138,113 @@ alike; settle a field name against `CONFIG.Scene.documentClass.schema`, never th
 ## Documentation
 
 Per-doc audit findings: **`documentation/plans/plan-doc-audit.md`**.
+
+### Walk the user guides (opened 2026-09-10)
+
+Seventeen guides were written from source on 2026-09-10 under `plans/plan-userguides.md`; none has been
+walked in a running world. The standard's rule is per guide, not one blanket line, so each entry below
+names what to distrust. Two things are unwalked in every guide and are not repeated: the ORDER controls
+render in, and what a PLAYER'S client shows. Delete each entry as its guide is walked; the guide itself
+carries no status.
+
+**Most likely to be wrong: `userguide-player.md`**, because every claim in it is read off a permission
+check rather than seen from a player's screen. Walk it on a second client first.
+
+- **getting-started**: that the bar's left buttons are menu, compendium search, pins, then the icon
+  tools in the order dice, health, macros, status effects, notes, toast; that Encounter, Create and
+  Tracker sit in the middle; that the between-fights row shows standing records.
+- **menubar**: the Set Party Leader dialog from a keyboard open; the leader's personal toast; the Health
+  window's icon meanings (double arrows ten, heart full, skull zero, people icons party and non-party)
+  and what a player sees in it; what a non-owner sees in Status Effects; the Dice Tray's re-roll and
+  Clear History; Ctrl+Space as the default shortcut; the Hide UI option wording; the latency colour bands;
+  Foundry 14's Detach Window and Re-attach Window labels; that Create uses the selection or every token.
+- **rolls**: the Canvas, Party, NPCs filter order and that entries show level and hit points; that a
+  right-click cycles challenger, defender, unselected; the header toggle order and the DC field's
+  position; what a player without permission sees on the card; that Roll Configuration offers an ability
+  choice for tool checks; the cinematic scene on a player's screen and Escape closing it for all; the
+  quick roll rows' controls and that the play icon swaps chat and cinematic; that the Tool tab lists only
+  owned tools; the five seeded categories.
+- **combat**: the order of the bar's menu buttons and turn controls; single click sets current and double
+  click pans (both handlers exist, the gesture split is inferred); what a player sees of the bar; the
+  between-fights records and which carry a portrait; the difficulty wording and the health bars'
+  placement; that Deploy Party, Quick Encounter and the Remove entries sit on the out-of-combat row;
+  that Update Participant rewrites name and portrait from the token.
+- **timers**: the session readout's text at each state and its colour change; the Set Session Time
+  dialog from a keyboard open; the planning bar at the top of the tracker and the turn bar under the
+  current combatant with the END TURN and hurry-up overlays per role; the Duration and Time submenus'
+  ranges; whether expiry announces before or after Auto-Advance ends the turn.
+- **statistics**: the Party Statistics layout and where export, import and delete-all sit; whether a
+  player can open it at all (no non-GM opener was found), and so whether View Player Stats is reachable
+  for a player; that notable moments are damage, healing and turns only.
+- **xp**: the window's section order and the apply and cancel labels; that the resolution drop-down
+  offers exactly the six named and Removed has no multiplier; the shared card's contents; that Party
+  Experience opens the window with Milestones on.
+- **worldclock**: drafted by an agent that left no findings, so everything about order and the player's
+  view is open: the clock first in the right group; the twelve versus twenty-four hour rule; the menu
+  entries; the Darkness Control dialog's wording and three boxes; the calendar footer; the rest card's
+  parts after a rest; how a player reaches the calendar window; that a one-off event stays listed; that
+  the 2014 rules warning is once per session.
+- **notes**: the editor strip's control names and order; the tag chips and sort button under the
+  search; the read view for a note you cannot edit; the reminder toast's wording, that clicking it opens
+  the note, and that missed reminders collapse into one; which sheets carry the GM Notes card (the sheet
+  code says "v1 scope: Items"); that attached notes list under the card.
+- **pins**: the journal pin toolbar on v13 sheets; that left-click opens and drag moves (one handler,
+  split by movement); the right-click menu's entries and a Layer entry's purpose; the Configure Pin
+  section names and the two bottom boxes' labels; the Manage Pins layout; the hidden and locked badges;
+  that players can open Manage Pins and their filters are their own.
+- **votes**: the card's contents, that options are buttons, that a vote can be changed, and the
+  initiator's close control; whether a leader sees the leader vote greyed or absent; the source list
+  order; that ties are named on the result.
+- **tokens**: the Format drop-down's entries (built from the nameplates asset collection at runtime);
+  that Names by Type & Role rebuilds only after a reload; the rings, bubbles and concentric rings.
+- **scenes**: the indicator icons; the Geography tab's layout, that Ambience is a drop-down, and where
+  the Time of Day box sits; that a new scene shows the campaign defaults rather than Not set; Quickview's
+  look.
+- **journals**: the encounter toolbar's layout and the Alt and Ctrl modifiers; that an imported page
+  shows the toolbar with no further setup and what content scanning accepts; that Journal Tools sits in
+  the v13 header controls menu; the Entity Migration labels and the report's wording.
+- **import**: the three-part layout and the button names in place; where the directory button sits;
+  what a re-import matches on (the update path exists in the API, the key was not confirmed); that
+  items land in Items and actors in Actors, by analogy with the confirmed journal path; the Libraries
+  boxes and the working overlay; which kinds Switch importer lists with no siblings installed.
+- **appearance**: the CSS editor's layout and that its CSS is world-scoped (the setting has no visible
+  label, so its scope was not read); the theme list order; that Combat Chat needs a reload; whether the
+  Light, Dark and Glass window presentation has a control anywhere (a comment names it; none was found,
+  so it is not in the guide).
+- **player**: see above. Also: that the right-hand readouts render read-only rather than hidden; the
+  Health window without GM controls; Status Effects on an unowned token; Roll Remaining rolling only the
+  player's own character; the planning timer's visibility; the list of player-changeable settings, read
+  from scopes rather than from a player's settings window.
+- **gm**: the order of the Campaign Settings controls; that the XP window opens on its own at combat
+  end; that every setting in the "what the players see" table sits under the heading named.
+
+**Verify:** each guide walked in a live world with two clients, every label read against the screen,
+and the entry deleted.
+
+### Product copy found wrong while writing the guides (opened 2026-09-10)
+
+Rule 2 of the user-guide standard: a wrong label or hint is filed, never fixed in passing. All in
+`lang/en.json` unless noted; the guides quote none of the misspellings.
+
+- `headingH3diceRollToolIntegrations-Hint`: "Selecte the modules".
+- `headingH2CombatEnhancements-Hint`: "quality of lifeimprovements".
+- `combatTrackerSetFirstTurn-Hint`: "inititives".
+- `headingH3CombatTimer-Hint`: "thier".
+- `sessionTimerWarningThreshold-Label`: leading space, " Warning Threshold".
+- `turnIndicatorCurrentBackgroundColor-Label`: leading space, " Background Color".
+- `generalIndicatorsOffset-Label`: "BorderOffset", missing its space.
+- `tokenRotationMode-Hint`: "Dertrmines".
+- `headingH2DroppedTokens-Hint`: "tkane".
+- `enableSceneInteractions-Hint`: "Defualt".
+- `timerChatPlanningEnded-Label` is defined twice with different text ("Send Planning Ended Message"
+  and "Send Ended Message"); one wins and the guide names the winner it found first.
+- The four `showCombat*` hints under Combat Summary Sharing repeat the round hints verbatim, "at the
+  end of the round", which is wrong for end-of-combat cards.
+- `templates/window-stats-party.hbs`: both "Encounters" and "Encounterss" appear as column headings.
+- `templates/partials/entity-replacement.hbs`: the Actors and Items tooltips read "compenium" and
+  "exising".
+
+**Verify:** each string corrected on screen, and the guide that quotes it re-read.
 
 ### Rewrite `architecture-socketmanager.md`
 

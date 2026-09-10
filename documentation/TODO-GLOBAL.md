@@ -281,10 +281,11 @@ before any satellite took them. They now are.
    and the API doc points at a real Blacksmith window for the contract. Neither points at the other.
 
 - [ ] **Write Blacksmith's user guides AFTER the satellites migrate** (decided by the author
-      2026-08-31; **deferral lifted by the author 2026-09-10**, and the work is now planned in
-      `plans/plan-userguides.md` and tracked per guide in `TODO.md` under Documentation. The guide
-      list below stands as the brief.) Blacksmith's are the weakest in the suite and the job is
-      large, so it does not block the rollout. A user guide says how to USE the module, not what it is: how to work the
+      2026-08-31; **deferral lifted by the author 2026-09-10, and seventeen guides were drafted the
+      same day** under `plans/plan-userguides.md`. None is walked; the per-guide unwalked claims are
+      in `TODO.md` under Documentation, and this entry closes when they are. The paragraph below
+      stands as the brief they were written to.) Blacksmith's are the weakest in the suite and the
+      job is large, so it does not block the rollout. A user guide says how to USE the module, not what it is: how to work the
       combat bar and what each action does, that initiative can be dragged to reorder, how encounter
       CR is calculated and where it shows on the canvas, how a vote runs and what players see, how
       the movement modes change what a player can do, and what every control in the roll window is
@@ -301,9 +302,10 @@ before any satellite took them. They now are.
       pages looked missing because they were in the world and the picker reads the compendium.
 - [ ] **Write `userguide-settings.md` after the settings rebuild, not before.** Deferred by the author
       2026-08-31: a guide to 260 controls that are about to change is waste that reads as authoritative.
-      It documents the on-screen labels and never edits them — `lang/en.json` is product copy, not doc
-      source. `userguide-getting-started.md` is written; it is a draft derived from source and still
-      needs walking in a live world.
+      It documents the on-screen labels and never edits them -- `lang/en.json` is product copy, not doc
+      source. Still held 2026-09-10 when the other guides were written: the tree is the nine-group shape
+      the rework produced, but nothing says the rework is finished, and the feature guides name each
+      setting a task needs, so nobody is stranded without it. The author lifts this one.
 - [ ] **Split `coffee-pub-prototype` out into its own repository** (decision 1). It is 12 tracked files in
       Blacksmith's root — module.json, README, CHANGELOG, LICENSE, scripts, styles, lang, its own
       documentation, and a release workflow that cannot fire where it sits. Preserve its history when
