@@ -281,8 +281,10 @@ before any satellite took them. They now are.
    and the API doc points at a real Blacksmith window for the contract. Neither points at the other.
 
 - [ ] **Write Blacksmith's user guides AFTER the satellites migrate** (decided by the author
-      2026-08-31). Blacksmith's are the weakest in the suite and the job is large, so it does not
-      block the rollout. A user guide says how to USE the module, not what it is: how to work the
+      2026-08-31; **deferral lifted by the author 2026-09-10**, and the work is now planned in
+      `plans/plan-userguides.md` and tracked per guide in `TODO.md` under Documentation. The guide
+      list below stands as the brief.) Blacksmith's are the weakest in the suite and the job is
+      large, so it does not block the rollout. A user guide says how to USE the module, not what it is: how to work the
       combat bar and what each action does, that initiative can be dragged to reorder, how encounter
       CR is calculated and where it shows on the canvas, how a vote runs and what players see, how
       the movement modes change what a player can do, and what every control in the roll window is
