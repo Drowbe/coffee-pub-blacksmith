@@ -116,6 +116,45 @@ file. Same rule as `TODO.md`.
 
 ---
 
+## Handed over from Merchant (2026-09-09) — Font Awesome 7 broke reading a glyph from CSS
+
+Found on a live v14 world after Merchant tagged 14.0.0. **Any module that asks the browser for the
+character behind a Font Awesome class, rather than keeping a table of codepoints, is very likely drawing
+three junk characters right now.** Merchant's token markers were: the shop icon followed by a literal
+quote, slash and quote, on every merchant token on the map.
+
+**The cause is a CSS syntax the old parse did not know about.** `content` takes an optional alternative
+text after a slash, and `getComputedStyle` reports it back verbatim. Font Awesome 6 emitted the glyph
+alone; **Font Awesome 7, which arrives with v14, emits the alt form**:
+
+    FA6:  content: "54e";
+    FA7:  content: "54e" / "";
+
+Stripping the outer quotes -- which is the obvious implementation and was correct for years -- leaves
+`f54e" / "`. On a canvas that renders as the glyph plus three junk characters; in a DOM node it is usually
+invisible, so **a module can have this bug and not look like it does.**
+
+The fix is to take the **first quoted run** and ignore whatever follows:
+
+    const quoted = /(["'])((?:\.|(?!).)*)/.exec(raw);
+    const char = raw && raw !== 'none' ? (quoted ? quoted[2] : raw.trim()) : '';
+
+- [ ] **Audit the suite for `getComputedStyle(...).content`.** Merchant is fixed
+      (`scripts/canvas-marker.js`, CHANGELOG, unreleased at time of writing). Canvas markers are a suite-wide pattern and pins
+      draw the same glyph three ways, so Blacksmith's own pin rendering is the first place to look.
+      Verified by: a marker on a v14 world shows the icon and nothing else.
+- [ ] **Decide whether this belongs in the hub as a helper.** Reading a glyph out of the stylesheet is
+      generic over Foundry and holds no opinion about why you want it, which is the Ground Rules test for
+      the hub rather than a module. If two modules do this, it should be `blacksmith.icons.glyphFor(cls)`
+      returning `{char, family, weight}` -- and then only one place has to learn what Font Awesome 8 does.
+
+**Worth recording why the v14 audit missed it.** Blacksmith probed FA7 by rendering each class offscreen
+and reading whether `::before` produced content -- which is the right test for *does this glyph still
+exist*, and every glyph did. This is a different question: what **else** is in the string beside the
+glyph. A probe that answers "renders something" cannot answer "renders only what I asked for".
+
+---
+
 ## Handed over from Bibliosoph (2026-09-01)
 
 Eight cross-module items from Bibliosoph's TODO, restated from Blacksmith's vantage. Bibliosoph

@@ -169,7 +169,7 @@ The Application V2 migration is complete — `grep -rE 'extends (Application|For
 
 ### 4.2 API exposure
 
-- **`module.api`** (in `blacksmith.js`) exposes the registry, all three base classes and their getters, `windowStyles` (`STANDARD` / `TOOL` / `FULLSCREEN`), `toolTitlebars` (`FULL` / `MICRO`), `toolThemes`, `fullscreenLayouts`, and `fullscreenFits`. The style identifiers live in `scripts/window-styles.js` rather than inside one of the presentations, since each base needs the whole set.
+- **`module.api`** (in `blacksmith.js`) exposes the registry, all three base classes and their getters, `windowStyles` (`STANDARD` / `TOOL` / `FULLSCREEN`), `toolTitlebars` (`FULL` / `MICRO` / `AUTO`), `toolThemes`, `fullscreenLayouts`, and `fullscreenFits`. The style identifiers live in `scripts/window-styles.js` rather than inside one of the presentations, since each base needs the whole set.
 - **`api/blacksmith-api.js`** is the external bridge, providing timing-safe access to `module.api` for other modules.
 
 ### 4.3 Documentation and assets

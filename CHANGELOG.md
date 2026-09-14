@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Tool windows gained a third title-bar mode: Auto-Hide** (`scripts/window-tool-base.js`, `styles/window-tool.css`). Alongside Full and Micro, `toolTitlebar: "auto"` (`api.toolTitlebars.AUTO`) collapses the bar to a near-invisible sensor strip at rest and animates it open to the full Full-mode chrome — title, tool actions, menu, Close — on hover or keyboard focus. The expanded bar is `position: absolute`, so it overlays the body rather than pushing it down; the window never reflows while you hover it.
+
+  The single Full/Micro toggle menu entry became a **Title Bar** submenu (Full / Micro / Auto-Hide) with a checkmark on the active mode, the same shape already used for Theme. Mode persistence, the `getToolHeaderActions()` contract, and the shared `UIContextMenu` are unchanged — Auto-Hide reuses them rather than adding a parallel path.
+
 ## [14.1.1]
 
 ### Fixed

@@ -13,8 +13,15 @@ import { postConsoleAndNotification } from './api-core.js';
 
 export const BLACKSMITH_TOOL_TITLEBARS = Object.freeze({
     FULL: 'full',
-    MICRO: 'micro'
+    MICRO: 'micro',
+    AUTO: 'auto'
 });
+
+function normalizeToolTitlebarMode(mode) {
+    return Object.values(BLACKSMITH_TOOL_TITLEBARS).includes(mode)
+        ? mode
+        : BLACKSMITH_TOOL_TITLEBARS.FULL;
+}
 
 export const BLACKSMITH_TOOL_THEMES = Object.freeze({
     LIGHT: 'light',
@@ -182,9 +189,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
 
     constructor(options = {}) {
         super(options);
-        this._toolTitlebarMode = this.options?.toolTitlebar === BLACKSMITH_TOOL_TITLEBARS.MICRO
-            ? BLACKSMITH_TOOL_TITLEBARS.MICRO
-            : BLACKSMITH_TOOL_TITLEBARS.FULL;
+        this._toolTitlebarMode = normalizeToolTitlebarMode(this.options?.toolTitlebar);
         this._toolTheme = Object.values(BLACKSMITH_TOOL_THEMES).includes(this.options?.toolTheme)
             ? this.options.toolTheme
             : BLACKSMITH_TOOL_THEMES.LIGHT;
@@ -239,9 +244,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     }
 
     get toolTitlebarMode() {
-        return this._toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-            ? BLACKSMITH_TOOL_TITLEBARS.MICRO
-            : BLACKSMITH_TOOL_TITLEBARS.FULL;
+        return normalizeToolTitlebarMode(this._toolTitlebarMode);
     }
 
     get toolTheme() {
@@ -295,9 +298,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
     }
 
     async setToolTitlebarMode(mode, { persist = true, render = true } = {}) {
-        const normalized = mode === BLACKSMITH_TOOL_TITLEBARS.MICRO
-            ? BLACKSMITH_TOOL_TITLEBARS.MICRO
-            : BLACKSMITH_TOOL_TITLEBARS.FULL;
+        const normalized = normalizeToolTitlebarMode(mode);
         this._toolTitlebarMode = normalized;
         if (persist) this._saveToolTitlebarPreference(normalized);
         this._applyToolWindowModeClasses(this.element);
@@ -392,15 +393,27 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         if (items.length) items.push({ separator: true });
 
         if (this.options?.allowTitlebarModeToggle !== false) {
-            const useFull = this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO;
+            const titlebarMode = this.toolTitlebarMode;
             items.push({
-                name: localize(useFull
-                    ? 'coffee-pub-blacksmith.ToolWindowUseFullTitlebar'
-                    : 'coffee-pub-blacksmith.ToolWindowUseMicroTitlebar'),
-                icon: useFull ? 'fa-solid fa-window-maximize' : 'fa-solid fa-grip-lines',
-                callback: () => this.setToolTitlebarMode(
-                    useFull ? BLACKSMITH_TOOL_TITLEBARS.FULL : BLACKSMITH_TOOL_TITLEBARS.MICRO
-                )
+                name: localize('coffee-pub-blacksmith.ToolWindowTitlebar'),
+                icon: 'fa-solid fa-window-maximize',
+                submenu: [
+                    {
+                        name: `${titlebarMode === BLACKSMITH_TOOL_TITLEBARS.FULL ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowFullTitlebar')}`,
+                        icon: 'fa-solid fa-window-maximize',
+                        callback: () => this.setToolTitlebarMode(BLACKSMITH_TOOL_TITLEBARS.FULL)
+                    },
+                    {
+                        name: `${titlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowMicroTitlebar')}`,
+                        icon: 'fa-solid fa-grip-lines',
+                        callback: () => this.setToolTitlebarMode(BLACKSMITH_TOOL_TITLEBARS.MICRO)
+                    },
+                    {
+                        name: `${titlebarMode === BLACKSMITH_TOOL_TITLEBARS.AUTO ? '✓ ' : ''}${localize('coffee-pub-blacksmith.ToolWindowAutoHideTitlebar')}`,
+                        icon: 'fa-solid fa-eye-slash',
+                        callback: () => this.setToolTitlebarMode(BLACKSMITH_TOOL_TITLEBARS.AUTO)
+                    }
+                ]
             });
         }
 
@@ -527,7 +540,7 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         const actions = this.getToolHeaderActions?.() ?? [];
         const controlsToggle = header.querySelector('[data-action="toggleControls"]');
         if (controlsToggle) controlsToggle.hidden = true;
-        if (this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.FULL) {
+        if (this.toolTitlebarMode !== BLACKSMITH_TOOL_TITLEBARS.MICRO) {
             for (const action of actions) {
                 if (!action?.id) continue;
                 const button = document.createElement('button');
@@ -587,6 +600,10 @@ export class BlacksmithToolWindowBaseV2 extends BlacksmithWindowBaseV2 {
         frame.classList.toggle(
             'blacksmith-window-tool-titlebar-micro',
             this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.MICRO
+        );
+        frame.classList.toggle(
+            'blacksmith-window-tool-titlebar-auto',
+            this.toolTitlebarMode === BLACKSMITH_TOOL_TITLEBARS.AUTO
         );
         frame.classList.toggle(
             'blacksmith-window-tool-theme-light',

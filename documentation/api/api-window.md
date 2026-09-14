@@ -185,16 +185,17 @@ argument — see "`ACTION_HANDLERS` and the instance argument" below.
 
 ### Title-bar modes
 
-Tool windows support two chrome modes through the top-level `toolTitlebar` option:
+Tool windows support three chrome modes through the top-level `toolTitlebar` option:
 
 | Value | Constant | Behavior |
 |-------|----------|----------|
 | `"full"` | `api.toolTitlebars.FULL` | Default. The full parchment title bar shows the title, direct tool actions, a Blacksmith context-menu launcher, and Close. Existing consumers remain in this mode. |
-| `"micro"` | `api.toolTitlebars.MICRO` | A 14px parchment drag rail. The title and the consumer's own header actions are hidden; the **menu dot and Close remain**. Both sit muted until you hover the rail, which brings them to full strength, and hovering one takes that glyph alone to the interactive colour — no background plate at that size. Right-clicking anywhere on the rail opens the same context menu. |
+| `"micro"` | `api.toolTitlebars.MICRO` | A 14px parchment drag rail, always visible. The title and the consumer's own header actions are hidden; the **menu dot and Close remain**. Both sit muted until you hover the rail, which brings them to full strength, and hovering one takes that glyph alone to the interactive colour — no background plate at that size. Right-clicking anywhere on the rail opens the same context menu. |
+| `"auto"` | `api.toolTitlebars.AUTO` | The bar is fully hidden at rest — collapsed to a near-invisible sensor strip along the top edge — and animates open to the same chrome as Full (title, tool actions, menu, Close) on hover or keyboard focus. The expanded bar is an **overlay**: it is taken out of layout flow, so the body never shifts to make room for it. It closes again when the pointer leaves. |
 
 The menu is rendered at the document level by Blacksmith's shared `UIContextMenu`, not inside the Application frame, so it remains usable even when the tool window is very small. It contains the consumer's `getToolHeaderActions()`, inherited Application V2 header controls, Minimize/Restore (when enabled), Reset Position, and Close. Active actions receive a checkmark in their menu label.
 
-Both modes also include a mode-switch entry: **Use Micro Title Bar** in Full mode and **Use Full Title Bar** in Micro mode. The user's selection is remembered per tool using the same stable identity as position persistence, so reopening that tool restores the chosen mode.
+All three modes also include a **Title Bar** submenu offering Full / Micro / Auto-Hide, with a checkmark against the active mode. The user's selection is remembered per tool using the same stable identity as position persistence, so reopening that tool restores the chosen mode.
 
 ### Tool themes
 
@@ -293,13 +294,13 @@ class MyCanvasTool extends ToolBase {
 
 Tool windows remember their last position per user by default. Set `rememberPosition: false` for transient instances, or set `windowPositionKey` when several instances should share one saved position. The same options also work on the standard base.
 
-`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`), `TOOL` (`"tool"`), and `FULLSCREEN` (`"fullscreen"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`) and `MICRO` (`"micro"`), while `api.toolThemes` exposes `LIGHT` (`"light"`), `DARK` (`"dark"`), and `GLASS` (`"glass"`). `api.fullscreenLayouts` exposes `CENTERED`, `BAR`, `SPLIT`, and `FULL`, and `api.fullscreenFits` exposes `COVER`, `CONTAIN`, and `TILE`. The registry remains presentation-agnostic: any style, Tool title-bar mode, Tool theme, and fullscreen layout can be registered and opened through `registerWindow` / `openWindow`.
+`api.windowStyles` exposes the stable identifiers `STANDARD` (`"standard"`), `TOOL` (`"tool"`), and `FULLSCREEN` (`"fullscreen"`) for consumers that store or exchange a style choice. `api.toolTitlebars` exposes `FULL` (`"full"`), `MICRO` (`"micro"`), and `AUTO` (`"auto"`), while `api.toolThemes` exposes `LIGHT` (`"light"`), `DARK` (`"dark"`), and `GLASS` (`"glass"`). `api.fullscreenLayouts` exposes `CENTERED`, `BAR`, `SPLIT`, and `FULL`, and `api.fullscreenFits` exposes `COVER`, `CONTAIN`, and `TILE`. The registry remains presentation-agnostic: any style, Tool title-bar mode, Tool theme, and fullscreen layout can be registered and opened through `registerWindow` / `openWindow`.
 
 Consumers may control mode switching and persistence with:
 
 | Option | Default | Purpose |
 |--------|---------|---------|
-| `allowTitlebarModeToggle` | `true` | Include the Full/Micro switch in the controls menu. Set `false` to lock the configured mode and ignore saved user choices. |
+| `allowTitlebarModeToggle` | `true` | Include the Title Bar (Full/Micro/Auto-Hide) submenu in the controls menu. Set `false` to lock the configured mode and ignore saved user choices. |
 | `rememberTitlebarMode` | `true` | Persist the user's selected mode in local storage. |
 | `toolTitlebarPreferenceKey` | derived | Optional stable storage key. By default it is derived from `windowPositionKey` or the window class. |
 | `toolTheme` | `"light"` | Initial shared Tool-shell theme: `"light"`, `"dark"`, or `"glass"`. |
@@ -848,7 +849,7 @@ static ACTION_HANDLERS = {
 - **Layout or behavior issues** — Check document-level delegation, scroll save/restore, `_getRoot()`, and a safe merge of `DEFAULT_OPTIONS`.
 - **Buttons or controls in the body do nothing** — Application V2 may not run `<script>` inside injected body HTML, and `activateListeners(html)` may not receive the body part. Use `data-action` with `ACTION_HANDLERS` (see "Application V2: Body injection and scripts" under Best Practices) or bind on `this.element` in `_onRender`.
 - **A control acts on the wrong window** — two instances of the class are open and the handler is resolving the instance from a shared reference instead of its third argument. See "`ACTION_HANDLERS` and the instance argument".
-- **`Cannot assign to read only property 'toolTitlebar'`** — Foundry freezes finalized Application V2 options. Do not mutate `this.options.toolTitlebar`; call `await app.setToolTitlebarMode('full' | 'micro')`.
+- **`Cannot assign to read only property 'toolTitlebar'`** — Foundry freezes finalized Application V2 options. Do not mutate `this.options.toolTitlebar`; call `await app.setToolTitlebarMode('full' | 'micro' | 'auto')`.
 
 ---
 
