@@ -133,6 +133,24 @@ export class DefeatedManager {
             }
         });
 
+        // Fires on the DEFEATED status itself, not on our own write path, so it
+        // catches every way an actor can end up defeated: this manager's own mark,
+        // the combat tracker's skull button, or a GM toggling it directly. All three
+        // create the status the same way -- `Actor#toggleStatusEffect` -- so this is
+        // the one place that sees them all rather than three call sites that each
+        // have to remember to clear conditions.
+        HookManager.registerHook({
+            name: 'createActiveEffect',
+            description: 'Defeated: Clear status conditions once the defeated status lands',
+            context: 'defeated-manager',
+            priority: 3,
+            callback: (effect) => {
+                // --- BEGIN - HOOKMANAGER CALLBACK ---
+                void DefeatedManager._clearConditionsOnDefeat(effect);
+                // --- END - HOOKMANAGER CALLBACK ---
+            }
+        });
+
         // Reconcile what is ALREADY on the table, not just what changes from here.
         //
         // Both hooks above are edge-triggered: they fire when hit points change or a
@@ -287,6 +305,11 @@ export class DefeatedManager {
     /** Whether the feature is on. Read per call so the setting is live. */
     static _isEnabled() {
         return getSettingSafely(MODULE.ID, 'combatAutoMarkDefeated', true) === true;
+    }
+
+    /** Whether clearing conditions on defeat is on. Read per call so the setting is live. */
+    static _isClearConditionsEnabled() {
+        return getSettingSafely(MODULE.ID, 'combatClearConditionsOnDefeat', true) === true;
     }
 
     /**
@@ -448,6 +471,98 @@ export class DefeatedManager {
                 const message = String(error?.message ?? '');
                 if (!message.includes('does not exist')) throw error;
                 postConsoleAndNotification(MODULE.NAME, 'Defeated: Defeated status was already removed by something else', '', true, false);
+            }
+        }
+    }
+
+    /**
+     * Every dnd5e condition id, cached once. `CONFIG.DND5E.conditionTypes` is
+     * dnd5e's own list of conditions (blinded, frightened, poisoned, and so on) --
+     * deliberately narrower than `CONFIG.statusEffects`, which also holds
+     * non-condition entries like the defeated status itself. Reading it lazily
+     * rather than at module load: dnd5e's CONFIG is not guaranteed populated yet
+     * when this file first evaluates.
+     */
+    static _conditionIds() {
+        if (this._conditionIdSet) return this._conditionIdSet;
+        this._conditionIdSet = new Set(Object.keys(CONFIG?.DND5E?.conditionTypes || {}));
+        return this._conditionIdSet;
+    }
+
+    /**
+     * Fires on every `createActiveEffect` in the world, so the first job is to
+     * decide fast whether this one is ours at all: either the newly-created effect
+     * IS the DEFEATED status, or the actor it landed on already carries DEFEATED
+     * and the new effect is a condition. Everything else -- an item-granted buff,
+     * an effect on a living actor, another actor's effect entirely -- returns
+     * immediately.
+     *
+     * TWO CASES, because a corpse acquires conditions two different ways:
+     *
+     *   1. Conditions already on the creature when it dies -- it went down
+     *      Blinded, or Frightened, or mid-poison. Caught here at the moment
+     *      DEFEATED lands, by sweeping every other condition off the actor.
+     *   2. Conditions applied AFTER death -- whatever puts them there does not
+     *      check whether the target is still standing, and creates a fresh
+     *      condition effect on a body that already has DEFEATED. Case 1 alone
+     *      never sees these, because it only runs once, at the instant of
+     *      death. This is the case the report was actually about: "we
+     *      continually have dead tokens with blinded and fear" describes
+     *      conditions accumulating on a corpse over time, not conditions
+     *      present at the moment it dropped.
+     *
+     * Case 2 deletes just the one newly-created effect rather than sweeping the
+     * actor, since nothing else on an already-defeated actor needs re-checking.
+     */
+    static async _clearConditionsOnDefeat(effect) {
+        if (!this._isClearConditionsEnabled() || !this._isWriter()) return;
+
+        const statusId = CONFIG.specialStatusEffects?.DEFEATED;
+        if (!statusId) return;
+
+        const actor = effect?.parent;
+        if (!actor) return;
+
+        const isDefeatedEffect = effect.statuses?.has?.(statusId) === true;
+        const actorAlreadyDefeated = actor.statuses?.has?.(statusId) === true;
+        if (!isDefeatedEffect && !actorAlreadyDefeated) return;
+
+        const conditionIds = this._conditionIds();
+        const isCondition = (candidate) => !candidate.statuses?.has?.(statusId)
+            && [...(candidate.statuses ?? [])].some((id) => conditionIds.has(id));
+
+        if (isDefeatedEffect) {
+            // Case 1: sweep every condition already on the actor besides the
+            // defeated effect that just landed.
+            if (!actor.effects?.size) return;
+            const toRemove = actor.effects
+                .filter((candidate) => candidate.id !== effect.id && isCondition(candidate))
+                .map((candidate) => candidate.id);
+            await this._deleteEffects(actor, toRemove);
+        } else if (isCondition(effect)) {
+            // Case 2: this single new effect is the one to go.
+            await this._deleteEffects(actor, [effect.id]);
+        }
+    }
+
+    /**
+     * Delete a batch of effect ids off an actor, guarded against a lost race.
+     * Re-checked against the live collection rather than trusted from a snapshot:
+     * another client can be clearing the same corpse's conditions at the same
+     * moment (a second GM, or this same hook firing on two clients that both see
+     * themselves as the writer for an instant around an activeGM handoff), and
+     * the server rejects a delete for an id that is already gone.
+     */
+    static async _deleteEffects(actor, ids) {
+        const stillPresent = ids.filter((id) => actor.effects.has(id));
+        if (!stillPresent.length) return;
+        try {
+            await actor.deleteEmbeddedDocuments('ActiveEffect', stillPresent);
+            postConsoleAndNotification(MODULE.NAME, `Defeated: Cleared ${stillPresent.length} condition(s) from ${actor.name}`, '', true, false);
+        } catch (error) {
+            const message = String(error?.message ?? '');
+            if (!message.includes('does not exist')) {
+                postConsoleAndNotification(MODULE.NAME, 'Defeated: Error clearing conditions', error?.message || error, false, false);
             }
         }
     }

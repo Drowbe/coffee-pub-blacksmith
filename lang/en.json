@@ -294,6 +294,8 @@
 				"initiativeCritPresentation-Hint": "A toast appears briefly for everyone; a chat card stays in the log. The toast has its own channel in Notifications, so it can be silenced separately.",
 				"combatAutoMarkDefeated-Label": "Mark the Dead as Defeated",
 				"combatAutoMarkDefeated-Hint": "When an NPC in a combat drops to zero hit points, mark it defeated and apply the defeated status, exactly as the combat tracker's skull button does. Foundry then skips it in the turn order, provided Skip Defeated Combatants is on in the combat tracker settings. Player characters are never marked this way, since a character at zero is making death saves. Healing an NPC above zero removes a mark this setting applied; a mark you applied yourself is left alone.",
+				"combatClearConditionsOnDefeat-Label": "Clear Conditions on the Dead",
+				"combatClearConditionsOnDefeat-Hint": "When a combatant is marked defeated -- whether by this module, the combat tracker's skull button, or a GM directly -- remove its status conditions (blinded, frightened, poisoned, stunned, and the like), and keep removing any new one that lands on it afterward. Other active effects, such as an item-granted buff, are left alone. Purely cosmetic: it never touches the defeated status itself or the turn order.",
 				"combatTrackerRollInitiativeNonPlayer-Label": "Roll NPC Initiative",
 				"combatTrackerRollInitiativeNonPlayer-Hint": "Roll initiative for all NPCs automatically each round.",
 

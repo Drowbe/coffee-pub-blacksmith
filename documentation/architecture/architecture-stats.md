@@ -256,6 +256,15 @@ a rebuild runs rather than blocking.
 Consumers must not reduce the party themselves — the Party Statistics window did until this landed, and its
 `_buildSummary` / `_buildLeaderboard` were deleted in favour of the aggregate.
 
+**Trap: a first call made too early caches an empty result forever, for that client.** `getAggregate()`
+has no awareness of whether `game.actors` is populated yet — if a consumer calls it during `init` (before
+Foundry has loaded actors), it builds and caches an aggregate with zero party members. The cache then only
+invalidates on `blacksmith.combatSummaryReady` and actor create/update/delete, so a client that never
+processes actor or combat hooks — a stream/overlay page mounted standalone rather than the full game view
+is the known case — never gets a chance to rebuild, even once real data exists elsewhere in the world. The
+fix belongs in the consumer: defer the first `getAggregate()`/`getAggregateSync()` call to `ready` (or
+later), not `init`. Confirmed live 2026-09 via a cross-module debugging session.
+
 ## Persistence
 
 Two things survive a reload, and they behave differently:

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **New setting: Clear Conditions on the Dead** (`scripts/manager-defeated.js`, `combatClearConditionsOnDefeat`, default on). When a combatant is marked defeated — by `DefeatedManager`'s own auto-mark, the combat tracker's skull button, or a GM toggling it directly — its status conditions (blinded, frightened, poisoned, stunned, and the rest of `CONFIG.DND5E.conditionTypes`) are removed. Other active effects (an item-granted buff, for instance) are left alone.
+
+  Hooks `createActiveEffect` once, handling two distinct cases rather than one: conditions already on the creature at the moment DEFEATED lands (swept off then), and conditions applied to a body that is *already* defeated (deleted the instant they're created). The first pass only covered the former; a live report of "blinded"/"frightened" still showing up on dead tokens was conditions arriving after death, which the original one-shot clear never saw. GM-only write, same guarded-race idiom as the rest of `DefeatedManager`.
+
 ## [14.1.2]
 
 ### Added
