@@ -125,11 +125,20 @@ Everything else in this API answers per actor or per combat. Anything party-wide
 reduced across the party, and this namespace is the only place that happens — so two surfaces showing the
 same figure cannot disagree about who counts as the party or how ties break.
 
-- `getAggregate() -> Promise<object>` returns the party aggregate, building it if the cache is cold.
-- `getAggregateSync() -> object | null` returns the aggregate only if it is already built, otherwise null
-  while starting a rebuild. For callers that render synchronously and cannot await; draw what you have and
-  pick the rest up on the next render.
+- `getAggregate() -> Promise<object>` returns the party aggregate. Computed only on the active GM's client —
+  every other client reads what the GM already published rather than building its own, since `game.actors`
+  is not the same collection on every client (Foundry only syncs documents a user has at least Observer
+  permission on, and a GM is the one client guaranteed to see the whole party). A non-GM caller therefore
+  gets the most recent value the GM has published, not a live-recomputed one; the GM republishes within a
+  couple of seconds of anything that could change the answer (a combat ending, an actor changing). Falls
+  back to a local build only if nothing has been published yet this session.
+- `getAggregateSync() -> object | null` the same value, without awaiting — returns the aggregate if one is
+  already available (published, or locally cached on the GM's own client), otherwise null while a fetch is
+  kicked off in the background. For callers that render synchronously and cannot await; draw what you have
+  and pick the rest up on the next render.
 - `getPartyActors() -> Actor[]` the actors counted as the party: player-owned, excluding token-synthetic.
+  Reduces `game.actors` on whichever client calls it directly — unlike `getAggregate()`, there is no
+  published/shared version of this one, so a low-permission caller can still get an incomplete list here.
 - `refresh() -> void` drops the cache so the next read rebuilds. Rarely needed.
 
 The aggregate carries:
