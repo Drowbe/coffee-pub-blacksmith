@@ -700,9 +700,22 @@ class CombatTracker {
                 
                 // Double-check combat still exists after the delay
                 if (!combat || !game.combats.has(combat.id)) return;
-                
-                // Set turn to 0 after the sort (first combatant at top of list)
-                await combat.update({turn: 0}, {diff: false});
+
+                // Set turn to the first combatant at the top of the sorted list --
+                // except that "top of the list" can be a combatant already marked
+                // defeated (killed by a readied action before their own first turn,
+                // or already dead when added to the fight), and turn 0 unconditionally
+                // would open the encounter on a corpse rather than skipping it, exactly
+                // as Next Turn would. Only skip past it when the tracker's own Skip
+                // Defeated Combatants setting says defeated combatants should never
+                // hold the turn -- with it off, a defeated combatant CAN be current,
+                // so turn 0 is left alone.
+                const skipDefeated = game.settings.get('core', 'combatTrackerConfig')?.skipDefeated;
+                const turns = combat.turns || [];
+                const firstTurn = skipDefeated
+                    ? Math.max(turns.findIndex(t => !t.isDefeated), 0)
+                    : 0;
+                await combat.update({turn: firstTurn}, {diff: false});
                 
                 // Only set the flag after successfully setting the turn
                 this._hasSetFirstCombatant = true;

@@ -138,15 +138,27 @@ export class DefeatedManager {
         // the combat tracker's skull button, or a GM toggling it directly. All three
         // create the status the same way -- `Actor#toggleStatusEffect` -- so this is
         // the one place that sees them all rather than three call sites that each
-        // have to remember to clear conditions.
+        // have to remember to clear effects.
+        //
+        // ONE DIRECTION ONLY, DELIBERATELY. The status landing also sets
+        // `combatant.defeated` -- belt and suspenders alongside the tracker's own
+        // combined write, harmless if it is already true. The reverse is NOT done:
+        // this file does not clear `combatant.defeated` when the status is removed.
+        // Foundry keeps the two as genuinely separate state (confirmed against a
+        // live test 2026-09), and "defeated" can mean things a GM decides on
+        // purpose -- collapsing "the cosmetic badge is gone" into "revive this
+        // creature" is an assumption this manager does not get to make. A future
+        // revival feature should clear the field explicitly, for that reason, not
+        // by listening for the status to disappear.
         HookManager.registerHook({
             name: 'createActiveEffect',
-            description: 'Defeated: Clear status conditions once the defeated status lands',
+            description: 'Defeated: Clear all effects and mark the combatant defeated once the status lands',
             context: 'defeated-manager',
             priority: 3,
             callback: (effect) => {
                 // --- BEGIN - HOOKMANAGER CALLBACK ---
-                void DefeatedManager._clearConditionsOnDefeat(effect);
+                void DefeatedManager._clearEffectsOnDefeat(effect);
+                void DefeatedManager._markCombatantsDefeated(effect);
                 // --- END - HOOKMANAGER CALLBACK ---
             }
         });
@@ -307,9 +319,9 @@ export class DefeatedManager {
         return getSettingSafely(MODULE.ID, 'combatAutoMarkDefeated', true) === true;
     }
 
-    /** Whether clearing conditions on defeat is on. Read per call so the setting is live. */
-    static _isClearConditionsEnabled() {
-        return getSettingSafely(MODULE.ID, 'combatClearConditionsOnDefeat', true) === true;
+    /** Whether clearing effects on defeat is on. Read per call so the setting is live. */
+    static _isClearEffectsEnabled() {
+        return getSettingSafely(MODULE.ID, 'combatClearEffectsOnDefeat', true) === true;
     }
 
     /**
@@ -327,6 +339,45 @@ export class DefeatedManager {
             }
         }
         return found;
+    }
+
+    /**
+     * Mark every combatant backed by this actor defeated when the DEFEATED status
+     * lands on it, from whatever source. One direction only -- see the note above
+     * the hook registration for why the reverse (clearing `defeated` when the
+     * status is removed) is deliberately not here.
+     *
+     * A no-op wherever the field is already `true`, which is the ordinary case:
+     * this manager's own `syncCombatant` and the tracker's skull button both write
+     * the field themselves before the status effect is even created, so this only
+     * does anything when the status was applied WITHOUT going through either of
+     * those -- a GM checking "Dead" directly in the Status Effects picker.
+     *
+     * No `_isEnabled()` gate: this is not the auto-mark-at-zero-HP feature, it is
+     * a narrower guarantee -- the status is never left saying "dead" while the
+     * field says otherwise. AUTO_FLAG is deliberately left untouched: this path
+     * never runs when this manager did the marking (the field is already true by
+     * then), so there is never a mark here for a later heal to attribute back to it.
+     *
+     * @param {ActiveEffect} effect - The status effect that was just created.
+     */
+    static async _markCombatantsDefeated(effect) {
+        if (!this._isWriter()) return;
+
+        const statusId = CONFIG.specialStatusEffects?.DEFEATED;
+        if (!statusId || !effect?.statuses?.has?.(statusId)) return;
+
+        const actor = effect.parent;
+        if (!actor) return;
+
+        for (const combatant of this._combatantsForActor(actor)) {
+            if (combatant.defeated === true) continue;
+            try {
+                await combatant.update({ defeated: true });
+            } catch (error) {
+                postConsoleAndNotification(MODULE.NAME, 'Defeated: Error marking combatant from status change', error?.message || error, false, false);
+            }
+        }
     }
 
     /** Bring every combatant backed by this actor in line with its hit points. */
@@ -476,46 +527,49 @@ export class DefeatedManager {
     }
 
     /**
-     * Every dnd5e condition id, cached once. `CONFIG.DND5E.conditionTypes` is
-     * dnd5e's own list of conditions (blinded, frightened, poisoned, and so on) --
-     * deliberately narrower than `CONFIG.statusEffects`, which also holds
-     * non-condition entries like the defeated status itself. Reading it lazily
-     * rather than at module load: dnd5e's CONFIG is not guaranteed populated yet
-     * when this file first evaluates.
-     */
-    static _conditionIds() {
-        if (this._conditionIdSet) return this._conditionIdSet;
-        this._conditionIdSet = new Set(Object.keys(CONFIG?.DND5E?.conditionTypes || {}));
-        return this._conditionIdSet;
-    }
-
-    /**
      * Fires on every `createActiveEffect` in the world, so the first job is to
      * decide fast whether this one is ours at all: either the newly-created effect
-     * IS the DEFEATED status, or the actor it landed on already carries DEFEATED
-     * and the new effect is a condition. Everything else -- an item-granted buff,
-     * an effect on a living actor, another actor's effect entirely -- returns
+     * IS the DEFEATED status, or the actor it landed on is already defeated (per
+     * the `defeated` FIELD -- see below for why not the status). Everything else
+     * -- an effect on a living actor, another actor's effect entirely -- returns
      * immediately.
      *
-     * TWO CASES, because a corpse acquires conditions two different ways:
+     * CLEARS EVERYTHING, not just conditions -- the defeated badge included, and
+     * any other active effect regardless of kind. A corpse cannot be Frightened,
+     * gains nothing from a lingering buff, and "this creature is Bloodied" answers
+     * a question nobody is still asking. **Deliberately not filtered by
+     * `CONFIG.DND5E.conditionTypes` or any other allow-list**: the rule is "the
+     * actor is defeated" alone, decided once here rather than maintained as a
+     * growing exceptions list. A consumer module (Curator) already swaps the
+     * token's art for a defeated enemy; this exists so nothing else is drawn on
+     * top of that art. This never touches `combatant.defeated` itself -- deleting
+     * clutter is not the same fact as reviving the creature, and per the author
+     * this file does not conflate them, on purpose, even when the two states
+     * disagree. A future "revive" or "loot and reset" feature owns clearing
+     * `defeated`, explicitly, and does not belong here.
      *
-     *   1. Conditions already on the creature when it dies -- it went down
-     *      Blinded, or Frightened, or mid-poison. Caught here at the moment
-     *      DEFEATED lands, by sweeping every other condition off the actor.
-     *   2. Conditions applied AFTER death -- whatever puts them there does not
-     *      check whether the target is still standing, and creates a fresh
-     *      condition effect on a body that already has DEFEATED. Case 1 alone
-     *      never sees these, because it only runs once, at the instant of
-     *      death. This is the case the report was actually about: "we
-     *      continually have dead tokens with blinded and fear" describes
-     *      conditions accumulating on a corpse over time, not conditions
-     *      present at the moment it dropped.
+     * TWO CASES, because a corpse acquires clutter two different ways:
+     *
+     *   1. Effects already on the creature when it dies -- it went down
+     *      Frightened, or mid-buff, or Bloodied -- plus the defeated badge that
+     *      just landed. Caught here at the moment DEFEATED lands, by sweeping
+     *      everything else off the actor along with it.
+     *   2. Effects (or a re-applied defeated badge) landing AFTER death --
+     *      whatever puts them there does not check whether the target is still
+     *      standing. Case 1 alone never sees these, because it only runs once, at
+     *      the instant of death. This is the case the original report was about:
+     *      "we continually have dead tokens with blinded and fear" describes
+     *      clutter accumulating on a corpse over time, not clutter present at the
+     *      moment it dropped. Detected off `combatant.defeated` rather than
+     *      `actor.statuses` for exactly that reason -- the badge itself does not
+     *      linger once this method has run once, so it cannot be the signal that
+     *      says "this actor is still dead."
      *
      * Case 2 deletes just the one newly-created effect rather than sweeping the
      * actor, since nothing else on an already-defeated actor needs re-checking.
      */
-    static async _clearConditionsOnDefeat(effect) {
-        if (!this._isClearConditionsEnabled() || !this._isWriter()) return;
+    static async _clearEffectsOnDefeat(effect) {
+        if (!this._isClearEffectsEnabled() || !this._isWriter()) return;
 
         const statusId = CONFIG.specialStatusEffects?.DEFEATED;
         if (!statusId) return;
@@ -524,22 +578,17 @@ export class DefeatedManager {
         if (!actor) return;
 
         const isDefeatedEffect = effect.statuses?.has?.(statusId) === true;
-        const actorAlreadyDefeated = actor.statuses?.has?.(statusId) === true;
-        if (!isDefeatedEffect && !actorAlreadyDefeated) return;
-
-        const conditionIds = this._conditionIds();
-        const isCondition = (candidate) => !candidate.statuses?.has?.(statusId)
-            && [...(candidate.statuses ?? [])].some((id) => conditionIds.has(id));
+        const actorIsDefeated = isDefeatedEffect
+            || this._combatantsForActor(actor).some((combatant) => combatant.defeated === true);
+        if (!actorIsDefeated) return;
 
         if (isDefeatedEffect) {
-            // Case 1: sweep every condition already on the actor besides the
-            // defeated effect that just landed.
+            // Case 1: every effect on the actor, the defeated badge that just
+            // landed included.
             if (!actor.effects?.size) return;
-            const toRemove = actor.effects
-                .filter((candidate) => candidate.id !== effect.id && isCondition(candidate))
-                .map((candidate) => candidate.id);
+            const toRemove = actor.effects.map((candidate) => candidate.id);
             await this._deleteEffects(actor, toRemove);
-        } else if (isCondition(effect)) {
+        } else {
             // Case 2: this single new effect is the one to go.
             await this._deleteEffects(actor, [effect.id]);
         }

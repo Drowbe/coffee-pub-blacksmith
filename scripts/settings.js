@@ -2260,13 +2260,13 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	// -- Clear Conditions When Defeated --
+	// -- Clear Effects When Defeated --
 	// World scope, same GM-write reasoning as the setting above. Cosmetic/hygiene
 	// only -- it never touches the `defeated` field or turn order -- but still a
 	// world-wide behavior, not a per-client preference.
-	game.settings.register(MODULE.ID, 'combatClearConditionsOnDefeat', {
-		name: MODULE.ID + '.combatClearConditionsOnDefeat-Label',
-		hint: MODULE.ID + '.combatClearConditionsOnDefeat-Hint',
+	game.settings.register(MODULE.ID, 'combatClearEffectsOnDefeat', {
+		name: MODULE.ID + '.combatClearEffectsOnDefeat-Label',
+		hint: MODULE.ID + '.combatClearEffectsOnDefeat-Hint',
 		scope: 'world',
 		config: true,
 		type: Boolean,

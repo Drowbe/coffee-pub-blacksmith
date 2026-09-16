@@ -284,6 +284,16 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   fixed (Squire dynamically imports at point of use; Curator imports `scripts/` paths directly; Merchant
   followed the doc and broke a live world). **Anything a consumer needs at evaluation time must come from a
   module they can import, not from `module.api`.**
+- **`window.BlacksmithAPI` does not exist until Blacksmith's own `ready` hook runs.** It is assigned by a
+  dynamic `import('api/blacksmith-api.js')` inside that hook, not at `init`. A consumer that mounts at
+  `init` (a stream/overlay window doing so deliberately, to have its chrome present immediately) and calls
+  `window.BlacksmithAPI?.waitForReady?.()` gets `undefined` back from the optional chain — no error, no
+  rejection, just a skipped wait that looks correct in code review and still races in practice. The
+  correct sequence for an `init`-time consumer is to **poll for `window.BlacksmithAPI` to exist first**,
+  under a bounded timeout, and only then `await` its `waitForReady()`. Found 2026-09 chasing a Herald
+  overlay whose first data fetch threw `"coffee-pub-blacksmith.combatHistory" is not a registered game
+  setting"` — Blacksmith registers its settings inside its own `ready` handler (§3.1), well after
+  `game.actors` populates, so anything that raced past the `waitForReady` guard hit both problems at once.
 - **`scripts/const.js` does a top-level `await fetch(module.json)`.** The entire module graph waits on it.
 - **`canvasReady` layer/pin setup is nested inside `if (blnCustomClicks)`**, i.e. gated on the
   `enableSceneClickBehaviors` setting. `BlacksmithAPI.getCanvasLayer()` carries a raw-canvas fallback,
