@@ -2464,6 +2464,29 @@ export const registerSettings = () => {
 		default: []
 	});
 
+	// -- Party Stats Aggregate (Internal Storage) --
+	// Published by the active GM's client, whose `game.actors` is guaranteed
+	// complete; read by every other client instead of each reducing the party
+	// from its own (possibly permission-restricted) view. See the header of
+	// scripts/stats-party.js for why a per-client reduction cannot be trusted.
+	game.settings.register(MODULE.ID, 'partyStatsAggregate', {
+		name: 'Party Stats Aggregate',
+		hint: 'Internal storage: the GM-published party aggregate other clients read instead of computing their own. See PartyStats.',
+		scope: 'world',
+		config: false,  // Hidden setting - internal use only
+		type: Object,
+		// `null`, not `{}`, made registration itself throw here: a bare `type:
+		// Object` infers Foundry's ObjectField, which rejects a null default
+		// unless the field is explicitly marked nullable -- not something a plain
+		// `game.settings.register` call can express. `combatHistory` above only
+		// works because its default ([]) is a real object, not null. This threw
+		// "... is not a registered game setting" for every reader, discovered
+		// live 2026-09. PartyStats.getAggregate() checks the shape (`totalCombats`
+		// is a number), not mere truthiness, so this empty default is
+		// distinguishable from a real published aggregate.
+		default: {}
+	});
+
 	// --------------------------------------
 	// -- H3: Statistics Tracking
 	// --------------------------------------

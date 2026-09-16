@@ -294,6 +294,18 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   overlay whose first data fetch threw `"coffee-pub-blacksmith.combatHistory" is not a registered game
   setting"` — Blacksmith registers its settings inside its own `ready` handler (§3.1), well after
   `game.actors` populates, so anything that raced past the `waitForReady` guard hit both problems at once.
+  **And on Foundry's `/stream` capture page specifically, `waitForReady()` could hang forever rather than
+  eventually resolve** — see the next entry. A consumer that only needs a world setting, not asset-backed
+  globals, is better off polling for that setting directly (`game.settings.settings.get(key)`) than trusting
+  `waitForReady()` to resolve at all on that page.
+- **`MenuBar.runReadySetup()` (called from the same `ready` handler, before `markReadyForConsumers()`) could
+  hang indefinitely on Foundry's `/stream` capture page**, leaving `window.BlacksmithAPI.isReady` `false` for
+  the rest of that page's session with no error anywhere. `MenuBar.updateLeader()` / `updateTimer()` awaited
+  `socket.executeForOthers(...)` with no timeout; that promise has no guaranteed settlement, so a stalled
+  peer registration/handshake on that page left it pending forever — a hang, not a throw, so the
+  `bailOutOfReady()` try/catch around `runReadySetup()` never triggered. Both calls now race an 8-second
+  timeout (`raceSocketCall` in `api-menubar.js`). Found 2026-09 chasing the same Herald stream-widget report
+  as the entry above — two independent bugs on the same page, not one.
 - **`scripts/const.js` does a top-level `await fetch(module.json)`.** The entire module graph waits on it.
 - **`canvasReady` layer/pin setup is nested inside `if (blnCustomClicks)`**, i.e. gated on the
   `enableSceneClickBehaviors` setting. `BlacksmithAPI.getCanvasLayer()` carries a raw-canvas fallback,

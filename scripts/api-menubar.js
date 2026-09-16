@@ -29,6 +29,35 @@ import {
     endTimestampFromTimeValue
 } from './utility-session-timer.js';
 
+const SOCKET_CALL_TIMEOUT_MS = 8000;
+const TIMED_OUT = Symbol('menubar-socket-call-timed-out');
+
+/**
+ * Race a socket call against a bounded timeout so an unresolved `await` cannot
+ * stall its caller forever. `executeForOthers` returns a promise with no
+ * guaranteed settlement -- if a peer's registration or handshake stalls, it can
+ * simply never resolve or reject. That is exactly what blocked
+ * `MenuBar.runReadySetup()` inside Blacksmith's own `ready` hook on Foundry's
+ * `/stream` capture page: nothing ever threw for the surrounding try/catch to
+ * catch, so `bailOutOfReady()` never ran and `markReadyForConsumers()` never
+ * fired -- every consumer awaiting `BlacksmithAPI.waitForReady()` hung with it,
+ * silently, for the rest of that page's session. Found 2026-09 chasing a Herald
+ * stream widget that never became "ready" there.
+ */
+async function raceSocketCall(promise, label) {
+    let timer;
+    const timeout = new Promise((resolve) => {
+        timer = setTimeout(() => resolve(TIMED_OUT), SOCKET_CALL_TIMEOUT_MS);
+    });
+    const result = await Promise.race([promise, timeout]);
+    clearTimeout(timer);
+    if (result === TIMED_OUT) {
+        postConsoleAndNotification(MODULE.NAME, `Menubar: Timed out waiting for ${label}`, '', false, false);
+        return undefined;
+    }
+    return result;
+}
+
 class MenuBar {
     static ID = 'menubar';
     static currentLeader = null;
@@ -5716,22 +5745,24 @@ class MenuBar {
         if (game.user.isGM) {
             const socket = SocketManager.getSocket();
 
-            // Get the current leader data to send
-            const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
-            if (leaderData) {
-                await socket.executeForOthers("updateLeader", { 
-                    leader,  // for backward compatibility
-                    leaderData // full leader data
-                });
-            } else {
-                // Even if leaderData is null/empty, we still need to update other clients
-                // when clearing the leader
-                await socket.executeForOthers("updateLeader", { 
-                    leader,  // for backward compatibility
-                    leaderData: null // explicitly null
-                });
+            if (socket) {
+                // Get the current leader data to send
+                const leaderData = getSettingSafely(MODULE.ID, 'partyLeader', null);
+                if (leaderData) {
+                    await raceSocketCall(socket.executeForOthers("updateLeader", {
+                        leader,  // for backward compatibility
+                        leaderData // full leader data
+                    }), 'updateLeader broadcast');
+                } else {
+                    // Even if leaderData is null/empty, we still need to update other clients
+                    // when clearing the leader
+                    await raceSocketCall(socket.executeForOthers("updateLeader", {
+                        leader,  // for backward compatibility
+                        leaderData: null // explicitly null
+                    }), 'updateLeader broadcast (clearing)');
+                }
             }
-            
+
             // Always update the display, regardless of leaderData status
             this.updateLeaderDisplay();
         }
@@ -5740,7 +5771,7 @@ class MenuBar {
     static async updateTimer(endTime, startTime, sendMessage = false) {
         if (game.user.isGM) {
             const socket = SocketManager.getSocket();
-            await socket.executeForOthers("updateTimer", { endTime, startTime });
+            if (socket) await raceSocketCall(socket.executeForOthers("updateTimer", { endTime, startTime }), 'updateTimer broadcast');
             this.updateTimerDisplay();
 
             // Only send the timer message if explicitly requested

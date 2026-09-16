@@ -241,33 +241,54 @@ disagree at the moment combat ends, which is the one moment a table is looking a
 `_generateCombatSummary()` keeps the one write that is genuinely its own: stamping `mvpRankings` back onto
 `combatStats` for the stored summary.
 
-## The party aggregate is cached, not derived per read
+## The party aggregate is published by the GM, not computed per client
 
 Building it awaits `getStats` for every player-owned actor and reduces the whole combat history. A window
 opened occasionally can afford that; a menubar readout that re-renders on every combat update cannot, and a
 second consumer reducing it again would be a second definition of who counts as the party and how ties
 break.
 
-So `PartyStats` caches, and invalidates on the events that can change the answer: `blacksmith.combatSummaryReady`
-when a combat ends, and actor create, update, and delete for membership and lifetime writes. Reads are
-served from cache; `getAggregateSync()` exists for callers that render synchronously and returns null while
-a rebuild runs rather than blocking.
+**It is also not safe to compute on just any client, which caching alone does not fix.** `getPartyActors()`
+reduces `game.actors`, and `game.actors` is not the same collection on every client — Foundry only syncs
+documents a user has at least Observer permission on. A GM sees the whole party; a low-privilege viewer (a
+stream/spectator account, which Herald's own setup guide deliberately recommends locking down to Player
+role) may not, and silently computes an incomplete or empty answer with no error anywhere. That defeats the
+reason this API exists in the first place: "a second consumer reducing it again would be a second
+definition of who counts" was meant to stop a consumer from reimplementing this logic, not to guarantee the
+one shared implementation gives the same answer regardless of who asks — and until this was fixed, it did
+not.
 
-Consumers must not reduce the party themselves — the Party Statistics window did until this landed, and its
-`_buildSummary` / `_buildLeaderboard` were deleted in favour of the aggregate.
+So only the **active GM's** client ever calls `_build()`. It publishes the result to the world setting
+`partyStatsAggregate`; every other client reads that setting instead of reducing the party itself, falling
+back to a local build only if nothing has been published yet this session (no GM has connected). This is
+the same "only the active GM writes" shape `DefeatedManager` and `EffectsAPI` already use, applied to a
+read API instead of a document write.
 
-**Trap: a first call made too early caches an empty result forever, for that client.** `getAggregate()`
-has no awareness of whether `game.actors` is populated yet — if a consumer calls it during `init` (before
-Foundry has loaded actors), it builds and caches an aggregate with zero party members. The cache then only
-invalidates on `blacksmith.combatSummaryReady` and actor create/update/delete, so a client that never
-processes actor or combat hooks — a stream/overlay page mounted standalone rather than the full game view
-is the known case — never gets a chance to rebuild, even once real data exists elsewhere in the world. The
-fix belongs in the consumer: defer the first `getAggregate()`/`getAggregateSync()` call to `ready` (or
-later), not `init`. Confirmed live 2026-09 via a cross-module debugging session.
+`invalidate()` (fired on `blacksmith.combatSummaryReady` and actor create/update/delete) schedules a
+rebuild-and-republish on the GM's client rather than only marking the cache dirty — otherwise a stream
+widget would only ever see fresh data when the GM happened to open a window that reads it. That rebuild is
+**debounced to 2 seconds**: `updateActor` is one of the invalidating hooks, and HP changes fire it on every
+hit landed, not just on membership changes, so an immediate rebuild would turn every hit of an active combat
+into a full history reduction plus a world-setting write. `getAggregateSync()` exists for callers that
+render synchronously — it checks the published setting first (non-GM clients), then the local cache, and
+returns null while a rebuild runs rather than blocking.
+
+Consumers must not reduce the party themselves — the Party Statistics window did until the cache landed, and
+its `_buildSummary` / `_buildLeaderboard` were deleted in favour of the aggregate.
+
+**Trap: a first call made too early builds an empty result, and on the GM's client that now poisons
+everyone.** `getAggregate()` has no awareness of whether `game.actors` is populated yet — calling it during
+`init` (before Foundry has loaded actors) builds and caches an aggregate with zero party members. Before the
+publish model this only affected the calling client, and only if that client's own invalidating hooks never
+fired again (a stream/overlay page mounted standalone was the known case). It is worse now: if the call that
+races happens to be on the **GM's** client, the empty result gets published and every other client reads it
+as truth until the GM's next invalidation. The fix is still the same and still belongs in the consumer:
+defer the first `getAggregate()`/`getAggregateSync()` call to `ready` (or later), not `init`. Confirmed live
+2026-09 via a cross-module debugging session — the case that led to the publish model existing at all.
 
 ## Persistence
 
-Two things survive a reload, and they behave differently:
+Three things survive a reload, and they behave differently:
 
 **`combatHistory`** — a world setting (type Object, default `[]`) holding every combat summary. `_storeCombatSummary()` (`stats-combat.js:1081`) does `[summary, ...currentHistory]` and writes it back with **no pruning**; the source comment states the intent plainly: "Store all history - no pruning to ensure lifetime stats remain verifiable." It grows without bound and syncs to every client.
 
@@ -276,6 +297,10 @@ This is a deliberate design decision, not an oversight. Do not add pruning witho
 The `20` that appears around this data is **not** a storage bound: `getCombatHistory(limit = 20)` (`:1118`) applies `.slice(0, limit)` at read time. Pass `null` to get everything.
 
 **Actor flag `playerStats`** — lifetime totals, written only by `stats-player.js`.
+
+**`partyStatsAggregate`** — a world setting (type Object, default `null`) holding the GM-published aggregate
+described above. Rewritten wholesale on every republish (no incremental merge), so it is only ever as large
+as one `_build()` result — small, unlike `combatHistory`.
 
 **Because the history is unbounded and syncs to every client, every field in a summary must be small.** A summary entry stores ids and scalars; it never stores a document. `_generateCombatSummary` (`stats-combat.js:907`) resolves `sceneId` with `combat.scene?.id ?? combat.sceneId ?? canvas?.scene?.id ?? null`, and the `?.id` is the load-bearing part — **`combat.scene` is a resolved Scene document, not an id**. Assigning it directly serializes every token, wall, tile, light and sound of the map into a world setting that is loaded on every launch and rewritten at the end of every fight. Ten combats reached 21.1 MB that way, against roughly 40 KB of statistics. `sceneName` is stored alongside and is the only part of the scene any readout displays.
 

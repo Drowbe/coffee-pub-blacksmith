@@ -1034,7 +1034,12 @@ class CombatStats {
      * @returns {Array} Array of combat summaries
      */
     static getCombatHistory(limit = null) {
-        const history = game.settings.get(MODULE.ID, 'combatHistory') || [];
+        // `getSettingSafely`, not a raw `game.settings.get()`: this is reachable from
+        // `PartyStats._build()`, and a client whose `ready` handler has not finished
+        // registering settings yet (Herald's `/stream` capture page raced this,
+        // confirmed live 2026-09) would otherwise throw "combatHistory is not a
+        // registered game setting" instead of getting an empty-but-valid history.
+        const history = getSettingSafely(MODULE.ID, 'combatHistory', []) || [];
         if (limit !== null && limit > 0) {
             return history.slice(0, limit);
         }

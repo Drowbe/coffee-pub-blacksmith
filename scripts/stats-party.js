@@ -8,12 +8,38 @@
 //
 // The cache matters: reducing means awaiting getStats for every
 // player-owned actor. A window opened occasionally can afford that; a
-// menubar readout re-rendering on every combat update cannot. Reads
-// here are synchronous against the cache, and the cache is rebuilt on
-// the events that can change it.
+// menubar readout re-rendering on every combat update cannot.
+//
+// PUBLISHED BY THE GM, NOT COMPUTED PER CLIENT. `getPartyActors()` reduces
+// `game.actors` on whichever client calls it, and `game.actors` is not the
+// same collection on every client -- Foundry only syncs documents a user has
+// at least Observer permission on. A GM sees the whole party; a low-privilege
+// viewer (a stream/spectator account, deliberately locked down per Herald's
+// own setup guide) may not, and would silently compute an incomplete or empty
+// answer with no indication anything was wrong. That defeats the reason this
+// API exists: "a second consumer reducing it again would be a second
+// definition of who counts as the party" was meant to guard against a
+// consumer re-implementing this logic, not against the one shared
+// implementation giving a different answer depending who asks.
+//
+// So only the active GM's client ever calls `_build()`; every other client
+// reads the aggregate the GM already published to the `partyStatsAggregate`
+// world setting (`_publish()`). `invalidate()` kicks off an immediate
+// rebuild-and-republish when it runs on the GM's client, rather than only
+// marking the local cache dirty, so other clients see a fresh answer without
+// needing the GM to happen to open a window that reads it. A client with no
+// GM ever connected this session (nothing published yet) falls back to a
+// local build, best-effort.
+//
+// Confirmed live 2026-09: a Herald stream widget on an Observer-only camera
+// account read an empty leaderboard indefinitely, even though Squire's own
+// panel (running on ordinary player/GM clients) found the same data every
+// time -- not because Squire's per-actor flag reads are more permission-
+// tolerant, but because it never runs on the kind of restricted client this
+// API's bulk `game.actors.filter()` approach was never safe for.
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification, getPortraitImage, isPlayerCharacter } from './api-core.js';
+import { postConsoleAndNotification, getPortraitImage, isPlayerCharacter, getSettingSafely, setSettingSafely } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { CPBPlayerStats } from './stats-player.js';
 import { CombatStats } from './stats-combat.js';
@@ -48,28 +74,62 @@ export class PartyStats {
             });
         }
 
+        // Seed the published setting immediately, on the GM's client, rather than
+        // waiting for the first invalidating event. Without this, a session where
+        // nothing has changed an actor or ended a combat since this module last
+        // loaded leaves `partyStatsAggregate` at its `null` default indefinitely —
+        // every non-GM reader (a stream widget included) falls through to a local
+        // best-effort build for no reason other than nobody has published yet.
+        if (game.users?.activeGM?.isSelf === true) void PartyStats.getAggregate();
+
         postConsoleAndNotification(MODULE.NAME, 'Party Stats | Initialized', '', true, false);
     }
 
+    /** @type {Function|null} Debounced rebuild-and-republish, built once. */
+    static _republishDebounced = null;
+
     /**
-     * Drop the cached aggregate. The next read rebuilds it.
+     * Drop the cached aggregate. On the active GM's client this also schedules
+     * a rebuild-and-republish -- see the file header for why waiting for the
+     * GM to happen to read it themselves is not good enough for other clients.
+     *
+     * Debounced rather than immediate: `updateActor` is one of the invalidating
+     * hooks, and HP changes fire it on every hit landed, not just on membership
+     * or ownership changes. An immediate rebuild would turn every hit of an
+     * active combat into a full history reduction plus a world-setting write —
+     * a socket broadcast per hit. Coalescing rapid invalidations into one
+     * rebuild after they settle keeps the publish prompt without doing that.
      */
     static invalidate() {
         PartyStats._cache = null;
         PartyStats._building = null;
+        if (game.users?.activeGM?.isSelf !== true) return;
+        PartyStats._republishDebounced ??= foundry.utils.debounce(() => void PartyStats.getAggregate(), 2000);
+        PartyStats._republishDebounced();
     }
 
     /**
-     * The party aggregate, from cache when it is warm.
+     * The party aggregate. On the active GM's client this builds (or serves
+     * from cache) and publishes the result for everyone else. Every other
+     * client reads what the GM already published, falling back to a local
+     * build only if nothing has been published yet this session -- see the
+     * file header for why a non-GM client should not reduce the party itself
+     * when a published answer is available.
      * @returns {Promise<Object>}
      */
     static async getAggregate() {
+        if (game.users?.activeGM?.isSelf !== true) {
+            const published = getSettingSafely(MODULE.ID, 'partyStatsAggregate', null);
+            if (PartyStats._isPublished(published)) return published;
+        }
+
         if (PartyStats._cache) return PartyStats._cache;
         if (PartyStats._building) return PartyStats._building;
         PartyStats._building = PartyStats._build()
-            .then((result) => {
+            .then(async (result) => {
                 PartyStats._cache = result;
                 PartyStats._building = null;
+                if (game.users?.activeGM?.isSelf === true) await PartyStats._publish(result);
                 return result;
             })
             .catch((error) => {
@@ -81,16 +141,46 @@ export class PartyStats {
     }
 
     /**
-     * The aggregate if it is already built, otherwise null and a rebuild is
-     * kicked off. For callers that render synchronously and cannot await — a
-     * menubar readout draws whatever it has and picks the rest up on the next
-     * render, rather than blocking or forcing an async render path.
+     * The aggregate if it is already available, otherwise null and a rebuild
+     * (or a read of the published value) is kicked off. For callers that
+     * render synchronously and cannot await — a menubar readout draws whatever
+     * it has and picks the rest up on the next render, rather than blocking or
+     * forcing an async render path.
      * @returns {Object|null}
      */
     static getAggregateSync() {
+        if (game.users?.activeGM?.isSelf !== true) {
+            const published = getSettingSafely(MODULE.ID, 'partyStatsAggregate', null);
+            if (PartyStats._isPublished(published)) return published;
+        }
         if (PartyStats._cache) return PartyStats._cache;
         void PartyStats.getAggregate();
         return null;
+    }
+
+    /**
+     * Whether a value read from the `partyStatsAggregate` setting is a real
+     * published aggregate rather than the setting's own default. That default
+     * is `{}`, not `null` — an Object-type setting's default must itself be an
+     * object, or `game.settings.register()` throws at registration and the key
+     * never registers at all (found live 2026-09, `"...partyStatsAggregate" is
+     * not a registered game setting` on every reader). `{}` is truthy, so a
+     * plain truthy check would treat the untouched default as a real
+     * (empty-looking) published aggregate and never fall through to a local
+     * build. `totalCombats` is always a number on both `_build()`'s and
+     * `_empty()`'s output, never on the bare setting default.
+     */
+    static _isPublished(value) {
+        return typeof value?.totalCombats === 'number';
+    }
+
+    /**
+     * Write the aggregate to the world setting other clients read. GM-only —
+     * `getAggregate()` never calls this except on the active GM's own client.
+     */
+    static async _publish(result) {
+        const ok = await setSettingSafely(MODULE.ID, 'partyStatsAggregate', result);
+        if (!ok) postConsoleAndNotification(MODULE.NAME, 'Party Stats: Failed to publish aggregate', '', false, false);
     }
 
     /**
