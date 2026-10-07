@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Advancing the world clock logged a Foundry 14 compatibility warning from the effect expiry sweep** (`scripts/api-effects.js`, `scripts/window-status-effects.js`). `ActiveEffectDuration#type` moved to `#units` in v14. The old getter still answers, and every read logs a warning that becomes an error in v16. `getEffectRemaining` and `formatDuration` read `type` on each tick of `updateWorldTime`, and the status-effects window read it while building each row.
+
+  Both now read `units` when that property is a string, and read `type` only on v13, where `units` does not exist. A v14 time unit other than `seconds` is reported in seconds via `secondsRemaining`, because `remaining` there is a count of minutes (or hours, days, and the rest). A v14 turns duration is reported as `turns`, because that remainder is a turn count; v13's combined `turns` type stays `rounds`, since its remainder was already a round count. The status-effects window uses `isTemporary` for the permanent-vs-timed test.
+
+  Confirmed against Foundry 14's `ActiveEffect#updateDuration` shim (`client/documents/active-effect.mjs`): the warning is raised from the `type` getter and from nowhere else on this path. Not yet rechecked in a running world — advance the clock with a timed effect active, and open the status-effects window, and the `ActiveEffectDuration#type` warning should be absent.
+
 ## [14.1.4]
 
 ### Fixed

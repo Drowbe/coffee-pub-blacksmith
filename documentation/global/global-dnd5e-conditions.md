@@ -110,7 +110,7 @@ The real gotcha: **if the effect conveyed a toggled condition, deleting it may l
 
 Bibliosoph implements this as a global `deleteActiveEffect` hook rather than a callback, so the unwind runs no matter which UI performed the delete. That is the recommended shape — see "Prefer hooks over registry callbacks" in [architecture-ownership](../architecture/architecture-ownership.md).
 
-**Duration display:** `effect.duration.label` gives a localized remaining-time string ("10 Rounds", "1 Minute"). `duration.type === 'none'` means no duration — show nothing.
+**Duration display:** `effect.duration.label` gives a localized remaining-time string ("10 Rounds", "1 Minute"). Show nothing when the effect is permanent: `!effect.isTemporary`. On Foundry 14 the duration unit is `duration.units`; reading `duration.type` there logs a compatibility warning.
 
 ---
 

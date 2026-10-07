@@ -48,6 +48,17 @@ combat tracker. Which one an effect carries is decided by whoever created it —
 branches rather than unifying them: presenting a rounds duration as seconds would state a wall-clock
 remainder for something that does not track wall-clock time.
 
+**Foundry 14 renamed `duration.type` to `duration.units`.** The old getter still answers, and every
+read logs a compatibility warning that becomes an error in v16, so this layer reads `units` whenever
+it is a string and reads `type` only on v13, where `units` does not exist. v13's `type` was `none`,
+`seconds`, or `turns`, and a `turns` duration's `remaining` was already a round count, so it is still
+reported as `rounds`. v14 splits rounds and turns: a turns remainder is a turn count and is reported
+as `turns`. Time units other than `seconds` (`minutes`, `hours`, `days`, `months`, `years`) advance
+on the world clock; `remaining` is in that unit, and the layer reports `secondsRemaining` so the
+caller still receives seconds. dnd5e still emits the legacy `{seconds}` / `{rounds}` / `{turns}`
+shape, which v14 migrates into `value` plus `units`, so a minute effect still arrives as seconds and
+the raw-seconds label rewrite still applies.
+
 **A third-party module can change which branch an effect takes, mid-life.** Times Up's
 `setDurationRounds` (`module/handleUpdates.js`) rewrites any effect whose remaining seconds fall below
 its *Max rounds to convert* threshold (default 10 rounds x `CONFIG.time.roundTime`) into a rounds-based

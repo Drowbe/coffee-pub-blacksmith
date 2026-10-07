@@ -131,43 +131,100 @@ function timesUpOriginalSeconds(effect) {
 }
 
 /**
+ * Wall-clock units. On v14 `remaining` is counted in this unit and
+ * `secondsRemaining` is the same remainder in seconds. v13 only ever used
+ * `seconds` from this list; minutes and longer were already stored as seconds.
+ */
+const TIME_DURATION_UNITS = new Set(['years', 'months', 'days', 'hours', 'minutes', 'seconds']);
+
+/**
+ * The unit a prepared duration is measured in.
+ *
+ * Foundry 14 moved `ActiveEffectDuration#type` to `#units`. The old getter
+ * still answers, and every read logs a compatibility warning that becomes an
+ * error in v16, so it must not be touched once `units` exists. v13 has no
+ * `units`; its prepared duration carries `type` (`none`, `seconds`, or
+ * `turns`).
+ *
+ * @param {object|null|undefined} duration
+ * @returns {string}
+ */
+function durationUnits(duration) {
+    if (!duration) return '';
+    if (typeof duration.units === 'string') return duration.units;
+    return typeof duration.type === 'string' ? duration.type : '';
+}
+
+/**
  * How much is left, as a number and the unit that number is in.
  *
  * THE UNIT IS PART OF THE ANSWER, NOT AN IMPLEMENTATION DETAIL. Foundry reports
  * `duration.remaining` in whichever unit the document happens to carry —
- * seconds for a seconds duration, a decimal count of rounds for a turns
- * duration — and announces that nowhere. A consumer that assumes seconds is
- * wrong by a factor of `roundTime` on every rounds-based effect, and a consumer
- * that gets a seconds-normalized number cannot tell a wall-clock remainder from
- * a combat one. Both mistakes have been shipped by a consuming module.
+ * seconds for a seconds duration, a decimal count of rounds for a v13 turns
+ * duration, a turn count for a v14 turns duration — and announces that
+ * nowhere. A consumer that assumes seconds is wrong by a factor of `roundTime`
+ * on every rounds-based effect, and a consumer that gets a seconds-normalized
+ * number cannot tell a wall-clock remainder from a combat one. Both mistakes
+ * have been shipped by a consuming module.
  *
  * Rounds are NOT converted to seconds for the caller. A rounds duration
  * advances with the combat tracker and not with the world clock, so quoting it
- * in seconds would state a remainder that is not true.
+ * in seconds would state a remainder that is not true. The same is true of
+ * turns on v14, where `remaining` is a turn count rather than the round count
+ * v13 folded both into.
  *
- * The one conversion that IS applied: where Times Up rewrote a seconds duration
- * into rounds, the seconds are restored, because that effect was authored in
- * seconds and the rewrite is exactly the substrate variance this layer exists
- * to hide. Without the integration the document is reported as it stands.
+ * Time units other than seconds (minutes, hours, and the rest, which v14 can
+ * store directly) ARE converted, via `secondsRemaining`. They advance on the
+ * world clock, so seconds is the true remainder; `remaining` itself would be a
+ * count of minutes.
+ *
+ * The one combat conversion that IS applied: where Times Up rewrote a seconds
+ * duration into rounds, the seconds are restored, because that effect was
+ * authored in seconds and the rewrite is exactly the substrate variance this
+ * layer exists to hide. Without the integration the document is reported as
+ * it stands.
  *
  * @param {ActiveEffect} effect
- * @returns {{value: number, unit: 'seconds'|'rounds'}|null} null when the effect
- *   has no duration at all (a permanent effect), which is distinct from zero.
+ * @returns {{value: number, unit: 'seconds'|'rounds'|'turns'}|null} null when
+ *   the effect has no duration at all (a permanent effect), which is distinct
+ *   from zero.
  */
 export function getEffectRemaining(effect) {
     const duration = effect?.duration;
-    if (!duration?.type || duration.type === 'none') return null;
+    const units = durationUnits(duration);
+    if (!units || units === 'none') return null;
 
-    const raw = Number(duration.remaining ?? duration.seconds);
+    if (TIME_DURATION_UNITS.has(units)) {
+        // v13 and a v14 seconds duration: `remaining` is already seconds.
+        // Any other time unit: `remaining` is in that unit, and only
+        // `secondsRemaining` is seconds.
+        const seconds = units === 'seconds'
+            ? Number(duration.remaining ?? duration.secondsRemaining)
+            : Number(duration.secondsRemaining);
+        if (!Number.isFinite(seconds)) return null;
+        return { value: seconds, unit: 'seconds' };
+    }
+
+    const raw = Number(duration.remaining);
     if (!Number.isFinite(raw)) return null;
-
-    if (duration.type === 'seconds') return { value: raw, unit: 'seconds' };
 
     // Rounds/turns. If a Times Up conversion put it here, put it back -- on the
     // evidence of the flag alone, never on whether that module happens to be
-    // loaded. See `timesUpOriginalSeconds`.
+    // loaded. See `timesUpOriginalSeconds`. v14's `secondsRemaining` is
+    // `remaining` times `roundTime` or `turnTime`; v13 has no such field, so
+    // the round-count remainder is scaled by `roundTime` as before.
     if (timesUpOriginalSeconds(effect) !== null) {
-        return { value: raw * roundSeconds(), unit: 'seconds' };
+        const restored = Number(duration.secondsRemaining);
+        return {
+            value: Number.isFinite(restored) ? restored : raw * roundSeconds(),
+            unit: 'seconds'
+        };
+    }
+
+    // v13's type `turns` covers rounds and turns, and `remaining` is already a
+    // round count. v14 splits them, and a turns remainder is not a round count.
+    if (typeof duration.units === 'string' && units === 'turns') {
+        return { value: raw, unit: 'turns' };
     }
     return { value: raw, unit: 'rounds' };
 }
@@ -192,11 +249,14 @@ export function hasEffectExpired(effect) {
  * already labels those the way you would read them aloud.
  */
 function formatDuration(duration) {
-    if (!duration?.type || duration.type === 'none') return '';
+    const units = durationUnits(duration);
+    if (!units || units === 'none') return '';
     const fallback = duration?.label ? String(duration.label) : '';
-    if (duration.type !== 'seconds') return fallback;
+    // Minutes and longer on v14 already carry a readable label, as do rounds
+    // and turns. Only a seconds duration arrives as raw seconds.
+    if (units !== 'seconds') return fallback;
 
-    const seconds = Number(duration.remaining ?? duration.seconds);
+    const seconds = Number(duration.remaining ?? duration.secondsRemaining);
     if (!Number.isFinite(seconds) || seconds <= 0) return fallback;
 
     const plural = (n, key, word) => `${n} ${localize(key, word)}${n === 1 ? '' : localize(`${key}-Plural`, 's')}`;

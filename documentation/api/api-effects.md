@@ -95,15 +95,22 @@ A classifier cannot influence this field — `durationLabel` is computed from th
 ```javascript
 record.remaining   // { value: 1800, unit: 'seconds' }
                    // { value: 5,    unit: 'rounds'  }
+                   // { value: 3,    unit: 'turns'   }  // Foundry 14 only
                    // null — the effect has no duration at all
 ```
 
 `null` means permanent, which is not the same as `{ value: 0 }`.
 
 **The unit is part of the answer.** Foundry reports `duration.remaining` in whichever unit the document
-happens to carry - seconds for a seconds duration, a decimal count of rounds for a turns duration - and
-announces that nowhere. Code that assumes seconds is wrong by a factor of `CONFIG.time.roundTime` on every
-rounds-based effect.
+happens to carry - seconds for a seconds duration, a decimal count of rounds for a v13 turns duration,
+a turn count for a v14 turns duration - and announces that nowhere. Code that assumes seconds is wrong
+by a factor of `CONFIG.time.roundTime` on every rounds-based effect.
+
+On Foundry 14 the field is `duration.units` (`seconds`, `minutes`, `hours`, `days`, `months`, `years`,
+`rounds`, `turns`). Reading `duration.type` there logs a compatibility warning. This API reads `units`
+on v14 and `type` on v13. Minutes and longer are wall-clock, so `remaining` comes back in seconds via
+Foundry's `secondsRemaining`. A v14 turns duration is reported as `turns` because that remainder is a
+turn count; v13 folded rounds and turns into one round count, which is still reported as `rounds`.
 
 **Rounds are not converted to seconds.** A rounds duration advances with the combat tracker, not the world
 clock, so quoting it in seconds would state a remainder that is not true. Compare `value` only against

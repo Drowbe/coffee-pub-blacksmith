@@ -194,7 +194,10 @@ export class StatusEffectsWindow extends BlacksmithWindowBaseV2 {
                 id: effect.id,
                 name: effect.name || effect.label || 'Unnamed Effect',
                 icon: effect.img || 'icons/svg/aura.svg',
-                duration: effect.duration?.type === 'none' ? '' : (effect.duration?.label || ''),
+                // v14's `duration.type` is a deprecated alias of `units` and warns
+                // on every read. `isTemporary` is the permanent-vs-timed test on
+                // both generations.
+                duration: effect.isTemporary ? (effect.duration?.label || '') : '',
                 isDisabled: !!effect.disabled,
                 isSuppressed: !!effect.isSuppressed
             }))
