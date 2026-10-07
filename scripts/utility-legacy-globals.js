@@ -34,8 +34,10 @@ export const LEGACY_GLOBALS = [
         'getType','setProperty','getProperty','hasProperty','invertObject','randomID','isNewerVersion',
         'benchmark','timeSince','formatFileSize','parseS3URL','getRoute','fetchWithTimeout',
         'fetchJsonWithTimeout','debounce','throttle','deepFreeze','escapeHTML','logCompatibilityWarning',
-        'isEmpty','encodeURL','srcExists','saveDataToFile','readTextFromFile','Semaphore','Color',
+        'isEmpty','encodeURL','saveDataToFile','readTextFromFile','Semaphore','Color',
         'Collection','StringTree','WordTree','BitMask'].map(n => ({ name: n, modern: `foundry.utils.${n}` })),
+
+    { name: 'srcExists', modern: 'foundry.canvas.srcExists' },
 
     // --- foundry.audio ---
     ...['AudioHelper','Sound','AudioContainer'].map(n => ({ name: n, modern: `foundry.audio.${n}` })),
@@ -51,8 +53,8 @@ export const LEGACY_GLOBALS = [
     { name: 'DocumentSheet', modern: 'foundry.applications.api.DocumentSheetV2' },
     { name: 'FilePicker', modern: 'foundry.applications.apps.FilePicker.implementation' },
     { name: 'TextEditor', modern: 'foundry.applications.ux.TextEditor.implementation' },
-    { name: 'ContextMenu', modern: 'foundry.applications.ux.ContextMenu' },
-    { name: 'DragDrop', modern: 'foundry.applications.ux.DragDrop' },
+    { name: 'ContextMenu', modern: 'foundry.applications.ux.ContextMenu.implementation' },
+    { name: 'DragDrop', modern: 'foundry.applications.ux.DragDrop.implementation' },
     { name: 'Tabs', modern: 'foundry.applications.ux.Tabs' },
     { name: 'SearchFilter', modern: 'foundry.applications.ux.SearchFilter' },
     ...['DocumentDirectory','SidebarTab','SidebarDirectory','PlayerList','PermissionConfig','WorldConfig',
@@ -90,7 +92,12 @@ export function probeLegacyGlobals() {
     for (const entry of LEGACY_GLOBALS) {
         // `in` cannot throw and needs no eval, unlike a bare reference or `typeof` on a dynamic name.
         const exists = entry.name in globalThis;
-        const row = { ...entry, type: exists ? typeof globalThis[entry.name] : 'undefined' };
+        // Never READ the value: Foundry installs a deprecation getter on each surviving global, and
+        // reading it logs a compatibility warning that names this module as the offender. Inspect the
+        // descriptor instead; an accessor is reported as such without being invoked.
+        const descriptor = exists ? Object.getOwnPropertyDescriptor(globalThis, entry.name) : null;
+        const type = !exists ? 'undefined' : (descriptor?.get ? 'deprecated accessor' : typeof descriptor?.value);
+        const row = { ...entry, type };
         (exists ? present : removed).push(row);
     }
 
