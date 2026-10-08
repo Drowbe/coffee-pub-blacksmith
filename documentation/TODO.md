@@ -292,6 +292,17 @@ Librarian would institutionalise the pattern this effort exists to end. Fixtures
 their message and `"1.1"` in the fixture, and the fixture pins carry `questIndex`/`questCategory`, which are
 not in the stable core they named.
 
+### A page profile's container resolved by the registering module at runtime (opened 2026-10-07)
+
+A `JournalEntryPage` profile names its journal with a constant `containerName` or an authored field via
+`containerNameFrom`; there is nothing between. Artificer files recipes by a GM-configurable setting
+(`recipeJournalName`, `recipeJournalFolder`), which is neither. Approved by the author for Artificer to ask for.
+Touches `registry-declarations.js` (the `containerName` / `containerNameFrom` validation, ~:505) and the page
+branch in `registry-json-import-journals.js` (~:1420). Open design question: a callback is opaque to the mirror
+check, so prefer the module resolving its own setting and passing the value in. Never read another module's
+settings from here. Design belongs in a plan once Artificer states the exact request. Verified by an Artificer
+import that lands in the journal its setting names.
+
 ### Import/export and module-owned document subtypes
 
 The import half is settled by the declaration model. The export half is not, and its constraints -- owner
