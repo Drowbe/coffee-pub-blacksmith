@@ -45,7 +45,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         copyReport: (_event, _target, win) => win?._copyReport(),
         copyEntryIssues: (_event, target, win) => win?._copyEntryIssues(target),
         openAllDocuments: (_event, _target, win) => win?._openAllDocuments(),
-        openDocument: (_event, target, win) => win?._openDocument(target)
+        openDocument: (_event, target, win) => win?._openDocument(target),
+        resetPromptFields: (_event, _target, win) => win?._resetPromptFields()
     };
 
     constructor(options = {}) {
@@ -93,6 +94,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this.showImportResults = false;
         this.promptCheckboxes = Array.isArray(opts.promptCheckboxes) ? opts.promptCheckboxes : [];
         this.promptFields = Array.isArray(opts.promptFields) ? opts.promptFields : [];
+        // What each question started as, taken BEFORE saved answers are restored over it, so Reset can
+        // put a field back to its declared prefill rather than to whatever the author last typed.
+        this._promptFieldDefaults = new Map(this.promptFields.map(field => [field, String(field?.value ?? '')]));
         this.additionalGuidance = JsonImportWindow._sessionAdditionalGuidance;
         this.importerStateKey = idSuffix || 'generic';
         this._restoreAuthoringState();
@@ -188,8 +192,40 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         `;
     }
 
+    /** The prompt fields shown for the selected template, which is what Reset acts on. */
+    _promptFieldsForSelectedTemplate() {
+        const template = this.selectedTemplate || '';
+        return this.promptFields.filter(field => field?.id
+            && this._optionSupportsActiveAuthoringTab(field)
+            && this._templateMatchesForAttribute(field.showForTemplate ?? '', template));
+    }
+
+    /**
+     * Put the selected template's questions back to their declared prefills.
+     *
+     * Only the questions this template shows. The compendium and world checkboxes, the Additional
+     * Guidance box and every other template's answers are left as they are: a person starting the
+     * next record wants a clean form, not their compendium choices undone.
+     */
+    _resetPromptFields() {
+        const fields = this._promptFieldsForSelectedTemplate();
+        if (!fields.length) return;
+        for (const field of fields) field.value = this._promptFieldDefaults.get(field) ?? '';
+        void this._saveAuthoringState();
+        void this.render(true);
+    }
+
     _buildActionBarLeft() {
-        if (this.activeTab !== 'import') return '';
+        if (this.activeTab !== 'import') {
+            // Offered only where it would do something: a template with no questions of its own
+            // (or whose controls are built into the window) has nothing for Reset to clear.
+            if (!this._promptFieldsForSelectedTemplate().length) return '';
+            return `
+            <button type="button" class="blacksmith-window-btn-secondary blacksmith-json-import-reset-fields" data-action="resetPromptFields" data-tooltip="Clear this template's answers back to their defaults">
+                <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+        `;
+        }
         if (this.showImportResults && this.importResult) {
             const openAll = this.importResult.entries?.filter(entry => entry.document?.uuid).length > 1
                 ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="openAllDocuments"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open All</button>`
@@ -232,6 +268,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 && this.importResult.entries?.some(entry => entry.retryable && entry.index >= 0)
                 ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="retryFailed"><i class="fa-solid fa-rotate-right"></i> Retry Failed</button>`
                 : '';
+            // A validation that found nothing wrong ends at the next step, which is importing what was
+            // just validated. Making the author go back to Edit only to reach the Import button was the
+            // wrong default; Edit stays, as the secondary action.
+            if (this.importResult.operation === 'validate' && this.importResult.failed === 0
+                && this.importResult.processed > 0 && this.onImport) {
+                return `<button type="button" class="blacksmith-window-btn-secondary" data-action="editJson"><i class="fa-solid fa-pen"></i> Edit JSON</button>
+                <button type="button" class="blacksmith-window-btn-primary blacksmith-json-import-submit" data-action="importJson">
+                    <i class="fa-solid fa-file-import"></i> ${this.importLabel}
+                </button>`;
+            }
             const editLabel = this.importResult.operation === 'import' && this.importResult.failed > 0 ? 'Edit and Retry' : 'Edit JSON';
             return `${retry}<button type="button" class="blacksmith-window-btn-primary" data-action="editJson"><i class="fa-solid fa-pen"></i> ${editLabel}</button>`;
         }
@@ -464,7 +510,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         }
         const root = this.element;
         const textarea = root?.querySelector('.blacksmith-json-import-textarea');
-        const payload = textarea?.value || '';
+        // The results screen has no textarea. Importing from there means importing what was just
+        // validated, which is kept in `initialJson`.
+        const payload = textarea ? (textarea.value || '') : String(this.initialJson ?? '');
         this._setBusy(true, 'Importing…');
         try {
             this.initialJson = String(payload);
@@ -982,7 +1030,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             inputType,
             isSelect: inputType === 'select',
             isTextarea: inputType === 'textarea' || inputType === 'items',
-            isText: inputType !== 'select' && inputType !== 'textarea' && inputType !== 'items',
+            isText: inputType !== 'select' && inputType !== 'textarea' && inputType !== 'items' && inputType !== 'tags',
+            isTags: inputType === 'tags',
             dropKind: inputType === 'item' || inputType === 'items' ? inputType : '',
             fullWidth: !!field.fullWidth,
             rows: field.rows || 5,
@@ -1199,6 +1248,79 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         this._updatePromptFieldVisibility();
         this._attachImageBrowseListeners(root);
         this._attachPromptDropListeners(root);
+        this._attachPromptTagListeners(root);
+    }
+
+    /**
+     * Make `tags` prompt fields a chip picker.
+     *
+     * The value the rest of the window reads, persists and restores stays ONE string in a hidden input,
+     * the tags comma-separated, so nothing about reading an answer changed. The visible pieces are the
+     * chips drawn from it, each with a remove button, and a text entry with suggestions. The entry is
+     * open: Enter, a comma or leaving the box commits whatever was typed, suggested or not. Choosing a
+     * suggestion from the list commits it at once.
+     * @param {HTMLElement} root
+     */
+    _attachPromptTagListeners(root) {
+        if (!root) return;
+        for (const wrapper of root.querySelectorAll('[data-prompt-tags]')) {
+            const holder = wrapper.querySelector('[data-prompt-field]');
+            const entry = wrapper.querySelector('[data-prompt-tag-entry]');
+            const chips = wrapper.querySelector('[data-prompt-tag-chips]');
+            if (!holder || !entry || !chips) continue;
+            const suggestions = [...wrapper.querySelectorAll('datalist option')].map(option => option.value.toLowerCase());
+
+            const read = () => String(holder.value ?? '').split(/[,\r\n]+/).map(tag => tag.trim()).filter(Boolean);
+            const write = (tags) => {
+                holder.value = tags.join(', ');
+                holder.dispatchEvent(new Event('change', { bubbles: true }));
+                this._persistFormStateFromDom();
+                void this._saveAuthoringState();
+                draw();
+            };
+            const draw = () => {
+                chips.replaceChildren(...read().map((tag) => {
+                    const chip = document.createElement('span');
+                    chip.className = 'blacksmith-json-import-drop-chip';
+                    const label = document.createElement('span');
+                    label.textContent = tag;
+                    const remove = document.createElement('a');
+                    remove.className = 'blacksmith-json-import-tag-remove';
+                    remove.textContent = '\u00d7';
+                    remove.setAttribute('role', 'button');
+                    remove.setAttribute('aria-label', `Remove ${tag}`);
+                    remove.addEventListener('click', () => write(read().filter(one => one !== tag)));
+                    chip.append(label, remove);
+                    return chip;
+                }));
+            };
+            const commit = (text) => {
+                const tags = read();
+                for (const piece of String(text ?? '').split(',')) {
+                    const tag = piece.trim();
+                    if (tag && !tags.some(one => one.toLowerCase() === tag.toLowerCase())) tags.push(tag);
+                }
+                entry.value = '';
+                write(tags);
+            };
+
+            entry.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    commit(entry.value);
+                }
+            });
+            // Picking from the suggestion list fires `input` with the whole option as the value.
+            entry.addEventListener('input', (event) => {
+                if (!event.inputType || event.inputType === 'insertReplacementText') {
+                    if (suggestions.includes(entry.value.trim().toLowerCase())) commit(entry.value);
+                }
+            });
+            entry.addEventListener('change', () => {
+                if (entry.value.trim()) commit(entry.value);
+            });
+            draw();
+        }
     }
 
     /**
@@ -1213,6 +1335,8 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         if (!root) return;
         const TextEditor = foundry.applications.ux.TextEditor.implementation;
         for (const control of root.querySelectorAll('[data-prompt-drop]')) {
+            control.addEventListener('input', () => void this._refreshDropPreview(control));
+            void this._refreshDropPreview(control);
             control.addEventListener('dragover', (event) => event.preventDefault());
             control.addEventListener('drop', async (event) => {
                 event.preventDefault();
@@ -1224,6 +1348,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 const item = await fromUuid(data.uuid);
                 const name = String(item?.name ?? '').trim();
                 if (!name) return;
+                JsonImportWindow._dropIconCache.set(name.toLowerCase(), item.img || null);
                 if (control.dataset.promptDrop === 'items') {
                     const lines = String(control.value ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
                     const index = lines.findIndex(line => line.replace(/\s*x\s*\d+(\.\d+)?$/i, '').toLowerCase() === name.toLowerCase());
@@ -1238,10 +1363,96 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     control.value = name;
                 }
                 control.dispatchEvent(new Event('change', { bubbles: true }));
+                void this._refreshDropPreview(control);
                 this._persistFormStateFromDom();
                 void this._saveAuthoringState();
             });
         }
+    }
+
+    /**
+     * Item icons already found, by lower-cased name, so a name is looked up once per session.
+     * `null` is a remembered miss.
+     * @type {Map<string, string|null>}
+     */
+    static _dropIconCache = new Map();
+
+    /**
+     * Show the icon and name of each item an `item` / `items` field holds.
+     *
+     * Drawn from the control's own text, so a typed name, a dropped item and a value restored after
+     * the window re-renders all look the same. An icon comes from the drop when there was one,
+     * otherwise from the GM's Compendium Mapping and the world by exact name, filled in as it is found.
+     * A name that matches nothing shows a placeholder icon rather than nothing.
+     * @param {HTMLElement} control
+     */
+    async _refreshDropPreview(control) {
+        const preview = control.parentElement?.querySelector(`[data-prompt-preview="${control.dataset.promptField}"]`);
+        if (!preview) return;
+        const lines = control.dataset.promptDrop === 'items'
+            ? String(control.value ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+            : [String(control.value ?? '').trim()].filter(Boolean);
+        const entries = lines.map((line, index) => {
+            const match = control.dataset.promptDrop === 'items' ? line.match(/^(.*?)\s*x\s*(\d+(?:\.\d+)?)$/i) : null;
+            return match && match[1].trim()
+                ? { name: match[1].trim(), quantity: match[2], index }
+                : { name: line, quantity: null, index };
+        });
+
+        // Removing an entry rewrites the control's own text, which is the value everything else reads.
+        const remove = (index) => {
+            control.value = lines.filter((_, position) => position !== index).join('\n');
+            control.dispatchEvent(new Event('change', { bubbles: true }));
+            void this._refreshDropPreview(control);
+            this._persistFormStateFromDom();
+            void this._saveAuthoringState();
+        };
+
+        const draw = () => {
+            preview.replaceChildren(...entries.map((entry) => {
+                const chip = document.createElement('span');
+                chip.className = 'blacksmith-json-import-drop-chip';
+                const image = document.createElement('img');
+                image.src = JsonImportWindow._dropIconCache.get(entry.name.toLowerCase()) || 'icons/svg/item-bag.svg';
+                image.alt = '';
+                const label = document.createElement('span');
+                label.textContent = entry.name;
+                chip.append(image, label);
+                if (entry.quantity) {
+                    const quantity = document.createElement('span');
+                    quantity.className = 'blacksmith-json-import-drop-chip-qty';
+                    quantity.textContent = `x${entry.quantity}`;
+                    chip.append(quantity);
+                }
+                const clear = document.createElement('a');
+                clear.className = 'blacksmith-json-import-tag-remove';
+                clear.textContent = '×';
+                clear.setAttribute('role', 'button');
+                clear.setAttribute('aria-label', `Remove ${entry.name}`);
+                clear.setAttribute('data-tooltip', `Remove ${entry.name}`);
+                clear.addEventListener('click', () => remove(entry.index));
+                chip.append(clear);
+                return chip;
+            }));
+        };
+        draw();
+
+        const unknown = [...new Set(entries.map(entry => entry.name.toLowerCase()))]
+            .filter(key => !JsonImportWindow._dropIconCache.has(key));
+        if (!unknown.length) return;
+        // Marked as misses first, so a burst of input events asks once.
+        for (const key of unknown) JsonImportWindow._dropIconCache.set(key, null);
+        const { compendiumManager } = await import('./manager-compendiums.js');
+        for (const entry of entries.filter(one => unknown.includes(one.name.toLowerCase()))) {
+            try {
+                const hit = await compendiumManager.resolve(entry.name, 'Item', { exact: true });
+                const document = hit?.found && hit.uuid ? await fromUuid(hit.uuid) : null;
+                if (document?.img) JsonImportWindow._dropIconCache.set(entry.name.toLowerCase(), document.img);
+            } catch {
+                // A name that cannot be resolved keeps the placeholder icon.
+            }
+        }
+        draw();
     }
 
     _attachImageBrowseListeners(root) {

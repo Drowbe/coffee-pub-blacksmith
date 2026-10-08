@@ -319,9 +319,9 @@ in `hint`.
 | Key | |
 |---|---|
 | `id`, `label` | Required. `id` must be unique within the profile. |
-| `inputType` | `text` (default), `select`, `textarea`, `item` or `items`. The last two are drop targets, below. |
+| `inputType` | `text` (default), `select`, `textarea`, `item`, `items` or `tags`. `item` and `items` are drop targets and `tags` is a chip picker, below. |
 | `options` | Required for `select`, refused otherwise. Each needs a `value`. |
-| `dynamicOptions` | `true` on a `select` whose list changes while the world is live. Carries no `options`; the module supplies them, below. |
+| `dynamicOptions` | `true` on a `select` or `tags` field whose list changes while the world is live. Carries no `options`; the module supplies them, below. |
 | `value` | Prefilled answer. |
 | `hint` | One sentence, shown as a help tooltip beside the label. |
 | `placeholder`, `rows` | Text and textarea presentation. |
@@ -350,7 +350,9 @@ drag a Foundry Item from the sidebar or a compendium onto the prompt instead:
 - **`items`** is a list, one `Name xQuantity` per line. Dropping adds a line, or raises the quantity by one when
   the item is already listed.
 
-Both are ordinary text controls that also accept a dropped item, so the author can still type a name, correct a
+Both are ordinary text controls that also accept a dropped item. Each entry is shown beneath the control with its
+icon and name and an × to remove it, the icon coming from the drop, or else from an exact-name lookup in the GM's Compendium Mapping and
+the world, with a placeholder when nothing matches. The author can still type a name, correct a
 quantity or delete a line. They carry no `options`. A drop of anything but an Item is refused with a warning.
 
 Both follow the constraint rule above. If the `id` matches a declared field's `name`, the answer constrains that
@@ -363,6 +365,17 @@ A numeric or boolean field's answer is converted to the field's type before it r
 prompt, so a typed `1000` is the number `1000`. A field that is a list of plain strings takes a textarea:
 entries separated by commas or new lines become the array, so `Herbal, Medicinal` is `["Herbal", "Medicinal"]`.
 A list of objects is not converted this way; it has its own control, `items`.
+
+### Open-ended lists you build by picking or typing: `tags`
+
+For a list of short strings with no fixed vocabulary, such as a recipe's traits, `inputType: 'tags'` gives a text entry
+with suggestions and a removable chip for each tag. Typing a tag that is not suggested and pressing Enter or comma, or
+leaving the box, still adds it: **the suggestions are help, never a closed set.** Choosing a suggestion adds it at once.
+
+The answer is one comma-separated string, so a field that is an array of plain strings receives it as an array, the
+same conversion a textarea gets. Suggestions come from `options` (static, `[{ value }]`) or from `dynamicOptions: true`
+and `setPromptFieldOptions` (below). A `tags` field with neither is simply open text with chips. Unlike a select it
+gets no blank entry, since there is nothing to leave unchosen.
 
 ### A select whose list changes: `dynamicOptions`
 

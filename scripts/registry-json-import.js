@@ -392,13 +392,15 @@ function composePromptFields(kind) {
             // A dynamic select takes the list its module last pushed, read now, when the window
             // opens, with a blank first so leaving it alone is an unanswered question and not a
             // choice. Blank is omitted from the prompt, as every empty answer is.
-            const resolved = field.dynamicOptions
-                ? {
+            const pushed = field.dynamicOptions ? getPromptFieldOptions(kind.id, declaration.id, id) : null;
+            const resolved = !field.dynamicOptions
+                ? field
+                : {
                     ...field,
-                    options: [{ value: '', label: 'No preference' },
-                        ...getPromptFieldOptions(kind.id, declaration.id, id)]
-                }
-                : field;
+                    // A select needs a blank so leaving it alone is not a choice. A tags field takes
+                    // the list as suggestions only, so it needs no blank.
+                    options: field.inputType === 'tags' ? pushed : [{ value: '', label: 'No preference' }, ...pushed]
+                };
             declared.push({ ...resolved, showForTemplate: declaration.id });
         }
     }

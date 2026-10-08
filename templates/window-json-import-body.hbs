@@ -186,11 +186,21 @@
                                 {{/each}}
                             </select>
                             {{/if}}
+                            {{#if isTags}}
+                            <div class="blacksmith-json-import-tags" data-prompt-tags="{{id}}">
+                                <input type="hidden" data-prompt-field="{{id}}" value="{{value}}">
+                                <div class="blacksmith-json-import-drop-preview" data-prompt-tag-chips></div>
+                                <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-tag-entry list="tags-{{showForTemplate}}-{{id}}" autocomplete="off" placeholder="{{placeholder}}">
+                                <datalist id="tags-{{showForTemplate}}-{{id}}">{{#each options}}<option value="{{value}}"></option>{{/each}}</datalist>
+                            </div>
+                            {{/if}}
                             {{#if isTextarea}}
                             <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}"{{#if dropKind}} data-prompt-drop="{{dropKind}}"{{/if}} rows="{{rows}}" autocomplete="off" placeholder="{{placeholder}}">{{value}}</textarea>
+                            {{#if dropKind}}<div class="blacksmith-json-import-drop-preview" data-prompt-preview="{{id}}"></div>{{/if}}
                             {{/if}}
                             {{#if isText}}
                             <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}"{{#if dropKind}} data-prompt-drop="{{dropKind}}"{{/if}} value="{{value}}" autocomplete="off" placeholder="{{placeholder}}">
+                            {{#if dropKind}}<div class="blacksmith-json-import-drop-preview" data-prompt-preview="{{id}}"></div>{{/if}}
                             {{/if}}
                         </label>
                         {{/each}}

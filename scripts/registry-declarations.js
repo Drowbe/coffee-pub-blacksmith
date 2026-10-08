@@ -720,8 +720,11 @@ const PROMPT_FIELD_KEYS = new Set([
  * `item` and `items` are DROP targets for a Foundry Item: `item` holds one item's name, `items` holds a
  * list, one `Name xQuantity` per line. Both stay editable as plain text, so an author can type a name,
  * fix a quantity or delete a line without a control of its own for each.
+ *
+ * `tags` is an open-ended list of short strings built by typing or picking: each becomes a removable chip.
+ * Its `options`, static or pushed through `dynamicOptions`, are SUGGESTIONS and never a closed set.
  */
-const PROMPT_FIELD_INPUT_TYPES = new Set(['text', 'select', 'textarea', 'item', 'items']);
+const PROMPT_FIELD_INPUT_TYPES = new Set(['text', 'select', 'textarea', 'item', 'items', 'tags']);
 
 /**
  * Questions the profile wants to ask an author before it builds.
@@ -783,16 +786,26 @@ function validatePromptFields(declaration, where) {
 
         // A select with nothing to select is the failure this catches: it renders as an
         // empty dropdown, which reads as a bug in the window rather than in the profile.
-        if (field.dynamicOptions !== undefined && (field.dynamicOptions !== true || inputType !== 'select')) {
+        if (field.dynamicOptions !== undefined
+            && (field.dynamicOptions !== true || (inputType !== 'select' && inputType !== 'tags'))) {
             throw new Error(`${where}: promptFields "${id}" dynamicOptions must be true and is only `
-                + `meaningful on a select`);
+                + `meaningful on a select or a tags field`);
         }
         if (field.dynamicOptions === true && field.options !== undefined) {
             throw new Error(`${where}: promptFields "${id}" cannot carry both options and dynamicOptions; `
                 + `the module supplies the list through setPromptFieldOptions`);
         }
-        if (inputType === 'select' && field.dynamicOptions === true) {
+        if ((inputType === 'select' || inputType === 'tags') && field.dynamicOptions === true) {
             // The list is pushed by the owning module and read when the window opens.
+        } else if (inputType === 'tags') {
+            // Static suggestions are optional: a tags field with none is simply open text.
+            if (field.options !== undefined) {
+                if (!Array.isArray(field.options)
+                    || field.options.some(option => !option || typeof option !== 'object' || option.value === undefined)) {
+                    throw new Error(`${where}: promptFields "${id}" options must be an array of entries that each `
+                        + `carry a value`);
+                }
+            }
         } else if (inputType === 'select') {
             if (!Array.isArray(field.options) || !field.options.length) {
                 throw new Error(`${where}: promptFields "${id}" is a select and requires a `
