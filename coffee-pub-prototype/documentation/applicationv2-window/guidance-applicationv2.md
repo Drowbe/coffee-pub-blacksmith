@@ -164,7 +164,7 @@ opts.id = opts.id ?? `${BASE_ID}-${foundry.utils.randomID().slice(0, 8)}`;
 
 ### 2.2 Event Delegation (Required for PARTS)
 
-Application V2 may render the body **part** in a way that does not call `activateListeners` with the part’s HTML, or the part may be replaced on re-render. So **do not rely on attaching listeners inside `activateListeners(html)` to part content**.
+Application V2 **never calls `activateListeners`** (that is the V1 hook), and the body part may be replaced on re-render. So **do not define `activateListeners`; it silently never runs**.
 
 Use **document-level delegation**:
 
@@ -173,7 +173,7 @@ Use **document-level delegation**:
 3. Use `data-action` and optional `data-*` attributes to decide which action to run.
 4. Call static action methods with `(event, target)` so they can read `target.dataset`.
 
-Attach delegation in both `_onFirstRender` and `activateListeners` so it’s set whether or not the part triggers `activateListeners`:
+Attach delegation in `_onFirstRender`:
 
 ```js
 _attachDelegationOnce() {
@@ -198,11 +198,6 @@ _attachDelegationOnce() {
 
 async _onFirstRender(_context, options) {
     await super._onFirstRender?.(_context, options);
-    this._attachDelegationOnce();
-}
-
-activateListeners(html) {
-    super.activateListeners(html);
     this._attachDelegationOnce();
 }
 ```
@@ -268,11 +263,11 @@ If you have controls that are re-created on each render (e.g. a checkbox that to
 
 ## 3. Common Issues and How to Overcome Them
 
-### 3.1 “My listeners never run” / “activateListeners gets wrong html”
+### 3.1 “My listeners never run” / “I defined activateListeners”
 
-Application V2 may inject the body **part** in a container and call `activateListeners` with the wrapper element, not the part’s root. So element-based listeners (e.g. `html.querySelector('[data-action="save"]').addEventListener(...)`) may attach to the wrong node or the part may be replaced later.
+Application V2 never calls `activateListeners`, so listeners wired there never run. Element-based listeners attached to the part (e.g. `html.querySelector('[data-action="save"]').addEventListener(...)`) are also lost when the part is replaced on re-render.
 
-**Fix:** Use document-level (or window-root) delegation and `data-action` as above. Don’t depend on `html` in `activateListeners` being the part root.
+**Fix:** Use document-level (or window-root) delegation and `data-action` as above. Don’t define `activateListeners`; bind in `_onFirstRender` or `_onRender`.
 
 ### 3.2 “getElementById(this.id) returns null”
 
@@ -298,7 +293,7 @@ Application V2 injects the body part’s HTML without executing `<script>` tags 
 
 ## 4. What We’ve Learned
 
-- **Delegation is mandatory** for reliable click handling with Application V2 PARTS; don’t rely on `activateListeners(html)` receiving the part root.
+- **Delegation is mandatory** for reliable click handling with Application V2 PARTS; `activateListeners` is never called, so do not define it.
 - **Scripts in injected body/partials do not run** — `<script>` tags inside Handlebars-rendered body HTML are not executed when the part is injected; use delegation or register handlers on `window` from a module that loads at startup.
 - **One root element with a stable class (and ideally unique id)** makes it possible to find the window’s DOM consistently across renders and across different Foundry versions.
 - **Scroll save/restore** is necessary for any window with scrollable content that re-renders on interaction.
@@ -500,11 +495,6 @@ export class ExampleModuleWindow extends HandlebarsApplicationMixin(ApplicationV
 
     async _onFirstRender(_context, options) {
         await super._onFirstRender?.(_context, options);
-        this._attachDelegationOnce();
-    }
-
-    activateListeners(html) {
-        super.activateListeners(html);
         this._attachDelegationOnce();
     }
 }

@@ -128,9 +128,4 @@ export class ExampleModuleWindow extends HandlebarsApplicationMixin(ApplicationV
         await super._onFirstRender?.(_context, options);
         this._attachDelegationOnce();
     }
-
-    activateListeners(html) {
-        super.activateListeners(html);
-        this._attachDelegationOnce();
-    }
 }
