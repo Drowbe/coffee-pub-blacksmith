@@ -87,8 +87,18 @@
  * @property {string} [authoringModes='json prompt'] - Which authoring tabs this profile appears on:
  *                             'json', 'prompt', or both space-separated. A declared profile can offer both,
  *                             since its template, guide and prompt schema all derive from the declaration.
+ * @property {string} [preamble] - Profile-level prose that does not reduce to per-field guidance: the
+ *                             role a generator is given, what to do first, and the relationships between
+ *                             fields. Written once, rendered into the authoring guide and the generation
+ *                             prompt, so a module hosts no prompt text of its own. A field group's own
+ *                             `preamble` is separate and follows it.
  * @property {object} [ownership] - Per-profile ownership defaults. Never inherited from the kind:
  *                             a profile whose content is revealed deliberately must say so.
+ * @property {Array<'actors'|'items'>} [promptCatalogs] - Catalogs of REAL content names this profile's
+ *                             generation prompt embeds, so a generator references content that exists instead
+ *                             of inventing it. Shows the prompt window's existing compendium and world
+ *                             checkboxes on this profile and embeds the same lists Area Narrative does.
+ *                             Journal profiles only. See `validatePromptCatalogs`.
  * @property {Array<{id: string, label: string, value?: string, hint?: string, fullWidth?: boolean,
  *                   inputType?: 'text'|'select'|'textarea',
  *                   options?: Array<{value: string, label?: string}>}>} [promptFields]
@@ -451,6 +461,12 @@ export function validateDeclaration(declaration) {
     if (!String(declaration.document.documentName || '').trim()) {
         throw new Error(`${where}: document.documentName is required`);
     }
+    // A blank preamble is rejected rather than ignored: it renders as an empty section in the
+    // prompt, and a profile that meant to say something would never find out it said nothing.
+    if (declaration.preamble !== undefined
+        && (typeof declaration.preamble !== 'string' || !declaration.preamble.trim())) {
+        throw new Error(`${where}: preamble must be a non-empty string`);
+    }
     // An UNKNOWN key in `document` is rejected, not ignored.
     //
     // A misspelled or stale key is otherwise the quietest failure the registry can
@@ -635,6 +651,48 @@ export function validateDeclaration(declaration) {
         }
     }
     validatePromptFields(declaration, where);
+    validatePromptCatalogs(declaration, where);
+}
+
+/** The catalogs a profile may ask for: the same two Area Narrative offers. */
+const PROMPT_CATALOG_KINDS = new Set(['actors', 'items']);
+
+/**
+ * Which of the prompt window's existing catalogs a profile wants in its generation prompt.
+ *
+ * A generator told only the schema writes plausible names for things that do not exist: a recipe
+ * for "Moonpetal" in a world with no such item cannot be crafted. Area Narrative's prompt already
+ * offers the GM's compendiums and the world for that reason, as one checkbox per compendium with
+ * Select All / None and a remembered selection. A declared profile does not get a control of its
+ * own: naming `items` or `actors` here shows those SAME checkboxes on this profile's prompt and
+ * embeds the same lists. Which compendiums feed them is the GM's Compendium Mapping, and a
+ * declaration cannot name another.
+ *
+ * JOURNAL PROFILES ONLY, for now. The item and actor prompt routes do not carry the checkbox
+ * answers to the builder, so a catalog named there would show its checkboxes and never reach the
+ * text. Rejected rather than accepted and ignored.
+ *
+ * @param {Declaration} declaration
+ * @param {string} where
+ */
+function validatePromptCatalogs(declaration, where) {
+    if (declaration.promptCatalogs === undefined) return;
+    if (!Array.isArray(declaration.promptCatalogs) || !declaration.promptCatalogs.length) {
+        throw new Error(`${where}: promptCatalogs must be a non-empty array of catalog names`);
+    }
+    if (declaration.kind !== 'journal') {
+        throw new Error(`${where}: promptCatalogs is supported on journal profiles only; the `
+            + `${declaration.kind} prompt route does not carry the catalog checkboxes to the builder`);
+    }
+    const seen = new Set();
+    for (const name of declaration.promptCatalogs) {
+        if (!PROMPT_CATALOG_KINDS.has(name)) {
+            throw new Error(`${where}: unknown promptCatalogs entry "${name}". Expected one of `
+                + `${[...PROMPT_CATALOG_KINDS].join(', ')}`);
+        }
+        if (seen.has(name)) throw new Error(`${where}: duplicate promptCatalogs entry "${name}"`);
+        seen.add(name);
+    }
 }
 
 /**

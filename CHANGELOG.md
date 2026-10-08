@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A declared journal profile can put real content names in its generation prompt** (`promptCatalogs`; `scripts/registry-declarations.js`, `scripts/registry-json-import-journals.js`). A generator told only the schema invents names for things that do not exist, and a record naming a missing item cannot be used. A profile that declares `promptCatalogs: ['items']` (or `'actors'`) now shows Area Narrative's own compendium checkboxes, with Select All / None and the remembered selection, plus the World checkbox, on its prompt, and embeds the same lists Area does under `AVAILABLE ITEMS`. The compendiums come from the GM's Compendium Mapping, never from another module's settings. Journal profiles only. Documented in `api-importer.md`.
+
+- **A declared import profile can carry its own `preamble`** (`scripts/registry-declarations.js`, `scripts/manager-declarations.js`). Profile-level prose that does not reduce to per-field guidance, such as the role a generator is given or what to do first, is now stated once in the declaration and rendered into both the authoring guide and the generation prompt. In the prompt it comes before the field list. A blank or non-string preamble is rejected at registration. Until now only a field group could carry one, so a satellite's own profile had nowhere to put its framing. Documented in `api-importer.md`.
+
+### Fixed
+
+- **A prompt checkbox could sit inside a group hidden for the profile it belonged to** (`scripts/window-json-import.js`). The import window showed a group of checkboxes by its first member's template alone, so a later member scoped to another profile was invisible though its own scope was correct. A group is now shown for every template any member is shown for.
+
 ### Changed
 
 - **The startup legacy-globals probe no longer warns about the known removed set on every load** (`scripts/utility-legacy-globals.js`). On Foundry 14 the 55 globals removed in 14.367 are the baseline, and Blacksmith printed all of them as a console warning each time the world loaded, which buried the line that matters. That warning now fires only for a global beyond that set, so a later generation's removals stand out. The names still appear in the debug-gated probe line, and `blacksmithLegacyGlobals()` still prints the full table with replacements.

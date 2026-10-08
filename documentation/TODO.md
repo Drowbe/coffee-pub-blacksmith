@@ -183,7 +183,7 @@ a second way to say something the first two already said.
 **Verify:** a field added to a declaration appears in the template, the guide, the prompt and the export
 with no other edit. That single check is the whole point of the model.
 
-### Derive the prompts' SCHEMA LOCK, and give a profile a `preamble`
+### Derive the prompts' SCHEMA LOCK
 
 The generation prompts hand-write a SCHEMA LOCK section stating the field list in prose -- a third reader of
 the declaration's contract, alongside the template and the guide, and the one where drift is most expensive:
@@ -193,7 +193,8 @@ It does not derive as things stand, and the reason is a model gap rather than mi
 one sentence, which is right for a template comment and a guide line and too small for a prompt. What a
 SCHEMA LOCK carries beyond a field list is anti-patterns, relationships between fields, and worked negative
 examples -- none of which reduce to per-field guidance. Field groups already have a `preamble` for exactly
-this; a profile needs the same affordance.
+this. A profile-level `preamble` now exists (built 2026-10-08 for Artificer's recipes), which is the
+affordance this needed; what remains is deriving Blacksmith's own SCHEMA LOCKs from declarations.
 
 Sequenced after a real generation run, because the only measure of a prompt is what a generator produces from
 it, and an affordance with no user is what got `rendered` deleted. Full reasoning in
@@ -291,6 +292,14 @@ Librarian would institutionalise the pattern this effort exists to end. Fixtures
 `coffee-pub-librarian/testing/`. Two discrepancies still to settle with them: `exportVersion` is `2` in
 their message and `"1.1"` in the fixture, and the fixture pins carry `questIndex`/`questCategory`, which are
 not in the stable core they named.
+
+### Verify prompt catalogs live, then move Area onto them (opened 2026-10-08)
+
+`promptCatalogs` is built for journal profiles (`utility-prompt-catalogs.js`) but has not run in Foundry: the
+checkbox, the compendium query and the catalog section in a real prompt are untested. After that, Area's
+hardcoded compendium and world checkboxes (`registry-json-import-journals.js`, `applyAreaCatalogSections`)
+should become declared catalogs so Blacksmith is consumer zero. Design record in
+`plans/plan-prompt-catalogs.md`. Verified by a generation run against a real recipe prompt.
 
 ### A journal profile with no selector registers and is unreachable (opened 2026-10-08)
 

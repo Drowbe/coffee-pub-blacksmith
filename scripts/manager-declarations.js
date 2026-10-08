@@ -914,12 +914,14 @@ export function buildGuideText(kindId, profileId, options = {}) {
         sections.push('', 'Rules', ...sentences.map(one => `- ${one}`));
     }
 
-    // A contributing module's profile-level argument, which does not reduce to
-    // per-field guidance. Carrying it here is what lets a module stop hosting
-    // prompt text of its own.
-    const preambles = getFieldGroupsFor(declaration.kind, declaration.id)
-        .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
-        .map(group => group.preamble);
+    // The profile's own prose, then a contributing module's. Same text the generation prompt
+    // carries, so the guide and the prompt cannot disagree about it.
+    const preambles = [
+        ...(declaration.preamble ? [declaration.preamble.trim()] : []),
+        ...getFieldGroupsFor(declaration.kind, declaration.id)
+            .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
+            .map(group => group.preamble)
+    ];
     if (preambles.length) sections.push('', ...preambles);
 
     sections.push(
@@ -1011,6 +1013,9 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         'Every field below belongs to this profile. Do not invent field names, and do',
         'not carry over fields from another profile -- they are ignored on import.',
         '',
+        // The profile's own framing comes before the schema it frames. A role or an order of
+        // work given after forty field lines is read as a footnote.
+        ...(declaration.preamble ? [declaration.preamble.trim(), ''] : []),
         'FIELDS',
         '',
         ...shown.map(field => describe(field))
@@ -1026,6 +1031,11 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         .filter(group => group.preamble && isShown({ requiresOption: group.option.id }, options))
         .map(group => group.preamble);
     if (preambles.length) sections.push('', ...preambles);
+
+    // CATALOGS OF REAL CONTENT, resolved by the caller (the lookup is asynchronous and this builder
+    // is not). Before the author's answers so the nearest thing to the template stays the author's
+    // own words.
+    for (const section of options.catalogSections ?? []) sections.push('', section);
 
     // WHAT THE AUTHOR ASKED FOR, stated rather than left to be inferred. Last before the
     // template so it is the nearest thing to the shape being filled in.

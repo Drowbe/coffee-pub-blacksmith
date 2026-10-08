@@ -67,9 +67,18 @@ importer.registerDeclaration({
     document: { documentName: 'Item', type: 'consumable' },
     fields: [ /* below */ ],
     rules: [ /* below */ ],
-    derive: [ /* named derivations */ ]
+    derive: [ /* named derivations */ ],
+    preamble: 'Prose that does not reduce to per-field guidance.'   // optional, below
 });
 ```
+
+### The profile `preamble`
+
+`preamble` is profile-level prose: the role a generator is given, what to do first, and the relationships between fields that no single field's one-sentence `guidance` can hold. It is a non-empty string, rejected at registration if blank or not a string.
+
+It is rendered in two places from the one declaration, so they cannot disagree. In the generation prompt it comes **before** the `FIELDS` list, because framing read after forty field lines reads as a footnote. In the authoring guide it comes after the rules. A field group's own `preamble` is separate and follows it.
+
+It exists so a module hosts no prompt text of its own. It does not make the prompt a hand-authored one: the derived prompt is still the field list, the rules, the author's answers and the template, with your prose added. Write what a generator needs to know that the fields cannot say, and keep it short. A preamble that restates the field list will drift from it.
 
 ### Forms
 
@@ -330,6 +339,37 @@ Anything else is rejected by name at registration.
 - **`showForTemplate` is stamped for you, and declaring it is an error**, as is `showForField`. A prompt
   field is not self-identifying the way a template option is, so an unscoped field would appear on every
   other profile's prompt -- your `severity` question turning up while somebody imports a Realm.
+
+## Offering real content to the prompt: `promptCatalogs`
+
+A generator told only the schema writes plausible names for things that do not exist. A recipe naming an
+ingredient the world does not have cannot be crafted. Area Narrative's prompt already offers the GM's real
+actors and items for that reason, and a journal profile can ask for the same:
+
+```js
+promptCatalogs: ['items']          // or ['actors', 'items']
+```
+
+**This reuses the controls Area Narrative has; it adds none.** Naming `items` shows the prompt window's existing
+Compendium Items section (one checkbox per compendium in the GM's Compendium Mapping, Select All / None, the
+selection remembered between sessions) and the World section's *Include world items* checkbox on your profile's
+prompt, and embeds the same list Area embeds. `actors` does the same for actors. Nothing is scoped to your
+profile but visibility: the checkboxes are the same ones, so a choice made on one prompt is the choice on the
+other.
+
+**The source is the GM's Compendium Mapping, and you cannot name another.** A module's own compendium settings
+say what that module uses to process content, not what the GM wants offered to a generator, and Blacksmith does
+not read another module's settings. If your bundled packs should appear, the GM maps them in Blacksmith's
+Compendium Mapping like any other.
+
+**Journal profiles only.** The item and actor prompt routes do not carry the author's checkbox answers to the
+builder, so a catalog named there would show its checkboxes and never reach the text. Registration rejects it,
+and rejects any name other than `actors` or `items`.
+
+**What the generator is told.** Each ticked catalog adds a section, `AVAILABLE ITEMS -- USE THESE EXACT NAMES`,
+before the author's answers, holding the same lists Area embeds: item names grouped by compendium and rarity,
+then the world's items under `WORLD`. Names only; there is no per-item metadata and no grouping by a module's
+own flags.
 
 ## Checking a declaration before you ship it
 

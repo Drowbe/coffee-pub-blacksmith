@@ -470,18 +470,27 @@ async function saveJournalPromptSelections(promptOptions = {}) {
  */
 export function getJournalPromptCheckboxes() {
     const checkboxes = [];
+    // WHO SEES A CATALOG CHECKBOX: Area Narrative, plus every declared profile that asked for that
+    // catalog in `promptCatalogs`. The same checkboxes, the same remembered selection and the same
+    // Select All / None -- a profile does not get a catalog control of its own. Read each time the
+    // window opens, so a profile a satellite registers after this module loads is included.
+    const scopeFor = (catalog) => ['area', ...getDeclarationsForKind(JOURNAL_JSON_IMPORT_KIND_ID)
+        .filter(declaration => declaration.promptCatalogs?.includes(catalog))
+        .map(declaration => declaration.id)].join(' ');
+    const actorScope = scopeFor('actors');
+    const itemScope = scopeFor('items');
     const saved = getSavedPromptSelections();
     // Remembered state wins; otherwise default per checkbox (compendiums on, world off).
     const isChecked = (id, fallback) => (id in saved ? !!saved[id] : fallback);
 
-    const addCompendiumSection = (compendiums, prefix, section, sectionIcon, emptyNote) => {
+    const addCompendiumSection = (compendiums, prefix, section, sectionIcon, emptyNote, scope) => {
         if (!compendiums.length) {
             checkboxes.push({
                 id: `${prefix}__none`,
                 label: emptyNote,
                 checked: false,
                 disabled: true,
-                showForTemplate: 'area',
+                showForTemplate: scope,
                 section,
                 sectionIcon,
                 isNote: true
@@ -494,7 +503,7 @@ export function getJournalPromptCheckboxes() {
                 id,
                 label: comp.label,
                 checked: isChecked(id, true),
-                showForTemplate: 'area',
+                showForTemplate: scope,
                 section,
                 sectionIcon,
                 bulkSelectable: true
@@ -507,14 +516,16 @@ export function getJournalPromptCheckboxes() {
         COMPENDIUM_ACTOR_CHECKBOX_PREFIX,
         'Compendium Actors',
         'fa-solid fa-dragon',
-        'No actor compendiums configured (see module settings).'
+        'No actor compendiums configured (see module settings).',
+        actorScope
     );
     addCompendiumSection(
         getConfiguredItemCompendiums(),
         COMPENDIUM_ITEM_CHECKBOX_PREFIX,
         'Compendium Items',
         'fa-solid fa-wand-sparkles',
-        'No item compendiums configured (see module settings).'
+        'No item compendiums configured (see module settings).',
+        itemScope
     );
 
     checkboxes.push(
@@ -522,7 +533,7 @@ export function getJournalPromptCheckboxes() {
             id: 'worldActors',
             label: 'Include world actors',
             checked: isChecked('worldActors', false),
-            showForTemplate: 'area',
+            showForTemplate: actorScope,
             section: 'World',
             sectionIcon: 'fa-solid fa-globe',
             stacked: true
@@ -531,7 +542,7 @@ export function getJournalPromptCheckboxes() {
             id: 'worldItems',
             label: 'Include world items',
             checked: isChecked('worldItems', false),
-            showForTemplate: 'area',
+            showForTemplate: itemScope,
             section: 'World',
             sectionIcon: 'fa-solid fa-globe',
             stacked: true
@@ -870,6 +881,52 @@ export function buildAreaGenerationDirectives(options = {}) {
         lines.push(`- ${directive}`);
     }
     return lines.join('\n');
+}
+
+/**
+ * The catalog sections a declared profile asked for, built from the SAME checkboxes and the SAME
+ * list functions Area Narrative uses, so the two cannot disagree about what a catalog is.
+ *
+ * `promptCatalogs` names which catalogs the profile wants (`actors`, `items`); which compendiums
+ * feed them is the GM's choice in the checkboxes, which come from the Compendium Mapping.
+ *
+ * @param {object|null} declaration
+ * @param {Record<string, string|boolean>} promptOptions
+ * @param {(message: string) => void} [onProgress]
+ * @returns {Promise<string[]>}
+ */
+async function buildDeclaredCatalogSections(declaration, promptOptions = {}, onProgress) {
+    const NEWLINE = '\n';
+    const wanted = declaration?.promptCatalogs ?? [];
+    if (!wanted.length) return [];
+    await saveJournalPromptSelections(promptOptions);
+
+    const frame = (title, body) => [
+        '========================================',
+        `AVAILABLE ${title} -- USE THESE EXACT NAMES`,
+        '========================================',
+        '',
+        'Where a field asks for the name of one of these, choose it from the list exactly as written.',
+        'Do not invent a name that is not listed.',
+        '',
+        body
+    ].join(NEWLINE);
+
+    const sections = [];
+    for (const catalog of wanted) {
+        const isItems = catalog === 'items';
+        const ids = collectSelectedCompendiumIds(
+            promptOptions, isItems ? COMPENDIUM_ITEM_CHECKBOX_PREFIX : COMPENDIUM_ACTOR_CHECKBOX_PREFIX);
+        const packs = ids.length
+            ? await (isItems ? getCompendiumItemsList : getCompendiumActorsList)(ids, onProgress)
+            : '';
+        const world = (isItems ? promptOptions.worldItems : promptOptions.worldActors)
+            ? (isItems ? getWorldItemsList() : getWorldActorsList())
+            : '';
+        const body = [packs, world ? `WORLD${NEWLINE}${world}` : ''].filter(Boolean).join(NEWLINE + NEWLINE);
+        if (body) sections.push(frame(isItems ? 'ITEMS' : 'ACTORS', body));
+    }
+    return sections;
 }
 
 /**
@@ -1267,7 +1324,11 @@ async function buildJournalPrompt(templateKey, promptOptions = {}, onProgress) {
         ? profileKey
         : (getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, type) ? type : null);
     if (type !== 'area' && declared) {
-        return buildPromptSchemaText(JOURNAL_JSON_IMPORT_KIND_ID, declared, promptOptions);
+        // A profile that asked for catalogs gets the same lists Area embeds, from the same
+        // checkboxes, and the selection is remembered the same way.
+        const catalogSections = await buildDeclaredCatalogSections(
+            getDeclaration(JOURNAL_JSON_IMPORT_KIND_ID, declared), promptOptions, onProgress);
+        return buildPromptSchemaText(JOURNAL_JSON_IMPORT_KIND_ID, declared, { ...promptOptions, catalogSections });
     }
 
     // AN UNRECOGNISED KEY IS AN ERROR, not an area prompt. Defaulting made an unhandled

@@ -419,9 +419,11 @@ prompt wants a paragraph. **The gap is in the model, not the wiring.** Field gro
 the same affordance at profile level is the shape that would let a SCHEMA LOCK derive without losing what
 makes it work.
 
-Deliberately not built. An affordance with no user is the defect that got `rendered` deleted, and this one
-cannot be judged without a generation run, because the only measure of a prompt is what a generator produces
-from it.
+The profile-level `preamble` was built on 2026-10-08, once it had a user: Artificer's recipe profile, whose
+authored prompt carried a generator role and a two-step instruction no field could hold. It renders before
+`FIELDS` in the prompt and after the rules in the guide. The SCHEMA LOCK derivation for Blacksmith's own
+authored prompts is still not built, and still cannot be judged without a generation run, because the only
+measure of a prompt is what a generator produces from it.
 
 ## Correct for one consumer is not correct
 

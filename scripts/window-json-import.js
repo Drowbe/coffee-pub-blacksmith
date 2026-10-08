@@ -860,6 +860,16 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                     items: []
                 };
                 groups.push(current);
+            } else {
+                // A group is shown for every template any member is shown for. It was taken from
+                // the FIRST member alone, so a later member scoped to another profile sat inside a
+                // group hidden for that profile -- invisible, though its own scope was correct.
+                // An unscoped member makes the group unscoped.
+                const joined = String(current.showForTemplate ?? '').trim().split(/\s+/).filter(Boolean);
+                const added = String(cb.showForTemplate ?? '').trim().split(/\s+/).filter(Boolean);
+                current.showForTemplate = (!joined.length || !added.length)
+                    ? ''
+                    : [...new Set([...joined, ...added])].join(' ');
             }
             current.items.push({
                 id: cb.id,
