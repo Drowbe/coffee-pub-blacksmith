@@ -292,16 +292,15 @@ Librarian would institutionalise the pattern this effort exists to end. Fixtures
 their message and `"1.1"` in the fixture, and the fixture pins carry `questIndex`/`questCategory`, which are
 not in the stable core they named.
 
-### A page profile's container resolved by the registering module at runtime (opened 2026-10-07)
+### A journal profile with no selector registers and is unreachable (opened 2026-10-08)
 
-A `JournalEntryPage` profile names its journal with a constant `containerName` or an authored field via
-`containerNameFrom`; there is nothing between. Artificer files recipes by a GM-configurable setting
-(`recipeJournalName`, `recipeJournalFolder`), which is neither. Approved by the author for Artificer to ask for.
-Touches `registry-declarations.js` (the `containerName` / `containerNameFrom` validation, ~:505) and the page
-branch in `registry-json-import-journals.js` (~:1420). Open design question: a callback is opaque to the mirror
-check, so prefer the module resolving its own setting and passing the value in. Never read another module's
-settings from here. Design belongs in a plan once Artificer states the exact request. Verified by an Artificer
-import that lands in the journal its setting names.
+The comment in `registry-declarations.js` (~:590) says a profile declaring no selector "cannot be routed to at all"
+and describes it as a failure, but the check below it only runs when selectors exist, so a profile with none registers
+without complaint. Artificer's `recipe` profile did exactly this: its template had no `journaltype`, and a recipe
+pasted into the Unified Import window failed with `Missing 'journaltype'`. Decide whether registration should reject a
+journal-kind profile with no selector, or warn, or stay silent for modules that only call `buildDocumentData`. Related:
+a hand-written `journaltype` routes to a profile that never declared one. Documented in `api-importer.md` ("The
+selector") in the meantime. Verified by registering a selector-less journal profile and getting the decided outcome.
 
 ### Import/export and module-owned document subtypes
 

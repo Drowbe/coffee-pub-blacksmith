@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The startup legacy-globals probe no longer warns about the known removed set on every load** (`scripts/utility-legacy-globals.js`). On Foundry 14 the 55 globals removed in 14.367 are the baseline, and Blacksmith printed all of them as a console warning each time the world loaded, which buried the line that matters. That warning now fires only for a global beyond that set, so a later generation's removals stand out. The names still appear in the debug-gated probe line, and `blacksmithLegacyGlobals()` still prints the full table with replacements.
+
 ## [14.1.5]
 
 ### Fixed

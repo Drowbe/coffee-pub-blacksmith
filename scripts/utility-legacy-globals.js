@@ -157,18 +157,15 @@ export function reportLegacyGlobalsAtStartup() {
         );
     }
 
-    if (result.removed.length) {
-        console.warn(
-            `[${MODULE.ID}] Foundry ${result.version} has removed ${result.removed.length} legacy global(s): `
-            + `${result.removed.map(r => r.name).join(', ')}. `
-            + 'Run blacksmithLegacyGlobals() for the replacements. Any module still calling these throws.'
-        );
-    }
-
+    // The removed set is the known baseline for this generation, so it is not announced on every
+    // load; only a name beyond REMOVED_IN_14_367 (above) is news. The full list and the
+    // replacements are one `blacksmithLegacyGlobals()` call away, and the debug line below
+    // carries the names for anyone running with debug on.
     postConsoleAndNotification(
         MODULE.NAME,
         'Legacy Globals | Probe',
-        `Foundry ${result.version}: ${result.removed.length} removed, ${result.present.length} still resolve`,
+        `Foundry ${result.version}: ${result.removed.length} removed, ${result.present.length} still resolve`
+        + (result.removed.length ? ` (removed: ${result.removed.map(r => r.name).join(', ')})` : ''),
         true,
         false
     );

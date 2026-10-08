@@ -159,6 +159,18 @@ Other field properties:
 - `requiresWhen: 'otherField:value'` -- gate on another FIELD's value.
 - `fields` -- a nested declaration for object and array-of-object fields. Nested fields are validated exactly as top-level ones are, to any depth, and an error names its own path (`sidekick.role`, `results[2].resultType`). The template's worked example is derived from the same declaration, so the example cannot drift from what validation accepts.
 
+### The selector: how a payload names its profile
+
+The Unified Import window routes each journal entry by its top-level `journaltype` string, matched against the registered profile ids (`area`, `location`, `recipe`, ...). A payload without it fails validation with `Missing 'journaltype' field`, which lists the registered ids.
+
+**Declare the selector yourself.** Nothing adds it for you. Declare one field with `role: 'selector'` named `journaltype`, whose `values` include your profile id, and give it an `example`; the generated template, guide and prompt are built from `declaration.fields`, so a profile without it produces templates that never mention the key an author must write.
+
+**`declarationFromModel` does not add it either.** The walk covers the model's own schema, which has no `journaltype`, so pass it in `extraFields`.
+
+**A profile with no selector still registers.** It routes only when an author writes `journaltype` by hand, and it never appears in a template. A module that files pages through its own window and calls `buildDocumentData` directly does not need one. A module that wants the Unified Import window to work for it does.
+
+**What the Unified Import window does with a page profile.** It files the page under the declared `containerName` / `containerNameFrom`, and ignores any destination the module resolves for its own window. A placeholder `containerName` meant only to satisfy registration becomes a real journal name the first time a payload arrives through the Unified Import window.
+
 ### A concrete example in `guidance` is read as the answer
 
 `guidance` is one sentence and a generator treats it as instruction, so naming a specific VALUE there
