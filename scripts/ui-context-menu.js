@@ -117,9 +117,8 @@ export class UIContextMenu {
             if (!menu.isConnected) return;
             // A submenu is appended to its own document body rather than inside the menu, so it is not
             // covered by menu.contains and has to be checked separately or clicking one closes the lot.
-            const submenu = menu._activeSubmenu;
             if (menu.contains(e.target)) return;
-            if (submenu?.contains?.(e.target)) return;
+            if (this._flyoutChainContains(menu, e.target)) return;
             this.close(id);
         };
 
@@ -302,10 +301,22 @@ export class UIContextMenu {
         submenu.appendChild(zone);
         doc.body.appendChild(submenu);
 
+        // Open beside the row, never over it. Clamping an overflowing flyout back into the viewport
+        // (what _positionMenu does) slides it on top of the menu that opened it, and the rows it
+        // covers can no longer be reached. Flip to the left instead, and keep going left once a
+        // parent has flipped so a deeper flyout does not bounce back across its own parent.
+        const GAP = 6;
+        const padding = 8;
         const rect = anchorEl.getBoundingClientRect();
-        const x = rect.right + 6;
-        const y = rect.top;
-        this._positionMenu(submenu, x, y);
+        const parentMenu = anchorEl.closest('.context-menu');
+        const width = submenu.getBoundingClientRect().width;
+        const fitsRight = rect.right + GAP + width + padding <= window.innerWidth;
+        const fitsLeft = rect.left - GAP - width >= padding;
+        const parentOpenedLeft = parentMenu?.dataset?.flyoutSide === 'left';
+        const side = (parentOpenedLeft && fitsLeft) || (!fitsRight && fitsLeft) ? 'left' : 'right';
+        submenu.dataset.flyoutSide = side;
+        const x = side === 'left' ? rect.left - GAP - width : rect.right + GAP;
+        this._positionMenu(submenu, x, rect.top);
 
         let closeTimeout = null;
         const SUBMENU_LEAVE_DELAY_MS = 200;
@@ -315,6 +326,10 @@ export class UIContextMenu {
             closeTimeout = setTimeout(() => {
                 closeTimeout = null;
                 if (!submenu.isConnected) return;
+                // The pointer may have crossed the gap onto a child flyout. That child is not
+                // inside this element, so a leave scheduled on the way there must not win.
+                if (anchorEl.matches(':hover') || submenu.matches(':hover') || this._flyoutChainHovered(submenu)) return;
+                this._closeSubmenu(submenu);
                 submenu.remove();
                 anchorEl.removeEventListener('mouseleave', closeOnLeave);
                 submenu.removeEventListener('mouseleave', closeOnLeave);
@@ -335,6 +350,7 @@ export class UIContextMenu {
             const target = e.relatedTarget;
             if (target && submenu.contains(target)) return;
             if (target && anchorEl.contains(target)) return;
+            if (target && this._flyoutChainContains(submenu, target)) return;
             scheduleClose();
         };
 
@@ -346,10 +362,31 @@ export class UIContextMenu {
         return submenu;
     }
 
+    /** True when `node` is inside a flyout opened from `menu`, including a flyout of that flyout. */
+    static _flyoutChainContains(menu, node) {
+        if (!node) return false;
+        let current = menu?._activeSubmenu;
+        while (current) {
+            if (current.contains(node)) return true;
+            current = current._activeSubmenu;
+        }
+        return false;
+    }
+
+    static _flyoutChainHovered(menu) {
+        let current = menu?._activeSubmenu;
+        while (current) {
+            if (current.matches(':hover')) return true;
+            current = current._activeSubmenu;
+        }
+        return false;
+    }
+
     static _closeSubmenu(rootMenu) {
         const submenu = rootMenu?._activeSubmenu;
-        if (submenu && submenu.isConnected) {
-            submenu.remove();
+        if (submenu) {
+            this._closeSubmenu(submenu);
+            if (submenu.isConnected) submenu.remove();
         }
         if (rootMenu) {
             rootMenu._activeSubmenu = null;

@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Context menu flyouts could cover the menu that opened them** (`scripts/ui-context-menu.js`). A flyout too wide to fit to the right of its row was clamped back into the viewport, which slid it on top of its parent. Near the right edge of the screen, a second-level flyout then hid the rows below the one that opened it, and those rows could not be reached. Flyouts now open to the left of the row when the right side has no room, and a flyout opened from a left-opening parent keeps going left.
+- **Second-level flyouts closed when the pointer moved onto them** (`scripts/ui-context-menu.js`). Dismissal and mouse-leave only checked the first flyout, so moving from a flyout onto its own child counted as leaving the menu. Both now check the whole chain of open flyouts, and closing a flyout closes its children.
+
 - **Advancing the world clock logged a Foundry 14 compatibility warning from the effect expiry sweep** (`scripts/api-effects.js`, `scripts/window-status-effects.js`). `ActiveEffectDuration#type` moved to `#units` in v14. The old getter still answers, and every read logs a warning that becomes an error in v16. `getEffectRemaining` and `formatDuration` read `type` on each tick of `updateWorldTime`, and the status-effects window read it while building each row.
 
   Both now read `units` when that property is a string, and read `type` only on v13, where `units` does not exist. A v14 time unit other than `seconds` is reported in seconds via `secondsRemaining`, because `remaining` there is a count of minutes (or hours, days, and the rest). A v14 turns duration is reported as `turns`, because that remainder is a turn count; v13's combined `turns` type stays `rounds`, since its remainder was already a round count. The status-effects window uses `isTemporary` for the permanent-vs-timed test.
