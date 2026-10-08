@@ -710,12 +710,18 @@ function validatePromptCatalogs(declaration, where) {
  * consumer that needs it.
  */
 const PROMPT_FIELD_KEYS = new Set([
-    'id', 'label', 'value', 'inputType', 'options',
+    'id', 'label', 'value', 'inputType', 'options', 'dynamicOptions',
     'fullWidth', 'hint', 'placeholder', 'rows', 'group', 'groupIcon'
 ]);
 
-/** The input types the prompt window knows how to render. */
-const PROMPT_FIELD_INPUT_TYPES = new Set(['text', 'select', 'textarea']);
+/**
+ * The input types the prompt window knows how to render.
+ *
+ * `item` and `items` are DROP targets for a Foundry Item: `item` holds one item's name, `items` holds a
+ * list, one `Name xQuantity` per line. Both stay editable as plain text, so an author can type a name,
+ * fix a quantity or delete a line without a control of its own for each.
+ */
+const PROMPT_FIELD_INPUT_TYPES = new Set(['text', 'select', 'textarea', 'item', 'items']);
 
 /**
  * Questions the profile wants to ask an author before it builds.
@@ -777,7 +783,17 @@ function validatePromptFields(declaration, where) {
 
         // A select with nothing to select is the failure this catches: it renders as an
         // empty dropdown, which reads as a bug in the window rather than in the profile.
-        if (inputType === 'select') {
+        if (field.dynamicOptions !== undefined && (field.dynamicOptions !== true || inputType !== 'select')) {
+            throw new Error(`${where}: promptFields "${id}" dynamicOptions must be true and is only `
+                + `meaningful on a select`);
+        }
+        if (field.dynamicOptions === true && field.options !== undefined) {
+            throw new Error(`${where}: promptFields "${id}" cannot carry both options and dynamicOptions; `
+                + `the module supplies the list through setPromptFieldOptions`);
+        }
+        if (inputType === 'select' && field.dynamicOptions === true) {
+            // The list is pushed by the owning module and read when the window opens.
+        } else if (inputType === 'select') {
             if (!Array.isArray(field.options) || !field.options.length) {
                 throw new Error(`${where}: promptFields "${id}" is a select and requires a `
                     + `non-empty options array`);
@@ -882,6 +898,65 @@ export function listDeclarations() {
 
 /** @type {Map<string, FieldGroup>} */
 const fieldGroups = new Map();
+
+/**
+ * Option lists a module has pushed for its dynamic selects, keyed `kind.profile.field`.
+ *
+ * A declaration registers once at load, but a module's vocabulary can change while the world is
+ * live: Artificer's skills and kits come from a mapping a GM edits. So a select that declares
+ * `dynamicOptions: true` carries no list of its own, and the module hands Blacksmith the current
+ * one through `setPromptFieldOptions` whenever it changes. Blacksmith reads this map each time the
+ * prompt window opens. No callback is registered and no module setting is read; the module gives
+ * Blacksmith a VALUE and replaces it when the value changes.
+ * @type {Map<string, Array<{value: string, label: string}>>}
+ */
+const promptFieldOptions = new Map();
+
+/**
+ * Replace the option list of a declared dynamic select.
+ *
+ * @param {{kind: string, profile: string, field: string,
+ *          options: Array<string|{value: string, label?: string}>}} spec
+ * @returns {number} How many options are now held.
+ */
+export function setPromptFieldOptions(spec = {}) {
+    const kind = String(spec.kind ?? '').trim();
+    const profile = String(spec.profile ?? '').trim();
+    const field = String(spec.field ?? '').trim();
+    const where = `${kind}.${profile}.${field}`;
+    const declaration = getDeclaration(kind, profile);
+    if (!declaration) {
+        throw new Error(`${where}: no declaration is registered for ${kind}.${profile}`);
+    }
+    const declared = (declaration.promptFields ?? []).find(one => one?.id === field);
+    if (!declared || declared.dynamicOptions !== true) {
+        throw new Error(`${where}: promptFields "${field}" is not declared with dynamicOptions: true`);
+    }
+    if (!Array.isArray(spec.options)) {
+        throw new Error(`${where}: options must be an array`);
+    }
+    const options = spec.options.map((option) => {
+        const value = typeof option === 'object' && option !== null ? option.value : option;
+        if (value === undefined || value === null || String(value).trim() === '') {
+            throw new Error(`${where}: every option needs a non-empty value`);
+        }
+        const label = typeof option === 'object' && option !== null && option.label ? option.label : value;
+        return { value: String(value), label: String(label) };
+    });
+    promptFieldOptions.set(`${kind}.${profile}.${field}`, options);
+    return options.length;
+}
+
+/**
+ * The option list a module last pushed for a dynamic select, or an empty list.
+ * @param {string} kindId
+ * @param {string} profileId
+ * @param {string} fieldId
+ * @returns {Array<{value: string, label: string}>}
+ */
+export function getPromptFieldOptions(kindId, profileId, fieldId) {
+    return promptFieldOptions.get(`${kindId}.${profileId}.${fieldId}`) ?? [];
+}
 
 /**
  * Register a field group.

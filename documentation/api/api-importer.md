@@ -319,8 +319,9 @@ in `hint`.
 | Key | |
 |---|---|
 | `id`, `label` | Required. `id` must be unique within the profile. |
-| `inputType` | `text` (default), `select`, or `textarea`. |
+| `inputType` | `text` (default), `select`, `textarea`, `item` or `items`. The last two are drop targets, below. |
 | `options` | Required for `select`, refused otherwise. Each needs a `value`. |
+| `dynamicOptions` | `true` on a `select` whose list changes while the world is live. Carries no `options`; the module supplies them, below. |
 | `value` | Prefilled answer. |
 | `hint` | One sentence, shown as a help tooltip beside the label. |
 | `placeholder`, `rows` | Text and textarea presentation. |
@@ -339,6 +340,53 @@ Anything else is rejected by name at registration.
 - **`showForTemplate` is stamped for you, and declaring it is an error**, as is `showForField`. A prompt
   field is not self-identifying the way a template option is, so an unscoped field would appear on every
   other profile's prompt -- your `severity` question turning up while somebody imports a Realm.
+
+### Dropping real items: `item` and `items`
+
+A name the author types can be wrong, and a name a generator invents is worse. Two input types let the author
+drag a Foundry Item from the sidebar or a compendium onto the prompt instead:
+
+- **`item`** is one item. Dropping writes its name into the field.
+- **`items`** is a list, one `Name xQuantity` per line. Dropping adds a line, or raises the quantity by one when
+  the item is already listed.
+
+Both are ordinary text controls that also accept a dropped item, so the author can still type a name, correct a
+quantity or delete a line. They carry no `options`. A drop of anything but an Item is refused with a warning.
+
+Both follow the constraint rule above. If the `id` matches a declared field's `name`, the answer constrains that
+field in the prompt and seeds the JSON template. An `item` answer is a string. An `items` answer becomes a list of
+`{ name, quantity }` entries, and the prompt says the field must contain exactly those entries and that the
+generator fills every other field on each. Only the name is captured, so the generator supplies anything else the
+entry needs; Blacksmith reads nothing off the dropped item that a module's own flags would carry.
+
+A numeric or boolean field's answer is converted to the field's type before it reaches the template and the
+prompt, so a typed `1000` is the number `1000`. A field that is a list of plain strings takes a textarea:
+entries separated by commas or new lines become the array, so `Herbal, Medicinal` is `["Herbal", "Medicinal"]`.
+A list of objects is not converted this way; it has its own control, `items`.
+
+### A select whose list changes: `dynamicOptions`
+
+A declaration registers once, at load, and a static `options` list is frozen with it. A vocabulary a GM can edit
+while the world is open, such as a skills mapping, cannot live there. Declare the select without a list and
+push the list when you have it:
+
+```js
+promptFields: [{ id: 'skill', label: 'Skill', inputType: 'select', dynamicOptions: true }]
+
+importer.setPromptFieldOptions({
+    kind: 'journal', profile: 'recipe', field: 'skill',
+    options: ['Alchemy', { value: 'herbalism', label: 'Herbalism' }]
+});
+```
+
+Call it once your list is ready and again whenever the list changes. Each call **replaces** the previous list.
+Blacksmith reads it every time the prompt window opens, so a window opened after a change shows the new list; one
+already open does not update. The select always starts with a blank *No preference* entry, and a blank answer is an
+unanswered question, omitted from the prompt like any other.
+
+This is a value you hand Blacksmith, not a function it calls and not a setting it reads. It is rejected for a
+profile that is not registered, for a field not declared with `dynamicOptions: true`, and for an option with no
+value.
 
 ## Offering real content to the prompt: `promptCatalogs`
 

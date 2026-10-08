@@ -213,6 +213,47 @@ function templateValue(field) {
  * @param {Record<string, unknown>} options
  * @returns {Array<{id: string, label: string, value: unknown, field: object|null}>}
  */
+/**
+ * An author's answer in the type of the field it constrains.
+ *
+ * A prompt control hands back text. Written into the template and the prompt as it came, a number
+ * field's answer reads `"1000"` and the generator is told to emit a string where validation wants a
+ * number. An answer that does not parse is kept as text, which is what the author typed and what the
+ * validator will then report, rather than being swallowed here.
+ * @param {unknown} value
+ * @param {object|null} field - The declared field the answer constrains, if any.
+ * @returns {unknown}
+ */
+function coerceAnswer(value, field, promptField = null) {
+    // An `items` control holds one `Name xQuantity` per line. Parsed into entries, whether or not it
+    // constrains a field, so the prompt and the template see the same list the author built.
+    if (promptField?.inputType === 'items' && typeof value === 'string') {
+        return value.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map((line) => {
+            const match = line.match(/^(.*?)\s*x\s*(\d+(?:\.\d+)?)$/i);
+            return match && match[1].trim()
+                ? { name: match[1].trim(), quantity: Number(match[2]) }
+                : { name: line, quantity: 1 };
+        });
+    }
+    if (!field || typeof value !== 'string') return value;
+    const type = field.type;
+    // A list of plain strings typed into one control: one per line or comma-separated. Entries with
+    // nested fields are lists of objects and are left alone; they have their own control (`items`).
+    if (type === 'array' && !Array.isArray(field.fields)) {
+        return value.split(/[\r\n,]+/).map(entry => entry.trim()).filter(Boolean);
+    }
+    if (type === 'number' || type === 'integer') {
+        const parsed = Number(value.trim());
+        return value.trim() !== '' && Number.isFinite(parsed) ? parsed : value;
+    }
+    if (type === 'boolean') {
+        const text = value.trim().toLowerCase();
+        if (text === 'true') return true;
+        if (text === 'false') return false;
+    }
+    return value;
+}
+
 function answeredPromptFields(declaration, options = {}) {
     const byName = new Map(effectiveFields(declaration).map(field => [field.name, field]));
     const answered = [];
@@ -221,11 +262,12 @@ function answeredPromptFields(declaration, options = {}) {
         if (!id) continue;
         const value = options?.[id];
         if (value === undefined || value === null || value === '') continue;
+        const field = byName.get(id) ?? null;
         answered.push({
             id,
             label: String(promptField.label ?? id),
-            value,
-            field: byName.get(id) ?? null
+            value: coerceAnswer(value, field, promptField),
+            field
         });
     }
     return answered;
@@ -1053,6 +1095,12 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
     if (answers.length) {
         sections.push('', 'THE AUTHOR HAS ALREADY ANSWERED THESE -- honour them exactly', '');
         for (const answer of answers) {
+            if (answer.field && Array.isArray(answer.value)) {
+                // A list the author built from real items. The names and quantities are theirs; the
+                // rest of each entry is the generator's to fill from the schema above.
+                sections.push(`- ${answer.field.name.toUpperCase()} must contain exactly these entries, with these names and quantities, and no others: ${JSON.stringify(answer.value)}. Fill in every other field the schema asks for on each entry.`);
+                continue;
+            }
             sections.push(answer.field
                 ? `- ${answer.field.name.toUpperCase()} is fixed at ${JSON.stringify(answer.value)} for every record you produce. Do not choose another value.`
                 : `- ${answer.label}: ${JSON.stringify(answer.value)}`);

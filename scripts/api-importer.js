@@ -34,7 +34,8 @@ import {
     listDeclarations,
     registerFieldGroup,
     getFieldGroupsFor,
-    listFieldGroups
+    listFieldGroups,
+    setPromptFieldOptions
 } from './registry-declarations.js';
 import { declarationFromModel } from './manager-declaration-from-model.js';
 import {
@@ -85,6 +86,19 @@ export class ImporterAPI {
      */
     static registerFieldGroup(group) {
         return registerFieldGroup(group);
+    }
+
+    /**
+     * Give a declared dynamic select its current options, replacing any earlier list.
+     *
+     * For a vocabulary that changes while the world is live. The declaration's prompt field says
+     * `inputType: 'select', dynamicOptions: true` and carries no list; the module calls this when it
+     * is ready and again whenever its list changes. See `setPromptFieldOptions`.
+     * @param {{kind: string, profile: string, field: string, options: Array<string|{value: string, label?: string}>}} spec
+     * @returns {number} How many options are now held.
+     */
+    static setPromptFieldOptions(spec) {
+        return setPromptFieldOptions(spec);
     }
 
     /** Every group attaching to one profile, in registration order. */

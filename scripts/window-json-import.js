@@ -981,8 +981,9 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             showForField: field.showForField ?? '',
             inputType,
             isSelect: inputType === 'select',
-            isTextarea: inputType === 'textarea',
-            isText: inputType !== 'select' && inputType !== 'textarea',
+            isTextarea: inputType === 'textarea' || inputType === 'items',
+            isText: inputType !== 'select' && inputType !== 'textarea' && inputType !== 'items',
+            dropKind: inputType === 'item' || inputType === 'items' ? inputType : '',
             fullWidth: !!field.fullWidth,
             rows: field.rows || 5,
             group: field.group ?? '',
@@ -1197,6 +1198,50 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
 
         this._updatePromptFieldVisibility();
         this._attachImageBrowseListeners(root);
+        this._attachPromptDropListeners(root);
+    }
+
+    /**
+     * Make `item` and `items` prompt fields accept a dragged Foundry Item.
+     *
+     * The control is an ordinary text input or textarea, so the value the rest of the window reads,
+     * persists and restores is still a string. A drop only writes into it: the item's name for `item`,
+     * a `Name xQuantity` line for `items`, adding one to the quantity when the item is already listed.
+     * @param {HTMLElement} root
+     */
+    _attachPromptDropListeners(root) {
+        if (!root) return;
+        const TextEditor = foundry.applications.ux.TextEditor.implementation;
+        for (const control of root.querySelectorAll('[data-prompt-drop]')) {
+            control.addEventListener('dragover', (event) => event.preventDefault());
+            control.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                const data = TextEditor.getDragEventData(event);
+                if (data?.type !== 'Item' || !data.uuid) {
+                    ui.notifications.warn('Drop an Item here.');
+                    return;
+                }
+                const item = await fromUuid(data.uuid);
+                const name = String(item?.name ?? '').trim();
+                if (!name) return;
+                if (control.dataset.promptDrop === 'items') {
+                    const lines = String(control.value ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+                    const index = lines.findIndex(line => line.replace(/\s*x\s*\d+(\.\d+)?$/i, '').toLowerCase() === name.toLowerCase());
+                    if (index >= 0) {
+                        const match = lines[index].match(/x\s*(\d+(\.\d+)?)$/i);
+                        lines[index] = `${name} x${(match ? Number(match[1]) : 1) + 1}`;
+                    } else {
+                        lines.push(`${name} x1`);
+                    }
+                    control.value = lines.join('\n');
+                } else {
+                    control.value = name;
+                }
+                control.dispatchEvent(new Event('change', { bubbles: true }));
+                this._persistFormStateFromDom();
+                void this._saveAuthoringState();
+            });
+        }
     }
 
     _attachImageBrowseListeners(root) {

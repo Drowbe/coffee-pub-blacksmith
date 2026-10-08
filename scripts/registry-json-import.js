@@ -3,7 +3,7 @@
 // ==================================================================
 
 import { JsonImportWindow } from './window-json-import.js';
-import { getDeclaration, getDeclarationsForKind, listFieldGroups } from './registry-declarations.js';
+import { getDeclaration, getDeclarationsForKind, getPromptFieldOptions, listFieldGroups } from './registry-declarations.js';
 import { buildTemplateText, buildGuideText } from './manager-declarations.js';
 import { prepareJsonImportText } from './utility-json-import-prompts.js';
 
@@ -389,7 +389,17 @@ function composePromptFields(kind) {
             // Not added to `claimed`: two profiles asking their own `severity` is
             // normal and correct, because each is scoped to its own template and only
             // one profile is ever selected at a time.
-            declared.push({ ...field, showForTemplate: declaration.id });
+            // A dynamic select takes the list its module last pushed, read now, when the window
+            // opens, with a blank first so leaving it alone is an unanswered question and not a
+            // choice. Blank is omitted from the prompt, as every empty answer is.
+            const resolved = field.dynamicOptions
+                ? {
+                    ...field,
+                    options: [{ value: '', label: 'No preference' },
+                        ...getPromptFieldOptions(kind.id, declaration.id, id)]
+                }
+                : field;
+            declared.push({ ...resolved, showForTemplate: declaration.id });
         }
     }
 

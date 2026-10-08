@@ -187,10 +187,10 @@
                             </select>
                             {{/if}}
                             {{#if isTextarea}}
-                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}" rows="{{rows}}" autocomplete="off" placeholder="{{placeholder}}">{{value}}</textarea>
+                            <textarea class="blacksmith-textarea blacksmith-json-import-prompt-field-textarea" data-prompt-field="{{id}}"{{#if dropKind}} data-prompt-drop="{{dropKind}}"{{/if}} rows="{{rows}}" autocomplete="off" placeholder="{{placeholder}}">{{value}}</textarea>
                             {{/if}}
                             {{#if isText}}
-                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}" value="{{value}}" autocomplete="off" placeholder="{{placeholder}}">
+                            <input type="text" class="blacksmith-input blacksmith-json-import-prompt-field-input" data-prompt-field="{{id}}"{{#if dropKind}} data-prompt-drop="{{dropKind}}"{{/if}} value="{{value}}" autocomplete="off" placeholder="{{placeholder}}">
                             {{/if}}
                         </label>
                         {{/each}}
