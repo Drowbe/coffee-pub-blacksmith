@@ -85,14 +85,28 @@ Right-click a pin. The menu holds, in order:
 
 ## Configure a pin
 
-Choose **Configure Pin** from the right-click menu, or select the pin and press Enter. The window covers:
+Choose **Configure Pin** from the right-click menu, or select the pin and press Enter. The window has five tabs. Nothing you change is lost by moving between tabs, and **Save** applies all of them. A player who owns the pin sees only the last three.
 
+**General** (GM only):
+
+- **Linked to**, for a pin that points at something such as a journal page or a note: its name, which opens it when you click. If what it pointed at has been deleted, this row says so instead.
 - **Pin editing** and **Pin visibility**, as in the menu.
 - **Allow Duplicates of this Pin on the Canvas**, which lets the same pin be placed more than once.
-- **Tags**, used to group and hide pins.
-- **Size**, **Shape** (Circle, Square, Rectangle or None), **Background**, **Border**, **Icon Color** and **Drop shadow**.
-- The pin's text: **Text layout** (below, above, to the right, to the left, arcs above or below, or overlaid), **Text display** (Always, Hover, Never or GM only), **Text color**, **Text size**, **Max characters**, **Chars per line** and **Scale text with pin**.
-- **Event animations**: an animation and sound for **Hover**, **Click**, **Double-click**, **Add (to canvas)** and **Delete**. The Click animation plays when you select the pin.
+
+**Tags** (GM only): the tags used to group and hide pins.
+
+**Image**: **Pin Source**, an icon or an image for the pin.
+
+**Appearance**:
+
+- **Pin Design**: **Size**, **Shape** (Circle, Square, Rectangle or None), **Background**, **Border**, **Icon Color** and **Drop shadow**.
+- **Text Format**, the pin's text: **Text layout** (below, above, to the right, to the left, arcs above or below, or overlaid), **Text display** (Always, Hover, Never or GM only), **Text color**, **Text size**, **Max characters**, **Chars per line** and **Scale text with pin**.
+
+**Animations**: an animation and sound for **Hover**, **Click**, **Double-click**, **Add (to canvas)** and **Delete**. The Click animation plays when you select the pin.
+
+## When what a pin points at is gone
+
+If the journal page, note or other document a pin opens has been deleted, the GM and the pin's owners see a small broken-link symbol in the corner of the pin, and hovering it explains. Players do not see the symbol. Double-clicking such a pin tells you "What this pin points to no longer exists." and opens nothing. Open **Configure Pin** and look at **Linked to** on the General tab to confirm. To get rid of the pin, select it and press Delete. There is not yet a way to point a pin at a different document.
 
 ## Show, hide and find pins
 

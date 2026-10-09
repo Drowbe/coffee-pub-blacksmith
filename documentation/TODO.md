@@ -469,6 +469,13 @@ world. Most likely to be wrong: the journal placement steps (what exactly happen
 a click or a drop places it), what a player sees in the Pins tool and Manage Pins (the GM-only controls were
 read off permission checks), and the order of the right-click menu entries as rendered.
 
+### Pins: relink a broken pin (deferred 2026-10-09)
+
+Offer a way to point a broken pin at another document, from the Linked to row in Configure Pin and from the
+broken glyph. The indicator and the row now exist (see `architecture-pins.md`, Broken links), so this is unblocked.
+A satellite that wants to offer its own repair should not declare `target`, because a broken pin's double-click
+is withheld from it.
+
 ### Pins: double-click landing in drag mode
 
 For editable pins mousedown enters the drag system and any movement past `DRAG_THRESHOLD` swallows the

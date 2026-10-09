@@ -12,6 +12,7 @@
         "journal-pin": {
           "label": "Journal Page",
           "copyable": true,
+          "target": ["journalPageUuid", "journalUuid"],
           "tags": [
             "narrative",
             "backstory",
@@ -25,6 +26,11 @@
             "rumor",
             "information"
           ]
+        },
+        "note": {
+          "label": "Note",
+          "target": ["noteUuid"],
+          "tags": []
         }
       }
     },

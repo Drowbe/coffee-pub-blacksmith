@@ -208,8 +208,17 @@ export class PinManager {
             tags: this._normalizeTaxonomyTagList(taxonomy.tags),
             // Undefined when not stated, so a later layer (user override JSON) that omits it does not undo the
             // module that declared it. Only an explicit boolean takes part in the merge.
-            copyable: typeof taxonomy.copyable === 'boolean' ? taxonomy.copyable : undefined
+            copyable: typeof taxonomy.copyable === 'boolean' ? taxonomy.copyable : undefined,
+            // The config keys that may hold the UUID this pin points at, first present wins. Undefined when not
+            // stated, for the same merge reason as copyable.
+            target: this._normalizeTaxonomyTarget(taxonomy.target)
         };
+    }
+
+    static _normalizeTaxonomyTarget(value) {
+        const list = typeof value === 'string' ? [value] : (Array.isArray(value) ? value : null);
+        if (!list) return undefined;
+        return list.map((key) => String(key ?? '').trim()).filter(Boolean);
     }
 
     static registerPinTaxonomy(moduleId, type, taxonomy = {}) {
@@ -241,11 +250,13 @@ export class PinManager {
             type: valid[valid.length - 1].type || valid[0].type || 'default',
             label: '',
             tags: [],
-            copyable: false
+            copyable: false,
+            target: []
         };
         for (const entry of valid) {
             if (entry.label) merged.label = entry.label;
             if (typeof entry.copyable === 'boolean') merged.copyable = entry.copyable;
+            if (Array.isArray(entry.target)) merged.target = entry.target;
             merged.tags = Array.from(new Set([...(merged.tags || []), ...(entry.tags || [])].filter(Boolean)));
         }
         return merged;
@@ -265,9 +276,9 @@ export class PinManager {
     /**
      * Get all registered taxonomy entries for a module — every type that has been registered
      * via the built-in JSON, an override JSON, or registerPinTaxonomy().
-     * Returns a plain object keyed by type, each value being { label, tags, copyable }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable, target }.
      * @param {string} moduleId
-     * @returns {Record<string, { label: string, tags: string[], copyable: boolean }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, target: string[] }>}
      */
     static getModuleTaxonomy(moduleId) {
         if (!moduleId) return {};
@@ -279,9 +290,33 @@ export class PinManager {
         const result = {};
         for (const type of types) {
             const entry = this.getPinTaxonomy(moduleId, type);
-            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable };
+            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable, target: entry.target };
         }
         return result;
+    }
+
+    /**
+     * Resolve what a pin points at. Only a pin type that declares `target` in its taxonomy entry has one: the
+     * first of those config keys holding a string is taken as a document UUID. A missing document is `broken`;
+     * a pin that declares a target but holds no UUID is unlinked, not broken. Existence only: permission is not
+     * tested, so "deleted" is never confused with "you may not see it".
+     * @param {PinData | ApiPinData} pin
+     * @returns {Promise<{ declared: boolean, uuid: string | null, doc: Document | null, broken: boolean }>}
+     */
+    static async resolvePinTarget(pin) {
+        await this.ensureBuiltinTaxonomyLoaded();
+        const keys = this.getPinTaxonomy(pin?.moduleId, pin?.type)?.target ?? [];
+        if (!keys.length) return { declared: false, uuid: null, doc: null, broken: false };
+        const config = (pin.config && typeof pin.config === 'object') ? pin.config : {};
+        const uuid = keys.map((key) => config[key]).find((value) => typeof value === 'string' && value.trim())?.trim() ?? null;
+        if (!uuid) return { declared: true, uuid: null, doc: null, broken: false };
+        let doc = null;
+        try {
+            doc = await fromUuid(uuid);
+        } catch (_err) {
+            doc = null;
+        }
+        return { declared: true, uuid, doc, broken: !doc };
     }
 
     static getPinTaxonomyChoices(moduleId, type) {
@@ -568,7 +603,7 @@ export class PinManager {
         return [...this._globalTags];
     }
 
-    /** All registered taxonomies keyed by moduleId → type → { label, tags, copyable }. */
+    /** All registered taxonomies keyed by moduleId → type → { label, tags, copyable, target }. */
     static getAllTaxonomies() {
         const moduleIds = new Set();
         for (const key of this._builtinTaxonomyRegistry.keys()) { const [m] = key.split('|'); if (m) moduleIds.add(m); }

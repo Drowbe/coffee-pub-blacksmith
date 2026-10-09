@@ -81,6 +81,7 @@ class PinDOMElement {
     static _pointerMoveListener = null;
     static _pointerDownListener = null; // Document capture listener: a press outside any pin deselects
     static _keyDownListener = null; // Document capture listener: keyboard commands for the selected pin
+    static _targetRecheckTimeout = null;
     static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
     static DOUBLE_CLICK_MS = 300;
 
@@ -129,6 +130,18 @@ class PinDOMElement {
                 this._scheduleSceneLoad();
             })
         });
+
+        // A deleted document may be what a pin points at: re-check the broken-link glyphs once things settle.
+        // Chat messages are excluded, since clearing the log would re-check every pin for nothing.
+        const documentNames = new Set([...(CONST.WORLD_DOCUMENT_TYPES ?? []), 'JournalEntryPage']);
+        documentNames.delete('ChatMessage');
+        const scheduleTargetRecheck = () => {
+            clearTimeout(this._targetRecheckTimeout);
+            this._targetRecheckTimeout = setTimeout(() => PinRenderer.refreshTargetStatus(), 150);
+        };
+        for (const name of documentNames) {
+            this._hookIds.push({ name: `delete${name}`, id: Hooks.on(`delete${name}`, scheduleTargetRecheck) });
+        }
         
         // Update on window resize (store listener for cleanup)
         this._resizeListener = () => this._scheduleUpdate();
@@ -285,6 +298,32 @@ class PinDOMElement {
             el.hidden = true;
         }
         return el;
+    }
+
+    /**
+     * Show or clear the broken-link glyph. The explanation is a tooltip on the pin itself because the glyph
+     * ignores the pointer, like the pin-editing glyph beside it.
+     * @param {HTMLElement} pinElement
+     * @param {boolean} broken
+     */
+    static _setBrokenIndicator(pinElement, broken) {
+        const text = 'What this pin points to no longer exists';
+        let el = pinElement.querySelector('.blacksmith-pin-broken-indicator');
+        if (!broken) {
+            el?.remove();
+            delete pinElement.dataset.targetBroken;
+            if (pinElement.dataset.tooltip === text) delete pinElement.dataset.tooltip;
+            return;
+        }
+        pinElement.dataset.targetBroken = 'true';
+        pinElement.dataset.tooltip = text;
+        if (!el) {
+            el = document.createElement('span');
+            el.className = 'blacksmith-pin-broken-indicator';
+            el.setAttribute('aria-hidden', 'true');
+            el.innerHTML = '<i class="fa-solid fa-link-slash"></i>';
+            pinElement.appendChild(el);
+        }
     }
 
     /**
@@ -800,7 +839,14 @@ class PinDOMElement {
         const animation = pinData.eventAnimations?.[isDouble ? 'doubleClick' : 'click'];
         if (isDouble) {
             const { PinManager } = await import('./manager-pins.js');
-            PinManager._invokeHandlers('doubleClick', pinData, canvas?.scene?.id || '', game.user?.id || '', this._extractModifiers(event), event);
+            // A pin whose declared target is gone has nothing to open: say so, and do not hand the module a
+            // double-click it could only fail on
+            const target = await PinManager.resolvePinTarget(pinData);
+            if (target.broken) {
+                ui.notifications?.warn('What this pin points to no longer exists.');
+            } else {
+                PinManager._invokeHandlers('doubleClick', pinData, canvas?.scene?.id || '', game.user?.id || '', this._extractModifiers(event), event);
+            }
         }
         if (animation?.animation) {
             PinRenderer.ping(pinData.id, { animation: animation.animation, sound: animation.sound ?? null, loops: 1 });
@@ -2258,6 +2304,8 @@ class PinDOMElement {
             clearTimeout(this._sceneLoadTimeout);
             this._sceneLoadTimeout = null;
         }
+        clearTimeout(this._targetRecheckTimeout);
+        this._targetRecheckTimeout = null;
         
         this._isInitialized = false;
     }
@@ -2487,6 +2535,39 @@ export class PinRenderer {
             }
         }
         pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
+        void this._applyTargetStatus(pinData);
+    }
+
+    /**
+     * Show the broken-link glyph on a pin whose declared target no longer exists. Only the GM and the pin's
+     * owners see it: a player cannot act on it, and a missing document looks the same as one they may not open.
+     * @param {PinData} pinData
+     * @private
+     */
+    static async _applyTargetStatus(pinData) {
+        const pinElement = PinDOMElement._pins.get(pinData.id);
+        if (!pinElement) return;
+        try {
+            const { PinManager } = await import('./manager-pins.js');
+            const canEdit = PinManager._canEdit(pinData, game.user?.id || '');
+            const status = canEdit ? await PinManager.resolvePinTarget(pinData) : null;
+            // The node may have been replaced or removed while the document resolved
+            if (PinDOMElement._pins.get(pinData.id) !== pinElement) return;
+            PinDOMElement._setBrokenIndicator(pinElement, !!status?.broken);
+        } catch (_err) {
+            /* a failed check must never break drawing a pin */
+        }
+    }
+
+    /**
+     * Re-check every drawn pin's target. Runs after a document is deleted.
+     */
+    static async refreshTargetStatus() {
+        const { PinManager } = await import('./manager-pins.js');
+        for (const pinId of [...PinDOMElement._pins.keys()]) {
+            const pin = PinManager.get(pinId);
+            if (pin) await this._applyTargetStatus(pin);
+        }
     }
 
     static _getVisibilityState(pinData) {

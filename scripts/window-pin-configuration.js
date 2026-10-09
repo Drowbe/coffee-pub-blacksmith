@@ -38,8 +38,11 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
     };
 
-    // No ACTION_HANDLERS — all listeners attached directly in _attachLocalListeners
-    static ACTION_HANDLERS = null;
+    // The tab bar uses the shared selectTab action (see window-pin-layers.js, window-json-import.js).
+    // Every other listener is attached directly in _attachLocalListeners.
+    static ACTION_HANDLERS = {
+        selectTab: (_event, target, win) => win?._selectTab(target)
+    };
 
     constructor(pinId, options = {}) {
         const opts = foundry.utils.mergeObject({}, options);
@@ -90,6 +93,39 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._updateAllMode = false;
         this._updateAllTags = new Set();
         this._defaultMode = false;
+        this.activeTab = null; // 'general' | 'tags' | 'image' | 'appearance' | 'animations'; kept here so a re-render stays on the tab
+    }
+
+    /**
+     * The tab to show. A player who owns the pin sees no General or Tags tab (permissions and
+     * classification are GM controls), so a remembered tab they cannot see falls back to the first one they can.
+     * @param {boolean} isGM
+     * @returns {string}
+     * @private
+     */
+    _resolveActiveTab(isGM) {
+        const valid = isGM ? ['general', 'tags', 'image', 'appearance', 'animations'] : ['image', 'appearance', 'animations'];
+        if (!valid.includes(this.activeTab)) this.activeTab = valid[0];
+        return this.activeTab;
+    }
+
+    /**
+     * The shared selectTab action, with one deliberate difference: it shows and hides panes in place and does
+     * not re-render. This window is a form, and a re-render would discard whatever was typed on the other tabs.
+     * @param {HTMLElement} target - The tab button (data-value names the tab)
+     * @private
+     */
+    _selectTab(target) {
+        const tab = target?.dataset?.value;
+        if (!tab) return;
+        this.activeTab = tab;
+        const root = this.element?.querySelector('.blacksmith-pin-config');
+        if (root) root.dataset.activeTab = tab;
+        this.element?.querySelectorAll('.blacksmith-pin-config-tabs .blacksmith-tab').forEach((btn) => {
+            const active = btn === target;
+            btn.classList.toggle('is-active', active);
+            btn.setAttribute('aria-selected', String(active));
+        });
     }
 
     _buildPinUpdateData({ sizeInput, imagePreview, shapeInput, strokeWidthInput,
@@ -510,7 +546,23 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         const imageValue = this.selected?.type === 'img' ? this.selected.value : '';
 
-        const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
+        // A type nobody registered a label for still shows its key ("note" reads "Note"), never a blank
+        const typeKey = String(pin.type || 'default');
+        const pinTypeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type)
+            || typeKey.replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+        // What the pin points at, for a type that declares a target
+        const target = await PinManager.resolvePinTarget(pin);
+        const pinTarget = (target.declared && target.uuid)
+            ? {
+                uuid: target.uuid,
+                broken: target.broken,
+                name: target.doc?.name ?? '',
+                kind: target.doc
+                    ? game.i18n.localize(target.doc.constructor?.metadata?.label ?? target.doc.documentName)
+                    : ''
+            }
+            : null;
 
         // Build Suggested / Other tag groups via flags API
         const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
@@ -542,6 +594,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         return {
             isGM,
+            activeTab: this._resolveActiveTab(isGM),
+            pinTarget,
             pinTypeLabel,
             pinName: pin.text || '',
             accessOptions,

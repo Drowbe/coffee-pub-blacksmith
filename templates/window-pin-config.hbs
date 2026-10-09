@@ -1,5 +1,5 @@
 {{!-- Pin Configuration Window Template --}}
-<div class="blacksmith-pin-config" data-icon-mode="{{iconMode}}">
+<div class="blacksmith-pin-config" data-icon-mode="{{iconMode}}" data-active-tab="{{activeTab}}">
     {{!-- Header --}}
     <header class="blacksmith-window-template-header">
         <div class="blacksmith-window-template-header-content">
@@ -24,386 +24,437 @@
         </div>
     </header>
 
+    {{!-- Tabs: every pane stays in the DOM and only the active one shows, so an edit made on one tab survives a visit to another and Save reads them all --}}
+    <nav class="blacksmith-tabs blacksmith-pin-config-tabs" role="tablist">
+        {{#if isGM}}
+        <button type="button" class="blacksmith-tab {{#if (eq activeTab 'general')}}is-active{{/if}}" data-action="selectTab" data-value="general" role="tab" aria-selected="{{#if (eq activeTab 'general')}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-sliders"></i><span>General</span>
+        </button>
+        <button type="button" class="blacksmith-tab {{#if (eq activeTab 'tags')}}is-active{{/if}}" data-action="selectTab" data-value="tags" role="tab" aria-selected="{{#if (eq activeTab 'tags')}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-tags"></i><span>Tags</span>
+        </button>
+        {{/if}}
+        <button type="button" class="blacksmith-tab {{#if (eq activeTab 'image')}}is-active{{/if}}" data-action="selectTab" data-value="image" role="tab" aria-selected="{{#if (eq activeTab 'image')}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-image"></i><span>Image</span>
+        </button>
+        <button type="button" class="blacksmith-tab {{#if (eq activeTab 'appearance')}}is-active{{/if}}" data-action="selectTab" data-value="appearance" role="tab" aria-selected="{{#if (eq activeTab 'appearance')}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-palette"></i><span>Appearance</span>
+        </button>
+        <button type="button" class="blacksmith-tab {{#if (eq activeTab 'animations')}}is-active{{/if}}" data-action="selectTab" data-value="animations" role="tab" aria-selected="{{#if (eq activeTab 'animations')}}true{{else}}false{{/if}}">
+            <i class="fa-solid fa-wand-sparkles"></i><span>Animations</span>
+        </button>
+    </nav>
+
     <div class="window-note-body">
-        {{!-- Permissions --}}
         {{#if isGM}}
-        <div class="blacksmith-window-section blacksmith-pin-config-permissions-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-shield-halved"></i> Permissions</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="permissions"> Default</label>{{/if}}
-                </span>
-            </div>
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-field-row">
-                    <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Pin editing</span>
-                        <select class="blacksmith-input blacksmith-pin-config-access-default">
-                            {{#each accessOptions}}
-                            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Pin visibility</span>
-                        <select class="blacksmith-input blacksmith-pin-config-player-visibility">
-                            <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
-                            <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
-                        </select>
-                    </div>
+        <div class="blacksmith-pin-config-pane" data-pane="general">
+            {{#if pinTarget}}
+            <div class="blacksmith-window-section blacksmith-pin-config-target-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-link"></i> Linked to</span>
                 </div>
-                {{#if isGM}}
-                <div class="blacksmith-toggle-row" style="margin-top: 10px;" data-tooltip="Allow multiple instances of this pin to be placed on the canvas at once.">
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                    <span class="blacksmith-toggle-label">Allow Duplicates of this Pin on the Canvas</span>
+                <div class="blacksmith-window-section-body">
+                    {{#if pinTarget.broken}}
+                    <div class="blacksmith-pin-config-target is-broken" data-tooltip="{{pinTarget.uuid}}">
+                        <i class="fa-solid fa-link-slash"></i> What this pin points to no longer exists.
+                    </div>
+                    {{else}}
+                    {{!-- data-link is Foundry's own content-link contract: core's body-level click handler opens the document in this client. No href, so nothing can navigate. --}}
+                    <a class="blacksmith-pin-config-target blacksmith-pin-config-target-link" data-link data-uuid="{{pinTarget.uuid}}" data-tooltip="Open">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> {{pinTarget.name}}
+                        <span class="blacksmith-pin-config-target-kind">{{pinTarget.kind}}</span>
+                    </a>
+                    {{/if}}
                 </div>
-                {{/if}}
             </div>
-        </div>
-        {{/if}}
+            {{/if}}
 
-        {{!-- Classification --}}
-        {{#if isGM}}
-        <div class="blacksmith-window-section blacksmith-pin-config-classification-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-tags"></i> Classification</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="classification"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="classification"> Default</label>{{/if}}
-                </span>
-            </div>
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-field-row">
-                    <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Tags</span>
-                        <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="tag1, tag2">
-                        {{#if pinSuggestedTags.length}}
-                        <div class="blacksmith-pin-config-tag-group-label">Suggested</div>
-                        <div class="blacksmith-tags" data-chip-type="tag">
-                            {{#each pinSuggestedTags}}
-                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
-                            {{/each}}
+            {{!-- Permissions --}}
+            {{#if isGM}}
+            <div class="blacksmith-window-section blacksmith-pin-config-permissions-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-shield-halved"></i> Permissions</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="permissions"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="permissions"> Default</label>{{/if}}
+                    </span>
+                </div>
+                <div class="blacksmith-window-section-body">
+                    <div class="blacksmith-field-row">
+                        <div class="blacksmith-field">
+                            <span class="blacksmith-field-label">Pin editing</span>
+                            <select class="blacksmith-input blacksmith-pin-config-access-default">
+                                {{#each accessOptions}}
+                                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
                         </div>
-                        {{/if}}
-                        {{#if pinOtherTags.length}}
-                        <div class="blacksmith-pin-config-tag-group-label">Other</div>
-                        <div class="blacksmith-tags" data-chip-type="tag">
-                            {{#each pinOtherTags}}
-                            <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
-                            {{/each}}
+                        <div class="blacksmith-field">
+                            <span class="blacksmith-field-label">Pin visibility</span>
+                            <select class="blacksmith-input blacksmith-pin-config-player-visibility">
+                                <option value="visible" {{#if pinVisibilityVisible}}selected{{/if}}>Visible</option>
+                                <option value="hidden" {{#if pinVisibilityHidden}}selected{{/if}}>Hidden</option>
+                            </select>
                         </div>
-                        {{/if}}
                     </div>
+                    {{#if isGM}}
+                    <div class="blacksmith-toggle-row" style="margin-top: 10px;" data-tooltip="Allow multiple instances of this pin to be placed on the canvas at once.">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-allow-duplicate" {{#if pinAllowDuplicatePins}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label">Allow Duplicates of this Pin on the Canvas</span>
+                    </div>
+                    {{/if}}
                 </div>
-                {{#unless pinSuggestedTags.length}}
-                <div class="blacksmith-pin-config-help">{{pinClassificationHelp}} taxonomy. Use comma-separated tags.</div>
-                {{/unless}}
             </div>
+            {{/if}}
         </div>
-        {{/if}}
-
-        {{!-- Pin Design --}}
-        <div class="blacksmith-window-section blacksmith-pin-config-design-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-ruler-combined"></i> Pin Design</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="design"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="design"> Default</label>{{/if}}
-                </span>
-            </div>
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Size</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-size" min="8" step="1" value="{{pinSize}}">
-                    </label>
+        <div class="blacksmith-pin-config-pane" data-pane="tags">
+            {{!-- Classification --}}
+            {{#if isGM}}
+            <div class="blacksmith-window-section blacksmith-pin-config-classification-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-tags"></i> Classification</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="classification"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="classification"> Default</label>{{/if}}
+                    </span>
                 </div>
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Shape</span>
-                        <select class="blacksmith-input blacksmith-pin-config-shape">
-                            <option value="circle" {{#if (eq pinShape "circle")}}selected{{/if}}>Circle</option>
-                            <option value="square" {{#if (eq pinShape "square")}}selected{{/if}}>Square</option>
-                            <option value="rectangle" {{#if (eq pinShape "rectangle")}}selected{{/if}}>Rectangle</option>
-                            <option value="none" {{#if (eq pinShape "none")}}selected{{/if}}>None</option>
-                        </select>
-                    </label>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Background</span>
-                        <div class="blacksmith-pin-config-color-row">
-                            <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-fill-text" value="{{pinFill}}">
-                            <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-fill" value="{{pinFill}}">
-                        </div>
-                    </label>
-                </div>
-                <div class="blacksmith-pin-config-help blacksmith-pin-config-shape-none-note" style="display: none;">
-                    Shape "None" is icon-only and ignores background, border, and border width.
-                </div>
-                <div class="blacksmith-field-row">
-                    <div class="blacksmith-field">
-                        <span class="blacksmith-field-label">Border</span>
-                        <div class="blacksmith-pin-config-border-row">
-                            <div class="blacksmith-pin-config-color-row">
-                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-stroke-text" value="{{pinStroke}}">
-                                <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-stroke" value="{{pinStroke}}">
+                <div class="blacksmith-window-section-body">
+                    <div class="blacksmith-field-row">
+                        <div class="blacksmith-field">
+                            <span class="blacksmith-field-label">Tags</span>
+                            <input type="text" class="blacksmith-input blacksmith-pin-config-tags" value="{{pinTagsCsv}}" placeholder="tag1, tag2">
+                            {{#if pinSuggestedTags.length}}
+                            <div class="blacksmith-pin-config-tag-group-label">Suggested</div>
+                            <div class="blacksmith-tags" data-chip-type="tag">
+                                {{#each pinSuggestedTags}}
+                                <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
+                                {{/each}}
                             </div>
-                            <input type="number" class="blacksmith-input blacksmith-pin-config-stroke-width" min="0" step="1" value="{{pinStrokeWidth}}">
+                            {{/if}}
+                            {{#if pinOtherTags.length}}
+                            <div class="blacksmith-pin-config-tag-group-label">Other</div>
+                            <div class="blacksmith-tags" data-chip-type="tag">
+                                {{#each pinOtherTags}}
+                                <span class="blacksmith-tag" data-value="{{this}}">{{this}}</span>
+                                {{/each}}
+                            </div>
+                            {{/if}}
                         </div>
                     </div>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Icon Color</span>
-                        <div class="blacksmith-pin-config-color-row">
-                            <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-icon-color-text" value="{{pinIconColor}}">
-                            <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-icon-color" value="{{pinIconColor}}">
-                        </div>
-                    </label>
+                    {{#unless pinSuggestedTags.length}}
+                    <div class="blacksmith-pin-config-help">{{pinClassificationHelp}} taxonomy. Use comma-separated tags.</div>
+                    {{/unless}}
                 </div>
-                <div class="blacksmith-pin-config-help blacksmith-pin-config-icon-mode-note" style="display: none;">
-                    Icon color only applies to Font Awesome icons, not images.
+            </div>
+            {{/if}}
+        </div>
+        {{/if}}
+        <div class="blacksmith-pin-config-pane" data-pane="image">
+            {{!-- Combined Pin Source section with toggle in body --}}
+            <div class="blacksmith-window-section blacksmith-pin-config-source-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-icons"></i> Pin Source</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="source"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="source"> Default</label>{{/if}}
+                    </span>
                 </div>
-                <div class="blacksmith-toggle-row">
+
+                {{!-- Source type toggle (always visible) --}}
+                <div class="blacksmith-toggle-row blacksmith-pin-config-source-type-toggle">
+                    <span class="blacksmith-toggle-label">Image</span>
                     <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-shadow" {{#if pinDropShadow}}checked{{/if}}>
+                        <input type="checkbox" id="blacksmith-pin-config-source-toggle" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
-                    <span class="blacksmith-toggle-label">Drop shadow</span>
+                    <span class="blacksmith-toggle-label">Icon</span>
                 </div>
-            </div>
-        </div>
 
-        {{!-- Text Format --}}
-        <div class="blacksmith-window-section blacksmith-pin-config-text-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-font"></i> Text Format</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="text"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="text"> Default</label>{{/if}}
-                </span>
-            </div>
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Text layout</span>
-                        <select class="blacksmith-input blacksmith-pin-config-text-layout">
-                            <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Below the Pin</option>
-                            <option value="above" {{#if (eq pinTextLayout "above")}}selected{{/if}}>Above the Pin</option>
-                            <option value="right" {{#if (eq pinTextLayout "right")}}selected{{/if}}>To the Right of the Pin</option>
-                            <option value="left" {{#if (eq pinTextLayout "left")}}selected{{/if}}>To the Left of the Pin</option>
-                            <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below the Pin</option>
-                            <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above the Pin</option>
-                            <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Overlay the Pin</option>
-                        </select>
-                    </label>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Text display</span>
-                        <select class="blacksmith-input blacksmith-pin-config-text-display">
-                            <option value="always" {{#if (eq pinTextDisplay "always")}}selected{{/if}}>Always</option>
-                            <option value="hover" {{#if (eq pinTextDisplay "hover")}}selected{{/if}}>Hover</option>
-                            <option value="never" {{#if (eq pinTextDisplay "never")}}selected{{/if}}>Never</option>
-                            <option value="gm" {{#if (eq pinTextDisplay "gm")}}selected{{/if}}>GM only</option>
-                        </select>
-                    </label>
-                </div>
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Text color</span>
-                        <div class="blacksmith-pin-config-color-row">
-                            <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-text-color-text" value="{{pinTextColor}}">
-                            <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-text-color" value="{{pinTextColor}}">
-                        </div>
-                    </label>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Text size</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-size" min="6" step="1" value="{{pinTextSize}}">
-                    </label>
-                </div>
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Max characters</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-length" min="0" step="1" value="{{pinTextMaxLengthDisplay}}" placeholder="">
-                    </label>
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Chars per line</span>
-                        <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidthDisplay}}" placeholder="" data-tooltip="Max characters per line before wrap; empty = single line, no wrap">
-                    </label>
-                </div>
-                <div class="blacksmith-toggle-row">
-                    <label class="blacksmith-toggle">
-                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-text-scale" {{#if pinTextScaleWithPin}}checked{{/if}}>
-                        <span class="blacksmith-toggle-slider"></span>
-                    </label>
-                    <span class="blacksmith-toggle-label">Scale text with pin</span>
-                </div>
-                <div class="blacksmith-pin-config-help blacksmith-pin-config-text-around-note" style="display: none;">
-                    Arc text size and scaling are controlled by the pin-size ratio and ignore these settings.
-                </div>
-            </div>
-        </div>
-
-        {{!-- Event Animations --}}
-        <div class="blacksmith-window-section blacksmith-pin-config-animation-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="animations"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="animations"> Default</label>{{/if}}
-                </span>
-            </div>
-            <div class="blacksmith-window-section-body">
-                <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
-                <div class="blacksmith-pin-config-event-animations">
-                    <div class="blacksmith-pin-config-event-row">
-                        <span class="blacksmith-pin-config-event-label">Hover</span>
-                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-hover-animation">
-                            {{#each animationOptions}}
-                            <option value="{{this.value}}" {{#if this.hoverSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-hover-sound">
-                            {{#each soundOptions}}
-                            <option value="{{this.value}}" {{#if this.hoverSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    <div class="blacksmith-pin-config-event-row">
-                        <span class="blacksmith-pin-config-event-label">Click</span>
-                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-click-animation">
-                            {{#each animationOptions}}
-                            <option value="{{this.value}}" {{#if this.clickSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-click-sound">
-                            {{#each soundOptions}}
-                            <option value="{{this.value}}" {{#if this.clickSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    <div class="blacksmith-pin-config-event-row">
-                        <span class="blacksmith-pin-config-event-label">Double-click</span>
-                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-doubleclick-animation">
-                            {{#each animationOptions}}
-                            <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-doubleclick-sound">
-                            {{#each soundOptions}}
-                            <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    <div class="blacksmith-pin-config-event-row">
-                        <span class="blacksmith-pin-config-event-label">Add (to canvas)</span>
-                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-add-animation">
-                            {{#each animationOptions}}
-                            <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-add-sound">
-                            {{#each soundOptions}}
-                            <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                    <div class="blacksmith-pin-config-event-row">
-                        <span class="blacksmith-pin-config-event-label">Delete</span>
-                        <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-delete-animation">
-                            {{#each deleteAnimationOptions}}
-                            <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                        <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-delete-sound">
-                            {{#each soundOptions}}
-                            <option value="{{this.value}}" {{#if this.deleteSelected}}selected{{/if}}>{{this.label}}</option>
-                            {{/each}}
-                        </select>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{!-- Combined Pin Source section with toggle in body --}}
-        <div class="blacksmith-window-section blacksmith-pin-config-source-section">
-            <div class="blacksmith-window-section-header">
-                <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-icons"></i> Pin Source</span>
-                <span class="blacksmith-pin-config-section-actions">
-                    {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="source"> Update All</label>{{/if}}
-                    {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="source"> Default</label>{{/if}}
-                </span>
-            </div>
-
-            {{!-- Source type toggle (always visible) --}}
-            <div class="blacksmith-toggle-row blacksmith-pin-config-source-type-toggle">
-                <span class="blacksmith-toggle-label">Image</span>
-                <label class="blacksmith-toggle">
-                    <input type="checkbox" id="blacksmith-pin-config-source-toggle" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
-                    <span class="blacksmith-toggle-slider"></span>
-                </label>
-                <span class="blacksmith-toggle-label">Icon</span>
-            </div>
-
-            {{!-- Image body --}}
-            <div class="blacksmith-pin-config-image-body blacksmith-window-section-body">
-                <div class="blacksmith-field-row">
-                    <label class="blacksmith-field">
-                        <span class="blacksmith-field-label">Image Fit</span>
-                        <select class="blacksmith-input blacksmith-pin-config-image-fit">
-                            <option value="cover" {{#if (eq pinImageFit "cover")}}selected{{/if}}>Cover</option>
-                            <option value="contain" {{#if (eq pinImageFit "contain")}}selected{{/if}}>Contain</option>
-                            <option value="fill" {{#if (eq pinImageFit "fill")}}selected{{/if}}>Fill</option>
-                            <option value="none" {{#if (eq pinImageFit "none")}}selected{{/if}}>Actual Size</option>
-                            <option value="scale-down" {{#if (eq pinImageFit "scale-down")}}selected{{/if}}>Scale Down</option>
-                            <option value="zoom" {{#if (eq pinImageFit "zoom")}}selected{{/if}}>Zoom</option>
-                        </select>
-                    </label>
-                    <div class="blacksmith-pin-config-image-zoom-row {{#unless showImageZoomSlider}}is-hidden{{/unless}}" data-zoom-row>
+                {{!-- Image body --}}
+                <div class="blacksmith-pin-config-image-body blacksmith-window-section-body">
+                    <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Zoom level</span>
-                            <div class="blacksmith-pin-config-zoom-control">
-                                <input type="range" class="blacksmith-pin-config-image-zoom" min="100" max="200" step="5" value="{{pinImageZoomPercent}}" data-tooltip="100% = same as Cover">
-                                <span class="blacksmith-pin-config-zoom-value">{{pinImageZoomPercent}}%</span>
+                            <span class="blacksmith-field-label">Image Fit</span>
+                            <select class="blacksmith-input blacksmith-pin-config-image-fit">
+                                <option value="cover" {{#if (eq pinImageFit "cover")}}selected{{/if}}>Cover</option>
+                                <option value="contain" {{#if (eq pinImageFit "contain")}}selected{{/if}}>Contain</option>
+                                <option value="fill" {{#if (eq pinImageFit "fill")}}selected{{/if}}>Fill</option>
+                                <option value="none" {{#if (eq pinImageFit "none")}}selected{{/if}}>Actual Size</option>
+                                <option value="scale-down" {{#if (eq pinImageFit "scale-down")}}selected{{/if}}>Scale Down</option>
+                                <option value="zoom" {{#if (eq pinImageFit "zoom")}}selected{{/if}}>Zoom</option>
+                            </select>
+                        </label>
+                        <div class="blacksmith-pin-config-image-zoom-row {{#unless showImageZoomSlider}}is-hidden{{/unless}}" data-zoom-row>
+                            <label class="blacksmith-field">
+                                <span class="blacksmith-field-label">Zoom level</span>
+                                <div class="blacksmith-pin-config-zoom-control">
+                                    <input type="range" class="blacksmith-pin-config-image-zoom" min="100" max="200" step="5" value="{{pinImageZoomPercent}}" data-tooltip="100% = same as Cover">
+                                    <span class="blacksmith-pin-config-zoom-value">{{pinImageZoomPercent}}%</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="blacksmith-pin-config-image-row">
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-image-input" placeholder="Paste image URL..." value="{{imageValue}}">
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                    </div>
+                    <div class="blacksmith-pin-config-image-preview-wrap">
+                        <img class="blacksmith-pin-config-image-preview {{#unless imageValue}}is-hidden{{/unless}}" src="{{imageValue}}" alt="Pin preview">
+                    </div>
+                </div>
+
+                {{!-- Icon Library body --}}
+                <div class="blacksmith-pin-config-library-body blacksmith-window-section-body">
+                    <div class="blacksmith-pin-config-icon-filters">
+                        <input type="text" class="blacksmith-input blacksmith-pin-config-icon-search" placeholder="Search icons...">
+                        <select class="blacksmith-input blacksmith-pin-config-icon-category-filter">
+                            <option value="all">All categories</option>
+                            {{#each iconCategoryOptions}}
+                                <option value="{{this}}">{{this}}</option>
+                            {{/each}}
+                        </select>
+                    </div>
+                    {{#each iconCategories}}
+                    <div class="blacksmith-pin-config-icon-category">
+                        <div class="blacksmith-pin-config-icon-category-title">{{this.category}}</div>
+                        {{#if this.description}}
+                            <div class="blacksmith-pin-config-icon-category-description">{{this.description}}</div>
+                        {{/if}}
+                        <div class="blacksmith-pin-config-icon-grid">
+                            {{#each this.icons}}
+                            <button type="button" class="blacksmith-pin-config-icon-option {{#if this.isSelected}}selected{{/if}}" data-type="fa" data-value="{{this.value}}" data-label="{{this.label}}" data-category="{{../category}}" data-tooltip="{{this.label}}">
+                                <i class="{{this.value}}"></i>
+                            </button>
+                            {{/each}}
+                        </div>
+                    </div>
+                    {{/each}}
+                </div>
+            </div>
+    
+        </div>
+        <div class="blacksmith-pin-config-pane" data-pane="appearance">
+            {{!-- Pin Design --}}
+            <div class="blacksmith-window-section blacksmith-pin-config-design-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-ruler-combined"></i> Pin Design</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="design"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="design"> Default</label>{{/if}}
+                    </span>
+                </div>
+                <div class="blacksmith-window-section-body">
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Size</span>
+                            <input type="number" class="blacksmith-input blacksmith-pin-config-size" min="8" step="1" value="{{pinSize}}">
+                        </label>
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Shape</span>
+                            <select class="blacksmith-input blacksmith-pin-config-shape">
+                                <option value="circle" {{#if (eq pinShape "circle")}}selected{{/if}}>Circle</option>
+                                <option value="square" {{#if (eq pinShape "square")}}selected{{/if}}>Square</option>
+                                <option value="rectangle" {{#if (eq pinShape "rectangle")}}selected{{/if}}>Rectangle</option>
+                                <option value="none" {{#if (eq pinShape "none")}}selected{{/if}}>None</option>
+                            </select>
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Background</span>
+                            <div class="blacksmith-pin-config-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-fill-text" value="{{pinFill}}">
+                                <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-fill" value="{{pinFill}}">
                             </div>
                         </label>
                     </div>
-                </div>
-                <div class="blacksmith-pin-config-image-row">
-                    <input type="text" class="blacksmith-input blacksmith-pin-config-image-input" placeholder="Paste image URL..." value="{{imageValue}}">
-                    <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
-                </div>
-                <div class="blacksmith-pin-config-image-preview-wrap">
-                    <img class="blacksmith-pin-config-image-preview {{#unless imageValue}}is-hidden{{/unless}}" src="{{imageValue}}" alt="Pin preview">
+                    <div class="blacksmith-pin-config-help blacksmith-pin-config-shape-none-note" style="display: none;">
+                        Shape "None" is icon-only and ignores background, border, and border width.
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <div class="blacksmith-field">
+                            <span class="blacksmith-field-label">Border</span>
+                            <div class="blacksmith-pin-config-border-row">
+                                <div class="blacksmith-pin-config-color-row">
+                                    <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-stroke-text" value="{{pinStroke}}">
+                                    <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-stroke" value="{{pinStroke}}">
+                                </div>
+                                <input type="number" class="blacksmith-input blacksmith-pin-config-stroke-width" min="0" step="1" value="{{pinStrokeWidth}}">
+                            </div>
+                        </div>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Icon Color</span>
+                            <div class="blacksmith-pin-config-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-icon-color-text" value="{{pinIconColor}}">
+                                <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-icon-color" value="{{pinIconColor}}">
+                            </div>
+                        </label>
+                    </div>
+                    <div class="blacksmith-pin-config-help blacksmith-pin-config-icon-mode-note" style="display: none;">
+                        Icon color only applies to Font Awesome icons, not images.
+                    </div>
+                    <div class="blacksmith-toggle-row">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-shadow" {{#if pinDropShadow}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label">Drop shadow</span>
+                    </div>
                 </div>
             </div>
 
-            {{!-- Icon Library body --}}
-            <div class="blacksmith-pin-config-library-body blacksmith-window-section-body">
-                <div class="blacksmith-pin-config-icon-filters">
-                    <input type="text" class="blacksmith-input blacksmith-pin-config-icon-search" placeholder="Search icons...">
-                    <select class="blacksmith-input blacksmith-pin-config-icon-category-filter">
-                        <option value="all">All categories</option>
-                        {{#each iconCategoryOptions}}
-                            <option value="{{this}}">{{this}}</option>
-                        {{/each}}
-                    </select>
+            {{!-- Text Format --}}
+            <div class="blacksmith-window-section blacksmith-pin-config-text-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-font"></i> Text Format</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="text"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="text"> Default</label>{{/if}}
+                    </span>
                 </div>
-                {{#each iconCategories}}
-                <div class="blacksmith-pin-config-icon-category">
-                    <div class="blacksmith-pin-config-icon-category-title">{{this.category}}</div>
-                    {{#if this.description}}
-                        <div class="blacksmith-pin-config-icon-category-description">{{this.description}}</div>
-                    {{/if}}
-                    <div class="blacksmith-pin-config-icon-grid">
-                        {{#each this.icons}}
-                        <button type="button" class="blacksmith-pin-config-icon-option {{#if this.isSelected}}selected{{/if}}" data-type="fa" data-value="{{this.value}}" data-label="{{this.label}}" data-category="{{../category}}" data-tooltip="{{this.label}}">
-                            <i class="{{this.value}}"></i>
-                        </button>
-                        {{/each}}
+                <div class="blacksmith-window-section-body">
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text layout</span>
+                            <select class="blacksmith-input blacksmith-pin-config-text-layout">
+                                <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Below the Pin</option>
+                                <option value="above" {{#if (eq pinTextLayout "above")}}selected{{/if}}>Above the Pin</option>
+                                <option value="right" {{#if (eq pinTextLayout "right")}}selected{{/if}}>To the Right of the Pin</option>
+                                <option value="left" {{#if (eq pinTextLayout "left")}}selected{{/if}}>To the Left of the Pin</option>
+                                <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below the Pin</option>
+                                <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above the Pin</option>
+                                <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Overlay the Pin</option>
+                            </select>
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text display</span>
+                            <select class="blacksmith-input blacksmith-pin-config-text-display">
+                                <option value="always" {{#if (eq pinTextDisplay "always")}}selected{{/if}}>Always</option>
+                                <option value="hover" {{#if (eq pinTextDisplay "hover")}}selected{{/if}}>Hover</option>
+                                <option value="never" {{#if (eq pinTextDisplay "never")}}selected{{/if}}>Never</option>
+                                <option value="gm" {{#if (eq pinTextDisplay "gm")}}selected{{/if}}>GM only</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text color</span>
+                            <div class="blacksmith-pin-config-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text blacksmith-pin-config-text-color-text" value="{{pinTextColor}}">
+                                <input type="color" class="blacksmith-pin-config-color-picker blacksmith-pin-config-text-color" value="{{pinTextColor}}">
+                            </div>
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text size</span>
+                            <input type="number" class="blacksmith-input blacksmith-pin-config-text-size" min="6" step="1" value="{{pinTextSize}}">
+                        </label>
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Max characters</span>
+                            <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-length" min="0" step="1" value="{{pinTextMaxLengthDisplay}}" placeholder="">
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Chars per line</span>
+                            <input type="number" class="blacksmith-input blacksmith-pin-config-text-max-width" min="0" step="1" value="{{pinTextMaxWidthDisplay}}" placeholder="" data-tooltip="Max characters per line before wrap; empty = single line, no wrap">
+                        </label>
+                    </div>
+                    <div class="blacksmith-toggle-row">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-text-scale" {{#if pinTextScaleWithPin}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label">Scale text with pin</span>
+                    </div>
+                    <div class="blacksmith-pin-config-help blacksmith-pin-config-text-around-note" style="display: none;">
+                        Arc text size and scaling are controlled by the pin-size ratio and ignore these settings.
                     </div>
                 </div>
-                {{/each}}
+            </div>
+        </div>
+        <div class="blacksmith-pin-config-pane" data-pane="animations">
+            {{!-- Event Animations --}}
+            <div class="blacksmith-window-section blacksmith-pin-config-animation-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-wand-sparkles"></i> Event Animations</span>
+                    <span class="blacksmith-pin-config-section-actions">
+                        {{#if updateAllMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-check" data-section="animations"> Update All</label>{{/if}}
+                        {{#if defaultMode}}<label class="blacksmith-pin-config-section-check-label"><input type="checkbox" class="blacksmith-pin-config-section-default-check" data-section="animations"> Default</label>{{/if}}
+                    </span>
+                </div>
+                <div class="blacksmith-window-section-body">
+                    <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
+                    <div class="blacksmith-pin-config-event-animations">
+                        <div class="blacksmith-pin-config-event-row">
+                            <span class="blacksmith-pin-config-event-label">Hover</span>
+                            <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-hover-animation">
+                                {{#each animationOptions}}
+                                <option value="{{this.value}}" {{#if this.hoverSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                            <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-hover-sound">
+                                {{#each soundOptions}}
+                                <option value="{{this.value}}" {{#if this.hoverSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                        <div class="blacksmith-pin-config-event-row">
+                            <span class="blacksmith-pin-config-event-label">Click</span>
+                            <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-click-animation">
+                                {{#each animationOptions}}
+                                <option value="{{this.value}}" {{#if this.clickSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                            <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-click-sound">
+                                {{#each soundOptions}}
+                                <option value="{{this.value}}" {{#if this.clickSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                        <div class="blacksmith-pin-config-event-row">
+                            <span class="blacksmith-pin-config-event-label">Double-click</span>
+                            <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-doubleclick-animation">
+                                {{#each animationOptions}}
+                                <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                            <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-doubleclick-sound">
+                                {{#each soundOptions}}
+                                <option value="{{this.value}}" {{#if this.doubleClickSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                        <div class="blacksmith-pin-config-event-row">
+                            <span class="blacksmith-pin-config-event-label">Add (to canvas)</span>
+                            <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-add-animation">
+                                {{#each animationOptions}}
+                                <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                            <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-add-sound">
+                                {{#each soundOptions}}
+                                <option value="{{this.value}}" {{#if this.addSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                        <div class="blacksmith-pin-config-event-row">
+                            <span class="blacksmith-pin-config-event-label">Delete</span>
+                            <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-delete-animation">
+                                {{#each deleteAnimationOptions}}
+                                <option value="{{this.value}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                            <select class="blacksmith-input blacksmith-pin-config-event-sound blacksmith-pin-config-event-delete-sound">
+                                {{#each soundOptions}}
+                                <option value="{{this.value}}" {{#if this.deleteSelected}}selected{{/if}}>{{this.label}}</option>
+                                {{/each}}
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

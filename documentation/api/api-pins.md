@@ -13,7 +13,7 @@
 - **Pin editing (per pin)**: `config.blacksmithAccess` is `'gm'` | `'private'` | `'public'` — who may edit the pin record (move, Configure Pin, delete). It does not control what opens on click; the calling module owns click/double-click behavior and document edit rights.
 - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). A world-level tag registry tracks every tag ever used.
 - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, and the Manage Pins window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-- **Configure Pin window**: Full visual editor — Design, Text, Animations, Source, Permissions (Pin editing + Pin visibility + Allow Duplicates), Classification. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
+- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Linked to** row for a type that declares a target, then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -252,6 +252,14 @@ If your module ships a `pin-taxonomy.json`, use the v3 shape:
 ```
 
 A category may also carry `"copyable": true` (boolean, default `false`; also accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`). It lets a user copy a pin of that type with Ctrl+C and paste it with Ctrl+V. **Leave it off unless a second pin is safe:** the copy carries the pin's `config` verbatim, including any document link or sync id, and your `created` handler sees it as a new pin. A pin your module reconciles against a target count, or that a document records the id of, should not be copyable. Only an explicit boolean takes part when entries are merged, so a user override JSON that omits it does not undo what your module declared.
+
+A category may also declare `"target"`, the `config` key (or an ordered list of keys; the first one holding a string wins) that holds the UUID of the document the pin points at, for example `"target": ["journalPageUuid", "journalUuid"]`. It is also accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`. Declaring it is the whole integration; Blacksmith resolves the UUID itself and never asks your module. In return, for pins of that type:
+
+- **A missing document marks the pin as broken.** The GM and the pin's owners see a broken-link glyph in a corner of the pin and a tooltip. Players do not, because they cannot act on it and a deleted document looks the same as one they may not open. Existence is all that is tested, never permission. The check runs when the pin is drawn and again after any world document is deleted.
+- **A double-click on a broken pin is not delivered to your `doubleClick` handler.** The user gets "What this pin points to no longer exists." instead, because the handler could only fail. A pin that declares a target but holds no UUID is unlinked, not broken, and is delivered as usual.
+- **Configure Pin shows a Linked to row** on the General tab with the document's name, which opens it, or a missing notice.
+
+Do not declare `target` if your module wants to receive double-clicks on a dangling pin, for instance to offer a repair.
 
 Differences from v2: a single `tags` array (no `defaultTags` / `suggestedTags`); categories nest under `modules.{moduleId}.pinCategories`, not at the root; `globalTags` at the root for cross-module tags; `"version": 3` is required. Blacksmith's built-in `resources/pin-taxonomy.json` uses this format.
 
@@ -1315,7 +1323,7 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window includes: **Appearance**, **Icon/Image**, **Text**, **Event Animations**, and **Permissions** (**Pin editing**, **Pin visibility**, allow duplicates). Pin **type** is not editable in the window.
+- The window has five tabs: **General** (**Linked to**, **Pin editing**, **Pin visibility**, allow duplicates; GM only), **Tags** (GM only), **Image** (**Pin Source**), **Appearance** (**Pin Design**, **Text Format**) and **Animations**. Every tab's fields stay in the form while another tab shows, so Save applies edits from all of them, and the open tab is remembered across a re-render. Pin **type** is not editable in the window.
 - The window header shows **"[Category]: [Pin Title]"** (e.g. "Journal Pin: The Rusty Anchor") using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **"Default for [type]"** toggle (renamed from "Default" in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
 - **Permissions section** (GM only): **Pin editing** (`blacksmithAccess`: **GM only** / **Owner** / **Everyone`) and **Pin visibility** (`blacksmithVisibility`: **Visible** / **Hidden**). Pin editing maps to `ownership.default`. Pin visibility does not change document rights. **Allow Duplicates** toggle.
 - **Action bar left** (v13.6.3): **"Update All [type] Pins"** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes pin editing, pin visibility, and allow-duplicates when checked. A **"Filter by tag:"** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.

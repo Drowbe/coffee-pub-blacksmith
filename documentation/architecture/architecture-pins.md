@@ -208,6 +208,24 @@ State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanEdit`, `_lastDele
 - **Ctrl/Cmd+C** copies the selected pin into `PinDOMElement._clipboard` (data only, per session, lost on reload). A pin is copyable only if its type's taxonomy entry says `copyable: true` (default false, so undeclared means refused). The owner of a type is the only one who knows whether a second pin is safe: a note stores its pin's id, and a gather spot is reconciled against a target count. Blacksmith declares it for `journal-pin` and nothing else. Only an explicit boolean takes part in the taxonomy merge, so a user override that omits it does not undo the module's declaration. Anything refused warns "This pin cannot be copied." and empties the clipboard. A Ctrl+C with no pin selected also empties it, so the last copy wins and a stale pin cannot hijack Foundry's own paste of a token.
 - **Ctrl/Cmd+V** creates a new pin (fresh id, everything else copied) under the mouse and selects it. Claimed only while the clipboard is filled and the pointer was last over the board or a pin. The position comes from a passive `pointermove` listener on `document` that records `clientX`/`clientY`, converted by `_clientToScene`; `canvas.mousePosition` is not used because the canvas gets no pointer events while the mouse is over a pin's DOM node. A user who may not create pins gets a warning.
 
+### Broken links
+
+A type declares `target` in its taxonomy entry (see `api-pins.md`). `PinManager.resolvePinTarget(pin)` returns `{ declared, uuid, doc, broken }`: the first listed config key holding a string is taken as a UUID and resolved with `fromUuid`, which tests existence and not permission. Three places use it:
+
+- **The glyph.** `PinRenderer._applyTargetStatus`, called at the end of `_applyVisibilityForPin`, so every create and update is covered, sets or clears a broken-link glyph (`PinDOMElement._setBrokenIndicator`) and a tooltip on the pin. Only `_canEdit` users get it, which is the GM and the owners.
+- **Re-checks.** `PinDOMElement.initialize` hooks `delete<Document>` for every world document type plus `JournalEntryPage`, except chat messages, and `PinRenderer.refreshTargetStatus` re-checks every drawn pin 150 ms after the last one. Creating a document does not trigger a re-check, so a restored document heals its pin on the next scene load.
+- **Double-click.** `_registerClick` resolves the target before delivering `doubleClick`. A broken pin gets a warning and the event is withheld, which is part of the contract a satellite accepts by declaring `target`.
+
+The taxonomy is loaded asynchronously, so `resolvePinTarget` awaits `ensureBuiltinTaxonomyLoaded` first; a pin drawn before the JSON arrives would otherwise read as having no target and never be re-checked.
+
+Blacksmith declares `target` for `journal-pin` (`journalPageUuid`, `journalUuid`) and for `note` (`noteUuid`). Declaring `note` also gives Blacksmith's note pins a type label, which they lacked: the Configure Pin window header and its Update All toggle read blank for a type with no label. The window now falls back to the type key, title-cased, for any type that registers none.
+
+### Configure Pin tabs
+
+The **Linked to** row is an anchor carrying `data-link` and `data-uuid`, which is Foundry's own content-link contract: core's body-level click handler resolves the UUID and opens the document in this client (a journal page opens its journal at that page). The window has no click handler of its own for it, and the anchor has no `href`, so there is nothing for the browser to navigate to.
+
+Five tabs, built from the shared `.blacksmith-tabs` markup and the shared `selectTab` action (`data-action="selectTab" data-value`, `role="tab"`, the instance's `activeTab`), as `window-pin-layers.js` and `window-json-import.js` do. The one difference is deliberate: `_selectTab` shows and hides panes in place and does not re-render, because this window is a form and a re-render would discard what was typed on the other tabs. Every pane stays in the DOM, `data-active-tab` on the root decides which shows, and Save reads them all. The tabs are General (Linked to, Permissions), Tags, Image (Pin Source), Appearance (Pin Design, Text Format) and Animations. A player who owns a pin has no General or Tags tab, and `_resolveActiveTab` falls back to the first tab they can see.
+
 To add a selected-state command, add a key branch in `_onDocumentKeyDown`. Claim the key (`preventDefault` and `stopPropagation`) only when you will act on it.
 
 ---

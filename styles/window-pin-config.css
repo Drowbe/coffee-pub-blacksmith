@@ -64,6 +64,46 @@ div#blacksmith-pin-config .window-content {
 
 
 
+/* Tabs. Every pane is in the DOM; the root's data-active-tab decides which one shows, so a field edited on
+   one tab is still there when Save reads the form. Deliberately not the re-render-per-tab pattern the shared
+   tab bar describes: this window is a form, and a re-render would discard unsaved input. */
+.blacksmith-pin-config .blacksmith-pin-config-tabs {
+    flex-shrink: 0;
+    padding: 10px 14px 0;
+}
+
+.blacksmith-pin-config .blacksmith-pin-config-pane {
+    display: none;
+}
+
+.blacksmith-pin-config[data-active-tab="general"] .blacksmith-pin-config-pane[data-pane="general"],
+.blacksmith-pin-config[data-active-tab="tags"] .blacksmith-pin-config-pane[data-pane="tags"],
+.blacksmith-pin-config[data-active-tab="appearance"] .blacksmith-pin-config-pane[data-pane="appearance"],
+.blacksmith-pin-config[data-active-tab="image"] .blacksmith-pin-config-pane[data-pane="image"],
+.blacksmith-pin-config[data-active-tab="animations"] .blacksmith-pin-config-pane[data-pane="animations"] {
+    display: block;
+}
+
+/* Linked to row */
+.blacksmith-pin-config .blacksmith-pin-config-target {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.blacksmith-pin-config .blacksmith-pin-config-target-link {
+    cursor: pointer;
+}
+
+.blacksmith-pin-config .blacksmith-pin-config-target-kind {
+    opacity: 0.6;
+    font-size: 0.85em;
+}
+
+.blacksmith-pin-config .blacksmith-pin-config-target.is-broken {
+    color: var(--blacksmith-pin-broken-color);
+}
+
 /* Show/hide image vs icon bodies via data-icon-mode on root */
 .blacksmith-pin-config[data-icon-mode="image"] .blacksmith-pin-config-library-body,
 .blacksmith-pin-config[data-icon-mode="icon"] .blacksmith-pin-config-image-body {

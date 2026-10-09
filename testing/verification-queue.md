@@ -185,3 +185,18 @@ Shipped unverified.
 - **Nothing regressed at the far end of the bar.** The suppression list grew from ten entries to
   twenty-one; confirm party health, monster health, and both timers still survive a narrow bar, since they
   rank after every statistic.
+
+## Live-verify the Configure Pin tabs and broken links
+
+Shipped unverified.
+
+- **Five tabs.** Open Configure Pin on a journal pin as GM: General, Tags, Image, Appearance, Animations. Image holds only Pin Source (the icon library or image field); Appearance holds Pin Design and Text Format.
+- **Type shows.** On a note pin the header subtitle, "Default for Note" and "Update All Canvas Pins for type: Note" all read Note, not blank.
+- **Edits survive switching.** Change Size on Appearance, pick a different icon on Image, add a tag on Tags, change Pin visibility on General, flip between tabs, Save. All four are saved.
+- **Update All and Default.** Turn on "Update All Canvas Pins for type" in the footer: the window re-renders and stays on the tab you were on.
+- **Player owner.** As a player who owns a pin, open Configure Pin (Enter on the selected pin): only Image, Appearance and Animations, opening on Image.
+- **Linked to.** On a journal page pin, General shows Linked to with the page name; clicking it opens that page. Same for a journal pin and a note pin.
+- **Broken glyph.** Delete the journal page a pin points at. Within a moment the pin shows an amber broken-link glyph bottom right and a tooltip. As a player, the same pin shows no glyph.
+- **Broken double-click.** Double-click the broken pin: "What this pin points to no longer exists." and nothing opens. Configure Pin shows the missing notice under Linked to.
+- **It heals.** Undo the deletion if you can, reload the scene: the glyph is gone.
+- **Not over-eager.** A pin whose page still exists shows no glyph, and a satellite pin of a type that declares no target never does.
