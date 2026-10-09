@@ -1,0 +1,106 @@
+# Working with Pins
+
+**Audience:** GMs and players using map pins in Coffee Pub Blacksmith.
+
+How to place, select, move, copy, delete and manage pins on a scene, and what each person at the table is allowed to do.
+
+## What a pin is
+
+A pin is a marker on the map. Most pins open something when you double-click them, such as a journal page. Other Coffee Pub modules place their own pins too, and those behave the same way for selecting, moving and the right-click menu. Where a pin differs, this guide says so.
+
+## Who can do what
+
+| You want to | Who can |
+|---|---|
+| See a pin | Anyone allowed to see it. A GM can hide a pin from the players. |
+| Select a pin and open its right-click menu | Anyone who can see it. |
+| Move, configure or delete a pin | The GM, and a player who owns that pin. |
+| Place a new pin | The GM. Players can too if the GM turns on **Player Pin Editing** in the module settings, under Pins. |
+| Change who can edit a pin, or hide it from players | GM only. |
+
+## Place a pin from a journal
+
+1. Open a journal page. A pin bar appears at the top of it.
+2. Choose **Pin Page** to pin that page, or **Pin Journal** to pin the whole journal.
+3. Before placing, pick an icon from the row of icons, and use the three small buttons to set the placement mode, **Pin editing** and **Pin visibility**.
+4. Place the pin on the scene.
+
+A page pin opens that page when you double-click it. You can pin the same page more than once.
+
+## Select a pin
+
+Click a pin once. A white outline shows it is selected. Click another pin to move the selection, or click empty map, press Escape, or change scene to clear it.
+
+A single click always selects. It is how the pin tool works and cannot be changed by another module.
+
+## Move a pin
+
+Press on a pin and drag it. Release to drop it. The pin stays selected afterward. Only the GM and the pin's owner can move it.
+
+## Open a pin
+
+Double-click it. What opens is up to the pin: a journal pin opens its page, and pins from other modules open their own windows.
+
+## Keyboard shortcuts
+
+These act on the selected pin. They are ignored while you are typing in any field, and while pins are hidden.
+
+| Key | What it does | Who can |
+|---|---|---|
+| Delete or Backspace | Deletes the selected pin, exactly as **Delete Pin** in the right-click menu does. | The GM, or the pin's owner |
+| Enter | Opens **Configure Pin** for the selected pin. | The GM, or the pin's owner |
+| Escape | Clears the selection. | Anyone |
+| Ctrl+C | Copies the selected pin. | Anyone, for pins that can be copied |
+| Ctrl+V | Pastes the copied pin under the mouse. | Anyone allowed to place pins |
+| Ctrl+Z | Brings back the last pin you deleted. | GM only |
+
+On a Mac, use Cmd in place of Ctrl.
+
+### Delete a pin, and bring it back
+
+Select the pin and press Delete or Backspace. There is no confirmation, so if you press it by mistake, press Ctrl+Z within a minute. The pin comes back where it was, with the same settings, and is selected. Undo only works on the scene you deleted it from, and only for the most recent deletion. While no pin is waiting to be restored, Ctrl+Z does what it always did in Foundry.
+
+If you delete with the key, a pin you are not allowed to delete is left alone and the key does nothing.
+
+### Copy and paste a pin
+
+Select a pin and press Ctrl+C, and you will see "Pin copied." Move the mouse to where the copy should go and press Ctrl+V. The copy appears under the mouse and is selected. Press Ctrl+V again for more copies.
+
+Not every pin can be copied. Journal pins can. A pin whose creator has not allowed copies shows "This pin cannot be copied." Copying is last-one-wins, the same as in Foundry: if you press Ctrl+C on a token afterwards, Ctrl+V pastes the token and not the pin. The copied pin is forgotten when you reload.
+
+Paste only works while the mouse is over the map.
+
+## The right-click menu
+
+Right-click a pin. The menu holds, in order:
+
+- Anything the pin's own module adds at the top.
+- **Bring Players Here**: pans every player's view to the pin and pings it.
+- **Configure Pin**: opens the configuration window. Owners and the GM only.
+- **Animate**: plays an animation on the pin for everyone. Choices are Ping, Pulse, Ripple, Flash, Glow, Bounce, three Scale sizes, Rotate and Shake.
+- **Layer**: **Bring to Front**, **Bring Forward**, **Send Backward** and **Send to Back**, for when pins overlap. Owners and the GM only.
+- **Pin visibility**: **Visible** or **Hidden**. GM only. A hidden pin is not drawn for players, though the GM still sees it dimmed.
+- **Pin editing**: **GM only**, **Owner** or **Everyone**, which decides who may move, configure and delete the pin. GM only.
+- **Delete Pin**: owners and the GM only.
+
+## Configure a pin
+
+Choose **Configure Pin** from the right-click menu, or select the pin and press Enter. The window covers:
+
+- **Pin editing** and **Pin visibility**, as in the menu.
+- **Allow Duplicates of this Pin on the Canvas**, which lets the same pin be placed more than once.
+- **Tags**, used to group and hide pins.
+- **Size**, **Shape** (Circle, Square, Rectangle or None), **Background**, **Border**, **Icon Color** and **Drop shadow**.
+- The pin's text: **Text layout** (below, above, to the right, to the left, arcs above or below, or overlaid), **Text display** (Always, Hover, Never or GM only), **Text color**, **Text size**, **Max characters**, **Chars per line** and **Scale text with pin**.
+- **Event animations**: an animation and sound for **Hover**, **Click**, **Double-click**, **Add (to canvas)** and **Delete**. The Click animation plays when you select the pin.
+
+## Show, hide and find pins
+
+Open the Pins tool on the Blacksmith bar (its tooltip reads "Open Pins"). Left-click opens the **Manage Pins** window; right-click gives a shortcut menu with **Manage Pins**, **Hide All Pins** and any saved profiles.
+
+**Manage Pins** has two tabs:
+
+- **Manage Pin Layers**: show or hide pins by category and by tag, and save the current view as a named profile you can load again. **All Pins** and **No Pins** are always available. **Dim hidden** keeps hidden pins on the map at reduced opacity instead of removing them.
+- **Manage Pin Tags**: browse every pin on the scene by category or alphabetically, filter by name, category or tag, and use **Show hidden** to include pins that are currently hidden. The GM can switch on **Select** to edit the tags of many pins at once with **Bulk Edit Tags**, and can use **Manage Custom Pin Tags** and **Delete All** from here.
+
+What you hide here is your own view. It does not change what other players see. To hide a pin from players, use **Pin visibility** on the pin itself.

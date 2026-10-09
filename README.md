@@ -59,7 +59,8 @@ requests go in [Issues](https://github.com/Drowbe/coffee-pub-blacksmith/issues),
 Everything lives in the [wiki](https://github.com/Drowbe/coffee-pub-blacksmith/wiki).
 
 - **Playing or running a game with it** --
-  [Getting started](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/userguide-getting-started).
+  [Getting started](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/userguide-getting-started),
+  [Working with pins](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/userguide-pins).
 - **Building a module against it** --
   [the Core API](https://github.com/Drowbe/coffee-pub-blacksmith/wiki/api-core), which routes to every
   other surface.

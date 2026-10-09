@@ -462,11 +462,18 @@ test anywhere in the renderer, so a player-visible pin shows through unexplored 
 `Note#isVisible` (`client/canvas/placeables/note.mjs:85-92`) into the update that already runs on every pan.
 If a GM marking a pin visible is meant to be final, close this and say so in the architecture doc.
 
-### Pins: single-click selection, and double-click landing in drag mode
+### Walk the pins user guide
 
-Clicking a pin should select it with a visible ring so keyboard actions can operate on it. Separately, for
-editable pins mousedown enters the drag system and any movement past `DRAG_THRESHOLD` swallows the
-double-click.
+`userguides/userguide-pins.md` was written from the code and the on-screen labels, not walked in a running
+world. Most likely to be wrong: the journal placement steps (what exactly happens after Pin Page, and whether
+a click or a drop places it), what a player sees in the Pins tool and Manage Pins (the GM-only controls were
+read off permission checks), and the order of the right-click menu entries as rendered.
+
+### Pins: double-click landing in drag mode
+
+For editable pins mousedown enters the drag system and any movement past `DRAG_THRESHOLD` swallows the
+double-click. Single-click selection shipped (see `architecture-pins.md`, Selection); this half did not change
+and has not been re-examined since the click handling was rewritten.
 
 ### Pins: automated tests, and a measurement before any culling
 
