@@ -196,12 +196,14 @@ Pins render into a DOM overlay that is a sibling of the canvas app element, not 
 
 ### Selection
 
-State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanDelete`); the selected node carries `data-selected="true"`, styled in `pins.css`. One pin at a time. Nothing outside the renderer reads it, and it is not part of the public API.
+State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanEdit`, `_lastDeleted`); the selected node carries `data-selected="true"`, styled in `pins.css`. One pin at a time. Nothing outside the renderer reads it, and it is not part of the public API.
 
-- **Select**: `PinDOMElement.select(pinId, { canDelete })` on left press. `canDelete` is the same `_canEdit` test that gates the menu's Delete Pin, resolved at press time because the key handler must answer synchronously.
+- **Select**: `PinDOMElement.select(pinId, { canDelete })` on left press. `canEdit` is the same `_canEdit` test that gates the menu's Configure Pin and Delete Pin, resolved at press time because the key handler must answer synchronously.
 - **Deselect**: `Escape`; a `pointerdown` anywhere outside `.blacksmith-pin` and the pin context menu; `removePin`; `clear` (scene change); overlay hidden.
 - **Keys**: one capture-phase `keydown` listener on `document`, installed in `initialize` and removed in `cleanup`. Capture matters: Foundry's keyboard manager listens on `window` in the bubble phase, so a handled key stopped here never reaches core's Delete keybinding, which would otherwise also delete a controlled token. It ignores modified keys, auto-repeat, and any target inside `input, textarea, select, prose-mirror, [contenteditable]`.
 - **Delete / Backspace** call `PinDOMElement._deletePin`, which the context menu's Delete Pin also calls -- one path, so the delete animation, permission check, GM relay and `deleted` event cannot drift apart.
+- **Enter** calls `_configurePin`, which the menu's Configure Pin also calls. A focused button or link keeps its own Enter.
+- **Ctrl/Cmd+Z** restores the last pin a GM deleted. `_deletePin` snapshots the pin (`PinManager.get`) before deleting and keeps one entry in `_lastDeleted`; `_undoDelete` calls `PinManager.create` with the original id, position and settings, then selects it. The entry expires after `UNDO_DELETE_MS` (60 s) and is dropped if the scene changed. Ctrl+Z is claimed **only while an entry is live**, so Foundry's own undo is untouched otherwise. GM only, because `create` is a GM write. Restoring fires `created`, not an "undeleted" event, so a satellite that tears down state on `deleted` sees a fresh pin.
 
 To add a selected-state command, add a key branch in `_onDocumentKeyDown`. Claim the key (`preventDefault` and `stopPropagation`) only when you will act on it.
 

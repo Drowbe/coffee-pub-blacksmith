@@ -73,7 +73,9 @@ class PinDOMElement {
     static _reusablePoint = null; // Reusable PIXI.Point to avoid allocations (for coordinate conversion)
     static _reusableDragPoint = null; // Reusable PIXI.Point for drag operations
     static _selectedPinId = null; // The one selected pin (single-click); keyboard commands act on it
-    static _selectedCanDelete = false; // Whether the selected pin may be deleted by this user
+    static _selectedCanEdit = false; // Whether this user may edit/delete the selected pin (the test behind the menu's Configure and Delete)
+    static _lastDeleted = null; // { pin, sceneId, time } -- the last pin a GM deleted, for Ctrl+Z
+    static UNDO_DELETE_MS = 60000;
     static _pointerDownListener = null; // Document capture listener: a press outside any pin deselects
     static _keyDownListener = null; // Document capture listener: keyboard commands for the selected pin
     static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
@@ -750,10 +752,10 @@ class PinDOMElement {
             if (button === 0) {
                 // Left press selects at once (a drag of an unselected pin selects it too)
                 const currentPinData = PinManager.get(pinData.id) || freshPinData;
-                const canDelete = PinManager._canEdit(currentPinData, userId);
-                this.select(currentPinData.id, { canDelete });
+                const canEdit = PinManager._canEdit(currentPinData, userId);
+                this.select(currentPinData.id, { canEdit });
 
-                if (canDelete) {
+                if (canEdit) {
                     // Start potential drag immediately - it decides whether this press was a click or a drag
                     await this._startPotentialDrag(pinElement, currentPinData, e);
                 } else {
@@ -1048,18 +1050,7 @@ class PinDOMElement {
             coreItems.push({
                 name: 'Configure Pin',
                 icon: '<i class="fa-solid fa-cog"></i>',
-                callback: async () => {
-                    try {
-                        const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
-                        if (pinsAPI) {
-                            await pinsAPI.configure(pinData.id, { sceneId: canvas?.scene?.id });
-                        } else {
-                            console.warn('BLACKSMITH | PINS API not available');
-                        }
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error opening pin configuration', err?.message || err, false, true);
-                    }
-                }
+                callback: () => this._configurePin(pinData.id)
             });
         }
 
@@ -1817,9 +1808,9 @@ class PinDOMElement {
      * Select a pin (single selection).
      * @param {string} pinId
      * @param {Object} [options]
-     * @param {boolean} [options.canDelete=false] - Whether the user may delete it (the same test that gates the menu's Delete Pin); decided at select time because the key handler must answer synchronously
+     * @param {boolean} [options.canEdit=false] - Whether the user may edit and delete it (the same test that gates the menu's Configure Pin and Delete Pin); decided at select time because the key handler must answer synchronously
      */
-    static select(pinId, { canDelete = false } = {}) {
+    static select(pinId, { canEdit = false } = {}) {
         if (this._selectedPinId !== pinId) {
             this.deselect();
             const pinElement = this._pins.get(pinId);
@@ -1827,7 +1818,7 @@ class PinDOMElement {
             this._selectedPinId = pinId;
             pinElement.dataset.selected = 'true';
         }
-        this._selectedCanDelete = canDelete;
+        this._selectedCanEdit = canEdit;
     }
 
     /**
@@ -1837,7 +1828,7 @@ class PinDOMElement {
         const pinElement = this._selectedPinId ? this._pins.get(this._selectedPinId) : null;
         if (pinElement) delete pinElement.dataset.selected;
         this._selectedPinId = null;
-        this._selectedCanDelete = false;
+        this._selectedCanEdit = false;
     }
 
     /**
@@ -1854,23 +1845,33 @@ class PinDOMElement {
     }
 
     /**
-     * Keyboard commands for the selected pin. Delete/Backspace delete it, Escape deselects.
-     * Anything else, and anything typed into a field, passes through untouched.
+     * Keyboard commands. On the selected pin: Delete/Backspace delete it, Enter configures it, Escape
+     * deselects. Ctrl/Cmd+Z restores the last deleted pin. Anything else, anything typed into a field,
+     * and any key the user could not act on from the menu passes through to Foundry untouched.
      * @param {KeyboardEvent} event
      * @private
      */
     static _onDocumentKeyDown(event) {
-        if (!this._selectedPinId) return;
-        if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
-
         const target = event.target;
         if (target?.isContentEditable || target?.closest?.('input, textarea, select, prose-mirror, [contenteditable="true"]')) return;
 
-        // A hidden overlay (Hide All) means the pin is not on screen -- never act on what cannot be seen
+        // A hidden overlay (Hide All) means the pins are not on screen -- never act on what cannot be seen
         if (this._container?.dataset.hidden === 'true') {
             this.deselect();
             return;
         }
+
+        // Undo claims Ctrl+Z only while a deletion is waiting, so Foundry's own undo is otherwise left alone
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'z') {
+            if (!this._hasUndoableDelete() || event.repeat) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this._undoDelete();
+            return;
+        }
+
+        if (!this._selectedPinId) return;
+        if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
 
         if (event.key === 'Escape') {
             event.preventDefault();
@@ -1879,19 +1880,46 @@ class PinDOMElement {
             return;
         }
 
+        // The pin-editing commands claim a key only when the menu would offer the same entry
+        if (!this._selectedCanEdit || event.repeat) return;
+
         if (event.key === 'Delete' || event.key === 'Backspace') {
-            // Only claim the key when the menu would offer Delete Pin; otherwise Foundry keeps it
-            if (!this._selectedCanDelete || event.repeat) return;
             event.preventDefault();
             event.stopPropagation();
             const pinId = this._selectedPinId;
             this.deselect();
             this._deletePin(pinId);
+        } else if (event.key === 'Enter') {
+            // A focused button or link would also activate on Enter
+            if (target?.closest?.('button, a[href], summary')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            this._configurePin(this._selectedPinId);
+        }
+    }
+
+    /**
+     * Open Configure Pin. The one path behind both the context menu's Configure Pin and the Enter key.
+     * @param {string} pinId
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _configurePin(pinId) {
+        try {
+            const pinsAPI = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+            if (pinsAPI) {
+                await pinsAPI.configure(pinId, { sceneId: canvas?.scene?.id });
+            } else {
+                console.warn('BLACKSMITH | PINS API not available');
+            }
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error opening pin configuration', err?.message || err, false, true);
         }
     }
 
     /**
      * Delete a pin. The one path behind both the context menu's Delete Pin and the Delete key.
+     * A GM's deletion is remembered so Ctrl+Z can restore it.
      * @param {string} pinId
      * @returns {Promise<void>}
      * @private
@@ -1899,9 +1927,51 @@ class PinDOMElement {
     static async _deletePin(pinId) {
         try {
             const { PinManager } = await import('./manager-pins.js');
+            const pin = game.user?.isGM ? PinManager.get(pinId) : null;
             await PinManager.delete(pinId);
+            if (pin?.sceneId) {
+                const { sceneId, ...data } = pin;
+                this._lastDeleted = { pin: data, sceneId, time: Date.now() };
+            }
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
+        }
+    }
+
+    /**
+     * Whether Ctrl+Z has a pin to restore: it was deleted recently and on the scene now showing.
+     * @returns {boolean}
+     * @private
+     */
+    static _hasUndoableDelete() {
+        const last = this._lastDeleted;
+        if (!last) return false;
+        if (Date.now() - last.time > this.UNDO_DELETE_MS || last.sceneId !== canvas?.scene?.id) {
+            this._lastDeleted = null;
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Restore the last deleted pin with its original id, position and settings, then select it.
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _undoDelete() {
+        const last = this._lastDeleted;
+        this._lastDeleted = null;
+        if (!last) return;
+        try {
+            const { PinManager } = await import('./manager-pins.js');
+            await PinManager.create(last.pin, { sceneId: last.sceneId });
+            // The renderer draws a created pin asynchronously; select it once its node exists
+            for (let i = 0; i < 20 && !this._pins.has(last.pin.id); i++) {
+                await new Promise((resolve) => setTimeout(resolve, 50));
+            }
+            this.select(last.pin.id, { canEdit: true });
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error restoring deleted pin', err?.message || err, false, true);
         }
     }
 

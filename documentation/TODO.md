@@ -293,13 +293,14 @@ Librarian would institutionalise the pattern this effort exists to end. Fixtures
 their message and `"1.1"` in the fixture, and the fixture pins carry `questIndex`/`questCategory`, which are
 not in the stable core they named.
 
-### Verify prompt catalogs live, then move Area onto them (opened 2026-10-08)
+### Move Area Narrative onto declared prompt catalogs (opened 2026-10-08)
 
-`promptCatalogs` is built for journal profiles (`utility-prompt-catalogs.js`) but has not run in Foundry: the
-checkbox, the compendium query and the catalog section in a real prompt are untested. After that, Area's
-hardcoded compendium and world checkboxes (`registry-json-import-journals.js`, `applyAreaCatalogSections`)
-should become declared catalogs so Blacksmith is consumer zero. Design record in
-`plans/plan-prompt-catalogs.md`. Verified by a generation run against a real recipe prompt.
+`promptCatalogs` works for declared journal profiles and was confirmed live: the compendium and world checkboxes
+show on the recipe prompt and the catalog reaches the prompt. Area Narrative still builds its own catalog
+(`applyAreaCatalogSections` in `registry-json-import-journals.js`), so the declared route is a second path calling the
+same list functions. Moving Area onto it makes Blacksmith the first consumer of its own mechanism, and removes the
+`'area'` hardcoding from the checkbox groups. Design record in `plans/plan-prompt-catalogs.md`. Verified by Area's
+prompt being unchanged, line for line, before and after.
 
 ### A journal profile with no selector registers and is unreachable (opened 2026-10-08)
 

@@ -198,3 +198,7 @@ Shipped unverified. Needs a world with a few pins, a token, and a player client.
 - **Double-click still works.** Double-click a pin whose module opens something on double-click. It opens, and a pin with no Click animation shows no flicker from the first click.
 - **Drag.** Drag a pin: it selects, moves, stays selected, and Delete still works after.
 - **Click removed.** In the console, `game.modules.get('coffee-pub-blacksmith').api.pins.on('click', () => {})` throws `Invalid event type: click`.
+- **Undo.** As GM, delete a pin with Backspace, then press Ctrl+Z: it returns where it was, with the same icon, text and settings, and is selected. Repeat with the menu's Delete Pin. Press Ctrl+Z again: nothing from pins.
+- **Undo is scoped.** Delete a pin, change scene, return, press Ctrl+Z: no pin returns. Delete a pin, wait over a minute, Ctrl+Z: no pin returns. With no pin deleted, Ctrl+Z still undoes a token deletion as before.
+- **Undo and a satellite pin.** Delete and restore a codex, note or merchant pin, then double-click it. It still opens the right document; if it does not, the satellite's `deleted` handler unlinked it and needs a matching `created` path.
+- **Enter.** Select a pin, press Enter: Configure Pin opens. Do it as a player on a pin you do not own: nothing. With a dialog button focused, Enter still presses that button.
