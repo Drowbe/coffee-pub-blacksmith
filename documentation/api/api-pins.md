@@ -251,6 +251,8 @@ If your module ships a `pin-taxonomy.json`, use the v3 shape:
 }
 ```
 
+A category may also carry `"copyable": true` (boolean, default `false`; also accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`). It lets a user copy a pin of that type with Ctrl+C and paste it with Ctrl+V. **Leave it off unless a second pin is safe:** the copy carries the pin's `config` verbatim, including any document link or sync id, and your `created` handler sees it as a new pin. A pin your module reconciles against a target count, or that a document records the id of, should not be copyable. Only an explicit boolean takes part when entries are merged, so a user override JSON that omits it does not undo what your module declared.
+
 Differences from v2: a single `tags` array (no `defaultTags` / `suggestedTags`); categories nest under `modules.{moduleId}.pinCategories`, not at the root; `globalTags` at the root for cross-module tags; `"version": 3` is required. Blacksmith's built-in `resources/pin-taxonomy.json` uses this format.
 
 ### 6. Set ownership explicitly for GM-only pins

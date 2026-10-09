@@ -374,10 +374,10 @@ export class PinsAPI {
 
     /**
      * Get all registered taxonomy entries for a module.
-     * Returns a plain object keyed by type, each value being { label, tags }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable }.
      * Merges built-in JSON, override JSON, and runtime-registered entries.
      * @param {string} moduleId - Your module id (e.g. 'coffee-pub-artificer')
-     * @returns {Record<string, { label: string, tags: string[] }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean }>}
      */
     static getModuleTaxonomy(moduleId) {
         return PinManager.getModuleTaxonomy(moduleId);

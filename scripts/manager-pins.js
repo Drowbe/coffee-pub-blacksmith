@@ -205,7 +205,10 @@ export class PinManager {
             moduleId: String(moduleId).trim(),
             type: normalizedType,
             label: (taxonomy.label != null && String(taxonomy.label).trim()) ? String(taxonomy.label).trim() : '',
-            tags: this._normalizeTaxonomyTagList(taxonomy.tags)
+            tags: this._normalizeTaxonomyTagList(taxonomy.tags),
+            // Undefined when not stated, so a later layer (user override JSON) that omits it does not undo the
+            // module that declared it. Only an explicit boolean takes part in the merge.
+            copyable: typeof taxonomy.copyable === 'boolean' ? taxonomy.copyable : undefined
         };
     }
 
@@ -237,10 +240,12 @@ export class PinManager {
             moduleId: valid[valid.length - 1].moduleId || valid[0].moduleId || '',
             type: valid[valid.length - 1].type || valid[0].type || 'default',
             label: '',
-            tags: []
+            tags: [],
+            copyable: false
         };
         for (const entry of valid) {
             if (entry.label) merged.label = entry.label;
+            if (typeof entry.copyable === 'boolean') merged.copyable = entry.copyable;
             merged.tags = Array.from(new Set([...(merged.tags || []), ...(entry.tags || [])].filter(Boolean)));
         }
         return merged;
@@ -260,9 +265,9 @@ export class PinManager {
     /**
      * Get all registered taxonomy entries for a module — every type that has been registered
      * via the built-in JSON, an override JSON, or registerPinTaxonomy().
-     * Returns a plain object keyed by type, each value being { label, tags }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable }.
      * @param {string} moduleId
-     * @returns {Record<string, { label: string, tags: string[] }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean }>}
      */
     static getModuleTaxonomy(moduleId) {
         if (!moduleId) return {};
@@ -274,7 +279,7 @@ export class PinManager {
         const result = {};
         for (const type of types) {
             const entry = this.getPinTaxonomy(moduleId, type);
-            if (entry) result[type] = { label: entry.label, tags: entry.tags };
+            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable };
         }
         return result;
     }
@@ -563,7 +568,7 @@ export class PinManager {
         return [...this._globalTags];
     }
 
-    /** All registered taxonomies keyed by moduleId → type → { label, tags }. */
+    /** All registered taxonomies keyed by moduleId → type → { label, tags, copyable }. */
     static getAllTaxonomies() {
         const moduleIds = new Set();
         for (const key of this._builtinTaxonomyRegistry.keys()) { const [m] = key.split('|'); if (m) moduleIds.add(m); }

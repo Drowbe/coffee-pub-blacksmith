@@ -76,6 +76,9 @@ class PinDOMElement {
     static _selectedCanEdit = false; // Whether this user may edit/delete the selected pin (the test behind the menu's Configure and Delete)
     static _lastDeleted = null; // { pin, sceneId, time } -- the last pin a GM deleted, for Ctrl+Z
     static UNDO_DELETE_MS = 60000;
+    static _clipboard = null; // { pin } -- the copied pin's data, for Ctrl+V; per session, lost on reload
+    static _pointer = { x: 0, y: 0, overBoard: false }; // Last pointer position, so a paste lands under the mouse
+    static _pointerMoveListener = null;
     static _pointerDownListener = null; // Document capture listener: a press outside any pin deselects
     static _keyDownListener = null; // Document capture listener: keyboard commands for the selected pin
     static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
@@ -137,6 +140,13 @@ class PinDOMElement {
         this._keyDownListener = (e) => this._onDocumentKeyDown(e);
         document.addEventListener('pointerdown', this._pointerDownListener, true);
         document.addEventListener('keydown', this._keyDownListener, true);
+        this._pointerMoveListener = (e) => {
+            const pointer = this._pointer;
+            pointer.x = e.clientX;
+            pointer.y = e.clientY;
+            pointer.overBoard = !!e.target?.closest?.('#board, .blacksmith-pin');
+        };
+        document.addEventListener('pointermove', this._pointerMoveListener, { capture: true, passive: true });
 
         // Initialize reusable PIXI.Point for coordinate conversion
         this._reusablePoint = new PIXI.Point(0, 0);
@@ -1870,6 +1880,26 @@ class PinDOMElement {
             return;
         }
 
+        // Copy and paste follow Foundry's own: the last copy wins, and a paste lands under the mouse
+        if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey) {
+            const key = event.key.toLowerCase();
+            if (key === 'c') {
+                if (this._selectedPinId) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (!event.repeat) this._copyPin(this._selectedPinId);
+                } else {
+                    // Foundry is about to copy something else, which supersedes a copied pin
+                    this._clipboard = null;
+                }
+            } else if (key === 'v' && this._clipboard && this._pointer.overBoard) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!event.repeat) this._pastePin();
+            }
+            return;
+        }
+
         if (!this._selectedPinId) return;
         if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
 
@@ -1965,14 +1995,89 @@ class PinDOMElement {
         try {
             const { PinManager } = await import('./manager-pins.js');
             await PinManager.create(last.pin, { sceneId: last.sceneId });
-            // The renderer draws a created pin asynchronously; select it once its node exists
-            for (let i = 0; i < 20 && !this._pins.has(last.pin.id); i++) {
-                await new Promise((resolve) => setTimeout(resolve, 50));
-            }
-            this.select(last.pin.id, { canEdit: true });
+            await this._selectWhenDrawn(last.pin.id);
         } catch (err) {
             postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error restoring deleted pin', err?.message || err, false, true);
         }
+    }
+
+    /**
+     * Select a pin that was just created. The renderer draws it asynchronously, so wait for its node.
+     * @param {string} pinId
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _selectWhenDrawn(pinId) {
+        const { PinManager } = await import('./manager-pins.js');
+        for (let i = 0; i < 20 && !this._pins.has(pinId); i++) {
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+        const pin = PinManager.get(pinId);
+        if (pin) this.select(pinId, { canEdit: PinManager._canEdit(pin, game.user?.id || '') });
+    }
+
+    /**
+     * Copy a pin to the pin clipboard. Only a pin whose type declares `copyable: true` in its taxonomy entry can
+     * be copied; anything else says so. Undeclared is not copyable: a type opts in because only its owner knows
+     * whether a second pin is safe (a note stores its pin's id; a gather spot is reconciled against a target count).
+     * @param {string} pinId
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _copyPin(pinId) {
+        const { PinManager } = await import('./manager-pins.js');
+        const pin = PinManager.get(pinId);
+        if (!pin) return;
+        if (PinManager.getPinTaxonomy(pin.moduleId, pin.type)?.copyable !== true) {
+            this._clipboard = null;
+            ui.notifications?.warn('This pin cannot be copied.');
+            return;
+        }
+        const { sceneId, ...data } = pin;
+        this._clipboard = { pin: data };
+        ui.notifications?.info('Pin copied.');
+    }
+
+    /**
+     * Paste the copied pin under the mouse as a new pin, then select it.
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _pastePin() {
+        const entry = this._clipboard;
+        const scene = canvas?.scene;
+        if (!entry || !scene) return;
+        const at = this._clientToScene(this._pointer.x, this._pointer.y);
+        if (!at) return;
+        try {
+            const { PinManager } = await import('./manager-pins.js');
+            if (!PinManager._canCreate()) {
+                ui.notifications?.warn('You do not have permission to add pins.');
+                return;
+            }
+            const id = crypto.randomUUID();
+            await PinManager.create({ ...foundry.utils.deepClone(entry.pin), id, x: at.x, y: at.y }, { sceneId: scene.id });
+            await this._selectWhenDrawn(id);
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error pasting pin', err?.message || err, false, true);
+        }
+    }
+
+    /**
+     * Convert a screen position to scene coordinates (the same conversion a pin drag uses).
+     * @param {number} clientX
+     * @param {number} clientY
+     * @returns {{ x: number, y: number } | null}
+     * @private
+     */
+    static _clientToScene(clientX, clientY) {
+        const canvasElement = canvas?.app?.renderer?.view || canvas?.app?.canvas || canvas?.canvas;
+        if (!canvasElement || !canvas?.stage) return null;
+        const rect = canvasElement.getBoundingClientRect();
+        if (!this._reusableDragPoint) this._reusableDragPoint = new PIXI.Point(0, 0);
+        this._reusableDragPoint.set(clientX - rect.left, clientY - rect.top);
+        const point = canvas.stage.toLocal(this._reusableDragPoint);
+        return { x: point.x, y: point.y };
     }
 
     /**
@@ -2128,6 +2233,11 @@ class PinDOMElement {
             document.removeEventListener('keydown', this._keyDownListener, true);
             this._keyDownListener = null;
         }
+        if (this._pointerMoveListener) {
+            document.removeEventListener('pointermove', this._pointerMoveListener, true);
+            this._pointerMoveListener = null;
+        }
+        this._clipboard = null;
 
         // Remove all hook listeners
         for (const hook of this._hookIds) {
