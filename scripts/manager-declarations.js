@@ -1107,6 +1107,25 @@ export function buildPromptSchemaText(kindId, profileId, options = {}) {
         }
     }
 
-    sections.push('', 'JSON TEMPLATE', '', buildTemplateText(kindId, profileId, options));
+    // THE TEMPLATE'S VALUES ARE EXAMPLES, and the prompt has to say so. A field the author left
+    // open still shows its declared example in the template, and a generator cannot tell that from a
+    // value the author chose: it copied a skill level of 1 and a DC of 4 into a Very Rare recipe because
+    // they were sitting in the shape it was handed. `null` is not the answer, since a field that is not
+    // nullable rejects it on import. Saying what the numbers are is.
+    const selectors = composed.fields
+        .filter(field => field.role === 'selector')
+        .map(field => field.name);
+    sections.push(
+        '',
+        'The values in the template below are examples of the SHAPE, not choices.',
+        answers.length
+            ? 'Only the fields listed above as already answered are fixed. For every other field, choose a value that suits this record, unless the guidance for that field says to leave it blank. Do not keep an example because it is there.'
+            : 'Nothing has been fixed by the author. For every field, choose a value that suits this record, unless the guidance for that field says to leave it blank. Do not keep an example because it is there.',
+        ...(selectors.length ? [`Keep ${selectors.join(', ')} exactly as written.`] : []),
+        '',
+        'JSON TEMPLATE',
+        '',
+        buildTemplateText(kindId, profileId, options)
+    );
     return sections.join('\n');
 }
