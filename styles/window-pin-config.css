@@ -1,11 +1,11 @@
 /* Main Window */
-div#blacksmith-pin-config {
+div.blacksmith-pin-config-window {
     min-height: 500px;
     min-width: 600px;
 }
 
 /* Window Content */
-div#blacksmith-pin-config .window-content {
+div.blacksmith-pin-config-window .window-content {
     opacity: var(--container-opacity, 0.85);
     padding: 0px;
     background: #222222;

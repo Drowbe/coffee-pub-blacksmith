@@ -13,7 +13,7 @@
 - **Pin editing (per pin)**: `config.blacksmithAccess` is `'gm'` | `'private'` | `'public'` — who may edit the pin record (move, Configure Pin, delete). It does not control what opens on click; the calling module owns click/double-click behavior and document edit rights.
 - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). A world-level tag registry tracks every tag ever used.
 - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, and the Manage Pins window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Name** field for the pin's `text`, a **Linked to** row for a type that declares a target, then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
+- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Name** field for the pin's `text`, a **Linked to** row (its name for a type that declares a target, otherwise a line saying the pin holds no link or does not record one), then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -257,7 +257,7 @@ A category may also declare `"target"`, the `config` key (or an ordered list of 
 
 - **A missing document marks the pin as broken.** The GM and the pin's owners see a broken-link glyph in a corner of the pin and a tooltip. Players do not, because they cannot act on it and a deleted document looks the same as one they may not open. Existence is all that is tested, never permission. The check runs when the pin is drawn and again after any world document is deleted.
 - **A double-click on a broken pin is not delivered to your `doubleClick` handler.** The user gets "What this pin points to no longer exists." instead, because the handler could only fail. A pin that declares a target but holds no UUID is unlinked, not broken, and is delivered as usual.
-- **Configure Pin shows a Linked to row** on the General tab with the document's name, which opens it, or a missing notice.
+- **Configure Pin shows a Linked to row** on the General tab with the document's name, which opens it, or a missing notice. Every pin has the row: a type that declares no `target` shows a line saying it does not record what it points at.
 
 Do not declare `target` if your module wants to receive double-clicks on a dangling pin of its own.
 
@@ -1926,7 +1926,7 @@ Returns aggregate counts for **Manage Pins**–style summaries: totals plus grou
 **Returns**: `{ total: number, modules: Array<{ key: string, count: number, pins: string[] }>, types: Array<...>, tags: Array<...> }` — each grouping sorted by `key`. Type keys are `moduleId|visibilityType` as used internally for filters.
 
 ### `pins.openLayers(options?)`
-Opens the **Manage Pins** window (Application V2): **Manage Pin Layers** tab for taxonomy and visibility profiles, **Manage Pin Tags** tab for browse/bulk tag tools. Equivalent to `game.modules.get('coffee-pub-blacksmith').api.openWindow('blacksmith-pin-layers', options)` when that bridge exists.
+Opens the **Manage Pins** window (Application V2): **Manage Pin Layers** tab for taxonomy and visibility profiles, **Manage Pin Tags** tab for browse/bulk tag tools, **Manage Pin Links** tab for what each pin points at. Equivalent to `game.modules.get('coffee-pub-blacksmith').api.openWindow('blacksmith-pin-layers', options)` when that bridge exists.
 
 **Returns**: `Promise<Application | void>`
 

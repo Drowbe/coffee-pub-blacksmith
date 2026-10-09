@@ -25,7 +25,6 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
         {},
         {
-            id: 'blacksmith-pin-config',
             classes: ['blacksmith-window', 'blacksmith-pin-config-window'],
             position: { width: 700, height: 600 },
             window: { title: 'Configure Pin', resizable: true, minimizable: true }
@@ -57,6 +56,16 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         if (typeof saved.height === 'number') posBounds.height = saved.height;
         if (typeof saved.top === 'number') posBounds.top = saved.top;
         if (typeof saved.left === 'number') posBounds.left = saved.left;
+        // One window per pin: Foundry keys an application by its id, so a shared id made a second window
+        // replace the first
+        opts.id = opts.id ?? `blacksmith-pin-config-${pinId}`;
+        // Each window open already moves the next one down and across, or it would sit exactly on top of it
+        const alreadyOpen = [...(foundry.applications.instances?.values?.() ?? [])]
+            .filter((app) => app instanceof PinConfigWindow).length;
+        if (alreadyOpen) {
+            if (typeof posBounds.top === 'number') posBounds.top += 30 * alreadyOpen;
+            if (typeof posBounds.left === 'number') posBounds.left += 30 * alreadyOpen;
+        }
         opts.position = foundry.utils.mergeObject(
             foundry.utils.mergeObject({}, PinConfigWindow.DEFAULT_OPTIONS.position ?? {}),
             posBounds
@@ -570,17 +579,17 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         // What the pin points at, for a type that declares a target
         const target = await PinManager.resolvePinTarget(pin);
-        const pinTarget = (target.declared && target.uuid)
-            ? {
-                uuid: target.uuid,
-                broken: target.broken,
-                relinkable: target.relinkable && isGM,
-                name: target.doc?.name ?? '',
-                kind: target.doc
-                    ? game.i18n.localize(target.doc.constructor?.metadata?.label ?? target.doc.documentName)
-                    : ''
-            }
-            : null;
+        // Always present, so every pin has the row: a type that records no link says so, as the Links tab does
+        const pinTarget = {
+            status: !target.declared ? 'untracked' : (!target.uuid ? 'unlinked' : (target.broken ? 'broken' : 'linked')),
+            uuid: target.uuid,
+            broken: target.broken,
+            relinkable: target.relinkable && isGM,
+            name: target.doc?.name ?? '',
+            kind: target.doc
+                ? game.i18n.localize(target.doc.constructor?.metadata?.label ?? target.doc.documentName)
+                : ''
+        };
 
         // Build Suggested / Other tag groups via flags API
         const tagsApi = game.modules.get(MODULE.ID)?.api?.tags;
@@ -1240,6 +1249,13 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
      * @returns {Promise<PinConfigWindow>} - The opened window instance
      */
     static async open(pinId, options = {}) {
+        // A pin already being configured is brought forward, not rebuilt: a render would discard unsaved edits
+        const existing = foundry.applications.instances?.get(`blacksmith-pin-config-${pinId}`);
+        if (existing) {
+            if (existing.minimized) await existing.maximize?.();
+            existing.bringToFront?.();
+            return existing;
+        }
         const window = new PinConfigWindow(pinId, options);
         await window.render(true);
         return window;

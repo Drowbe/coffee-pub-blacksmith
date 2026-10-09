@@ -225,11 +225,30 @@ Shipped unverified. Needs a world with journal page pins, plus a compendium cont
 
 Shipped unverified. Needs a scene with several broken journal pins, one broken Merchant or Librarian pin, and a broken note pin (a kind that cannot be relinked).
 
-- **Repair Links.** Manage Pins shows **Repair Links** in the action bar. With nothing broken it says "No broken links to repair." As a player, the button is not there.
+- **Repair Links.** The Manage Pin Links tab shows **Repair Links** in the action bar, and the other two tabs do not. With nothing broken it says "No broken links to repair." As a player, the button is not there.
 - **One question.** With broken journal pins it asks where to look once. With only Merchant or Librarian pins broken it does not ask.
 - **The list.** Each broken pin has a row with its label, the kind of document, and a dropdown of matches marked Compendium or World. A pin with exactly one same-name match is preselected, and the rest read **Leave broken**. The dialog mentions the count of broken pins that cannot be relinked when a note pin is broken.
 - **Apply.** Change one choice, tick the rename box and press **Apply**. The chosen pins relink, the glyphs clear, the window refreshes, and a summary reports the count. No rename question appears per pin. Without the rename box ticked, journal pin labels stay as they were.
 - **Nothing chosen.** Setting every row to Leave broken and pressing Apply says to choose at least one.
-- **Selected only.** In Manage Pin Tags, Select mode, tick two broken pins and one healthy one and press **Relink Selected**: only the two broken ones are listed.
 - **Failure.** Delete a chosen document between opening the dialog and pressing Apply: the summary names the pin and the reason, and the rest relink.
 - **Taxonomy.** Manage Pin Layers no longer lists empty Codex, Quest and Objective rows, and shows one Note row, not two.
+
+## Live-verify the Manage Pin Links tab
+
+Shipped unverified. Needs a scene with a journal pin, a broken journal pin, a Merchant or Librarian pin, and a pin of a kind that declares no target (a Curator or Artificer pin).
+
+- **Rows.** The third tab, **Manage Pin Links**, lists every pin. Broken pins come first in amber, then Linked, then No link and Not tracked, which are dimmed. The header counts the pins and says how many are broken.
+- **Linked.** A linked row shows the document's name and its kind, plus the compendium when it lives in one. Clicking the name opens the document in the client, not in a new tab.
+- **Broken.** The broken row says it no longer exists and names the kind. As GM it has a **Relink** button that opens the Relink dialog; after relinking, the row turns to Linked. A player opening the window sees no Relink or Configure buttons.
+- **Not tracked.** A Curator or Artificer pin reads Not tracked, with "This kind of pin does not record what it points at."
+- **Filters.** Typing the name of a linked document in the filter box finds the pin that points at it. **Broken only** leaves just the broken pins, and says "No broken links." when there are none.
+- **Other tabs.** Manage Pin Layers and Manage Pin Tags open as quickly as before, and neither has a Repair Links button. Manage Pin Tags select mode no longer offers Relink Selected.
+- **Linked to on every pin.** Open Configure Pin on a Curator or Artificer pin: General shows Linked to with "This kind of pin does not record what it points at." A journal, note, Merchant or Librarian codex or quest pin shows its document, and a broken one shows the missing notice.
+
+## Live-verify several Configure Pin windows
+
+Shipped unverified.
+
+- **Two at once.** Open Configure Pin on one pin, then on another without closing the first: both stay open, the second a little down and across from the first. Edit a field in each and save one: the other's edit is untouched.
+- **Same pin twice.** Choose Configure Pin on a pin that is already being configured: its window comes to the front with an unsaved edit still in place, and no second window opens. Minimise it first and it is restored.
+- **Look.** Each window keeps its minimum size and its dark background.

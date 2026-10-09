@@ -10,7 +10,7 @@
     --blacksmith-pin-around-text-size-ratio: 0.22; /* 22% of pin size - used for "around" text layout sizing */
     --blacksmith-pin-square-border-radius: 15%; /* Corner radius for square/rectangle pins, as a percent of the pin's SHORT side; the renderer converts it to px per zoom so rectangle corners stay circular (a raw % here skews into ellipses on non-square pins) */
     --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
-    --blacksmith-pin-selected-color: #ffffff; /* Outline of the selected pin */
+    --blacksmith-pin-selected-color: rgba(231, 91, 1, 0.9); /* Outline of the selected pin */
     --blacksmith-pin-broken-color: #e8a33d; /* Broken-link glyph on a pin whose target no longer exists, and the Linked to warning */
     /* GM corner glyph: em portion of outward offset (circle = smaller; square = full em past stroke) */
     --blacksmith-pin-gm-indicator-em-out-circle: 0.52;

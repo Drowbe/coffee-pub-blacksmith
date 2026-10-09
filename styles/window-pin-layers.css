@@ -375,6 +375,48 @@
     margin-top: 4px;
 }
 
+/* Manage Pin Links: what each pin points at, and whether it still exists */
+.blacksmith-pin-layers-link-status {
+    font-size: 0.75em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.blacksmith-pin-layers-link-status.is-broken {
+    color: var(--blacksmith-pin-broken-color);
+    opacity: 1;
+}
+
+.blacksmith-pin-layers-link-status.is-untracked,
+.blacksmith-pin-layers-link-status.is-unlinked {
+    opacity: 0.45;
+}
+
+.blacksmith-pin-layers-row.is-link-untracked,
+.blacksmith-pin-layers-row.is-link-unlinked {
+    opacity: 0.6;
+}
+
+.blacksmith-pin-layers-link-row {
+    align-items: center;
+}
+
+.blacksmith-pin-layers-link {
+    cursor: pointer;
+}
+
+.blacksmith-pin-layers-link-kind {
+    opacity: 0.6;
+    font-size: 0.85em;
+}
+
+.blacksmith-pin-layers-link-missing {
+    color: var(--blacksmith-pin-broken-color);
+}
+
 .blacksmith-pin-layers-row-submeta .blacksmith-tag {
     cursor: default;
     background: rgba(255, 100, 0, 0.15);

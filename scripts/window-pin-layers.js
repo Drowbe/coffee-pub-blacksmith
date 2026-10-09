@@ -731,7 +731,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         clearBrowseSelection: (_event, _target, win) => win?._clearBrowseSelection(),
         bulkEditSelectedTags: (_event, _target, win) => win?._bulkEditSelectedTags(),
         repairLinks:          (_event, _target, win) => win?._repairLinks(),
-        relinkSelected:       (_event, _target, win) => win?._relinkSelected(),
+        relinkPin:            (_event, target, win) => win?._relinkPin(target),
         toggleType:    (_event, target, win) => win?._toggleType(target),
         toggleTag:       (_event, target, win) => win?._toggleTag(target),
         toggleTaxonomyGroup:     (_event, target, win) => win?._toggleTaxonomyGroup(target),
@@ -772,6 +772,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         this.layersHideUnused = !!layersHideUnused;
         this.layersDimHidden = layersDimHidden !== false; // default true (dim, current behavior)
         this.browseViewMode = savedBrowseView === 'category' ? 'category' : 'alphabetical';
+        this.linksBrokenOnly = false; // Manage Pin Links tab: show only the pins whose link is broken
     }
 
     static async open(options = {}) {
@@ -818,7 +819,10 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         await PinManager.ensureBuiltinTaxonomyLoaded();
         const scene = this.sceneId ? game.scenes?.get(this.sceneId) : canvas?.scene;
         const sceneId = scene?.id ?? canvas?.scene?.id ?? null;
-        const isLayers = this.activeTab !== 'browse';
+        const tab = ['layers', 'browse', 'links'].includes(this.activeTab) ? this.activeTab : 'layers';
+        const isLayers = tab === 'layers';
+        const isBrowse = tab === 'browse';
+        const isLinks = tab === 'links';
 
         // --- Layers tab data ---
         const allSummary = sceneId
@@ -864,7 +868,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
 
         // --- Browse tab data ---
         let browsePins = [];
-        if (!isLayers && sceneId) {
+        if (isBrowse && sceneId) {
             const allPins = PinManager.list({ sceneId, includeHiddenByFilter: true }) || [];
             const q = this.browseQuery.toLowerCase().trim();
             browsePins = q
@@ -894,17 +898,37 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 <button type="button" class="blacksmith-tab ${isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="layers">
                     <i class="fa-solid fa-layer-group"></i><span>Manage Pin Layers</span>
                 </button>
-                <button type="button" class="blacksmith-tab ${!isLayers ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
+                <button type="button" class="blacksmith-tab ${isBrowse ? 'is-active' : ''}" data-action="selectTab" data-value="browse">
                     <i class="fa-solid fa-magnifying-glass"></i><span>Manage Pin Tags</span>
                     <span class="blacksmith-pin-layers-tag-count">${allSummary.total}</span>
+                </button>
+                <button type="button" class="blacksmith-tab ${isLinks ? 'is-active' : ''}" data-action="selectTab" data-value="links">
+                    <i class="fa-solid fa-link"></i><span>Manage Pin Links</span>
                 </button>
             </nav>
         `;
 
+        const linkRows = isLinks ? await this._loadLinkRows(sceneId) : [];
         const bodyContent = isLayers
             ? this._buildLayersBody()
-            : this._buildBrowseBody(browsePins, allSummary.total);
-        const selectionMode = !isLayers && game.user?.isGM && this._browseSelectMode;
+            : (isLinks ? this._buildLinksBody(linkRows, allSummary.total) : this._buildBrowseBody(browsePins, allSummary.total));
+        const selectionMode = isBrowse && game.user?.isGM && this._browseSelectMode;
+        const linksToolbar = `
+                <div class="blacksmith-pin-layers-browse-toolbar">
+                    <div class="blacksmith-pin-layers-search-wrap">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" class="blacksmith-input blacksmith-pin-layers-browse-input"
+                            value="${esc(this.browseQuery)}" placeholder="Filter pins by name, category, tag, or what they point at…">
+                        ${this.browseQuery ? `<button type="button" class="blacksmith-pin-layers-search-clear" data-action="clearBrowse" title="Clear filter"><i class="fa-solid fa-xmark"></i></button>` : ''}
+                    </div>
+                    <div class="blacksmith-toggle-row">
+                        <span class="blacksmith-toggle-label">Broken only</span>
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-layers-links-broken" ${this.linksBrokenOnly ? 'checked' : ''}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>`;
         const selectedCount = this._selectedBrowsePinIds.size;
         const visibleBrowseCount = browsePins.length;
 
@@ -957,7 +981,7 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                         ${tabNav}
                     </div>
                     <div class="blacksmith-pin-layers-tools-row">
-                        ${isLayers ? profileBar : `
+                        ${isLayers ? profileBar : isLinks ? linksToolbar : `
                 <div class="blacksmith-pin-layers-browse-toolbar">
                     <div class="blacksmith-pin-layers-search-wrap">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -1009,24 +1033,21 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="refresh">
                     <i class="fa-solid fa-rotate"></i> Refresh
                 </button>
-                ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="openCustomPinTags" title="Manage custom pin tags globally and for this scene">
+                ${game.user?.isGM && !isLinks ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="openCustomPinTags" title="Manage custom pin tags globally and for this scene">
                     <i class="fa-solid fa-tags"></i> Manage Custom Pin Tags
                 </button>` : ''}
-                ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="repairLinks" title="Find the pins on this scene whose document is gone, and point them at something else">
+                ${game.user?.isGM && isLinks ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="repairLinks" title="Find the pins on this scene whose document is gone, and point them at something else">
                     <i class="fa-solid fa-link"></i> Repair Links
                 </button>` : ''}
-                ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-critical" data-action="deleteAllPins" title="Delete all pins on this scene">
+                ${game.user?.isGM && !isLinks ? `<button type="button" class="blacksmith-window-btn-critical" data-action="deleteAllPins" title="Delete all pins on this scene">
                     <i class="fa-solid fa-trash"></i> Delete All
                 </button>` : ''}
             `,
             actionBarRight: selectionMode ? `
-                <button type="button" class="blacksmith-window-btn-secondary" data-action="relinkSelected" ${selectedCount ? '' : 'disabled'} title="Repair the selected pins whose document is gone">
-                    <i class="fa-solid fa-link"></i> Relink Selected
-                </button>
                 <button type="button" class="blacksmith-window-btn-primary" data-action="bulkEditSelectedTags" ${selectedCount ? '' : 'disabled'}>
                     <i class="fa-solid fa-tags"></i> Bulk Edit Tags
                 </button>
-            ` : `
+            ` : isLinks ? '' : `
                 <button type="button" class="blacksmith-window-btn-secondary" data-action="hideAll">
                     <i class="${PIN_VISIBILITY_ICONS.hidden}"></i> Hide All
                 </button>
@@ -1502,6 +1523,12 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 void this.render(true);
             });
 
+        root?.querySelector('.blacksmith-pin-layers-links-broken')
+            ?.addEventListener('change', (e) => {
+                this.linksBrokenOnly = !!e.target.checked;
+                void this.render(true);
+            });
+
         root?.querySelector('.blacksmith-pin-layers-hide-unused')
             ?.addEventListener('change', (e) => {
                 this.layersHideUnused = !!e.target.checked;
@@ -1804,16 +1831,115 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (await PinRelink.openBulk({ sceneId: this.sceneId ?? canvas?.scene?.id })) await this.render(true);
     }
 
-    /** Repair the broken pins among the selected ones. */
-    async _relinkSelected() {
+    /** Relink one broken pin from its row on the Links tab. */
+    async _relinkPin(target) {
         if (!game.user?.isGM) return;
-        const pinIds = [...this._selectedBrowsePinIds].filter(Boolean);
-        if (!pinIds.length) {
-            ui.notifications?.warn('Select one or more pins first.');
-            return;
-        }
+        const pinId = target?.dataset?.pinId || '';
+        if (!pinId) return;
         const { PinRelink } = await import('./utility-pin-relink.js');
-        if (await PinRelink.openBulk({ sceneId: this.sceneId ?? canvas?.scene?.id, pinIds })) await this.render(true);
+        if (await PinRelink.open(pinId)) await this.render(true);
+    }
+
+    /**
+     * The Links tab's rows: every pin on the scene that matches the filter, with what it points at. Resolving a
+     * link is asynchronous, so this runs while the tab renders and the other tabs never pay for it.
+     * 'linked' resolves, 'broken' does not, 'unlinked' is a type that records links on a pin that holds none, and
+     * 'untracked' is a type that does not declare a target at all, so nothing can be said about it.
+     * @param {string | null} sceneId
+     * @returns {Promise<Array<{ pin: object, status: string, target: object, typeLabel: string }>>}
+     * @private
+     */
+    async _loadLinkRows(sceneId) {
+        if (!sceneId) return [];
+        const query = this.browseQuery.toLowerCase().trim();
+        const order = { broken: 0, linked: 1, unlinked: 2, untracked: 3 };
+        const rows = [];
+        for (const pin of (PinManager.list({ sceneId, includeHiddenByFilter: true }) || [])) {
+            const typeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || pin.type || '';
+            const target = await PinManager.resolvePinTarget(pin);
+            const status = !target.declared ? 'untracked' : (!target.uuid ? 'unlinked' : (target.broken ? 'broken' : 'linked'));
+            if (this.linksBrokenOnly && status !== 'broken') continue;
+            if (query) {
+                const haystack = [pin.text, typeLabel, ...(pin.tags || []), target.doc?.name].filter(Boolean).join(' ').toLowerCase();
+                if (!haystack.includes(query)) continue;
+            }
+            rows.push({ pin, status, target, typeLabel });
+        }
+        rows.sort((a, b) => (order[a.status] - order[b.status])
+            || (a.pin.text || '').localeCompare(b.pin.text || '', undefined, { sensitivity: 'base' }));
+        return rows;
+    }
+
+    _buildLinkRowHtml({ pin, status, target, typeLabel }) {
+        const isGM = !!game.user?.isGM;
+        const statusText = { broken: 'Broken', linked: 'Linked', unlinked: 'No link', untracked: 'Not tracked' }[status];
+        let points;
+        if (status === 'linked') {
+            const doc = target.doc;
+            const kind = game.i18n.localize(doc.constructor?.metadata?.label ?? doc.documentName);
+            const pack = doc.pack ? (game.packs.get(doc.pack)?.metadata?.label ?? doc.pack) : '';
+            // data-link is Foundry's own content-link contract: core opens the document in this client
+            points = `<a class="blacksmith-pin-layers-link" data-link data-uuid="${esc(target.uuid)}" data-tooltip="Open">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> ${esc(doc.name)}</a>
+                <span class="blacksmith-pin-layers-link-kind">${esc(kind)}${pack ? ` - ${esc(pack)}` : ''}</span>`;
+        } else if (status === 'broken') {
+            const kind = PinManager._documentKindLabel(foundry.utils.parseUuid(target.uuid)?.type);
+            points = `<span class="blacksmith-pin-layers-link-missing"><i class="fa-solid fa-link-slash"></i> No longer exists${kind ? ` (${esc(kind)})` : ''}</span>`;
+        } else if (status === 'unlinked') {
+            points = '<span class="blacksmith-pin-layers-link-kind">This pin holds no link.</span>';
+        } else {
+            points = '<span class="blacksmith-pin-layers-link-kind">This kind of pin does not record what it points at.</span>';
+        }
+        const relink = (isGM && status === 'broken' && target.relinkable)
+            ? `<button type="button" class="blacksmith-icon-action" data-action="relinkPin" data-pin-id="${esc(pin.id)}" title="Relink this pin">
+                    <i class="fa-solid fa-link"></i>
+                </button>`
+            : '';
+        const configure = isGM
+            ? `<button type="button" class="blacksmith-icon-action" data-action="configurePin" data-pin-id="${esc(pin.id)}" title="Configure pin">
+                    <i class="fa-solid fa-cog"></i>
+                </button>`
+            : '';
+        return `
+                <div class="blacksmith-pin-layers-row is-link-${status}">
+                    <div class="blacksmith-pin-layers-row-content">
+                        <div class="blacksmith-pin-layers-row-top">
+                            <div class="blacksmith-pin-layers-row-label">${esc(pin.text || '(unnamed)')}</div>
+                            <span class="blacksmith-pin-layers-link-status is-${status}">${statusText}</span>
+                            <button type="button" class="blacksmith-icon-action" data-action="panToPin" data-pin-id="${esc(pin.id)}" title="Pan to pin">
+                                <i class="fa-solid fa-location-crosshairs"></i>
+                            </button>
+                            ${relink}${configure}
+                        </div>
+                        <div class="blacksmith-pin-layers-row-submeta blacksmith-pin-layers-link-row">
+                            ${typeLabel ? `<span class="blacksmith-tag blacksmith-tag-category"><i class="fa-solid fa-layer-group"></i> ${esc(typeLabel)}</span>` : ''}
+                            ${points}
+                        </div>
+                    </div>
+                </div>`;
+    }
+
+    _buildLinksBody(rows, totalPins) {
+        const broken = rows.filter((row) => row.status === 'broken').length;
+        const header = `
+            <div class="blacksmith-pin-layers-section-header blacksmith-pin-layers-section-header-first">
+                <i class="fa-solid fa-link"></i>
+                <span>${this.linksBrokenOnly ? 'Broken Links' : 'Pin Links'}</span>
+                <span class="blacksmith-pin-layers-tag-count">${rows.length}${rows.length < totalPins ? ` of ${totalPins}` : ''}</span>
+                ${!this.linksBrokenOnly && broken ? `<span class="blacksmith-pin-layers-link-status is-broken">${broken} broken</span>` : ''}
+            </div>`;
+        if (!rows.length) {
+            return `<div class="blacksmith-pin-layers-root">
+                ${header}
+                <div class="blacksmith-pin-layers-empty">${this.linksBrokenOnly ? 'No broken links.' : 'No pins matched.'}</div>
+            </div>`;
+        }
+        return `<div class="blacksmith-pin-layers-root">
+            ${header}
+            <div class="blacksmith-pin-layers-list">
+                ${rows.map((row) => this._buildLinkRowHtml(row)).join('')}
+            </div>
+        </div>`;
     }
 
     async _bulkEditSelectedTags() {

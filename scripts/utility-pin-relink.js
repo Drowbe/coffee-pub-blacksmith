@@ -128,12 +128,12 @@ export class PinRelink {
      * Repair the broken pins on a scene in one pass: look for a match for each, show them all with a dropdown
      * apiece, and relink the ones the GM picks. A match is preselected only when exactly one candidate has the
      * same id or the same name, and nothing changes until Apply, so a preselection is a proposal.
-     * @param {{ sceneId?: string, pinIds?: string[] | null }} [options] - Restrict to these pins (a selection)
+     * @param {{ sceneId?: string }} [options]
      * @returns {Promise<number>} How many pins were relinked.
      */
-    static async openBulk({ sceneId = canvas?.scene?.id, pinIds = null } = {}) {
+    static async openBulk({ sceneId = canvas?.scene?.id } = {}) {
         if (!game.user?.isGM || !sceneId) return 0;
-        const { broken, unrelinkable } = await PinManager.listBrokenPins(sceneId, { pinIds });
+        const { broken, unrelinkable } = await PinManager.listBrokenPins(sceneId);
         const plural = (n) => `${n} pin${n === 1 ? '' : 's'}`;
         if (!broken.length) {
             ui.notifications?.info(unrelinkable

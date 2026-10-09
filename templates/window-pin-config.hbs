@@ -15,7 +15,7 @@
                 <div class="blacksmith-toggle-row" data-tooltip="Save the current design as the default for this pin type. Applies to you only.">
                     <span class="blacksmith-toggle-label">Default for {{pinTypeLabel}}</span>
                     <label class="blacksmith-toggle">
-                        <input type="checkbox" id="blacksmith-pin-config-default-toggle" class="blacksmith-toggle-input blacksmith-pin-config-default" {{#if defaultMode}}checked{{/if}}>
+                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-default" {{#if defaultMode}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                 </div>
@@ -58,29 +58,31 @@
                 </div>
             </div>
 
-            {{#if pinTarget}}
             <div class="blacksmith-window-section blacksmith-pin-config-target-section">
                 <div class="blacksmith-window-section-header">
                     <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-link"></i> Linked to</span>
                 </div>
                 <div class="blacksmith-window-section-body">
-                    {{#if pinTarget.broken}}
+                    {{#if (eq pinTarget.status 'broken')}}
                     <div class="blacksmith-pin-config-target is-broken" data-tooltip="{{pinTarget.uuid}}">
                         <i class="fa-solid fa-link-slash"></i> What this pin points to no longer exists.
                         {{#if pinTarget.relinkable}}
                         <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-relink"><i class="fa-solid fa-link"></i> Relink</button>
                         {{/if}}
                     </div>
-                    {{else}}
+                    {{else if (eq pinTarget.status 'linked')}}
                     {{!-- data-link is Foundry's own content-link contract: core's body-level click handler opens the document in this client. No href, so nothing can navigate. --}}
                     <a class="blacksmith-pin-config-target blacksmith-pin-config-target-link" data-link data-uuid="{{pinTarget.uuid}}" data-tooltip="Open">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i> {{pinTarget.name}}
                         <span class="blacksmith-pin-config-target-kind">{{pinTarget.kind}}</span>
                     </a>
+                    {{else if (eq pinTarget.status 'unlinked')}}
+                    <div class="blacksmith-pin-config-target"><span class="blacksmith-pin-config-target-kind">This pin holds no link.</span></div>
+                    {{else}}
+                    <div class="blacksmith-pin-config-target"><span class="blacksmith-pin-config-target-kind">This kind of pin does not record what it points at.</span></div>
                     {{/if}}
                 </div>
             </div>
-            {{/if}}
 
             {{!-- Permissions --}}
             {{#if isGM}}
@@ -180,7 +182,7 @@
                 <div class="blacksmith-toggle-row blacksmith-pin-config-source-type-toggle">
                     <span class="blacksmith-toggle-label">Image</span>
                     <label class="blacksmith-toggle">
-                        <input type="checkbox" id="blacksmith-pin-config-source-toggle" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
+                        <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-source-toggle-input" {{#if (eq iconMode 'icon')}}checked{{/if}}>
                         <span class="blacksmith-toggle-slider"></span>
                     </label>
                     <span class="blacksmith-toggle-label">Icon</span>

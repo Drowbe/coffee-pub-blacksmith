@@ -475,12 +475,10 @@ export class PinManager {
     /**
      * The broken pins on a scene whose type can be relinked, and how many more are broken and cannot be.
      * @param {string} sceneId
-     * @param {{ pinIds?: string[] | null }} [options] - Restrict to these pins
      * @returns {Promise<{ broken: Array<{ pin: ApiPinData, target: object }>, unrelinkable: number }>}
      */
-    static async listBrokenPins(sceneId, { pinIds = null } = {}) {
-        const wanted = Array.isArray(pinIds) ? new Set(pinIds) : null;
-        const pins = (this.list({ sceneId, includeHiddenByFilter: true }) ?? []).filter((pin) => !wanted || wanted.has(pin.id));
+    static async listBrokenPins(sceneId) {
+        const pins = this.list({ sceneId, includeHiddenByFilter: true }) ?? [];
         const broken = [];
         let unrelinkable = 0;
         for (const pin of pins) {
