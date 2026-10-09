@@ -185,3 +185,16 @@ Shipped unverified.
 - **Nothing regressed at the far end of the bar.** The suppression list grew from ten entries to
   twenty-one; confirm party health, monster health, and both timers still survive a narrow bar, since they
   rank after every statistic.
+
+## Live-verify pin selection and the Delete key
+
+Shipped unverified. Needs a world with a few pins, a token, and a player client.
+
+- **Select.** Click a pin: it gets a white outline at once. Click another: the outline moves. Click empty canvas, press Escape, or change scene: it clears.
+- **Delete.** Select a pin, press Delete, then again with Backspace on another. It deletes exactly as Delete Pin in the right-click menu does, including its Delete animation if one is set.
+- **Token not collateral.** Select a token, then click a pin and press Delete. Only the pin goes.
+- **Typing is safe.** With a pin selected, open a journal in edit mode, click into it, press Backspace. Text is deleted, the pin stays.
+- **Permission (player client).** As a player, select a pin you do not own and press Delete: nothing happens and no error. Select one you own: it deletes.
+- **Double-click still works.** Double-click a pin whose module opens something on double-click. It opens, and a pin with no Click animation shows no flicker from the first click.
+- **Drag.** Drag a pin: it selects, moves, stays selected, and Delete still works after.
+- **Click removed.** In the console, `game.modules.get('coffee-pub-blacksmith').api.pins.on('click', () => {})` throws `Invalid event type: click`.

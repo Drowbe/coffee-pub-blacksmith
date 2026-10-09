@@ -179,9 +179,31 @@ Pins render into a DOM overlay that is a sibling of the canvas app element, not 
 
 ## Event flow
 
-1. **DOM**: PinDOMElement attaches listeners to each pin div (click, contextmenu, pointer move, drag, etc.).
+1. **DOM**: PinDOMElement attaches listeners to each pin div (mouse down, hover, drag).
 2. **Delegation**: On interaction, the renderer resolves `pinId` and `pinData` and calls `PinManager._invokeHandlers(eventType, pin, sceneId, …)` with structured payload (e.g. modifiers, originalEvent).
 3. **Handlers**: PinManager looks up registered handlers for that event type (and optional pinId/moduleId/sceneId) and invokes each. Errors are isolated so one failing handler does not break others. AbortSignal and drag opt-in are respected.
+
+### Mouse buttons
+
+| Input | Result | Offered to modules |
+|-------|--------|--------------------|
+| Left press | Selects the pin (on press, so dragging an unselected pin selects it) | No |
+| Second left click, same pin, within 300 ms | `doubleClick` | Yes |
+| Right press | Context menu | `rightClick` |
+| Middle press | | `middleClick` |
+
+**There is no `click` event.** A single left-click is the pins tool's and cannot be mapped by a module; `VALID_EVENT_TYPES` omits it so `registerHandler('click')` throws rather than silently never firing. Double-click is detected as two clicks inside `DOUBLE_CLICK_MS` on the same pin (`PinDOMElement._registerClick`), not with a timer, so a single click acts immediately.
+
+### Selection
+
+State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanDelete`); the selected node carries `data-selected="true"`, styled in `pins.css`. One pin at a time. Nothing outside the renderer reads it, and it is not part of the public API.
+
+- **Select**: `PinDOMElement.select(pinId, { canDelete })` on left press. `canDelete` is the same `_canEdit` test that gates the menu's Delete Pin, resolved at press time because the key handler must answer synchronously.
+- **Deselect**: `Escape`; a `pointerdown` anywhere outside `.blacksmith-pin` and the pin context menu; `removePin`; `clear` (scene change); overlay hidden.
+- **Keys**: one capture-phase `keydown` listener on `document`, installed in `initialize` and removed in `cleanup`. Capture matters: Foundry's keyboard manager listens on `window` in the bubble phase, so a handled key stopped here never reaches core's Delete keybinding, which would otherwise also delete a controlled token. It ignores modified keys, auto-repeat, and any target inside `input, textarea, select, prose-mirror, [contenteditable]`.
+- **Delete / Backspace** call `PinDOMElement._deletePin`, which the context menu's Delete Pin also calls -- one path, so the delete animation, permission check, GM relay and `deleted` event cannot drift apart.
+
+To add a selected-state command, add a key branch in `_onDocumentKeyDown`. Claim the key (`preventDefault` and `stopPropagation`) only when you will act on it.
 
 ---
 

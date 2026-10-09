@@ -491,6 +491,38 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+}
+
+/* Opens directly under the entry, inside the field's own wrapper. */
+.blacksmith-json-import-tag-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    z-index: 20;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--blacksmith-window-border-color, #444);
+    border-radius: 4px;
+    background: var(--color-cool-5, #1c1c1c);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.blacksmith-json-import-tag-menu[hidden] {
+    display: none;
+}
+
+.blacksmith-json-import-tag-option {
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: var(--font-size-13, 0.8125rem);
+}
+
+.blacksmith-json-import-tag-option:hover,
+.blacksmith-json-import-tag-option.is-active {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--blacksmith-window-accent-color, #ac9f81);
 }
 
 .blacksmith-json-import-tags .blacksmith-json-import-drop-preview {
@@ -501,6 +533,38 @@
     cursor: pointer;
     padding: 0 2px;
     color: var(--blacksmith-window-accent-color, #ac9f81);
+}
+
+/* The textarea behind an items list holds the value and is never shown: the chips are the control. */
+.blacksmith-json-import-drop-holder {
+    display: none;
+}
+
+/* A list's chip area is its drop zone, so it stays visible and says what it is for when empty. */
+.blacksmith-json-import-drop-preview[data-drop-kind="items"] {
+    min-height: 40px;
+    margin-top: 0;
+    padding: 6px;
+    border: 1px dashed var(--blacksmith-window-border-color, #444);
+    border-radius: 4px;
+    align-items: center;
+}
+
+.blacksmith-json-import-drop-preview[data-drop-kind="items"]:empty {
+    display: flex;
+}
+
+.blacksmith-json-import-drop-preview[data-drop-kind="items"]:empty::before {
+    content: "Drop items here";
+    opacity: 0.6;
+    font-size: var(--font-size-13, 0.8125rem);
+}
+
+.blacksmith-json-import-drop-chip-qty-input {
+    width: 46px;
+    height: 22px;
+    padding: 0 4px;
+    text-align: center;
 }
 
 .blacksmith-json-import-drop-chip-qty {

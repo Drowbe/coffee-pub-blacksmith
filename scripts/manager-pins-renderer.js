@@ -72,6 +72,12 @@ class PinDOMElement {
     static _sceneLoadTimeout = null;
     static _reusablePoint = null; // Reusable PIXI.Point to avoid allocations (for coordinate conversion)
     static _reusableDragPoint = null; // Reusable PIXI.Point for drag operations
+    static _selectedPinId = null; // The one selected pin (single-click); keyboard commands act on it
+    static _selectedCanDelete = false; // Whether the selected pin may be deleted by this user
+    static _pointerDownListener = null; // Document capture listener: a press outside any pin deselects
+    static _keyDownListener = null; // Document capture listener: keyboard commands for the selected pin
+    static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
+    static DOUBLE_CLICK_MS = 300;
 
     /**
      * Initialize the DOM pin system and hooks
@@ -122,7 +128,14 @@ class PinDOMElement {
         // Update on window resize (store listener for cleanup)
         this._resizeListener = () => this._scheduleUpdate();
         window.addEventListener('resize', this._resizeListener);
-        
+
+        // Selection: a press anywhere outside a pin deselects; keys act on the selected pin.
+        // Capture phase on document, so a handled key never reaches Foundry's own (window, bubble) keybindings.
+        this._pointerDownListener = (e) => this._onDocumentPointerDown(e);
+        this._keyDownListener = (e) => this._onDocumentKeyDown(e);
+        document.addEventListener('pointerdown', this._pointerDownListener, true);
+        document.addEventListener('keydown', this._keyDownListener, true);
+
         // Initialize reusable PIXI.Point for coordinate conversion
         this._reusablePoint = new PIXI.Point(0, 0);
         this._reusableDragPoint = new PIXI.Point(0, 0);
@@ -715,11 +728,8 @@ class PinDOMElement {
             PinManager._invokeHandlers('hoverOut', freshPinData, sceneId, userId, modifiers, e);
         });
         
-        // Click events and double-click detection
-        let clickTimeout = null;
-        let clickCount = 0;
-        const clickState = { timeout: null, count: 0 };
-        
+        // Single click is the pins tool's own: it selects the pin and is never offered to modules.
+        // Modules get doubleClick, rightClick and middleClick.
         pinElement.addEventListener('mousedown', async (e) => {
             const button = e.button;
             const modifiers = this._extractModifiers(e);
@@ -738,65 +748,51 @@ class PinDOMElement {
             }
             
             if (button === 0) {
-                // Left click - set up drag detection IMMEDIATELY
-                // We can't wait 300ms or the click will be missed
-                
+                // Left press selects at once (a drag of an unselected pin selects it too)
                 const currentPinData = PinManager.get(pinData.id) || freshPinData;
-                
-                if (PinManager._canEdit(currentPinData, userId)) {
-                    // Start potential drag immediately - it will decide if it's click or drag
-                    await this._startPotentialDrag(pinElement, currentPinData, e, clickState);
+                const canDelete = PinManager._canEdit(currentPinData, userId);
+                this.select(currentPinData.id, { canDelete });
+
+                if (canDelete) {
+                    // Start potential drag immediately - it decides whether this press was a click or a drag
+                    await this._startPotentialDrag(pinElement, currentPinData, e);
                 } else {
-                    // Not editable - handle click/double-click
-                    clickState.count++;
-                    if (clickState.timeout) {
-                        clearTimeout(clickState.timeout);
-                    }
-                    
-                    clickState.timeout = setTimeout(() => {
-                        if (clickState.count === 1) {
-                            PinManager._invokeHandlers('click', currentPinData, sceneId, userId, modifiers, e);
-                            if (currentPinData.eventAnimations?.click?.animation) {
-                                PinRenderer.ping(currentPinData.id, { animation: currentPinData.eventAnimations.click.animation, sound: currentPinData.eventAnimations.click.sound ?? null, loops: 1 });
-                            }
-                        }
-                        clickState.count = 0;
-                        clickState.timeout = null;
-                    }, 300);
-                    
-                    // Double-click detection
-                    if (clickState.count === 2) {
-                        clearTimeout(clickState.timeout);
-                        clickState.count = 0;
-                        clickState.timeout = null;
-                        PinManager._invokeHandlers('doubleClick', currentPinData, sceneId, userId, modifiers, e);
-                        if (currentPinData.eventAnimations?.doubleClick?.animation) {
-                            PinRenderer.ping(currentPinData.id, { animation: currentPinData.eventAnimations.doubleClick.animation, sound: currentPinData.eventAnimations.doubleClick.sound ?? null, loops: 1 });
-                        }
-                    }
+                    // Not editable: no drag possible, so the press is the click
+                    this._registerClick(currentPinData, e);
                 }
             } else if (button === 2) {
                 // Right click
                 e.preventDefault();
-                // Clear any pending click timeout
-                if (clickState.timeout) {
-                    clearTimeout(clickState.timeout);
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                }
                 PinManager._invokeHandlers('rightClick', freshPinData, sceneId, userId, modifiers, e);
                 this._showContextMenu(pinElement, freshPinData, e);
             } else if (button === 1) {
                 // Middle click
-                // Clear any pending click timeout
-                if (clickState.timeout) {
-                    clearTimeout(clickState.timeout);
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                }
                 PinManager._invokeHandlers('middleClick', freshPinData, sceneId, userId, modifiers, e);
             }
         });
+    }
+
+    /**
+     * A left click that did not drag. The first plays the pin's click animation; a second on the same
+     * pin within DOUBLE_CLICK_MS is a double-click, the only left-click event modules receive.
+     * Selection already happened on press.
+     * @param {PinData} pinData
+     * @param {MouseEvent} event
+     * @private
+     */
+    static async _registerClick(pinData, event) {
+        const now = performance.now();
+        const isDouble = this._lastClick.pinId === pinData.id && (now - this._lastClick.time) <= this.DOUBLE_CLICK_MS;
+        this._lastClick = isDouble ? { pinId: null, time: 0 } : { pinId: pinData.id, time: now };
+
+        const animation = pinData.eventAnimations?.[isDouble ? 'doubleClick' : 'click'];
+        if (isDouble) {
+            const { PinManager } = await import('./manager-pins.js');
+            PinManager._invokeHandlers('doubleClick', pinData, canvas?.scene?.id || '', game.user?.id || '', this._extractModifiers(event), event);
+        }
+        if (animation?.animation) {
+            PinRenderer.ping(pinData.id, { animation: animation.animation, sound: animation.sound ?? null, loops: 1 });
+        }
     }
 
     /**
@@ -819,10 +815,9 @@ class PinDOMElement {
      * @param {HTMLElement} pinElement
      * @param {PinData} pinData - Initial pin data (may be stale, will fetch fresh)
      * @param {MouseEvent} event
-     * @param {Object} clickState - Click state object to clear timeout when drag starts
      * @private
      */
-    static async _startPotentialDrag(pinElement, pinData, event, clickState) {
+    static async _startPotentialDrag(pinElement, pinData, event) {
         // Get fresh pin data to ensure we have the current position
         // This is important because pinData in the closure may be stale after a previous drag
         const { PinManager } = await import('./manager-pins.js');
@@ -887,14 +882,7 @@ class PinDOMElement {
             // Only start visual drag if mouse moved more than threshold in screen space
             if (!dragStarted && screenDistance > DRAG_THRESHOLD) {
                 dragStarted = true;
-                
-                // Clear click timeout since this is now a drag, not a click
-                if (clickState?.timeout) {
-                    clearTimeout(clickState.timeout);
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                }
-                
+
                 pinElement.style.opacity = '0.7';
                 
                 import('./manager-pins.js').then(({ PinManager }) => {
@@ -986,42 +974,7 @@ class PinDOMElement {
                     pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
                 }
                 
-                // Handle click/double-click for editable pins (we're in the drag system)
-                clickState.count++;
-                if (clickState.timeout) {
-                    clearTimeout(clickState.timeout);
-                }
-                
-                clickState.timeout = setTimeout(async () => {
-                    if (clickState.count === 1) {
-                        const { PinManager } = await import('./manager-pins.js');
-                        const modifiers = this._extractModifiers(e);
-                        const sceneId = canvas?.scene?.id || '';
-                        const userId = game.user?.id || '';
-                        PinManager._invokeHandlers('click', pinData, sceneId, userId, modifiers, e);
-                        if (pinData.eventAnimations?.click?.animation) {
-                            PinRenderer.ping(pinData.id, { animation: pinData.eventAnimations.click.animation, sound: pinData.eventAnimations.click.sound ?? null, loops: 1 });
-                        }
-                    }
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                }, 300);
-                
-                // Double-click detection
-                if (clickState.count === 2) {
-                    clearTimeout(clickState.timeout);
-                    clickState.count = 0;
-                    clickState.timeout = null;
-                    
-                    const { PinManager } = await import('./manager-pins.js');
-                    const modifiers = this._extractModifiers(e);
-                    const sceneId = canvas?.scene?.id || '';
-                    const userId = game.user?.id || '';
-                    PinManager._invokeHandlers('doubleClick', pinData, sceneId, userId, modifiers, e);
-                    if (pinData.eventAnimations?.doubleClick?.animation) {
-                        PinRenderer.ping(pinData.id, { animation: pinData.eventAnimations.doubleClick.animation, sound: pinData.eventAnimations.doubleClick.sound ?? null, loops: 1 });
-                    }
-                }
+                this._registerClick(pinData, e);
             }
             
             document.removeEventListener('mousemove', onDragMove);
@@ -1341,14 +1294,7 @@ class PinDOMElement {
             coreItems.push({
                 name: 'Delete Pin',
                 icon: '<i class="fa-solid fa-trash"></i>',
-                callback: async () => {
-                    try {
-                        const { PinManager } = await import('./manager-pins.js');
-                        await PinManager.delete(pinData.id);
-                    } catch (err) {
-                        postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
-                    }
-                }
+                callback: () => this._deletePin(pinData.id)
             });
         }
         
@@ -1838,6 +1784,7 @@ class PinDOMElement {
      * @param {string} pinId
      */
     static removePin(pinId) {
+        if (this._selectedPinId === pinId) this._selectedPinId = null;
         const pinElement = this._pins.get(pinId);
         if (pinElement) {
             pinElement.remove();
@@ -1849,10 +1796,113 @@ class PinDOMElement {
      * Remove all pin DOM elements
      */
     static clear() {
+        this._selectedPinId = null;
         for (const pin of this._pins.values()) {
             pin.remove();
         }
         this._pins.clear();
+    }
+
+    // ===== SELECTION =====
+
+    /**
+     * The id of the selected pin, or null.
+     * @returns {string | null}
+     */
+    static getSelectedPinId() {
+        return this._selectedPinId;
+    }
+
+    /**
+     * Select a pin (single selection).
+     * @param {string} pinId
+     * @param {Object} [options]
+     * @param {boolean} [options.canDelete=false] - Whether the user may delete it (the same test that gates the menu's Delete Pin); decided at select time because the key handler must answer synchronously
+     */
+    static select(pinId, { canDelete = false } = {}) {
+        if (this._selectedPinId !== pinId) {
+            this.deselect();
+            const pinElement = this._pins.get(pinId);
+            if (!pinElement) return;
+            this._selectedPinId = pinId;
+            pinElement.dataset.selected = 'true';
+        }
+        this._selectedCanDelete = canDelete;
+    }
+
+    /**
+     * Clear the selection.
+     */
+    static deselect() {
+        const pinElement = this._selectedPinId ? this._pins.get(this._selectedPinId) : null;
+        if (pinElement) delete pinElement.dataset.selected;
+        this._selectedPinId = null;
+        this._selectedCanDelete = false;
+    }
+
+    /**
+     * A press outside every pin clears the selection. The context menu is exempt so a menu
+     * opened from the selected pin does not drop it before the entry is chosen.
+     * @param {PointerEvent} event
+     * @private
+     */
+    static _onDocumentPointerDown(event) {
+        if (!this._selectedPinId) return;
+        const target = event.target;
+        if (target?.closest?.('.blacksmith-pin, #blacksmith-pin-context-menu')) return;
+        this.deselect();
+    }
+
+    /**
+     * Keyboard commands for the selected pin. Delete/Backspace delete it, Escape deselects.
+     * Anything else, and anything typed into a field, passes through untouched.
+     * @param {KeyboardEvent} event
+     * @private
+     */
+    static _onDocumentKeyDown(event) {
+        if (!this._selectedPinId) return;
+        if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) return;
+
+        const target = event.target;
+        if (target?.isContentEditable || target?.closest?.('input, textarea, select, prose-mirror, [contenteditable="true"]')) return;
+
+        // A hidden overlay (Hide All) means the pin is not on screen -- never act on what cannot be seen
+        if (this._container?.dataset.hidden === 'true') {
+            this.deselect();
+            return;
+        }
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            this.deselect();
+            return;
+        }
+
+        if (event.key === 'Delete' || event.key === 'Backspace') {
+            // Only claim the key when the menu would offer Delete Pin; otherwise Foundry keeps it
+            if (!this._selectedCanDelete || event.repeat) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const pinId = this._selectedPinId;
+            this.deselect();
+            this._deletePin(pinId);
+        }
+    }
+
+    /**
+     * Delete a pin. The one path behind both the context menu's Delete Pin and the Delete key.
+     * @param {string} pinId
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _deletePin(pinId) {
+        try {
+            const { PinManager } = await import('./manager-pins.js');
+            await PinManager.delete(pinId);
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error deleting pin', err?.message || err, false, true);
+        }
     }
 
     /**
@@ -1999,7 +2049,16 @@ class PinDOMElement {
             window.removeEventListener('resize', this._resizeListener);
             this._resizeListener = null;
         }
-        
+
+        if (this._pointerDownListener) {
+            document.removeEventListener('pointerdown', this._pointerDownListener, true);
+            this._pointerDownListener = null;
+        }
+        if (this._keyDownListener) {
+            document.removeEventListener('keydown', this._keyDownListener, true);
+            this._keyDownListener = null;
+        }
+
         // Remove all hook listeners
         for (const hook of this._hookIds) {
             Hooks.off(hook.name, hook.id);

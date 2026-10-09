@@ -321,6 +321,7 @@ in `hint`.
 | `id`, `label` | Required. `id` must be unique within the profile. |
 | `inputType` | `text` (default), `select`, `textarea`, `item`, `items` or `tags`. `item` and `items` are drop targets and `tags` is a chip picker, below. |
 | `options` | Required for `select`, refused otherwise. Each needs a `value`. |
+| `fills` | On an `item` field only. What a dropped item sets on other questions, below. |
 | `dynamicOptions` | `true` on a `select` or `tags` field whose list changes while the world is live. Carries no `options`; the module supplies them, below. |
 | `value` | Prefilled answer. |
 | `hint` | One sentence, shown as a help tooltip beside the label. |
@@ -343,17 +344,22 @@ Anything else is rejected by name at registration.
 
 ### Dropping real items: `item` and `items`
 
-A name the author types can be wrong, and a name a generator invents is worse. Two input types let the author
-drag a Foundry Item from the sidebar or a compendium onto the prompt instead:
+A name the author types can be wrong, and a name a generator invents is worse. When what a field names has to
+exist, the author cannot type it. Two input types let them drag a Foundry Item from the sidebar or a compendium
+onto the prompt instead, and are **drop-only**:
 
-- **`item`** is one item. Dropping writes its name into the field.
-- **`items`** is a list, one `Name xQuantity` per line. Dropping adds a line, or raises the quantity by one when
-  the item is already listed.
+- **`item`** is one item. Dropping writes its name into a read-only field, with the icon and name shown beneath.
+  The × on that chip clears it.
+- **`items`** is a list. The chip area is the drop zone and says *Drop items here* when empty. Each chip shows the
+  item's icon and name, a quantity box (a whole number, at least 1) and an ×. Dropping an item already listed raises
+  its quantity by one.
 
-Both are ordinary text controls that also accept a dropped item. Each entry is shown beneath the control with its
-icon and name and an × to remove it, the icon coming from the drop, or else from an exact-name lookup in the GM's Compendium Mapping and
-the world, with a placeholder when nothing matches. The author can still type a name, correct a
-quantity or delete a line. They carry no `options`. A drop of anything but an Item is refused with a warning.
+The icon comes from the drop, or else from an exact-name lookup in the GM's Compendium Mapping and the world, with a
+placeholder when nothing matches. They carry no `options`. A drop of anything but an Item is refused with a warning.
+
+An empty field is a real answer: it leaves the choice to the generator. With a catalog on (`promptCatalogs`), that
+choice is made from real items. So the author either drops an exact item or leaves it for the generator to choose
+from the catalog, and there is no third path through a typed name.
 
 Both follow the constraint rule above. If the `id` matches a declared field's `name`, the answer constrains that
 field in the prompt and seeds the JSON template. An `item` answer is a string. An `items` answer becomes a list of
@@ -366,10 +372,36 @@ prompt, so a typed `1000` is the number `1000`. A field that is a list of plain 
 entries separated by commas or new lines become the array, so `Herbal, Medicinal` is `["Herbal", "Medicinal"]`.
 A list of objects is not converted this way; it has its own control, `items`.
 
+### What a dropped item answers: `fills`
+
+An item the author drops already knows things the prompt would otherwise make the generator guess: its type, its
+rarity, its tags. An `item` field can declare which other questions it answers:
+
+```js
+{ id: 'resultItemName', label: 'Result item', inputType: 'item', fills: [
+    { field: 'type',     from: 'type', transform: 'titleCase' },
+    { field: 'rarity',   from: 'system.rarity', map: { veryRare: 'Very Rare' } },
+    { field: 'traits',   from: 'flags.my-module.traits' }
+] }
+```
+
+Each fill names a **sibling prompt field** (`field`, which must be declared in the same profile) and a dotted path read
+off the dropped document (`from`, such as `type`, `system.rarity`, or a flag path your module owns). `from` may also be
+a list of paths, where the first one holding a value wins, for a property that lives somewhere different on different
+versions of a system. `map` rewrites a
+value you know is spelled differently (`veryRare` to `Very Rare`), and `transform` runs a named Blacksmith transform.
+A list, such as a tag array, becomes comma-separated text. The value is written into the sibling control, so the author
+sees it and can change it, and because that sibling is an ordinary prompt field it follows the usual rule: if its id
+matches a declared field, it constrains that field in the prompt and seeds the template.
+
+Only a **drop** fills. A typed name has no document behind it. A drop overwrites what those siblings held. A source
+value that is missing or empty fills nothing, and a select with no matching option is left alone rather than forced.
+The paths are yours to declare: Blacksmith reads the document at the path you name and models nothing about it.
+
 ### Open-ended lists you build by picking or typing: `tags`
 
 For a list of short strings with no fixed vocabulary, such as a recipe's traits, `inputType: 'tags'` gives a text entry
-with suggestions and a removable chip for each tag. Typing a tag that is not suggested and pressing Enter or comma, or
+with a suggestion list that opens under it and filters as you type, and a removable chip for each tag. Typing a tag that is not suggested and pressing Enter or comma, or
 leaving the box, still adds it: **the suggestions are help, never a closed set.** Choosing a suggestion adds it at once.
 
 The answer is one comma-separated string, so a field that is an array of plain strings receives it as an array, the

@@ -1022,7 +1022,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             id: field.id,
             label: field.label,
             value,
-            placeholder: field.placeholder ?? '',
+            placeholder: field.placeholder ?? (inputType === 'item' ? 'Drop an item here' : ''),
             hint: field.hint ?? '',
             hasHint: !!field.hint,
             showForTemplate: field.showForTemplate ?? '',
@@ -1033,6 +1033,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             isText: inputType !== 'select' && inputType !== 'textarea' && inputType !== 'items' && inputType !== 'tags',
             isTags: inputType === 'tags',
             dropKind: inputType === 'item' || inputType === 'items' ? inputType : '',
+            fillsJson: inputType === 'item' && Array.isArray(field.fills) ? JSON.stringify(field.fills) : '',
             fullWidth: !!field.fullWidth,
             rows: field.rows || 5,
             group: field.group ?? '',
@@ -1268,7 +1269,13 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
             const entry = wrapper.querySelector('[data-prompt-tag-entry]');
             const chips = wrapper.querySelector('[data-prompt-tag-chips]');
             if (!holder || !entry || !chips) continue;
-            const suggestions = [...wrapper.querySelectorAll('datalist option')].map(option => option.value.toLowerCase());
+            const menu = wrapper.querySelector('[data-prompt-tag-menu]');
+            const suggestions = [...wrapper.querySelectorAll('[data-prompt-suggestion]')]
+                .map(node => node.dataset.promptSuggestion)
+                .filter(Boolean);
+            let highlighted = -1;
+            // A fill from a dropped item sets the hidden value directly; redraw the chips from it.
+            holder.addEventListener('blacksmith:prompt-refilled', () => draw());
 
             const read = () => String(holder.value ?? '').split(/[,\r\n]+/).map(tag => tag.trim()).filter(Boolean);
             const write = (tags) => {
@@ -1304,19 +1311,72 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 write(tags);
             };
 
+            // The suggestion list is drawn here, inside the field's own wrapper, so it opens directly
+            // under the entry. The browser's built-in list was tried first and opens detached from the
+            // control inside a Foundry window.
+            const items = () => [...(menu?.querySelectorAll('[data-prompt-tag-option]') ?? [])];
+            const closeMenu = () => {
+                if (!menu) return;
+                menu.hidden = true;
+                menu.replaceChildren();
+                highlighted = -1;
+            };
+            const highlight = (index) => {
+                const options = items();
+                if (!options.length) return;
+                highlighted = (index + options.length) % options.length;
+                options.forEach((option, position) => option.classList.toggle('is-active', position === highlighted));
+                options[highlighted].scrollIntoView({ block: 'nearest' });
+            };
+            const openMenu = () => {
+                if (!menu || !suggestions.length) return;
+                const typed = entry.value.trim().toLowerCase();
+                const chosen = new Set(read().map(tag => tag.toLowerCase()));
+                const matches = suggestions
+                    .filter(tag => !chosen.has(tag.toLowerCase()) && (!typed || tag.toLowerCase().includes(typed)))
+                    .slice(0, 60);
+                if (!matches.length) {
+                    closeMenu();
+                    return;
+                }
+                menu.replaceChildren(...matches.map((tag) => {
+                    const option = document.createElement('div');
+                    option.className = 'blacksmith-json-import-tag-option';
+                    option.setAttribute('data-prompt-tag-option', tag);
+                    option.textContent = tag;
+                    // mousedown, not click, and prevented, so the entry keeps focus and its blur does not
+                    // close the menu before the choice lands.
+                    option.addEventListener('mousedown', (event) => {
+                        event.preventDefault();
+                        commit(tag);
+                        closeMenu();
+                    });
+                    return option;
+                }));
+                menu.hidden = false;
+                highlighted = -1;
+            };
+
             entry.addEventListener('keydown', (event) => {
-                if (event.key === 'Enter' || event.key === ',') {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                     event.preventDefault();
-                    commit(entry.value);
+                    if (menu?.hidden) openMenu();
+                    highlight(highlighted + (event.key === 'ArrowDown' ? 1 : -1));
+                } else if (event.key === 'Escape' && menu && !menu.hidden) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closeMenu();
+                } else if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    const picked = highlighted >= 0 ? items()[highlighted]?.dataset.promptTagOption : null;
+                    commit(picked ?? entry.value);
+                    closeMenu();
                 }
             });
-            // Picking from the suggestion list fires `input` with the whole option as the value.
-            entry.addEventListener('input', (event) => {
-                if (!event.inputType || event.inputType === 'insertReplacementText') {
-                    if (suggestions.includes(entry.value.trim().toLowerCase())) commit(entry.value);
-                }
-            });
-            entry.addEventListener('change', () => {
+            entry.addEventListener('input', openMenu);
+            entry.addEventListener('focus', openMenu);
+            entry.addEventListener('blur', () => {
+                closeMenu();
                 if (entry.value.trim()) commit(entry.value);
             });
             draw();
@@ -1337,8 +1397,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
         for (const control of root.querySelectorAll('[data-prompt-drop]')) {
             control.addEventListener('input', () => void this._refreshDropPreview(control));
             void this._refreshDropPreview(control);
-            control.addEventListener('dragover', (event) => event.preventDefault());
-            control.addEventListener('drop', async (event) => {
+            const receive = async (event) => {
                 event.preventDefault();
                 const data = TextEditor.getDragEventData(event);
                 if (data?.type !== 'Item' || !data.uuid) {
@@ -1349,6 +1408,7 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 const name = String(item?.name ?? '').trim();
                 if (!name) return;
                 JsonImportWindow._dropIconCache.set(name.toLowerCase(), item.img || null);
+                if (control.dataset.promptDrop === 'item') await this._applyDropFills(control, item);
                 if (control.dataset.promptDrop === 'items') {
                     const lines = String(control.value ?? '').split(/\r?\n/).map(line => line.trim()).filter(Boolean);
                     const index = lines.findIndex(line => line.replace(/\s*x\s*\d+(\.\d+)?$/i, '').toLowerCase() === name.toLowerCase());
@@ -1366,7 +1426,74 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 void this._refreshDropPreview(control);
                 this._persistFormStateFromDom();
                 void this._saveAuthoringState();
-            });
+            };
+            // The control is hidden for a list, so its visible zone is the drop target there.
+            const zones = [control, control.parentElement?.querySelector(`[data-prompt-preview="${control.dataset.promptField}"]`)]
+                .filter(Boolean);
+            for (const zone of zones) {
+                zone.addEventListener('dragover', (event) => event.preventDefault());
+                zone.addEventListener('drop', receive);
+            }
+        }
+    }
+
+    /**
+     * Set the other questions a dropped item answers, as its field declared in `fills`.
+     *
+     * Each fill reads one path off the dropped document (`type`, `system.rarity`, a module's own flag
+     * path), optionally maps the value or runs a named transform, and writes the result into the sibling
+     * question, so the author sees it and can still change it. A list becomes comma-separated text. A
+     * value a select has no option for is skipped rather than forced. Only a DROP fills: a typed name
+     * has no document to read.
+     * @param {HTMLElement} control - The item field that received the drop.
+     * @param {Document} item - The dropped item.
+     */
+    async _applyDropFills(control, item) {
+        let fills = [];
+        try {
+            fills = JSON.parse(control.dataset.promptFills || '[]');
+        } catch {
+            return;
+        }
+        const root = this.element;
+        if (!root || !Array.isArray(fills) || !fills.length) return;
+        const { applyTransform } = await import('./manager-declaration-transforms.js');
+        for (const fill of fills) {
+            // The first path that holds something wins, in the order the declaration lists them.
+            let value;
+            for (const path of Array.isArray(fill.from) ? fill.from : [fill.from]) {
+                const found = foundry.utils.getProperty(item, path);
+                const empty = found === undefined || found === null || found === ''
+                    || (Array.isArray(found) && !found.length);
+                if (!empty) {
+                    value = found;
+                    break;
+                }
+            }
+            if (value === undefined) continue;
+            if (Array.isArray(value)) value = value.join(', ');
+            value = String(value);
+            if (fill.map) {
+                const key = Object.keys(fill.map).find(one => one.toLowerCase() === value.toLowerCase());
+                if (key !== undefined) value = String(fill.map[key]);
+            }
+            if (fill.transform) value = String(await applyTransform(fill.transform, value, {}));
+
+            const { input: target } = this._activePromptFieldInput(root, fill.field);
+            if (!target) continue;
+            if (target.tagName === 'SELECT') {
+                const wanted = value.toLowerCase();
+                const option = [...target.options].find(one => one.value.toLowerCase() === wanted
+                    || one.textContent.trim().toLowerCase() === wanted);
+                if (!option) continue;
+                target.value = option.value;
+            } else {
+                target.value = value;
+            }
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+            // A tag picker draws its chips from its own writes, so tell it its value changed.
+            target.dispatchEvent(new CustomEvent('blacksmith:prompt-refilled'));
         }
     }
 
@@ -1418,10 +1545,25 @@ export class JsonImportWindow extends BlacksmithWindowBaseV2 {
                 const label = document.createElement('span');
                 label.textContent = entry.name;
                 chip.append(image, label);
-                if (entry.quantity) {
-                    const quantity = document.createElement('span');
-                    quantity.className = 'blacksmith-json-import-drop-chip-qty';
-                    quantity.textContent = `x${entry.quantity}`;
+                if (control.dataset.promptDrop === 'items') {
+                    // The one thing about an ingredient that is not fixed by the item itself.
+                    const quantity = document.createElement('input');
+                    quantity.type = 'number';
+                    quantity.min = '1';
+                    quantity.step = '1';
+                    quantity.className = 'blacksmith-json-import-drop-chip-qty-input';
+                    quantity.value = entry.quantity ?? '1';
+                    quantity.setAttribute('aria-label', `Quantity of ${entry.name}`);
+                    quantity.addEventListener('change', () => {
+                        const amount = Math.max(1, Math.floor(Number(quantity.value)) || 1);
+                        const next = [...lines];
+                        next[entry.index] = `${entry.name} x${amount}`;
+                        control.value = next.join('\n');
+                        control.dispatchEvent(new Event('change', { bubbles: true }));
+                        void this._refreshDropPreview(control);
+                        this._persistFormStateFromDom();
+                        void this._saveAuthoringState();
+                    });
                     chip.append(quantity);
                 }
                 const clear = document.createElement('a');

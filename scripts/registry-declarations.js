@@ -710,9 +710,12 @@ function validatePromptCatalogs(declaration, where) {
  * consumer that needs it.
  */
 const PROMPT_FIELD_KEYS = new Set([
-    'id', 'label', 'value', 'inputType', 'options', 'dynamicOptions',
+    'id', 'label', 'value', 'inputType', 'options', 'dynamicOptions', 'fills',
     'fullWidth', 'hint', 'placeholder', 'rows', 'group', 'groupIcon'
 ]);
+
+/** Every key a `fills` entry may carry. Anything else is rejected by name. */
+const PROMPT_FILL_KEYS = new Set(['field', 'from', 'map', 'transform']);
 
 /**
  * The input types the prompt window knows how to render.
@@ -819,6 +822,52 @@ function validatePromptFields(declaration, where) {
         } else if (field.options !== undefined) {
             throw new Error(`${where}: promptFields "${id}" is a ${inputType} field and cannot `
                 + `carry options`);
+        }
+    }
+
+    // `fills`: what a dropped item sets on OTHER questions. Checked once every id is known, because a
+    // fill names a sibling and the sibling may be declared after it.
+    const ids = new Set(declaration.promptFields.map(field => String(field.id).trim()));
+    for (const field of declaration.promptFields) {
+        if (field.fills === undefined) continue;
+        const id = String(field.id).trim();
+        if ((field.inputType ?? 'text') !== 'item') {
+            throw new Error(`${where}: promptFields "${id}" fills is only meaningful on an item field, `
+                + `the one a document is dropped on`);
+        }
+        if (!Array.isArray(field.fills) || !field.fills.length) {
+            throw new Error(`${where}: promptFields "${id}" fills must be a non-empty array`);
+        }
+        for (const fill of field.fills) {
+            if (!fill || typeof fill !== 'object') {
+                throw new Error(`${where}: promptFields "${id}" every fills entry must be an object`);
+            }
+            for (const key of Object.keys(fill)) {
+                if (!PROMPT_FILL_KEYS.has(key)) {
+                    throw new Error(`${where}: unknown promptFields "${id}" fills.${key}. Expected one of `
+                        + `${[...PROMPT_FILL_KEYS].join(', ')}`);
+                }
+            }
+            if (!ids.has(String(fill.field ?? '').trim()) || String(fill.field).trim() === id) {
+                throw new Error(`${where}: promptFields "${id}" fills.field "${fill.field}" must name a `
+                    + `different promptFields id in this declaration`);
+            }
+            // One path, or an ordered list of paths where the first non-empty value wins, for a
+            // property that lives in a different place on different versions of a system.
+            const paths = Array.isArray(fill.from) ? fill.from : [fill.from];
+            if (!paths.length || paths.some(path => typeof path !== 'string' || !path.trim())) {
+                throw new Error(`${where}: promptFields "${id}" fills "${fill.field}" requires a from path, `
+                    + `such as "system.rarity", or a non-empty list of them`);
+            }
+            if (fill.map !== undefined
+                && (typeof fill.map !== 'object' || fill.map === null || Array.isArray(fill.map))) {
+                throw new Error(`${where}: promptFields "${id}" fills "${fill.field}" map must be an object `
+                    + `of source value to answer`);
+            }
+            if (fill.transform !== undefined && !hasTransform(fill.transform)) {
+                throw new Error(`${where}: no transform named "${fill.transform}" is registered for `
+                    + `promptFields "${id}" fills "${fill.field}"`);
+            }
         }
     }
 }

@@ -110,9 +110,10 @@ export class PinManager {
     static _eventHandlers = new Map();
     static _handlerCounter = 0;
 
-    // Valid event types
+    // Valid event types. There is deliberately no 'click': a single left-click selects the pin and belongs to
+    // the pins tool. Registering one throws, which is louder than a handler that never fires.
     static VALID_EVENT_TYPES = Object.freeze([
-        'hoverIn', 'hoverOut', 'click', 'doubleClick', 'rightClick', 'middleClick',
+        'hoverIn', 'hoverOut', 'doubleClick', 'rightClick', 'middleClick',
         'dragStart', 'dragMove', 'dragEnd',
         'created', 'placed', 'unplaced', 'updated', 'deleted', 'deletedAll', 'deletedAllByType'
     ]);

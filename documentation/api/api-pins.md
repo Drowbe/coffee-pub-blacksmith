@@ -160,15 +160,15 @@ Hooks.once('canvasReady', () => {
   const unplaced = pins.list({ unplacedOnly: true, moduleId: MODULE_ID });
   console.log('My pins on scene:', list.length, 'unplaced:', unplaced.length);
 
-  offClick = pins.on('click', (evt) => {
-    console.log('Clicked:', evt.pin.id, evt.modifiers);
+  offOpen = pins.on('doubleClick', (evt) => {
+    console.log('Opened:', evt.pin.id, evt.modifiers);
   }, { moduleId: MODULE_ID, signal: controller.signal });
 });
 
 // Foundry has no module-unload event, so there is no teardown hook to register.
 // Call your disposers from your own lifecycle when you turn the feature off:
 //   controller.abort();  // aborts every handler registered with this signal
-//   offClick?.();
+//   offOpen?.();
 ```
 
 #### Example: sync guard before reload
@@ -293,7 +293,7 @@ These are three independent axes — conflating them is the main way pin integra
 |-------|-----------------|-------------|
 | `ownership.default` | Foundry gate: can this user view/edit the pin record at all? | GM (Pin editing maps here) |
 | `config.blacksmithVisibility` | Is the marker drawn on the map for others? (`visible` / `hidden`) | GM only |
-| Module click handlers | What opens or runs when the pin is used | Your module |
+| Module double-click handler | What opens or runs when the pin is used | Your module |
 
 `blacksmithVisibility: 'hidden'` means other players do not see the marker at all (not a dimmed hint); GMs always see the pin, and pin owners always see their own. Create a player-visible-but-hidden pin and reveal it later:
 
@@ -391,7 +391,7 @@ interface ApiPinData extends StoredPinData {
 
 ```typescript
 interface PinEvent {
-  type: 'hoverIn' | 'hoverOut' | 'click' | 'doubleClick' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
+  type: 'hoverIn' | 'hoverOut' | 'doubleClick' | 'rightClick' | 'middleClick' | 'dragStart' | 'dragMove' | 'dragEnd';
   pin: ApiPinData;
   pinId: string;
   moduleId: string;
@@ -425,10 +425,10 @@ interface PinLifecycleEvent {
 
 ### Event animations
 
-Pins can be configured to play an **animation** and optional **sound** when the user hovers (enter), clicks, double-clicks, or when the pin is deleted. Right-click is reserved for the context menu and does not trigger an event animation.
+Pins can be configured to play an **animation** and optional **sound** when the user hovers (enter), clicks, double-clicks, or when the pin is deleted. A click here is the single-click that selects the pin. Right-click is reserved for the context menu and does not trigger an event animation.
 
 - **Storage**: Optional `eventAnimations` on pin data with keys `hover`, `click`, `doubleClick`, `add`, `delete`. Each value is `{ animation: string | null, sound: string | null }`. Omit or set to `null` for no animation/sound (default).
-- **Interaction animations** (hover, click, double-click): Same set as `pins.ping()` — `ping`, `pulse`, `ripple`, `flash`, `glow`, `bounce`, `scale-small`, `scale-medium`, `scale-large`, `rotate`, `shake`. On hover enter the animation runs once (ease-out when pointer leaves). On click or double-click the animation runs once after the handler.
+- **Interaction animations** (hover, click, double-click): Same set as `pins.ping()` — `ping`, `pulse`, `ripple`, `flash`, `glow`, `bounce`, `scale-small`, `scale-medium`, `scale-large`, `rotate`, `shake`. On hover enter the animation runs once (ease-out when pointer leaves). On click the animation runs once as the pin is selected; on double-click it runs once after the handler.
 - **Delete animation**: Only `fade`, `dissolve`, or `scale-small`. When the pin is deleted (via context menu or API), if the pin is on the current scene and has a delete animation set, that animation runs (with optional sound), then the pin is removed from the canvas and data.
 - **Sound**: Optional. Use a Blacksmith sound name (e.g. `interface-ping-01`) or a full path. Default is none. Applied per event (each of hover, click, double-click, add, delete can have its own sound or none).
 - **Configuration**: The Configure Pin window includes an **Event Animations** section where users choose animation and sound for each of Hover, Click, Double-click, and Delete. Updates are applied via `pins.update(pinId, { eventAnimations: { ... } })`. Sound options are dropdowns populated from `pins.getSoundOptions()` (Blacksmith's sound list).
@@ -1425,7 +1425,7 @@ Register an event handler. Returns a disposer function. Events are dispatched fo
 **Returns**: `() => void` - Disposer function to unregister the handler
 
 ```javascript
-const off = pinsAPI.on('click', (evt) => {
+const off = pinsAPI.on('doubleClick', (evt) => {
   console.log(evt.pin.id, evt.modifiers.shift);
 }, { moduleId: 'my-module' });
 
@@ -1434,7 +1434,7 @@ off();
 
 // Or use AbortSignal for automatic cleanup
 const controller = new AbortController();
-pinsAPI.on('click', handler, { signal: controller.signal });
+pinsAPI.on('doubleClick', handler, { signal: controller.signal });
 // Later: controller.abort() automatically removes the handler
 
 pinsAPI.on('deleted', ({ pinId, moduleId }) => {
@@ -1445,8 +1445,7 @@ pinsAPI.on('deleted', ({ pinId, moduleId }) => {
 **Event Types**:
 - `'hoverIn'` - Mouse enters pin
 - `'hoverOut'` - Mouse leaves pin
-- `'click'` - Single left mouse button click (or left click that didn't drag)
-- `'doubleClick'` - Double left mouse button click (within 300ms window)
+- `'doubleClick'` - Double left mouse button click (within 300ms window). This is the only left-click event modules receive: a single left-click selects the pin and belongs to the pins tool, so there is no `'click'` event and `pins.on('click', ...)` throws.
 - `'rightClick'` - Right mouse button click (also shows context menu)
 - `'middleClick'` - Middle mouse button click
 - `'dragStart'` - Drag operation starts (requires `dragEvents: true`)

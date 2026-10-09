@@ -10,6 +10,7 @@
     --blacksmith-pin-around-text-size-ratio: 0.22; /* 22% of pin size - used for "around" text layout sizing */
     --blacksmith-pin-square-border-radius: 15%; /* Corner radius for square/rectangle pins, as a percent of the pin's SHORT side; the renderer converts it to px per zoom so rectangle corners stay circular (a raw % here skews into ellipses on non-square pins) */
     --blacksmith-pin-drop-shadow: drop-shadow(0 0px 5px rgba(0, 0, 0, 0.9)); /* Drop shadow for depth */
+    --blacksmith-pin-selected-color: #ffffff; /* Outline of the selected pin */
     /* GM corner glyph: em portion of outward offset (circle = smaller; square = full em past stroke) */
     --blacksmith-pin-gm-indicator-em-out-circle: 0.52;
     --blacksmith-pin-gm-indicator-em-out-square: 1;
@@ -48,6 +49,12 @@
 
 .blacksmith-pin[data-interaction="locked"] {
     cursor: default;
+}
+
+/* Selected pin (single-click). An outline sits outside the pin's own border and follows its shape. */
+.blacksmith-pin[data-selected="true"] {
+    outline: 2px solid var(--blacksmith-pin-selected-color);
+    outline-offset: 3px;
 }
 
 
