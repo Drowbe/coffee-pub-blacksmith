@@ -200,3 +200,23 @@ Shipped unverified.
 - **Broken double-click.** Double-click the broken pin: "What this pin points to no longer exists." and nothing opens. Configure Pin shows the missing notice under Linked to.
 - **It heals.** Undo the deletion if you can, reload the scene: the glyph is gone.
 - **Not over-eager.** A pin whose page still exists shows no glyph, and a satellite pin of a type that declares no target never does.
+
+## Live-verify relinking a broken pin
+
+Shipped unverified. Needs a world with journal page pins, plus a compendium containing a journal with a page named like one of them. Merchant and Librarian pins are listed at the end.
+
+- **Buttons.** Delete the page a journal pin points at. Open Configure Pin: General shows the missing notice with a **Relink** button, and the pin's right-click menu has **Relink Pin**. As a player, neither appears.
+- **Ask first.** Pressing Relink asks Compendiums, This World, or Compendiums, then World, with the Pins setting **Relink: Where to Look** preselected. Turn **Relink: Ask Where to Look** off and confirm it goes straight to the search using the setting.
+- **Compendium.** Choose Compendiums: the page from the compendium's journal appears marked Compendium, with its pack in the second line. Nothing is preselected, and Enter without choosing says to pick one.
+- **World.** Choose This World: the same-named world page appears first, marked "Same name". A page with a different name does not appear.
+- **Both.** Choose Compendiums, then World: compendium results come first.
+- **Relink.** Pick one and choose **Relink**. "Pin relinked." appears, the amber glyph clears, and Linked to shows the page, which opens in the client. Unsaved edits elsewhere in the window are still there. A pin pointed at a compendium page keeps working on double-click.
+- **Every compendium.** With **Relink: Search Every Compendium** off, a compendium you did not map in Compendium Mapping is not searched; on, it is, after the mapped ones, and the first search pauses briefly.
+- **Drop.** Drag a page from the sidebar onto the box: its UUID fills in and Relink works. Drop an actor: the dialog reopens asking for a Journal Entry Page, with the dropped UUID still in the box. For a pin that pointed at a whole journal, drop one of its pages: it relinks to that journal. For a page pin, drop a whole journal: the refusal says to open the journal and drag one of its pages.
+- **Bookkeeping.** After relinking to a world page, its pin toolbar shows it as already pinned, and double-clicking the pin opens it.
+- **Merchant pin.** Delete a shop's actor, then Relink its pin: there is no question (world only), and only world actors named like the shop appear. After relinking, the pin shows the new shop's name, picture and kind tag. Choosing an actor that is not linked works and warns.
+- **Librarian codex and quest pins.** Delete a codex entry, then Relink its pin to another entry: the pin takes the new entry's name, category icon and tags, and the new entry's panel row shows it as pinned. Same for a quest pin, which also takes the new quest's category. A compendium document is refused for both.
+- **Not offered.** A note pin and a Librarian objective pin that are broken show the missing notice with no Relink button and no menu entry.
+- **Animation headings.** On the Animations tab, the first column is headed Animation and the second Sound.
+- **Rename on General.** Open Configure Pin on a journal pin: General opens with a **Name** field holding the pin's label. Change it, Save: the label on the map changes. With Update All on, the other pins of that type keep their own names.
+- **Rename after a relink.** Relink a journal pin to a page named differently from its label: after Relink a dialog asks to rename the pin to the page's name. **Rename** changes the label, **Keep Label** leaves it. A page named the same (ignoring case) does not ask.

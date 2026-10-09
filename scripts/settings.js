@@ -1541,6 +1541,44 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+	game.settings.register(MODULE.ID, 'pinsRelinkSource', {
+		name: MODULE.ID + '.pinsRelinkSource-Label',
+		hint: MODULE.ID + '.pinsRelinkSource-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'compendiums',
+		choices: {
+			'compendiums': 'Compendiums',
+			'world': 'This World',
+			'both': 'Compendiums, then This World'
+		},
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'pinsRelinkAsk', {
+		name: MODULE.ID + '.pinsRelinkAsk-Label',
+		hint: MODULE.ID + '.pinsRelinkAsk-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'pinsRelinkAllCompendiums', {
+		name: MODULE.ID + '.pinsRelinkAllCompendiums-Label',
+		hint: MODULE.ID + '.pinsRelinkAllCompendiums-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
 	game.settings.register(MODULE.ID, 'pinTaxonomyOverrideJson', {
 		name: 'Pin Taxonomy Override JSON',
 		hint: 'Optional world-level JSON path to merge over the shipped pin taxonomy. Leave blank to use only the built-in defaults.',

@@ -12,6 +12,7 @@
         "journal-pin": {
           "label": "Journal Page",
           "copyable": true,
+          "relinkable": true,
           "target": ["journalPageUuid", "journalUuid"],
           "tags": [
             "narrative",

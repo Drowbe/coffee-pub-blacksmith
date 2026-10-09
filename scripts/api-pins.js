@@ -289,7 +289,7 @@ export class PinsAPI {
     /**
      * Register an event handler. Returns a disposer function.
      * 
-     * @param {string} eventType - Event type: interaction ('hoverIn', 'hoverOut', 'doubleClick', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd') or lifecycle ('created', 'placed', 'unplaced', 'updated', 'deleted', 'deletedAll', 'deletedAllByType')
+     * @param {string} eventType - Event type: interaction ('hoverIn', 'hoverOut', 'doubleClick', 'rightClick', 'middleClick', 'dragStart', 'dragMove', 'dragEnd') or lifecycle ('created', 'placed', 'unplaced', 'updated', 'relinked', 'deleted', 'deletedAll', 'deletedAllByType')
      * @param {Function} handler - Callback function that receives an interaction or lifecycle pin event payload
      * @param {import('./manager-pins.js').PinEventHandlerOptions} [options]
      * @returns {() => void} - Disposer function to unregister the handler
@@ -363,6 +363,30 @@ export class PinsAPI {
     }
 
     /**
+     * Point a pin at a different document. Allowed only for a pin type whose taxonomy entry declares
+     * `relinkable: true`, and only to a document of the same kind as the one it pointed at. Fires `relinked`.
+     * @param {string} pinId
+     * @param {string} newUuid - UUID of the document to point at
+     * @returns {Promise<object | null>}
+     */
+    static relink(pinId, newUuid) {
+        return PinManager.relinkPin(pinId, newUuid);
+    }
+
+    /**
+     * Candidates to relink a pin to: documents of the same kind as its dead link whose id or name matches,
+     * compendiums first, then the world. `sources` ('compendiums', 'world' or 'both') and `allCompendiums`
+     * default to the Pins settings.
+     * @param {string} pinId
+     * @param {{ sources?: string, allCompendiums?: boolean, limit?: number }} [options]
+     * @returns {Promise<{ kind: string | null, kindLabel: string, sources: string, candidates: object[] }>}
+     */
+    static async findRelinkCandidates(pinId, options = {}) {
+        const pin = PinManager.get(pinId);
+        return pin ? PinManager.findRelinkCandidates(pin, options) : { kind: null, kindLabel: '', sources: 'compendiums', candidates: [] };
+    }
+
+    /**
      * Get taxonomy metadata for a pin type.
      * @param {string} moduleId
      * @param {string} [type]
@@ -374,10 +398,10 @@ export class PinsAPI {
 
     /**
      * Get all registered taxonomy entries for a module.
-     * Returns a plain object keyed by type, each value being { label, tags, copyable, target }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable, relinkable, target }.
      * Merges built-in JSON, override JSON, and runtime-registered entries.
      * @param {string} moduleId - Your module id (e.g. 'coffee-pub-artificer')
-     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, target: string[] }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, relinkable: boolean, target: string[] }>}
      */
     static getModuleTaxonomy(moduleId) {
         return PinManager.getModuleTaxonomy(moduleId);

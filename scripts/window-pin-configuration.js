@@ -97,6 +97,23 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
     }
 
     /**
+     * After a relink, swap the Linked to row for the new document in place. Not a re-render, which would
+     * discard whatever has been edited in the form and not yet saved.
+     * @private
+     */
+    async _refreshTargetRow() {
+        const body = this.element?.querySelector('.blacksmith-pin-config-target-section .blacksmith-window-section-body');
+        if (!body) return;
+        const { PinManager } = await import('./manager-pins.js');
+        const pin = PinManager.get(this.pinId, this.sceneId !== undefined ? { sceneId: this.sceneId } : {});
+        const target = pin ? await PinManager.resolvePinTarget(pin) : null;
+        if (!target?.doc) return;
+        const esc = foundry.utils.escapeHTML;
+        const kind = game.i18n.localize(target.doc.constructor?.metadata?.label ?? target.doc.documentName);
+        body.innerHTML = `<a class="blacksmith-pin-config-target blacksmith-pin-config-target-link" data-link data-uuid="${esc(target.uuid)}" data-tooltip="Open"><i class="fa-solid fa-arrow-up-right-from-square"></i> ${esc(target.doc.name)} <span class="blacksmith-pin-config-target-kind">${esc(kind)}</span></a>`;
+    }
+
+    /**
      * The tab to show. A player who owns the pin sees no General or Tags tab (permissions and
      * classification are GM controls), so a remembered tab they cannot see falls back to the first one they can.
      * @param {boolean} isGM
@@ -557,6 +574,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             ? {
                 uuid: target.uuid,
                 broken: target.broken,
+                relinkable: target.relinkable && isGM,
                 name: target.doc?.name ?? '',
                 kind: target.doc
                     ? game.i18n.localize(target.doc.constructor?.metadata?.label ?? target.doc.documentName)
@@ -1037,6 +1055,12 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         nativeHtml.querySelector('button.cancel')?.addEventListener('click', () => this.close());
 
+        // Linked to, broken: let the GM point the pin at something else
+        nativeHtml.querySelector('.blacksmith-pin-config-relink')?.addEventListener('click', async () => {
+            const { PinRelink } = await import('./utility-pin-relink.js');
+            if (await PinRelink.open(this.pinId)) await this._refreshTargetRow();
+        });
+
         nativeHtml.querySelector('.blacksmith-pin-config-update-all-toggle')?.addEventListener('change', (e) => {
             this._updateAllMode = !!e.target.checked;
             this._updateAllTags.clear();
@@ -1075,8 +1099,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 textDisplayInput, textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput,
                 textScaleInput, imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml });
 
-            // GM-only: tags and ownership are per-pin, not part of bulk update
+            // GM-only: name, tags and ownership are per-pin, not part of bulk update
             if (game.user?.isGM) {
+                const nameInput = nativeHtml.querySelector('.blacksmith-pin-config-name');
+                if (nameInput) pinUpdateData.text = nameInput.value.trim();
                 pinUpdateData.tags = normalizePinTags(tagsInput?.value ?? this.pinTags ?? []);
                 const accessSelect = nativeHtml.querySelector('.blacksmith-pin-config-access-default');
                 const visSelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');

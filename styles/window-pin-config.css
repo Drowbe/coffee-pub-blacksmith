@@ -104,6 +104,10 @@ div#blacksmith-pin-config .window-content {
     color: var(--blacksmith-pin-broken-color);
 }
 
+.blacksmith-pin-config .blacksmith-pin-config-relink {
+    margin-left: auto;
+}
+
 /* Show/hide image vs icon bodies via data-icon-mode on root */
 .blacksmith-pin-config[data-icon-mode="image"] .blacksmith-pin-config-library-body,
 .blacksmith-pin-config[data-icon-mode="icon"] .blacksmith-pin-config-image-body {
@@ -177,6 +181,11 @@ div#blacksmith-pin-config .window-content {
     grid-template-columns: 100px 1fr 1fr;
     align-items: center;
     gap: 10px;
+}
+
+/* Column headings: the first select of each row is the animation, the second the sound */
+.blacksmith-pin-config-event-head {
+    margin-bottom: -2px;
 }
 
 .blacksmith-pin-config-event-label {

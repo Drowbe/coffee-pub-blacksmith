@@ -127,6 +127,13 @@
 				"pinsAllowPlayerWrites-Label": "Player Pin Editing",
 				"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
 
+				"pinsRelinkSource-Label": "Relink: Where to Look",
+				"pinsRelinkSource-Hint": "Where Relink Pin looks for a replacement when a pin's document is gone. Compendiums uses the compendiums you mapped in Compendium Mapping, in their priority order. Compendiums, then This World searches compendiums first and the world after.",
+				"pinsRelinkAsk-Label": "Relink: Ask Where to Look",
+				"pinsRelinkAsk-Hint": "Ask each time a pin is relinked, with the choice above preselected. When off, the choice above is used without asking.",
+				"pinsRelinkAllCompendiums-Label": "Relink: Search Every Compendium",
+				"pinsRelinkAllCompendiums-Hint": "After the compendiums you mapped, also search every other installed compendium that can hold the document. The first relink in a session indexes them and can pause for a moment.",
+
 			"headingH3Sidebars-Label": "Sidebars",
 			"headingH3Sidebars-Hint": "",
 

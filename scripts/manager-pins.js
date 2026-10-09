@@ -115,7 +115,7 @@ export class PinManager {
     static VALID_EVENT_TYPES = Object.freeze([
         'hoverIn', 'hoverOut', 'doubleClick', 'rightClick', 'middleClick',
         'dragStart', 'dragMove', 'dragEnd',
-        'created', 'placed', 'unplaced', 'updated', 'deleted', 'deletedAll', 'deletedAllByType'
+        'created', 'placed', 'unplaced', 'updated', 'relinked', 'deleted', 'deletedAll', 'deletedAllByType'
     ]);
     
     // Context menu item storage: Map<itemId, menuItem>
@@ -209,6 +209,11 @@ export class PinManager {
             // Undefined when not stated, so a later layer (user override JSON) that omits it does not undo the
             // module that declared it. Only an explicit boolean takes part in the merge.
             copyable: typeof taxonomy.copyable === 'boolean' ? taxonomy.copyable : undefined,
+            // Whether a pin of this type may be pointed at a different document. Opt-in, for the same reason as
+            // copyable: only the owner of a type knows what else is bound to the document it points at.
+            relinkable: typeof taxonomy.relinkable === 'boolean' ? taxonomy.relinkable : undefined,
+            // 'world' restricts a relink to documents in this world; anything else, or nothing, allows compendiums too.
+            relinkScope: ['world', 'any'].includes(taxonomy.relinkScope) ? taxonomy.relinkScope : undefined,
             // The config keys that may hold the UUID this pin points at, first present wins. Undefined when not
             // stated, for the same merge reason as copyable.
             target: this._normalizeTaxonomyTarget(taxonomy.target)
@@ -251,11 +256,15 @@ export class PinManager {
             label: '',
             tags: [],
             copyable: false,
+            relinkable: false,
+            relinkScope: 'any',
             target: []
         };
         for (const entry of valid) {
             if (entry.label) merged.label = entry.label;
             if (typeof entry.copyable === 'boolean') merged.copyable = entry.copyable;
+            if (typeof entry.relinkable === 'boolean') merged.relinkable = entry.relinkable;
+            if (entry.relinkScope) merged.relinkScope = entry.relinkScope;
             if (Array.isArray(entry.target)) merged.target = entry.target;
             merged.tags = Array.from(new Set([...(merged.tags || []), ...(entry.tags || [])].filter(Boolean)));
         }
@@ -276,9 +285,9 @@ export class PinManager {
     /**
      * Get all registered taxonomy entries for a module — every type that has been registered
      * via the built-in JSON, an override JSON, or registerPinTaxonomy().
-     * Returns a plain object keyed by type, each value being { label, tags, copyable, target }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable, relinkable, relinkScope, target }.
      * @param {string} moduleId
-     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, target: string[] }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, relinkable: boolean, relinkScope: string, target: string[] }>}
      */
     static getModuleTaxonomy(moduleId) {
         if (!moduleId) return {};
@@ -290,7 +299,7 @@ export class PinManager {
         const result = {};
         for (const type of types) {
             const entry = this.getPinTaxonomy(moduleId, type);
-            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable, target: entry.target };
+            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable, relinkable: entry.relinkable, relinkScope: entry.relinkScope, target: entry.target };
         }
         return result;
     }
@@ -301,22 +310,219 @@ export class PinManager {
      * a pin that declares a target but holds no UUID is unlinked, not broken. Existence only: permission is not
      * tested, so "deleted" is never confused with "you may not see it".
      * @param {PinData | ApiPinData} pin
-     * @returns {Promise<{ declared: boolean, uuid: string | null, doc: Document | null, broken: boolean }>}
+     * @returns {Promise<{ declared: boolean, key: string | null, uuid: string | null, doc: Document | null, broken: boolean, relinkable: boolean, relinkScope: string }>}
+     *   `key` is the config key that held the UUID, so a relink knows which one to write.
      */
     static async resolvePinTarget(pin) {
         await this.ensureBuiltinTaxonomyLoaded();
-        const keys = this.getPinTaxonomy(pin?.moduleId, pin?.type)?.target ?? [];
-        if (!keys.length) return { declared: false, uuid: null, doc: null, broken: false };
+        const taxonomy = this.getPinTaxonomy(pin?.moduleId, pin?.type);
+        const keys = taxonomy?.target ?? [];
+        const relinkable = taxonomy?.relinkable === true;
+        const relinkScope = taxonomy?.relinkScope === 'world' ? 'world' : 'any';
+        if (!keys.length) return { declared: false, key: null, uuid: null, doc: null, broken: false, relinkable, relinkScope };
         const config = (pin.config && typeof pin.config === 'object') ? pin.config : {};
-        const uuid = keys.map((key) => config[key]).find((value) => typeof value === 'string' && value.trim())?.trim() ?? null;
-        if (!uuid) return { declared: true, uuid: null, doc: null, broken: false };
+        const key = keys.find((k) => typeof config[k] === 'string' && config[k].trim()) ?? null;
+        if (!key) return { declared: true, key: null, uuid: null, doc: null, broken: false, relinkable, relinkScope };
+        const uuid = config[key].trim();
         let doc = null;
         try {
             doc = await fromUuid(uuid);
         } catch (_err) {
             doc = null;
         }
-        return { declared: true, uuid, doc, broken: !doc };
+        return { declared: true, key, uuid, doc, broken: !doc, relinkable, relinkScope };
+    }
+
+    /** The label a user knows a document type by ("Journal Entry Page"), from Foundry's own metadata. */
+    static _documentKindLabel(kind) {
+        const label = CONFIG?.[kind]?.documentClass?.metadata?.label;
+        return label ? game.i18n.localize(label) : String(kind ?? '');
+    }
+
+    /** Every world document a relink search may offer for a document type. World only: compendium indexes are not walked. */
+    static _relinkPool(kind) {
+        if (kind === 'JournalEntryPage') return (game.journal?.contents ?? []).flatMap((entry) => entry.pages?.contents ?? []);
+        return game.collections?.get(kind)?.contents ?? [];
+    }
+
+    /** The relink settings in one place: where to look by default, whether to ask, and how wide to search compendiums. */
+    static getRelinkDefaults() {
+        const source = getSettingSafely(MODULE.ID, 'pinsRelinkSource', 'compendiums');
+        return {
+            source: ['compendiums', 'world', 'both'].includes(source) ? source : 'compendiums',
+            ask: getSettingSafely(MODULE.ID, 'pinsRelinkAsk', true) !== false,
+            allCompendiums: getSettingSafely(MODULE.ID, 'pinsRelinkAllCompendiums', true) !== false
+        };
+    }
+
+    /**
+     * Compendium candidates for a relink, through the Compendiums API so the GM's Compendium Mapping and its
+     * priority order apply. A compendium holds journals, not their pages, so for a page the journals named alike
+     * are opened and their pages offered: those named alike, or the only page of the journal.
+     * @private
+     */
+    static async _searchCompendiumsForRelink(kind, text, allCompendiums, limit) {
+        const query = String(text ?? '').trim();
+        if (query.length < 2) return [];
+        const { CompendiumsAPI } = await import('./api-compendiums.js');
+        const isPage = kind === 'JournalEntryPage';
+        let hits = [];
+        try {
+            hits = await CompendiumsAPI.search(query, isPage ? 'JournalEntry' : kind, { limit, allSources: allCompendiums, includeWorld: false });
+        } catch (err) {
+            console.warn('BLACKSMITH | PINS Relink compendium search failed', err);
+            return [];
+        }
+        const reasonOf = (match) => (match === 'exact' ? 'Same name' : (match === 'startsWith' ? 'Name starts the same' : 'Similar name'));
+        const where = (hit) => [hit.sourceLabel, hit.sourcePackage].filter(Boolean).join(' - ');
+        if (!isPage) {
+            return hits.map((hit) => ({
+                uuid: hit.uuid, name: hit.name, img: hit.img || '', parent: where(hit),
+                origin: 'compendium', reason: reasonOf(hit.matchType)
+            }));
+        }
+        const norm = (value) => String(value ?? '').trim().toLowerCase();
+        const wanted = norm(query);
+        const out = [];
+        for (const hit of hits.slice(0, 6)) {
+            const journal = await fromUuid(hit.uuid).catch(() => null);
+            const pages = journal?.pages?.contents ?? [];
+            const named = pages.filter((page) => norm(page.name) === wanted || (norm(page.name).length >= 3 && (norm(page.name).includes(wanted) || wanted.includes(norm(page.name)))));
+            const picked = named.length ? named : (pages.length === 1 ? pages : []);
+            for (const page of picked) {
+                out.push({
+                    uuid: page.uuid, name: page.name, img: 'icons/svg/book.svg', parent: `${journal.name} - ${where(hit)}`,
+                    origin: 'compendium', reason: named.length ? 'Same name' : 'Journal named alike'
+                });
+            }
+        }
+        return out.slice(0, limit);
+    }
+
+    /**
+     * Candidates to point a broken pin at. The pin kept two clues: the dead UUID, which names the kind of
+     * document and its id, and its own text, which is normally the document's name. Compendiums are searched
+     * first, through the Compendiums API, then the world, and which of them are searched is the caller's choice
+     * (`sources`), defaulting to the Pins settings. In the world, a matching id (the same document moved
+     * elsewhere) outranks an exact name, which outranks a name that contains or is contained by the pin's text.
+     * Nothing is chosen for the user.
+     * @param {PinData | ApiPinData} pin
+     * @param {{ sources?: 'compendiums' | 'world' | 'both', allCompendiums?: boolean, limit?: number }} [options]
+     * @returns {Promise<{ kind: string | null, kindLabel: string, sources: string, candidates: Array<{ uuid: string, name: string, img: string, parent: string, origin: 'compendium' | 'world', reason: string }> }>}
+     */
+    static async findRelinkCandidates(pin, options = {}) {
+        const defaults = this.getRelinkDefaults();
+        const allCompendiums = options.allCompendiums ?? defaults.allCompendiums;
+        const limit = options.limit ?? 12;
+
+        const target = await this.resolvePinTarget(pin);
+        // A type that keeps its records in the world cannot be pointed at a compendium document
+        const sources = target.relinkScope === 'world'
+            ? 'world'
+            : (['compendiums', 'world', 'both'].includes(options.sources) ? options.sources : defaults.source);
+        const parsed = target.uuid ? foundry.utils.parseUuid(target.uuid) : null;
+        const kind = parsed?.type ?? null;
+        if (!target.declared || !kind) return { kind: null, kindLabel: '', sources, candidates: [] };
+
+        const seen = new Set([target.uuid]);
+        const candidates = [];
+        const add = (candidate) => {
+            if (seen.has(candidate.uuid)) return;
+            seen.add(candidate.uuid);
+            candidates.push(candidate);
+        };
+
+        if (sources !== 'world') {
+            for (const candidate of await this._searchCompendiumsForRelink(kind, pin.text, allCompendiums, limit)) add(candidate);
+        }
+
+        if (sources !== 'compendiums') {
+            const norm = (value) => String(value ?? '').trim().toLowerCase();
+            const text = norm(pin.text);
+            const found = [];
+            for (const doc of this._relinkPool(kind)) {
+                const name = norm(doc.name);
+                let score = 0;
+                let reason = '';
+                if (parsed.id && doc.id === parsed.id) {
+                    score = 100;
+                    reason = 'Same ID';
+                } else if (text && name === text) {
+                    score = 80;
+                    reason = 'Same name';
+                } else if (text && name.length >= 3 && (name.includes(text) || text.includes(name))) {
+                    score = 40;
+                    reason = 'Similar name';
+                }
+                if (!score) continue;
+                found.push({
+                    uuid: doc.uuid,
+                    name: doc.name,
+                    img: doc.img || doc.thumb || (kind === 'JournalEntryPage' || kind === 'JournalEntry' ? 'icons/svg/book.svg' : ''),
+                    parent: doc.parent?.name ?? '',
+                    origin: 'world',
+                    reason,
+                    score
+                });
+            }
+            found.sort((x, y) => y.score - x.score || x.name.localeCompare(y.name));
+            for (const candidate of found.slice(0, limit)) add(candidate);
+        }
+
+        return { kind, kindLabel: this._documentKindLabel(kind), sources, candidates };
+    }
+
+    /**
+     * Point a pin at a different document. Only a type that declares `relinkable` allows it, and only to a
+     * document of the same kind as the one it pointed at. Writes the config key that held the old UUID, then
+     * announces `relinked` so the owning module can fix whatever else it keeps about the old document. The
+     * ordinary `updated` event fires for the config write as well.
+     * @param {string} pinId
+     * @param {string} newUuid
+     * @returns {Promise<ApiPinData | null>}
+     */
+    static async relinkPin(pinId, newUuid) {
+        const pin = this.get(pinId);
+        if (!pin) throw new Error(`Pin not found: ${pinId}`);
+        if (!this._canEdit(pin, game.user?.id ?? '')) throw new Error('Permission denied: you cannot edit this pin.');
+        const old = await this.resolvePinTarget(pin);
+        if (!old.relinkable) throw new Error('This kind of pin cannot be relinked.');
+        if (!old.key) throw new Error('This pin has no link to repair.');
+
+        const uuid = String(newUuid ?? '').trim();
+        let doc = null;
+        try {
+            doc = uuid ? await fromUuid(uuid) : null;
+        } catch (_err) {
+            doc = null;
+        }
+        if (!doc) throw new Error('That document could not be found.');
+        const oldKind = foundry.utils.parseUuid(old.uuid)?.type ?? null;
+        // A page dragged out of an open journal where the journal itself is wanted means that journal
+        if (oldKind && doc.documentName !== oldKind && doc.parent?.documentName === oldKind) doc = doc.parent;
+        if (old.relinkScope === 'world' && doc.pack) throw new Error('That pin can only point at a document in this world.');
+        if (oldKind && doc.documentName !== oldKind) {
+            const hint = (oldKind === 'JournalEntryPage' && doc.documentName === 'JournalEntry')
+                ? ' Open the journal and drag one of its pages.'
+                : '';
+            throw new Error(`Choose a ${this._documentKindLabel(oldKind)}. That is a ${this._documentKindLabel(doc.documentName)}.${hint}`);
+        }
+
+        const updated = await this.update(pinId, { config: { ...(pin.config ?? {}), [old.key]: doc.uuid } });
+        const loc = this._findPinLocation(pinId);
+        const sceneId = loc?.location === 'scene' ? loc.sceneId : null;
+        const payload = {
+            pinId,
+            sceneId,
+            moduleId: pin.moduleId,
+            key: old.key,
+            oldUuid: old.uuid,
+            newUuid: doc.uuid,
+            pin: this.get(pinId)
+        };
+        this._callLifecycleHook('blacksmith.pins.relinked', { ...payload, type: pin.type ?? 'default' });
+        this._invokeRegisteredHandlers('relinked', { ...payload, type: 'relinked', pinType: pin.type ?? 'default' });
+        return updated;
     }
 
     static getPinTaxonomyChoices(moduleId, type) {
@@ -603,7 +809,7 @@ export class PinManager {
         return [...this._globalTags];
     }
 
-    /** All registered taxonomies keyed by moduleId → type → { label, tags, copyable, target }. */
+    /** All registered taxonomies keyed by moduleId → type → { label, tags, copyable, relinkable, target }. */
     static getAllTaxonomies() {
         const moduleIds = new Set();
         for (const key of this._builtinTaxonomyRegistry.keys()) { const [m] = key.split('|'); if (m) moduleIds.add(m); }

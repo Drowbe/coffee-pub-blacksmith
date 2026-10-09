@@ -469,12 +469,14 @@ world. Most likely to be wrong: the journal placement steps (what exactly happen
 a click or a drop places it), what a player sees in the Pins tool and Manage Pins (the GM-only controls were
 read off permission checks), and the order of the right-click menu entries as rendered.
 
-### Pins: relink a broken pin (deferred 2026-10-09)
+### Pins: relink for the pin types that do not have it yet
 
-Offer a way to point a broken pin at another document, from the Linked to row in Configure Pin and from the
-broken glyph. The indicator and the row now exist (see `architecture-pins.md`, Broken links), so this is unblocked.
-A satellite that wants to offer its own repair should not declare `target`, because a broken pin's double-click
-is withheld from it.
+Relink exists (see `architecture-pins.md`, Relinking a broken pin). Journal pins, Merchant shop pins and
+Librarian codex and quest pins use it. Left: Blacksmith's note pins, whose note keeps an anchor that names the pin
+and would have to be moved by Notes; and Librarian objective pins, which hold an index into their quest's task list
+that means nothing against another quest, so relinking one needs a way to choose the objective as well. The
+Compendiums API does not index a journal's pages, so a page in a compendium is found by opening journals named
+alike, which misses a page whose journal has a different name.
 
 ### Pins: double-click landing in drag mode
 

@@ -13,7 +13,7 @@
 - **Pin editing (per pin)**: `config.blacksmithAccess` is `'gm'` | `'private'` | `'public'` — who may edit the pin record (move, Configure Pin, delete). It does not control what opens on click; the calling module owns click/double-click behavior and document edit rights.
 - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). A world-level tag registry tracks every tag ever used.
 - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, and the Manage Pins window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Linked to** row for a type that declares a target, then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
+- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Name** field for the pin's `text`, a **Linked to** row for a type that declares a target, then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -259,7 +259,15 @@ A category may also declare `"target"`, the `config` key (or an ordered list of 
 - **A double-click on a broken pin is not delivered to your `doubleClick` handler.** The user gets "What this pin points to no longer exists." instead, because the handler could only fail. A pin that declares a target but holds no UUID is unlinked, not broken, and is delivered as usual.
 - **Configure Pin shows a Linked to row** on the General tab with the document's name, which opens it, or a missing notice.
 
-Do not declare `target` if your module wants to receive double-clicks on a dangling pin, for instance to offer a repair.
+Do not declare `target` if your module wants to receive double-clicks on a dangling pin of its own.
+
+A category may also declare `"relinkable": true` (boolean, default `false`; accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`), which lets the GM point a **broken** pin of that type at another document. It only means something alongside `target`. Add `"relinkScope": "world"` (default `"any"`) if the pin can only point at a document in this world, as a pin for a record your module keeps in the world's documents does: the search then never offers a compendium document and `pins.relink` refuses one. **Leave it off unless you can repair what else your module keeps about the old document**, because a relink rewrites only the one config key that held the dead UUID: a snapshot of the old document, a flag on it that points back at the pin, a category or a label are all yours. Blacksmith announces the change so you can:
+
+- **`relinked`** is a lifecycle event for `pins.on('relinked', handler, { moduleId })` and the Hook `blacksmith.pins.relinked`. The payload is `{ pinId, sceneId, moduleId, pinType, key, oldUuid, newUuid, pin }`, where `key` is the config key that was rewritten. The ordinary `updated` event fires for the config write too. Both run on the client that relinked, which is a GM's.
+- **`pins.relink(pinId, newUuid)`** does the relink, for a module that builds its own repair flow. It throws if the pin's type is not `relinkable`, if the pin has no link, if the document cannot be found, or if it is not the same kind of document as the one the pin pointed at. A document whose parent is the wanted kind resolves to that parent, so a page dropped for a pin that pointed at a journal relinks to the journal.
+- **`pins.findRelinkCandidates(pinId, { sources, allCompendiums, limit })`** returns `{ kind, kindLabel, sources, candidates }`. It looks for documents of the same kind as the dead link whose name matches the pin's text. `sources` is `'compendiums'`, `'world'` or `'both'` (compendiums first, then the world), and defaults to the Pins settings below. Compendiums are searched through `api.compendiums`, so the GM's Compendium Mapping and its priority order apply, and `allCompendiums` adds every other installed compendium after the mapped ones. For a journal page the compendium search opens journals named alike and offers their pages. In the world a matching id (the same document moved elsewhere) outranks an exact name, which outranks a name that contains, or is contained by, the pin's text. A `relinkScope: 'world'` type is always searched in the world only. Each candidate carries `origin` (`'compendium'` or `'world'`) and a `reason`. It chooses nothing.
+
+When a pin is relinkable and broken, the GM gets a **Relink** button beside the missing notice in Configure Pin and a **Relink Pin** entry in the pin's right-click menu. The dialog first asks where to look (compendiums, this world, or both) unless the type is world only. Three world settings in the Pins section drive it: **Relink: Where to Look** (the preselected answer, default compendiums), **Relink: Ask Where to Look** (default on; off uses the answer without asking) and **Relink: Search Every Compendium** (default on).
 
 Differences from v2: a single `tags` array (no `defaultTags` / `suggestedTags`); categories nest under `modules.{moduleId}.pinCategories`, not at the root; `globalTags` at the root for cross-module tags; `"version": 3` is required. Blacksmith's built-in `resources/pin-taxonomy.json` uses this format.
 
@@ -419,7 +427,7 @@ interface PinEvent {
 
 ```typescript
 interface PinLifecycleEvent {
-  type: 'created' | 'placed' | 'unplaced' | 'updated' | 'deleted' | 'deletedAll' | 'deletedAllByType';
+  type: 'created' | 'placed' | 'unplaced' | 'updated' | 'relinked' | 'deleted' | 'deletedAll' | 'deletedAllByType';
   pinId?: string;
   moduleId?: string | null;
   pinType?: string | null;
@@ -1323,7 +1331,7 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window has five tabs: **General** (**Linked to**, **Pin editing**, **Pin visibility**, allow duplicates; GM only), **Tags** (GM only), **Image** (**Pin Source**), **Appearance** (**Pin Design**, **Text Format**) and **Animations**. Every tab's fields stay in the form while another tab shows, so Save applies edits from all of them, and the open tab is remembered across a re-render. Pin **type** is not editable in the window.
+- The window has five tabs: **General** (**Name**, **Linked to**, **Pin editing**, **Pin visibility**, allow duplicates; GM only), **Tags** (GM only), **Image** (**Pin Source**), **Appearance** (**Pin Design**, **Text Format**) and **Animations**. Every tab's fields stay in the form while another tab shows, so Save applies edits from all of them, and the open tab is remembered across a re-render. Pin **type** is not editable in the window.
 - The window header shows **"[Category]: [Pin Title]"** (e.g. "Journal Pin: The Rusty Anchor") using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **"Default for [type]"** toggle (renamed from "Default" in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
 - **Permissions section** (GM only): **Pin editing** (`blacksmithAccess`: **GM only** / **Owner** / **Everyone`) and **Pin visibility** (`blacksmithVisibility`: **Visible** / **Hidden**). Pin editing maps to `ownership.default`. Pin visibility does not change document rights. **Allow Duplicates** toggle.
 - **Action bar left** (v13.6.3): **"Update All [type] Pins"** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes pin editing, pin visibility, and allow-duplicates when checked. A **"Filter by tag:"** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
@@ -1465,6 +1473,7 @@ pinsAPI.on('deleted', ({ pinId, moduleId }) => {
 - `'placed'` - Unplaced pin was placed onto a scene
 - `'unplaced'` - Placed pin was removed from a scene but kept in storage
 - `'updated'` - Pin properties changed
+- `'relinked'` - A broken pin was pointed at another document (`pins.relink`); the payload adds `key`, `oldUuid` and `newUuid`
 - `'deleted'` - Single pin was deleted
 - `'deletedAll'` - Bulk delete removed pins from a scene
 - `'deletedAllByType'` - Bulk delete removed pins of a specific type from a scene

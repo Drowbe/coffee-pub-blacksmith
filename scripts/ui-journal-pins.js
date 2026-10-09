@@ -4,6 +4,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { getCachedTemplate } from './blacksmith.js';
 import { HookManager } from './manager-hooks.js';
 import { PinManager } from './manager-pins.js';
+import { DialogAPI } from './api-dialog.js';
 import { JournalDomWatchdog } from './manager-journal-dom.js';
 import { PIN_ACCESS_ICONS, PIN_VISIBILITY_ICONS } from './manager-pins-permission-icons.js';
 
@@ -269,6 +270,63 @@ export class JournalPagePins {
             void this._onJournalPinDeleted(evt);
         };
         Hooks.on('blacksmith.pins.deleted', this._onPinDeleted);
+
+        this._onPinRelinked = (evt) => {
+            void this._onJournalPinRelinked(evt);
+        };
+        Hooks.on('blacksmith.pins.relinked', this._onPinRelinked);
+    }
+
+    /**
+     * A journal pin was pointed at a different page or journal. The pin's UUID is already written; the rest of
+     * what ties it to its document is ours to move: the journalId and pageId companions in its config, and the
+     * pinId and sceneId flags the page or journal toolbar reads. The old document is gone, so its flags are too.
+     * @param {{ pinId?: string, sceneId?: string | null, type?: string, moduleId?: string, newUuid?: string }} evt
+     */
+    static async _onJournalPinRelinked(evt) {
+        try {
+            if (evt?.moduleId !== MODULE.ID || evt?.type !== this.PIN_TYPE) return;
+            const doc = await fromUuid(evt.newUuid);
+            const pin = PinManager.get(evt.pinId);
+            if (!doc || !pin) return;
+
+            const config = { ...(pin.config ?? {}) };
+            if (doc.documentName === 'JournalEntryPage') {
+                config.journalId = doc.parent?.id ?? '';
+                config.pageId = doc.id;
+            } else if (doc.documentName === 'JournalEntry') {
+                config.journalId = doc.id;
+                config.journalUuid = doc.uuid;
+            } else {
+                return;
+            }
+            await PinManager.update(evt.pinId, { config });
+
+            // A journal pin is labelled with its document's name, so a document named differently leaves a
+            // label that no longer says what the pin opens. Ask, rather than rename: the GM may have written
+            // that label themselves. Pins of other modules re-derive their own labels in their own handlers.
+            const label = doc.documentName === 'JournalEntryPage' ? this._getPagePinLabel(doc) : this._getJournalPinLabel(doc);
+            const current = String(pin.text ?? '').trim();
+            if (current.toLowerCase() !== label.toLowerCase()) {
+                const rename = await DialogAPI.confirm({
+                    title: 'Update Pin Label',
+                    content: `<p>This pin is labelled <strong>${foundry.utils.escapeHTML(current || 'nothing')}</strong>. What it points at now is named <strong>${foundry.utils.escapeHTML(label)}</strong>.</p><p>Rename the pin to match?</p>`,
+                    confirmLabel: 'Rename',
+                    confirmIcon: 'fa-solid fa-pen',
+                    cancelLabel: 'Keep Label'
+                });
+                if (rename) await PinManager.update(evt.pinId, { text: label });
+            }
+
+            // Same rule as placement: the pinId flag marks the one pin of a single-pin page, the sceneId flag
+            // marks where it is. A page that allows several pins carries no pinId flag. A compendium document
+            // is locked and is not ours to flag, so a pin pointed at one carries no flags.
+            if (doc.pack) return;
+            if (!pin.allowDuplicatePins) await doc.setFlag(MODULE.ID, 'pinId', evt.pinId);
+            if (evt.sceneId) await doc.setFlag(MODULE.ID, 'sceneId', evt.sceneId);
+        } catch (err) {
+            postConsoleAndNotification(MODULE.NAME, 'Journal pin: could not finish relinking', err?.message ?? String(err), false, false);
+        }
     }
 
     /**

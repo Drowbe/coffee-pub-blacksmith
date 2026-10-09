@@ -48,6 +48,16 @@
     <div class="window-note-body">
         {{#if isGM}}
         <div class="blacksmith-pin-config-pane" data-pane="general">
+            {{!-- The pin's label. Per pin: Update All never carries a name to the other pins of a type. --}}
+            <div class="blacksmith-window-section blacksmith-pin-config-name-section">
+                <div class="blacksmith-window-section-header">
+                    <span class="blacksmith-pin-config-section-title"><i class="fa-solid fa-signature"></i> Name</span>
+                </div>
+                <div class="blacksmith-window-section-body">
+                    <input type="text" class="blacksmith-input blacksmith-pin-config-name" value="{{pinName}}" placeholder="What this pin is called on the map">
+                </div>
+            </div>
+
             {{#if pinTarget}}
             <div class="blacksmith-window-section blacksmith-pin-config-target-section">
                 <div class="blacksmith-window-section-header">
@@ -57,6 +67,9 @@
                     {{#if pinTarget.broken}}
                     <div class="blacksmith-pin-config-target is-broken" data-tooltip="{{pinTarget.uuid}}">
                         <i class="fa-solid fa-link-slash"></i> What this pin points to no longer exists.
+                        {{#if pinTarget.relinkable}}
+                        <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-relink"><i class="fa-solid fa-link"></i> Relink</button>
+                        {{/if}}
                     </div>
                     {{else}}
                     {{!-- data-link is Foundry's own content-link contract: core's body-level click handler opens the document in this client. No href, so nothing can navigate. --}}
@@ -388,6 +401,11 @@
                 <div class="blacksmith-window-section-body">
                     <div class="blacksmith-pin-config-help">Play an animation and optional sound when the pin is hovered, clicked, double-clicked, added to the canvas, or deleted. Right-click is reserved for the context menu.</div>
                     <div class="blacksmith-pin-config-event-animations">
+                        <div class="blacksmith-pin-config-event-row blacksmith-pin-config-event-head">
+                            <span></span>
+                            <span class="blacksmith-field-label">Animation</span>
+                            <span class="blacksmith-field-label">Sound</span>
+                        </div>
                         <div class="blacksmith-pin-config-event-row">
                             <span class="blacksmith-pin-config-event-label">Hover</span>
                             <select class="blacksmith-input blacksmith-pin-config-event-animation blacksmith-pin-config-event-hover-animation">

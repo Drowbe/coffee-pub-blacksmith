@@ -1110,6 +1110,21 @@ class PinDOMElement {
             });
         }
 
+        // 2b. Relink Pin: the GM, a pin whose declared target is gone, and a type that allows relinking
+        if (game.user?.isGM) {
+            const target = await PinManager.resolvePinTarget(pinData);
+            if (target.broken && target.relinkable) {
+                coreItems.push({
+                    name: 'Relink Pin',
+                    icon: '<i class="fa-solid fa-link"></i>',
+                    callback: async () => {
+                        const { PinRelink } = await import('./utility-pin-relink.js');
+                        await PinRelink.open(pinData.id);
+                    }
+                });
+            }
+        }
+
         // 3. Animate
         coreItems.push({
             name: 'Animate',
