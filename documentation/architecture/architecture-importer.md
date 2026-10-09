@@ -425,6 +425,63 @@ authored prompt carried a generator role and a two-step instruction no field cou
 authored prompts is still not built, and still cannot be judged without a generation run, because the only
 measure of a prompt is what a generator produces from it.
 
+## What a declared profile can put in the prompt window, and the traps behind each control
+
+The Unified Import window is Blacksmith's. A profile never ships a window or a control; it declares data and the window
+builds it. The surface, all read each time the window opens (`openJsonImportWindow` in `registry-json-import.js`):
+
+| Declared | What the window builds | Where it is read |
+|---|---|---|
+| `promptFields` | A control per question: text, select, textarea, `item`, `items`, `tags` | `composePromptFields` |
+| `dynamicOptions: true` | A select or tags list the module **pushes** with `setPromptFieldOptions` | `getPromptFieldOptions` |
+| `fills` on an `item` field | Sibling questions a dropped item answers | `JsonImportWindow._applyDropFills` |
+| `promptCatalogs` | Area's own compendium and world checkboxes, shown on this profile | `getJournalPromptCheckboxes` |
+| `preamble` | Profile prose before the field list in the prompt, after the rules in the guide | `buildPromptSchemaText` |
+
+**One state shape.** The window reads, persists and restores every answer as a string held by a control carrying
+`data-prompt-field`. Every richer control keeps that: an `item` is a read-only input, an `items` list a textarea the
+author never sees (its chips are the control), a `tags` field a hidden input. The chips, icons and quantity boxes are
+drawn FROM the string, so a restored value, a dropped item and a filled value all look the same. Do not give a control
+its own state.
+
+**A holder is hidden by class, never by the `hidden` attribute.** `_activePromptFieldInput` decides which control is
+live by testing whether it or an ancestor carries `[hidden]`, because one id can repeat across profiles. A holder with
+the attribute reads as another profile's field and its answer is dropped without a sound.
+
+**Checkbox groups are shown for every template any member is shown for.** The window folds consecutive checkboxes that
+share a section into one group. The group was shown by its FIRST member's template alone, so a later member scoped to
+another profile sat inside a group hidden for it. `promptCatalogs` is what exposed it: Area's checkboxes now carry a
+token list (`area recipe`), and a group takes the union.
+
+**Catalogs are Area's, reused, and the source is the Compendium Mapping.** A declaration names `actors` or `items`;
+it cannot name a pack or another module's setting. A first version invented a control of its own and was rejected:
+the pattern was already on screen. Journal profiles only, because the item and actor prompt routes do not carry the
+checkbox answers to the builder; registration rejects the key there rather than accept it and ignore it.
+
+**A vocabulary that changes is a value pushed, not a function called.** A declaration registers once at load, and a
+duplicate registration is rejected, so a static `options` list freezes a skills mapping a GM edits. The owning module
+calls `setPromptFieldOptions` when its list is ready and whenever it changes; Blacksmith reads the map when a window
+opens. A callback was rejected on purpose, here and for `onItemResolved`: it is opaque to registration checks and runs
+module code in the drop handler.
+
+### Traps, each met once
+
+- **The native `<datalist>` popup opens detached inside a Foundry window.** Chromium positions it in pre-transform
+  viewport coordinates. Librarian found this first (`window-codex.js`, `_setupLocationCombos`). The tags field draws
+  its own list inside its wrapper. Check for prior art in the suite before choosing a native control.
+- **A select with no blank always answers.** An untouched `<select>` reports its first value, and an untouched prefill is
+  the author's answer. Artificer's skill level, DC and process level were forced on every recipe as 0, 1 and 0.
+  Give such a select a blank first entry; a blank answer is omitted from the prompt and the template.
+- **A control returns text.** A number or boolean answer is converted to the constrained field's type, and a string-list
+  field splits on commas and new lines, in `coerceAnswer`. An answer that does not parse stays as typed so the validator
+  reports it.
+- **The template's values are examples, and a generator cannot tell.** An unanswered field still shows its `example` in the
+  prompt's JSON template. The prompt now says the values are examples of the shape and only the listed answers are
+  fixed. Showing `null` was rejected: a non-nullable field fails import on it.
+- **A dropped item fills; a typed name cannot.** Item fields are drop-only. A name that must exist is not free text, and
+  only a document has a type, rarity or flags to read. `fills` takes one path or an ordered list of paths, first
+  non-empty wins, plus an optional `map` for a spelling difference (dnd5e stores `veryRare`).
+
 ## Correct for one consumer is not correct
 
 A mechanism built while one module used it encodes assumptions that only the second module can
