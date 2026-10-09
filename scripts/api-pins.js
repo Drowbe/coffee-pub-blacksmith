@@ -367,10 +367,12 @@ export class PinsAPI {
      * `relinkable: true`, and only to a document of the same kind as the one it pointed at. Fires `relinked`.
      * @param {string} pinId
      * @param {string} newUuid - UUID of the document to point at
+     * @param {{ interactive?: boolean, renameToMatch?: boolean }} [options] - `interactive: false` for a batch, so
+     *   no handler asks a question per pin
      * @returns {Promise<object | null>}
      */
-    static relink(pinId, newUuid) {
-        return PinManager.relinkPin(pinId, newUuid);
+    static relink(pinId, newUuid, options = {}) {
+        return PinManager.relinkPin(pinId, newUuid, options);
     }
 
     /**

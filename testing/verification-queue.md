@@ -220,3 +220,16 @@ Shipped unverified. Needs a world with journal page pins, plus a compendium cont
 - **Animation headings.** On the Animations tab, the first column is headed Animation and the second Sound.
 - **Rename on General.** Open Configure Pin on a journal pin: General opens with a **Name** field holding the pin's label. Change it, Save: the label on the map changes. With Update All on, the other pins of that type keep their own names.
 - **Rename after a relink.** Relink a journal pin to a page named differently from its label: after Relink a dialog asks to rename the pin to the page's name. **Rename** changes the label, **Keep Label** leaves it. A page named the same (ignoring case) does not ask.
+
+## Live-verify repairing many broken pins
+
+Shipped unverified. Needs a scene with several broken journal pins, one broken Merchant or Librarian pin, and a broken note pin (a kind that cannot be relinked).
+
+- **Repair Links.** Manage Pins shows **Repair Links** in the action bar. With nothing broken it says "No broken links to repair." As a player, the button is not there.
+- **One question.** With broken journal pins it asks where to look once. With only Merchant or Librarian pins broken it does not ask.
+- **The list.** Each broken pin has a row with its label, the kind of document, and a dropdown of matches marked Compendium or World. A pin with exactly one same-name match is preselected, and the rest read **Leave broken**. The dialog mentions the count of broken pins that cannot be relinked when a note pin is broken.
+- **Apply.** Change one choice, tick the rename box and press **Apply**. The chosen pins relink, the glyphs clear, the window refreshes, and a summary reports the count. No rename question appears per pin. Without the rename box ticked, journal pin labels stay as they were.
+- **Nothing chosen.** Setting every row to Leave broken and pressing Apply says to choose at least one.
+- **Selected only.** In Manage Pin Tags, Select mode, tick two broken pins and one healthy one and press **Relink Selected**: only the two broken ones are listed.
+- **Failure.** Delete a chosen document between opening the dialog and pressing Apply: the summary names the pin and the reason, and the rest relink.
+- **Taxonomy.** Manage Pin Layers no longer lists empty Codex, Quest and Objective rows, and shows one Note row, not two.

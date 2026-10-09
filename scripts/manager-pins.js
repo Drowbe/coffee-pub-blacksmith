@@ -473,15 +473,38 @@ export class PinManager {
     }
 
     /**
+     * The broken pins on a scene whose type can be relinked, and how many more are broken and cannot be.
+     * @param {string} sceneId
+     * @param {{ pinIds?: string[] | null }} [options] - Restrict to these pins
+     * @returns {Promise<{ broken: Array<{ pin: ApiPinData, target: object }>, unrelinkable: number }>}
+     */
+    static async listBrokenPins(sceneId, { pinIds = null } = {}) {
+        const wanted = Array.isArray(pinIds) ? new Set(pinIds) : null;
+        const pins = (this.list({ sceneId, includeHiddenByFilter: true }) ?? []).filter((pin) => !wanted || wanted.has(pin.id));
+        const broken = [];
+        let unrelinkable = 0;
+        for (const pin of pins) {
+            const target = await this.resolvePinTarget(pin);
+            if (!target.broken) continue;
+            if (target.relinkable) broken.push({ pin, target });
+            else unrelinkable++;
+        }
+        return { broken, unrelinkable };
+    }
+
+    /**
      * Point a pin at a different document. Only a type that declares `relinkable` allows it, and only to a
      * document of the same kind as the one it pointed at. Writes the config key that held the old UUID, then
      * announces `relinked` so the owning module can fix whatever else it keeps about the old document. The
      * ordinary `updated` event fires for the config write as well.
      * @param {string} pinId
      * @param {string} newUuid
+     * @param {{ interactive?: boolean, renameToMatch?: boolean }} [options] - `interactive: false` marks a batch
+     *   repair: a handler must not ask a question per pin, and acts on `renameToMatch` instead. Both ride along in
+     *   the `relinked` payload.
      * @returns {Promise<ApiPinData | null>}
      */
-    static async relinkPin(pinId, newUuid) {
+    static async relinkPin(pinId, newUuid, { interactive = true, renameToMatch = false } = {}) {
         const pin = this.get(pinId);
         if (!pin) throw new Error(`Pin not found: ${pinId}`);
         if (!this._canEdit(pin, game.user?.id ?? '')) throw new Error('Permission denied: you cannot edit this pin.');
@@ -518,6 +541,8 @@ export class PinManager {
             key: old.key,
             oldUuid: old.uuid,
             newUuid: doc.uuid,
+            interactive,
+            renameToMatch,
             pin: this.get(pinId)
         };
         this._callLifecycleHook('blacksmith.pins.relinked', { ...payload, type: pin.type ?? 'default' });

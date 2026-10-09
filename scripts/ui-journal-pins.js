@@ -308,7 +308,8 @@ export class JournalPagePins {
             const label = doc.documentName === 'JournalEntryPage' ? this._getPagePinLabel(doc) : this._getJournalPinLabel(doc);
             const current = String(pin.text ?? '').trim();
             if (current.toLowerCase() !== label.toLowerCase()) {
-                const rename = await DialogAPI.confirm({
+                // A batch repair asks once for all its pins (renameToMatch) and never once per pin
+                const rename = evt.interactive === false ? evt.renameToMatch === true : await DialogAPI.confirm({
                     title: 'Update Pin Label',
                     content: `<p>This pin is labelled <strong>${foundry.utils.escapeHTML(current || 'nothing')}</strong>. What it points at now is named <strong>${foundry.utils.escapeHTML(label)}</strong>.</p><p>Rename the pin to match?</p>`,
                     confirmLabel: 'Rename',

@@ -35,49 +35,6 @@
         }
       }
     },
-    "coffee-pub-squire": {
-      "pinCategories": {
-        "note": {
-          "label": "Note",
-          "tags": [
-            "party",
-            "personal",
-            "sticky" 
-          ]
-        },
-        "codex": {
-          "label": "Codex",
-          "tags": [
-            "artifact",
-            "book",
-            "character",
-            "event",
-            "faction",
-            "location",
-            "item",
-            "map"
-          ]
-        },
-        "quest": {
-          "label": "Quest",
-          "tags": [
-            "main",
-            "side",
-            "backstory",
-            "faction"
-          ]
-        },
-        "objective": {
-          "label": "Objective",
-          "tags": [
-            "main",
-            "side",
-            "backstory",
-            "faction"
-          ]
-        }
-      }
-    },
     "coffee-pub-artificer": {
       "pinCategories": {
         "habitat-location": {

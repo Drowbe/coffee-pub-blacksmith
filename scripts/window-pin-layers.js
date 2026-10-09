@@ -730,6 +730,8 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         selectVisibleBrowsePins: (_event, _target, win) => win?._selectVisibleBrowsePins(),
         clearBrowseSelection: (_event, _target, win) => win?._clearBrowseSelection(),
         bulkEditSelectedTags: (_event, _target, win) => win?._bulkEditSelectedTags(),
+        repairLinks:          (_event, _target, win) => win?._repairLinks(),
+        relinkSelected:       (_event, _target, win) => win?._relinkSelected(),
         toggleType:    (_event, target, win) => win?._toggleType(target),
         toggleTag:       (_event, target, win) => win?._toggleTag(target),
         toggleTaxonomyGroup:     (_event, target, win) => win?._toggleTaxonomyGroup(target),
@@ -1010,11 +1012,17 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
                 ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="openCustomPinTags" title="Manage custom pin tags globally and for this scene">
                     <i class="fa-solid fa-tags"></i> Manage Custom Pin Tags
                 </button>` : ''}
+                ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="repairLinks" title="Find the pins on this scene whose document is gone, and point them at something else">
+                    <i class="fa-solid fa-link"></i> Repair Links
+                </button>` : ''}
                 ${game.user?.isGM ? `<button type="button" class="blacksmith-window-btn-critical" data-action="deleteAllPins" title="Delete all pins on this scene">
                     <i class="fa-solid fa-trash"></i> Delete All
                 </button>` : ''}
             `,
             actionBarRight: selectionMode ? `
+                <button type="button" class="blacksmith-window-btn-secondary" data-action="relinkSelected" ${selectedCount ? '' : 'disabled'} title="Repair the selected pins whose document is gone">
+                    <i class="fa-solid fa-link"></i> Relink Selected
+                </button>
                 <button type="button" class="blacksmith-window-btn-primary" data-action="bulkEditSelectedTags" ${selectedCount ? '' : 'disabled'}>
                     <i class="fa-solid fa-tags"></i> Bulk Edit Tags
                 </button>
@@ -1787,6 +1795,25 @@ export class PinLayersWindow extends BlacksmithWindowBaseV2 {
         if (!confirmed) return;
         await PinManager.delete(pinId);
         await this.render(true);
+    }
+
+    /** Repair every broken pin on the scene. */
+    async _repairLinks() {
+        if (!game.user?.isGM) return;
+        const { PinRelink } = await import('./utility-pin-relink.js');
+        if (await PinRelink.openBulk({ sceneId: this.sceneId ?? canvas?.scene?.id })) await this.render(true);
+    }
+
+    /** Repair the broken pins among the selected ones. */
+    async _relinkSelected() {
+        if (!game.user?.isGM) return;
+        const pinIds = [...this._selectedBrowsePinIds].filter(Boolean);
+        if (!pinIds.length) {
+            ui.notifications?.warn('Select one or more pins first.');
+            return;
+        }
+        const { PinRelink } = await import('./utility-pin-relink.js');
+        if (await PinRelink.openBulk({ sceneId: this.sceneId ?? canvas?.scene?.id, pinIds })) await this.render(true);
     }
 
     async _bulkEditSelectedTags() {

@@ -84,6 +84,38 @@
     right: calc(-1 * (var(--pin-stroke-px, 0px) + var(--gm-fs) * var(--blacksmith-pin-gm-indicator-em-out-square)));
 }
 
+/* Repair Broken Pins dialog: one row per pin, its label and a dropdown of matches */
+.blacksmith-pin-repair .blacksmith-pin-repair-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 10px 0;
+}
+
+.blacksmith-pin-repair .blacksmith-pin-repair-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(220px, 2fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.blacksmith-pin-repair .blacksmith-pin-repair-label {
+    display: flex;
+    flex-direction: column;
+}
+
+.blacksmith-pin-repair .blacksmith-pin-repair-label small {
+    opacity: 0.6;
+}
+
+.blacksmith-pin-repair .blacksmith-pin-repair-rename {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
 /* Broken-link glyph (GM and owners): bottom-right, opposite the pin-editing glyph */
 .blacksmith-pin-broken-indicator {
     position: absolute;
