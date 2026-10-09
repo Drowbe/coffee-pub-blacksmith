@@ -486,7 +486,9 @@ and has not been re-examined since the click handling was rewritten.
 
 ### Pins: automated tests, and a measurement before any culling
 
-The API and renderer are in place with no suite. Separately, classification-based pre-filtering shipped
+The link machinery has a suite (`testing/suites/suite-pins.js`: taxonomy declarations and merging,
+resolving a link, relink search and ranking, relinking and its event). The rest of the API (create, update,
+placement, permissions) and the renderer still have none. Separately, classification-based pre-filtering shipped
 (`pins-renderer.js:2135`) but the performance hypothesis behind it was never measured. **No reported
 symptom: do not build culling without a measurement.**
 

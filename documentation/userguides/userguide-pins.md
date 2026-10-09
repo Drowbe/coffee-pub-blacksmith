@@ -6,7 +6,7 @@ How to place, select, move, copy, delete and manage pins on a scene, and what ea
 
 ## What a pin is
 
-A pin is a marker on the map. Most pins open something when you double-click them, such as a journal page. Other Coffee Pub modules place their own pins too, and those behave the same way for selecting, moving and the right-click menu. Where a pin differs, this guide says so.
+A pin is a marker on the map. Most pins open something when you double-click them, such as a journal page, a note, a codex entry, a quest or a shop. Other Coffee Pub modules place their own pins too, and those behave the same way for selecting, moving and the right-click menu. Where a pin differs, this guide says so.
 
 ## Who can do what
 
@@ -17,6 +17,8 @@ A pin is a marker on the map. Most pins open something when you double-click the
 | Move, configure or delete a pin | The GM, and a player who owns that pin. |
 | Place a new pin | The GM. Players can too if the GM turns on **Player Pin Editing** in the module settings, under Pins. |
 | Change who can edit a pin, or hide it from players | GM only. |
+| Rename a pin | GM only, from **Configure Pin**. |
+| Point a broken pin at something else | GM only. |
 
 ## Place a pin from a journal
 
@@ -66,7 +68,7 @@ If you delete with the key, a pin you are not allowed to delete is left alone an
 
 Select a pin and press Ctrl+C, and you will see "Pin copied." Move the mouse to where the copy should go and press Ctrl+V. The copy appears under the mouse and is selected. Press Ctrl+V again for more copies.
 
-Not every pin can be copied. Journal pins can. A pin whose creator has not allowed copies shows "This pin cannot be copied." Copying is last-one-wins, the same as in Foundry: if you press Ctrl+C on a token afterwards, Ctrl+V pastes the token and not the pin. The copied pin is forgotten when you reload.
+Not every pin can be copied. Journal pins can. Note, codex, quest and shop pins cannot, because each is tied to one thing and a copy would be a second pin that thing does not know about, and a pin of any other kind can only be copied if its creator allows it. A pin that cannot be copied shows "This pin cannot be copied." Copying is last-one-wins, the same as in Foundry: if you press Ctrl+C on a token afterwards, Ctrl+V pastes the token and not the pin. The copied pin is forgotten when you reload.
 
 Paste only works while the mouse is over the map.
 
@@ -86,6 +88,8 @@ Right-click a pin. The menu holds, in order:
 ## Configure a pin
 
 Choose **Configure Pin** from the right-click menu, or select the pin and press Enter. The window has five tabs. Nothing you change is lost by moving between tabs, and **Save** applies all of them. A player who owns the pin sees only the last three.
+
+You can have the windows of several pins open at once. Each new one opens a little down and across from the last. Choosing **Configure Pin** on a pin that is already open brings its window forward, with anything you had typed still in place.
 
 **General** (GM only):
 
@@ -107,21 +111,56 @@ Choose **Configure Pin** from the right-click menu, or select the pin and press 
 
 ## When what a pin points at is gone
 
-If the journal page, note or other document a pin opens has been deleted, the GM and the pin's owners see a small broken-link symbol in the corner of the pin, and hovering it explains. Players do not see the symbol. Double-clicking such a pin tells you "What this pin points to no longer exists." and opens nothing. Open **Configure Pin** and look at **Linked to** on the General tab to confirm. To get rid of the pin, select it and press Delete.
+If the journal page, note or other document a pin opens has been deleted, the GM and the pin's owners see a small amber broken-link symbol in the corner of the pin, and hovering it explains. Players do not see the symbol. Double-clicking such a pin tells you "What this pin points to no longer exists." and opens nothing. Open **Configure Pin** and look at **Linked to** on the General tab to confirm. To get rid of the pin, select it and press Delete, or repair it as described below.
 
-For a journal pin the GM can repair it instead. Choose **Relink** beside the missing notice in **Configure Pin**, or right-click the pin and choose **Relink Pin**. It first asks where to look: **Compendiums**, **This World**, or **Compendiums, then World**. A list then shows the journal pages whose name matches what the pin was labelled, each marked Compendium or World with the reason it matched. Pick one and choose **Relink**, or drag a page from the sidebar onto the box, or paste its UUID. It must be the same kind of thing as before, so a page pin takes a page. A pin that pointed at a whole journal takes a page dropped on the box as that page's journal. If the box is refused, it keeps what you dropped and says why. Nothing is chosen for you, and the pin keeps its place and settings. If the new page is named differently from the pin's label, a journal pin asks whether to rename the pin to match, and keeps its label if you say no. Codex entry pins, quest pins and Merchant shop pins can be relinked too. They are searched in this world only, because what they point at lives in the world, so they skip the question. Objective pins and note pins cannot be relinked. The Pins section of the module settings has three options for this: **Relink: Where to Look**, **Relink: Ask Where to Look** and **Relink: Search Every Compendium**.
+### Repair one pin
 
-The **Manage Pin Links** tab of **Manage Pins** lists every pin on the scene with what it points at. **Linked** pins show the document's name, which opens it, and its kind and compendium. **Broken** pins show first, in amber, with a **Relink** button for the GM. **No link** and **Not tracked** pins are dimmed: the first holds no link, and the second is a kind of pin that does not record what it points at, so nothing can be said about it. **Broken only** narrows the list, and the filter box also matches the name of what a pin points at.
+The GM can point a broken pin at something else. Choose **Relink** beside the missing notice in **Configure Pin**, or right-click the pin and choose **Relink Pin**. Which kinds of pin offer this:
 
-To repair many at once, choose **Repair Links** in that tab (GM only). It finds every pin on the scene whose document is gone and asks where to look, once. A list then shows each broken pin with a dropdown of matches, **Leave broken** by default. A match is filled in on its own only when exactly one candidate has the same ID or the same name. Nothing changes until you press **Apply**. A checkbox renames journal pins to match their new documents, once for all of them. A summary reports how many were relinked and any that failed. Broken pins of a kind that cannot be relinked are counted and left alone.
+- Journal pins, whether they point at a page or a whole journal.
+- Codex entry pins, quest pins and shop pins, which other modules place and which opt in.
+
+Objective pins and note pins cannot be relinked, and neither can pins of other kinds yet.
+
+The steps:
+
+1. **Choose where to look.** The dialog asks **Compendiums**, **This World**, or **Compendiums, then World**. Codex, quest and shop pins skip this question, because what they point at lives in this world.
+2. **Pick a match.** A list shows documents of the same kind whose name matches what the pin was labelled, each marked Compendium or World with the reason it matched. Nothing is picked for you. Pick one and choose **Relink**.
+3. **Or bring your own.** Drag a document from the sidebar onto the box, or paste its UUID. It must be the same kind of thing as before, so a page pin takes a page. A pin that pointed at a whole journal takes a page dropped on the box as that page's journal. If the box is refused, it keeps what you dropped and says why.
+
+The pin keeps its place and settings. A journal pin whose new page is named differently from its label asks whether to rename the pin to match, and keeps its label if you say no. Codex, quest and shop pins take their label, icon and tags from the new entry on their own. A journal pin pointed at a compendium page keeps working when you double-click it.
+
+### See every pin's link
+
+The **Manage Pin Links** tab of **Manage Pins** lists every pin on the scene with what it points at:
+
+- **Linked** pins show the document's name, which opens it, and its kind and compendium.
+- **Broken** pins come first, in amber, with a **Relink** button for the GM.
+- **No link** pins are of a kind that records a link but hold none. They are dimmed.
+- **Not tracked** pins are of a kind that does not record what it points at, so nothing can be said about it. They are dimmed.
+
+**Broken only** narrows the list, and the filter box also matches the name of what a pin points at.
+
+### Repair many at once
+
+Choose **Repair Links** in the **Manage Pin Links** tab (GM only). It finds every pin on the scene whose document is gone and asks where to look, once. A list then shows each broken pin with a dropdown of matches, **Leave broken** by default. A match is filled in on its own only when exactly one candidate has the same ID or the same name. Nothing changes until you press **Apply**. A checkbox, **Rename journal pins to match their new documents**, applies once to the whole batch. A summary reports how many were relinked and any that failed. Broken pins of a kind that cannot be relinked are counted and left alone.
+
+### Relink settings
+
+The Pins section of the module settings has three options, all GM settings:
+
+- **Relink: Where to Look**: the answer the question above starts on. **Compendiums** is the default, and uses the compendiums you mapped in Compendium Mapping, in their priority order.
+- **Relink: Ask Where to Look**: on by default. Turn it off to use the answer above without being asked.
+- **Relink: Search Every Compendium**: on by default. After the compendiums you mapped, it also searches every other installed compendium that can hold the document. The first relink of a session indexes them and can pause for a moment.
 
 ## Show, hide and find pins
 
 Open the Pins tool on the Blacksmith bar (its tooltip reads "Open Pins"). Left-click opens the **Manage Pins** window; right-click gives a shortcut menu with **Manage Pins**, **Hide All Pins** and any saved profiles.
 
-**Manage Pins** has two tabs:
+**Manage Pins** has three tabs:
 
 - **Manage Pin Layers**: show or hide pins by category and by tag, and save the current view as a named profile you can load again. **All Pins** and **No Pins** are always available. **Dim hidden** keeps hidden pins on the map at reduced opacity instead of removing them.
 - **Manage Pin Tags**: browse every pin on the scene by category or alphabetically, filter by name, category or tag, and use **Show hidden** to include pins that are currently hidden. The GM can switch on **Select** to edit the tags of many pins at once with **Bulk Edit Tags**, and can use **Manage Custom Pin Tags** and **Delete All** from here.
+- **Manage Pin Links**: what each pin points at and whether it still exists, described above.
 
 What you hide here is your own view. It does not change what other players see. To hide a pin from players, use **Pin visibility** on the pin itself.
