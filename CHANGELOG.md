@@ -35,7 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The Animations tab did not say which dropdown was which** (`templates/window-pin-config.hbs`, `styles/window-pin-config.css`). Each event row has two dropdowns with nothing to tell them apart. The grid now has an **Animation** and a **Sound** heading above its columns. Verified live 2026-10-09.
 
-- **Configure Pin showed a blank where the pin type belongs** (`scripts/window-pin-configuration.js`, `resources/pin-taxonomy.json`). The header subtitle, the "Default for" toggle and "Update All Canvas Pins for type:" all read the type's registered label, and a type nobody registered one for, such as Blacksmith's own note pins, came out empty. Note pins now have a label, and any other unlabelled type shows its key in title case ("some-type" reads "Some Type"). Verified live 2026-10-09.## [14.2.0]
+- **Configure Pin showed a blank where the pin type belongs** (`scripts/window-pin-configuration.js`, `resources/pin-taxonomy.json`). The header subtitle, the "Default for" toggle and "Update All Canvas Pins for type:" all read the type's registered label, and a type nobody registered one for, such as Blacksmith's own note pins, came out empty. Note pins now have a label, and any other unlabelled type shows its key in title case ("some-type" reads "Some Type"). Verified live 2026-10-09.
+
+## [14.2.0]
 
 ### Added
 
