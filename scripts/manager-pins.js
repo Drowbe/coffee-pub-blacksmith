@@ -473,6 +473,51 @@ export class PinManager {
     }
 
     /**
+     * Move pins from one module id to another. For pins made while one module owned a feature that later
+     * moved to another: a codex pin Squire made still names Squire, so the module that now owns codex entries
+     * neither lists it nor answers its double-click, and Blacksmith has no vocabulary for it. Pins are
+     * Blacksmith's storage, so the rewrite is Blacksmith's to do; the module taking them over decides that it
+     * wants to and which types. Only the module id changes: ids, positions, tags, ownership and config stay.
+     * Idempotent: a second call finds nothing to move.
+     * @param {string} fromModuleId
+     * @param {string} toModuleId
+     * @param {{ types?: string[] | null }} [options] - Only pins of these types; omit for every type
+     * @returns {Promise<number>} How many pins were moved
+     */
+    static async adoptPins(fromModuleId, toModuleId, { types = null } = {}) {
+        if (!game.user?.isGM) throw new Error('Permission denied: only a GM can reassign pins.');
+        const from = String(fromModuleId ?? '').trim();
+        const to = String(toModuleId ?? '').trim();
+        if (!from || !to || from === to) throw new Error('adoptPins needs two different module ids.');
+        const wanted = Array.isArray(types) ? new Set(types.map((type) => String(type))) : null;
+        const matches = (pin) => pin?.moduleId === from && (!wanted || wanted.has(String(pin.type ?? 'default')));
+
+        let count = 0;
+        const moved = [];
+        for (const scene of game.scenes ?? []) {
+            const pins = this._getScenePins(scene);
+            if (!pins.some(matches)) continue;
+            const next = pins.map((pin) => (matches(pin) ? { ...pin, moduleId: to } : pin));
+            await scene.setFlag(MODULE.ID, this.FLAG_KEY, next);
+            const here = pins.filter(matches);
+            count += here.length;
+            moved.push(...here.map((pin) => pin.id));
+        }
+        const unplaced = this._getUnplacedPins();
+        if (unplaced.some(matches)) {
+            await this._setUnplacedPins(unplaced.map((pin) => (matches(pin) ? { ...pin, moduleId: to } : pin)));
+            const here = unplaced.filter(matches);
+            count += here.length;
+            moved.push(...here.map((pin) => pin.id));
+        }
+
+        if (count) {
+            this._callLifecycleHook('blacksmith.pins.adopted', { fromModuleId: from, toModuleId: to, types: wanted ? [...wanted] : null, count, pinIds: moved });
+        }
+        return count;
+    }
+
+    /**
      * The broken pins on a scene whose type can be relinked, and how many more are broken and cannot be.
      * @param {string} sceneId
      * @returns {Promise<{ broken: Array<{ pin: ApiPinData, target: object }>, unrelinkable: number }>}
@@ -570,7 +615,11 @@ export class PinManager {
             try {
                 this._builtinTaxonomyRegistry.clear();
                 this._overrideTaxonomyRegistry.clear();
-                await this._loadTaxonomyJsonIntoRegistry(`modules/${MODULE.ID}/resources/pin-taxonomy.json`, this._builtinTaxonomyRegistry);
+                // Versioned URL: a static file can be served from the browser cache for days after a module
+                // update, which would load last release's taxonomy against this release's code and leave every
+                // newly declared target, copyable and relinkable flag missing.
+                const builtinVersion = encodeURIComponent(game.modules.get(MODULE.ID)?.version ?? '');
+                await this._loadTaxonomyJsonIntoRegistry(`modules/${MODULE.ID}/resources/pin-taxonomy.json?v=${builtinVersion}`, this._builtinTaxonomyRegistry);
                 const overridePath = String(getSettingSafely(MODULE.ID, 'pinTaxonomyOverrideJson', '') || '').trim();
                 if (overridePath && overridePath !== `modules/${MODULE.ID}/resources/pin-taxonomy.json`) {
                     await this._loadTaxonomyJsonIntoRegistry(overridePath, this._overrideTaxonomyRegistry);

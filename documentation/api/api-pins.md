@@ -1532,6 +1532,25 @@ unregister();
 - `Error` if `itemData.name` is missing or not a string
 - `Error` if `itemData.onClick` is not a function
 
+### `pins.adopt(fromModuleId, toModuleId, options?)`
+Take over pins another module made, by rewriting their module id. For a feature that moved between modules: pins made while the old module owned it still name that module, so the module that owns the feature now neither lists them nor answers their double-click, and Blacksmith has no vocabulary for them. Pins are Blacksmith's storage, so the rewrite is Blacksmith's; the module taking them over decides that it wants to and which types.
+
+**Parameters**:
+- `fromModuleId` (string): The module id the pins carry now
+- `toModuleId` (string): The module id they should carry
+- `options.types` (string[], optional): Only pins of these types. Omit to move every pin of `fromModuleId`
+
+**Returns**: `Promise<number>` - how many pins were moved. Placed pins on every scene and unplaced pins are covered. GM only (`Error` otherwise). Idempotent: a second call finds nothing. **Only the module id changes**; ids, positions, tags, ownership and config stay. Re-renders the current scene when anything moved, and fires the Hook `blacksmith.pins.adopted` with `{ fromModuleId, toModuleId, types, count, pinIds }`.
+
+```javascript
+// In the module that now owns codex entries, on a GM's load
+await game.modules.get('coffee-pub-blacksmith').api.pins.adopt('coffee-pub-squire', MODULE.ID, {
+  types: ['codex', 'quest', 'objective']
+});
+```
+
+Until a pin is adopted it keeps working under its old id, as far as the built-in taxonomy declares that module's types, so a pin whose owner has moved still reads Linked or Broken in Manage Pins.
+
 ### `pins.registerPinType(moduleId, type, friendlyName)`
 Register a friendly name for a pin type so context menus, tools, and other pins UI show the name you provide instead of inferring a label. Call from your module at init/ready.
 

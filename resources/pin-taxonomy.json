@@ -35,6 +35,30 @@
         }
       }
     },
+    "coffee-pub-squire": {
+      "pinCategories": {
+        "note": {
+          "label": "Note",
+          "target": ["noteUuid"],
+          "tags": ["party", "personal", "sticky"]
+        },
+        "codex": {
+          "label": "Codex",
+          "target": ["codexUuid"],
+          "tags": ["artifact", "book", "character", "event", "faction", "location", "item", "map"]
+        },
+        "quest": {
+          "label": "Quest",
+          "target": ["questUuid"],
+          "tags": ["main", "side", "backstory", "faction"]
+        },
+        "objective": {
+          "label": "Objective",
+          "target": ["questUuid"],
+          "tags": ["main", "side", "backstory", "faction"]
+        }
+      }
+    },
     "coffee-pub-artificer": {
       "pinCategories": {
         "habitat-location": {

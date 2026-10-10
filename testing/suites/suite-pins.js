@@ -435,6 +435,43 @@ export default {
             }
         },
         {
+            id: 'adopt-moves-only-the-module-id',
+            label: 'adopt moves matching pins to another module id and leaves everything else alone',
+            tier: 'headless',
+            group: 'Taking over pins',
+            note: 'The case that left a world of Squire-era codex pins unlinked: the module id is the only thing that changes.',
+            run: async ({ api, expect }) => {
+                requireGM();
+                requireApi('pins.adopt', 'pins.create', 'pins.get');
+                const nonce = foundry.utils.randomID(6).toLowerCase();
+                const from = `zz-harness-from-${nonce}`;
+                const to = `zz-harness-to-${nonce}`;
+                const pins = [];
+                try {
+                    const make = (type, config) => api.pins.create({
+                        id: foundry.utils.randomID(16), moduleId: from, type, text: `Probe ${type}`, tags: ['kept'], config
+                    });
+                    const codex = await make('codex', { codexUuid: 'JournalEntry.a.JournalEntryPage.b', extra: 1 });
+                    const quest = await make('quest', { questUuid: 'JournalEntry.c.JournalEntryPage.d' });
+                    const note = await make('note', {});
+                    pins.push(codex.id, quest.id, note.id);
+
+                    const moved = await api.pins.adopt(from, to, { types: ['codex', 'quest'] });
+                    expect('two pins moved', moved, 2);
+                    expect('the codex pin now names the new module', api.pins.get(codex.id).moduleId, to);
+                    expect('the quest pin now names the new module', api.pins.get(quest.id).moduleId, to);
+                    expect('a type not asked for stays', api.pins.get(note.id).moduleId, from);
+                    expect('config survives', api.pins.get(codex.id).config.codexUuid, 'JournalEntry.a.JournalEntryPage.b');
+                    expect('tags survive', api.pins.get(codex.id).tags, ['kept']);
+                    expect('the id is unchanged', api.pins.get(codex.id).id, codex.id);
+                    expect('a second call finds nothing to move', await api.pins.adopt(from, to, { types: ['codex', 'quest'] }), 0);
+                    await expect.throws('the same module on both sides is refused', () => api.pins.adopt(to, to));
+                } finally {
+                    await cleanup(api, { pins });
+                }
+            }
+        },
+        {
             id: 'relink-world-only-refuses-compendium',
             label: 'A relinkScope "world" type refuses a compendium document',
             tier: 'headless',

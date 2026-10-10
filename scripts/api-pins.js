@@ -363,6 +363,23 @@ export class PinsAPI {
     }
 
     /**
+     * Take over pins another module made, by rewriting their module id. For a feature that moved between
+     * modules, so its old pins name a module that no longer owns them. GM only, idempotent, and only the module
+     * id changes. Re-renders the current scene when anything moved. Fires the Hook `blacksmith.pins.adopted`.
+     * @param {string} fromModuleId - The module id the pins carry now
+     * @param {string} toModuleId - The module id they should carry
+     * @param {{ types?: string[] | null }} [options] - Only these pin types; omit for all of the module's pins
+     * @returns {Promise<number>} How many pins were moved
+     */
+    static async adopt(fromModuleId, toModuleId, options = {}) {
+        const count = await PinManager.adoptPins(fromModuleId, toModuleId, options);
+        if (count && canvas?.scene?.id) {
+            try { await this.reload(); } catch (_err) { /* the data is moved; the next scene load draws it */ }
+        }
+        return count;
+    }
+
+    /**
      * Point a pin at a different document. Allowed only for a pin type whose taxonomy entry declares
      * `relinkable: true`, and only to a document of the same kind as the one it pointed at. Fires `relinked`.
      * @param {string} pinId
