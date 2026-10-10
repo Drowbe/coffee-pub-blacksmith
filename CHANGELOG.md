@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Panning and zooming no longer recalculates page styles once per pin** (`scripts/manager-pins-renderer.js`). Each frame of a pan or zoom repositions every pin, and positioning one read three `:root` sizing variables (icon ratio, square corner radius, around-text ratio) from computed style. Each read came after the previous pin's style writes, so the browser recalculated styles once per pin per frame rather than once per frame. The variables are now read once per pass and cached, and the cache is cleared at the start of each pass, so a theme that changes them still applies on the next pan.
+- **Panning and zooming no longer recalculates page styles once per pin** (`scripts/manager-pins-renderer.js`). Each frame of a pan or zoom repositions every pin, and positioning one read three `:root` sizing variables (icon ratio, square corner radius, around-text ratio) from computed style. Each read came after the previous pin's style writes, so the browser recalculated styles once per pin per frame rather than once per frame. The variables are now read once per pass and cached, and the cache is cleared at the start of each pass, so a theme that changes them still applies on the next pan. Verified live 2026-10-10.
 
 ## [14.3.1]
 
