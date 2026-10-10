@@ -1549,8 +1549,6 @@ await game.modules.get('coffee-pub-blacksmith').api.pins.adopt('coffee-pub-squir
 });
 ```
 
-Until a pin is adopted it keeps working under its old id, as far as the built-in taxonomy declares that module's types, so a pin whose owner has moved still reads Linked or Broken in Manage Pins.
-
 ### `pins.registerPinType(moduleId, type, friendlyName)`
 Register a friendly name for a pin type so context menus, tools, and other pins UI show the name you provide instead of inferring a label. Call from your module at init/ready.
 

@@ -223,6 +223,8 @@ targeting the document.
 notes in place. It runs GM-only, adds only Blacksmith flags, and never removes Squire's or rewrites
 ownership, so a world can be rolled back without the pages having been rewritten underneath it.
 
+**The pins come with it.** `NotesManager.adoptSquireNotePins()` runs first in the same GM-only pass and asks `pins.adopt('coffee-pub-squire', MODULE.ID, { types: ['note'] })` to move the notes' pins. Squire's note pins carry the same config keys as ours (`noteUuid`, `blacksmithAccess`, `blacksmithVisibility`), so only the module id changes, and Blacksmith's `note` type then labels and tracks them. Each note page that names no pin yet is pointed at its pin through the `pinId` flag. Nothing is recorded: a load with nothing to move does nothing.
+
 It reads Squire's flags off `page.flags['coffee-pub-squire']` directly rather than through `getFlag()`.
 `Document#getFlag` throws for a scope that is not currently active, and the scope list is built from
 `module.active` (`client/data/client-backend.mjs`, `getFlagScopes`). So once Squire is disabled or

@@ -191,7 +191,7 @@ Shipped unverified.
 Shipped unverified. Needs a world that still has pins carrying `coffee-pub-squire` as their module (the run `console.table` below shows them).
 
 - **Before.** In the console, count pins by module and type: `const c = {}; for (const s of game.scenes) for (const p of (s.getFlag('coffee-pub-blacksmith','pins') ?? [])) { const k = p.moduleId + '|' + p.type; c[k] = (c[k]||0)+1; } console.table(c)`. Codex, quest and objective pins read `coffee-pub-squire`.
-- **Without Librarian's step.** In Manage Pin Links those pins read Linked or Broken, labelled Codex, Quest and Objective, not Not tracked.
+- **Before the step.** In Manage Pin Links those pins read Not tracked: Blacksmith keeps no vocabulary for a module that no longer makes them.
 - **After a GM loads with the updated Librarian.** The console says "Took over N pins that Squire made", the same count now reads `coffee-pub-librarian`, and Librarian's codex and quest panels show their pins as placed. Double-clicking a codex pin opens the codex panel.
 - **Second load.** Nothing is moved and no message appears.
-- **Not moved.** Note pins keep `coffee-pub-squire`, and journal pins are untouched.
+- **Notes.** The 8 note pins now read `coffee-pub-blacksmith|note` in the same table, read Linked in Manage Pin Links, and double-clicking one opens its note. Journal pins are untouched.

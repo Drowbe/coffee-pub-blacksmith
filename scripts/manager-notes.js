@@ -765,6 +765,9 @@ export class NotesManager {
     static async adoptSquireNotes() {
         if (!game.user?.isGM) return 0;
 
+        // The pins Squire made for those notes. Independent of the pages and of the journal existing yet.
+        await this.adoptSquireNotePins();
+
         let ledger;
         try {
             ledger = game.settings.get(MODULE.ID, 'adoptedSettingsWorld') ?? [];
@@ -829,6 +832,41 @@ export class NotesManager {
             postConsoleAndNotification(MODULE.NAME, 'Notes: adopting Squire notes failed; will retry next load', error?.message ?? error, false, false);
         }
         return adopted;
+    }
+
+    /**
+     * Claim the pins Squire made for its notes. Squire's note pins still name Squire as their module, so
+     * nothing here lists them, labels them or can say what they point at. They are the same shape as ours:
+     * `noteUuid` in config, plus the access and visibility keys. Only the module id changes, through
+     * `pins.adopt`. Each note page is then pointed at its pin, which is how this module finds a note's pin.
+     *
+     * Idempotent, and safe to run every load: a run with nothing to move does nothing. GM only.
+     *
+     * @returns {Promise<number>} how many pins were taken over this run
+     */
+    static async adoptSquireNotePins() {
+        if (!game.user?.isGM) return 0;
+        try {
+            const { PinsAPI } = await import('./api-pins.js');
+            const moved = await PinsAPI.adopt('coffee-pub-squire', MODULE.ID, { types: ['note'] });
+            if (!moved) return 0;
+
+            for (const scene of game.scenes ?? []) {
+                for (const pin of (PinsAPI.list({ sceneId: scene.id, moduleId: MODULE.ID, type: 'note' }) ?? [])) {
+                    const uuid = pin?.config?.noteUuid;
+                    if (!uuid) continue;
+                    let page = null;
+                    try { page = fromUuidSync(uuid); } catch (_err) { page = null; }
+                    if (page && !page.getFlag(MODULE.ID, 'pinId')) await page.setFlag(MODULE.ID, 'pinId', pin.id);
+                }
+            }
+            postConsoleAndNotification(MODULE.NAME, `Notes: took over ${moved} pin(s) Squire made for its notes`, '', false, false);
+            return moved;
+        } catch (error) {
+            // Not recorded anywhere, so the next load tries again
+            postConsoleAndNotification(MODULE.NAME, 'Notes: taking over Squire note pins failed; will retry next load', error?.message ?? error, false, false);
+            return 0;
+        }
     }
 
     // ==============================================================

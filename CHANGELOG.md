@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`pins.adopt(fromModuleId, toModuleId, { types })` takes over pins another module made** (`scripts/manager-pins.js`, `scripts/api-pins.js`). Pins made while one module owned a feature keep that module's id when the feature moves, so the module that owns it now neither lists them nor answers their double-click, and Blacksmith has no vocabulary for them: a world's Squire-era codex, quest and objective pins read Not tracked everywhere. Pins are Blacksmith's storage, so the rewrite is Blacksmith's to do. GM only and idempotent; only the module id changes, and ids, positions, tags, ownership and config stay. Fires the Hook `blacksmith.pins.adopted`. Documented in `api-pins.md`.
 
-### Fixed
+- **Squire's note pins are taken over with its notes** (`scripts/manager-notes.js`). Adopting Squire's notes claimed the pages and left the pins naming Squire as their module, so a world's older note pins read as untracked and unlabelled and the Links tab could not say what they pointed at. The same pass now asks `pins.adopt` to move them, which changes only the module id, and points each note page at its pin. GM only, and a run with nothing to move does nothing.
 
-- **Squire's pin vocabulary is back in the built-in taxonomy, now with its link keys** (`resources/pin-taxonomy.json`). 14.3.0 removed the `note`, `codex`, `quest` and `objective` entries listed under Squire as stale, on the reasoning that Squire creates no pins. Squire-era pins in a real world still carry its module id, and the entries were the only label and tag vocabulary they had, so after 14.3.0 they showed their raw type key and could not be tracked. They are restored, with `target` declared, so those pins read Linked and Broken again until their new owner takes them over with `pins.adopt`.
+### Fixed
 
 - **The shipped pin taxonomy is fetched with the module's version in its URL** (`scripts/manager-pins.js`). `pin-taxonomy.json` is a static file, and a browser may serve a cached copy of one for days after a module update, which loads last release's declarations against this release's code: every newly declared `target`, `copyable` and `relinkable` goes missing and the Links tab reads Not tracked for pins that are tracked. The URL now carries the version, so an update always fetches the new file.
 
