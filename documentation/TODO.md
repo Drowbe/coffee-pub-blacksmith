@@ -462,6 +462,14 @@ test anywhere in the renderer, so a player-visible pin shows through unexplored 
 `Note#isVisible` (`client/canvas/placeables/note.mjs:85-92`) into the update that already runs on every pan.
 If a GM marking a pin visible is meant to be final, close this and say so in the architecture doc.
 
+### Pins shrink to specks when zoomed out (opened 2026-10-10)
+
+Plan: **`documentation/plans/plan-pin-zoom-detail.md`**. Pins scale with zoom, so on a zoomed-out town map
+they become unreadable and hard to hit. Add a minimum screen size and two compact tiers (icon, then dot),
+with labels on hover. Clustering was considered and deferred; the plan says why. Touches
+`scripts/manager-pins-renderer.js` and `styles/pins.css`. Verified by zooming a mixed-pin scene through
+both thresholds.
+
 ### Walk the pins user guide
 
 `userguides/userguide-pins.md` was written from the code and the on-screen labels, not walked in a running
