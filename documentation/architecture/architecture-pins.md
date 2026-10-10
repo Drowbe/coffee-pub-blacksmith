@@ -169,7 +169,7 @@ Backed by client settings on `PinManager`: `pinsHiddenTypeTags`, `pinsHideAll`, 
    either never becomes a DOM node. This is the system's main performance lever — see
    [Design rationale](#deliberate-choices).
 4. **DOM**: For each surviving pin, PinDOMElement creates or updates a div (position, size, shape, icon, text from pin data). Coordinates converted from scene to screen; overlay is fixed, so pins are positioned in screen space.
-5. **Pan / zoom / resize**: Throttled update runs `_sceneToScreen` for each pin and updates div position/size. Pins can be hidden during pan/zoom for performance, then shown again after.
+5. **Pan / zoom / resize**: Throttled update runs `_sceneToScreen` for each pin and updates div position/size. Pins can be hidden during pan/zoom for performance, then shown again after. `:root` sizing variables are read through `PinDOMElement._rootVar(name)`, which caches them for one pass. Never call `getComputedStyle` inside this per-pin loop: each read after the previous pin's style writes forces a style recalc per pin per frame.
 
 Changing filter state does not reload the scene. PinManager filter mutations call `PinRenderer.applyVisibilityFilters()` (`pins-renderer.js:2273`), which reconciles the existing DOM against the active filter — creating, removing, or showing/hiding pin nodes as needed — without re-running the `loadScenePins` path.
 

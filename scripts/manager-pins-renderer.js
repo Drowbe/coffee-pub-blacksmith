@@ -84,6 +84,24 @@ class PinDOMElement {
     static _targetRecheckTimeout = null;
     static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
     static DOUBLE_CLICK_MS = 300;
+    static _rootVarCache = new Map(); // CSS custom property name -> trimmed :root value; cleared each updateAllPositions pass
+
+    /**
+     * Read a `:root` CSS custom property, cached. Reading computed style inside the per-pin loop, after the
+     * previous pin's style writes, forces a style recalc per pin per frame; this reads each variable once per
+     * pass instead. `updateAllPositions` clears the cache so a theme change is picked up on the next pan.
+     * @param {string} name - e.g. `--blacksmith-pin-icon-size-ratio`
+     * @returns {string} The trimmed value, or '' when unavailable
+     * @private
+     */
+    static _rootVar(name) {
+        if (this._rootVarCache.has(name)) return this._rootVarCache.get(name);
+        const value = typeof document !== 'undefined'
+            ? getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+            : '';
+        this._rootVarCache.set(name, value);
+        return value;
+    }
 
     /**
      * Initialize the DOM pin system and hooks
@@ -272,9 +290,7 @@ class PinDOMElement {
         const pinHScreen = pinHScene * scale;
 
         // Icon size is based on the smaller dimension so it fits within non-square pins
-        const ratioStr = typeof document !== 'undefined'
-            ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-icon-size-ratio').trim()
-            : '';
+        const ratioStr = this._rootVar('--blacksmith-pin-icon-size-ratio');
         const iconRatio = (parseFloat(ratioStr) || 0.6);
         const iconSizeScreen = Math.min(pinWScreen, pinHScreen) * iconRatio;
 
@@ -617,9 +633,7 @@ class PinDOMElement {
                     if (shape === 'circle') {
                         iconElement.style.borderRadius = '50%';
                     } else if (shape === 'square' || shape === 'rectangle') {
-                        const squareRadiusPercentRaw = typeof document !== 'undefined'
-                            ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-square-border-radius').trim()
-                            : '';
+                        const squareRadiusPercentRaw = this._rootVar('--blacksmith-pin-square-border-radius');
                         const squareRadiusPercent = Number.parseFloat(squareRadiusPercentRaw);
                         const pct = Number.isFinite(squareRadiusPercent) ? squareRadiusPercent / 100 : 0.15;
                         const outerRadiusPx = Math.min(width, height) * pct;
@@ -641,9 +655,7 @@ class PinDOMElement {
                 // against width horizontally and height vertically, which skews non-square pins
                 // into elliptical corners; pin the container to a px radius from the short side
                 // so corners stay circular arcs (matches the inner image radius computed above).
-                const radiusRaw = typeof document !== 'undefined'
-                    ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-square-border-radius').trim()
-                    : '';
+                const radiusRaw = this._rootVar('--blacksmith-pin-square-border-radius');
                 const radiusPct = Number.parseFloat(radiusRaw);
                 const pct = Number.isFinite(radiusPct) ? radiusPct / 100 : 0.15;
                 pinElement.style.borderRadius = `${Math.min(width, height) * pct}px`;
@@ -658,9 +670,7 @@ class PinDOMElement {
                 // Arc layouts (arc-above, arc-below) always scale with pin
                 const arcLayouts = ['arc-above', 'arc-below'];
                 if (arcLayouts.includes(textLayout) || textLayout === 'around') {
-                    const ratioStr = typeof document !== 'undefined'
-                        ? getComputedStyle(document.documentElement).getPropertyValue('--blacksmith-pin-around-text-size-ratio').trim()
-                        : '';
+                    const ratioStr = this._rootVar('--blacksmith-pin-around-text-size-ratio');
                     const ratio = parseFloat(ratioStr) || 0.28;
                     const pinSizeScreen = Math.min(width, height);
                     const scaledTextSize = pinSizeScreen * ratio;
@@ -715,6 +725,7 @@ class PinDOMElement {
         }
 
         import('./manager-pins.js').then(({ PinManager }) => {
+            this._rootVarCache.clear();
             let updated = 0;
             for (const [pinId, pinElement] of this._pins.entries()) {
                 const pinData = PinManager.get(pinId);
