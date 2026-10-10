@@ -452,6 +452,39 @@
     border-radius: 50%;
 }
 
+/* ========================================
+   CLUSTERS (pinsClusterWhenZoomedOut)
+   Zoomed-out pins that overlap are hidden and replaced by one count badge, sized to the minimum pin size.
+   ======================================== */
+
+.blacksmith-pin[data-clustered="true"] {
+    display: none !important;
+}
+
+.blacksmith-pin-cluster {
+    position: absolute;
+    pointer-events: auto;
+    z-index: 10000; /* above every pin's stack order */
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(20, 20, 20, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 2px 1px rgba(0, 0, 0, 0.6);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 1;
+    user-select: none;
+    cursor: zoom-in;
+    transition: transform 0.1s ease-in-out;
+}
+
+.blacksmith-pin-cluster:hover {
+    transform: scale(1.15);
+}
+
 /* Hover state - scale up slightly */
 .blacksmith-pin:hover {
     transform: scale(1.1);

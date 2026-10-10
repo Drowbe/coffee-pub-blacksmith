@@ -1541,6 +1541,20 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 
+	game.settings.register(MODULE.ID, 'pinsClusterWhenZoomedOut', {
+		name: MODULE.ID + '.pinsClusterWhenZoomedOut-Label',
+		hint: MODULE.ID + '.pinsClusterWhenZoomedOut-Hint',
+		type: Boolean,
+		config: true,
+		requiresReload: false,
+		scope: 'world',
+		default: true,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE,
+		onChange: () => {
+			void import('./manager-pins-renderer.js').then(m => m.PinRenderer.refreshLayout());
+		}
+	});
+
 	game.settings.register(MODULE.ID, 'pinsRelinkSource', {
 		name: MODULE.ID + '.pinsRelinkSource-Label',
 		hint: MODULE.ID + '.pinsRelinkSource-Hint',

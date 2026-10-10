@@ -5,7 +5,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
-import { postConsoleAndNotification } from './api-core.js';
+import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
 import { UIContextMenu } from './ui-context-menu.js';
 import {
     PIN_ACCESS_ICONS,
@@ -85,6 +85,8 @@ class PinDOMElement {
     static _lastClick = { pinId: null, time: 0 }; // Double-click detection: previous click on a pin
     static DOUBLE_CLICK_MS = 300;
     static _rootVarCache = new Map(); // CSS custom property name -> trimmed :root value; cleared each updateAllPositions pass
+    static _layout = new Map(); // pinId -> { x, y, zoomDetail }: screen center and tier from the last updatePosition
+    static _clusters = new Map(); // member key (sorted pin ids) -> cluster badge element
 
     /**
      * Read a `:root` CSS custom property, cached. Reading computed style inside the per-pin loop, after the
@@ -232,7 +234,7 @@ class PinDOMElement {
      * Schedule a throttled update of all pin positions
      */
     static _scheduleUpdate() {
-        if (this._updateThrottle) return;
+        if (this._updateThrottle || !this._isInitialized) return;
         
         this._updateThrottle = requestAnimationFrame(() => {
             this.updateAllPositions();
@@ -575,6 +577,7 @@ class PinDOMElement {
         // Always try to update position immediately using unified calculation
         if (canvas?.stage && canvas?.app) {
             this.updatePosition(pinId, pinData);
+            this._scheduleUpdate(); // a new or moved pin may join or leave a cluster
         } else {
             // Canvas not ready yet - schedule position update with multiple retries
             const tryUpdate = () => {
@@ -622,6 +625,7 @@ class PinDOMElement {
             // Use unified calculation function
             const { left, top, width, height, iconSizeScreen, screen, scale, zoomDetail } = this._calculatePinPosition(pinElement, pinData);
             if (pinElement.dataset.zoomDetail !== zoomDetail) pinElement.dataset.zoomDetail = zoomDetail;
+            this._layout.set(pinId, { x: screen.x, y: screen.y, zoomDetail });
             const shape = pinData.shape || 'circle';
             const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
             const scaledStrokeWidth = baseStrokeWidth * scale;
@@ -781,6 +785,7 @@ class PinDOMElement {
                     console.warn(`BLACKSMITH | PINS updateAllPositions: No pin data for ${pinId}`);
                 }
             }
+            this._applyClusters(PinManager);
         }).catch(err => {
             console.error('BLACKSMITH | PINS Error updating pin positions', err?.message || String(err));
         });
@@ -1909,6 +1914,8 @@ class PinDOMElement {
             pinElement.remove();
             this._pins.delete(pinId);
         }
+        this._layout.delete(pinId);
+        this._scheduleUpdate(); // re-cluster without it
     }
 
     /**
@@ -1920,6 +1927,155 @@ class PinDOMElement {
             pin.remove();
         }
         this._pins.clear();
+        this._layout.clear();
+        this._clearClusters();
+    }
+
+    // ===== CLUSTERING =====
+
+    /**
+     * Group pins that are zoomed out and overlapping into one count badge (`pinsClusterWhenZoomedOut`).
+     * Only compact and dot pins cluster, so a pin at full size is always itself. Runs at the end of every
+     * `updateAllPositions` pass. Groups are connected components of pins whose screen centers lie within the
+     * minimum pin size of each other; screen distance does not change on a pan, so groups only change on zoom.
+     * A pin hidden by filter never counts, and the selected pin never joins, so it stays where the user is
+     * acting on it.
+     * @param {typeof import('./manager-pins.js').PinManager} PinManager
+     * @private
+     */
+    static _applyClusters(PinManager) {
+        const radius = this._rootPx('--blacksmith-pin-min-screen-size', 24);
+        const enabled = radius > 0 && getSettingSafely(MODULE.ID, 'pinsClusterWhenZoomedOut', true) !== false;
+
+        const points = [];
+        if (enabled) {
+            for (const [pinId, pinElement] of this._pins) {
+                const layout = this._layout.get(pinId);
+                if (!layout || layout.zoomDetail === 'full') continue;
+                if (pinElement.dataset.hiddenByFilter === 'true' || pinId === this._selectedPinId) continue;
+                points.push({ pinId, x: layout.x, y: layout.y });
+            }
+        }
+
+        // Union-find over a grid of radius-sized cells: only neighbouring cells can hold a pin within radius
+        const parent = points.map((_, i) => i);
+        const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+        const cells = new Map();
+        points.forEach((p, i) => {
+            const cx = Math.floor(p.x / radius);
+            const cy = Math.floor(p.y / radius);
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (const j of cells.get(`${cx + dx},${cy + dy}`) || []) {
+                        const q = points[j];
+                        if ((p.x - q.x) ** 2 + (p.y - q.y) ** 2 < radius * radius) parent[find(i)] = find(j);
+                    }
+                }
+            }
+            const key = `${cx},${cy}`;
+            if (!cells.has(key)) cells.set(key, []);
+            cells.get(key).push(i);
+        });
+        const groups = new Map();
+        points.forEach((p, i) => {
+            const root = find(i);
+            if (!groups.has(root)) groups.set(root, []);
+            groups.get(root).push(p);
+        });
+
+        const clustered = new Set();
+        const live = new Set();
+        for (const members of groups.values()) {
+            if (members.length < 2) continue;
+            const ids = members.map((m) => m.pinId).sort();
+            const key = ids.join('|');
+            live.add(key);
+            for (const id of ids) clustered.add(id);
+            let badge = this._clusters.get(key);
+            if (!badge) {
+                badge = this._createClusterBadge(ids, PinManager);
+                this._clusters.set(key, badge);
+            }
+            const x = members.reduce((sum, m) => sum + m.x, 0) / members.length;
+            const y = members.reduce((sum, m) => sum + m.y, 0) / members.length;
+            badge.style.left = `${Math.round(x - radius / 2)}px`;
+            badge.style.top = `${Math.round(y - radius / 2)}px`;
+            badge.style.width = badge.style.height = `${radius}px`;
+        }
+
+        for (const [key, badge] of this._clusters) {
+            if (!live.has(key)) {
+                badge.remove();
+                this._clusters.delete(key);
+            }
+        }
+        for (const [pinId, pinElement] of this._pins) {
+            if (clustered.has(pinId)) {
+                if (pinElement.dataset.clustered !== 'true') pinElement.dataset.clustered = 'true';
+            } else if (pinElement.dataset.clustered) {
+                delete pinElement.dataset.clustered;
+            }
+        }
+    }
+
+    /**
+     * Build a cluster badge: the member count, a tooltip of the members' labels, and a click that zooms in
+     * until the members are full size again. Labels follow each pin's own text display rule, so a `never`
+     * label, or a `gm` label for a player, is not revealed by the tooltip.
+     * @param {string[]} ids - Member pin ids
+     * @param {typeof import('./manager-pins.js').PinManager} PinManager
+     * @returns {HTMLElement}
+     * @private
+     */
+    static _createClusterBadge(ids, PinManager) {
+        const isGM = game.user?.isGM || false;
+        const labels = [];
+        for (const id of ids) {
+            const pin = PinManager.get(id);
+            const text = String(pin?.text || '').trim();
+            const display = pin?.textDisplay || 'always';
+            if (!text || display === 'never' || (display === 'gm' && !isGM)) continue;
+            labels.push(foundry.utils.escapeHTML(text));
+        }
+        const badge = document.createElement('div');
+        badge.className = 'blacksmith-pin-cluster';
+        badge.textContent = String(ids.length);
+        badge.dataset.tooltip = labels.length ? labels.join('<br>') : `${ids.length} pins`;
+        badge.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.button === 0) this._zoomToCluster(ids, PinManager);
+        });
+        badge.addEventListener('contextmenu', (e) => e.preventDefault());
+        this._container?.appendChild(badge);
+        return badge;
+    }
+
+    /**
+     * Pan to a cluster's members and zoom in far enough that they are full size, so they stop clustering.
+     * Zooms at least a step in, and no further than the canvas allows.
+     * @param {string[]} ids
+     * @param {typeof import('./manager-pins.js').PinManager} PinManager
+     * @private
+     */
+    static _zoomToCluster(ids, PinManager) {
+        const pins = ids.map((id) => PinManager.get(id)).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y));
+        if (!pins.length || !canvas?.stage) return;
+        const x = pins.reduce((sum, p) => sum + p.x, 0) / pins.length;
+        const y = pins.reduce((sum, p) => sum + p.y, 0) / pins.length;
+        const minPx = this._rootPx('--blacksmith-pin-min-screen-size', 24);
+        const smallest = Math.min(...pins.map((p) => Math.min(p.size?.w || 32, p.size?.h || 32)));
+        const current = canvas.stage.scale.x;
+        const maxZoom = CONFIG.Canvas?.maxZoom ?? 3;
+        const scale = Math.min(maxZoom, Math.max(current * 1.5, minPx / smallest));
+        canvas.animatePan({ x, y, scale });
+    }
+
+    /** Remove every cluster badge and release its members. @private */
+    static _clearClusters() {
+        for (const badge of this._clusters.values()) badge.remove();
+        this._clusters.clear();
+        for (const pinElement of this._pins.values()) delete pinElement.dataset.clustered;
     }
 
     // ===== SELECTION =====
@@ -1955,6 +2111,7 @@ class PinDOMElement {
     static deselect() {
         const pinElement = this._selectedPinId ? this._pins.get(this._selectedPinId) : null;
         if (pinElement) delete pinElement.dataset.selected;
+        if (this._selectedPinId) this._scheduleUpdate(); // the selected pin is never clustered; now it may be
         this._selectedPinId = null;
         this._selectedCanEdit = false;
     }
@@ -2394,6 +2551,13 @@ export class PinRenderer {
     static _socketRegistered = false;
 
     /**
+     * Re-run sizing and clustering for every drawn pin, e.g. after a setting that changes them.
+     */
+    static refreshLayout() {
+        PinDOMElement._scheduleUpdate();
+    }
+
+    /**
      * Initialize the pins system (no longer needs layer parameter)
      */
     static initialize() {
@@ -2584,6 +2748,7 @@ export class PinRenderer {
             delete pinElement.dataset.hiddenByFilter;
             pinElement.style.display = '';
         }
+        PinDOMElement._scheduleUpdate(); // a filtered-out pin leaves its cluster's count
 
         if (game.user?.isGM && _isPinHiddenFromPlayers(pinData)) {
             pinElement.dataset.gmHidden = 'true';

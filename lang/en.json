@@ -127,6 +127,9 @@
 				"pinsAllowPlayerWrites-Label": "Player Pin Editing",
 				"pinsAllowPlayerWrites-Hint": "If enabled, players with ownership of a pin can create, update, and delete pins. When disabled, only GMs can modify pins.",
 
+				"pinsClusterWhenZoomedOut-Label": "Cluster Pins When Zoomed Out",
+				"pinsClusterWhenZoomedOut-Hint": "When the map is zoomed out far enough that pins shrink, pins that overlap merge into one marker showing how many there are. Hover it to see their names, and click it to zoom in on them.",
+
 				"pinsRelinkSource-Label": "Relink: Where to Look",
 				"pinsRelinkSource-Hint": "Where Relink Pin looks for a replacement when a pin's document is gone. Compendiums uses the compendiums you mapped in Compendium Mapping, in their priority order. Compendiums, then This World searches compendiums first and the world after.",
 				"pinsRelinkAsk-Label": "Relink: Ask Where to Look",

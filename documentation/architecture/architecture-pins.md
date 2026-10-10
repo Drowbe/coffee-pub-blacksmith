@@ -199,6 +199,29 @@ times the zoom, via `_zoomDetailFor`, and the renderer writes it to `data-zoom-d
   needs no rebuild. `_createCurvedText` measures every character with `offsetWidth`, so rebuilding it per
   frame was the costliest thing on the pan path. `_updatePinText` clears the key whenever it rebuilds.
 
+### Clustering
+
+World setting `pinsClusterWhenZoomedOut`, on by default. `_applyClusters` runs at the end of every
+`updateAllPositions` pass, reading each pin's screen center and tier from `PinDOMElement._layout`, which
+`updatePosition` fills.
+
+- **Only `compact` and `dot` pins cluster.** A pin at full size is always drawn as itself.
+- **Groups are connected components** of pins whose screen centers lie within the minimum pin size of each
+  other, found by union-find over a grid of minimum-size cells. Screen distance does not change on a pan,
+  so groups change only on zoom.
+- **Excluded:** pins hidden by filter (so they never inflate a count) and the selected pin (so the pin being
+  acted on, or dragged, stays put).
+- Members get `data-clustered="true"`, which CSS hides. The badge, `.blacksmith-pin-cluster`, sits at the
+  members' screen centroid, minimum-size, above every pin's stack order. Badges are kept in
+  `PinDOMElement._clusters`, keyed by the sorted member ids, so an unchanged group reuses its element.
+- **Tooltip** lists member labels, obeying each pin's text display: a `never` label, or a `gm` label for a
+  player, is left out, so a cluster cannot reveal what the pin hides. With no labels it reads "N pins".
+- **Click** pans to the members' centroid and zooms in at least 1.5x, far enough that the smallest member is
+  full size, capped at `CONFIG.Canvas.maxZoom`.
+- **Re-clustering** is scheduled (`_scheduleUpdate`) when a pin is created, updated, removed or filtered, on
+  deselect, and when the setting changes (`PinRenderer.refreshLayout`). `_scheduleUpdate` does nothing until
+  the renderer is initialized.
+
 ---
 
 ## Event flow
@@ -381,12 +404,14 @@ permission decision as a filter, or vice versa.
   count, per-pin coordinate work on pan/zoom, icon rendering, and event overhead — not raw memory.
   Pre-filtering attacks node count directly and is far simpler than a viewport system. Culling was
   deliberately deferred, and **should not be built without a measurement first**.
-- **Zoom detail, not clustering** (2026-10-10). Pins scale with zoom, so zoomed out they never collide; they
-  shrink until they cannot be read or hit. The fix is a minimum size with compact tiers (see
-  [Zoom detail](#zoom-detail)), which keeps each pin on its exact spot. Clustering was considered and
-  deferred: a badge replaces *where* with *how many*, and grouping costs a pass rather than saving one,
-  because every position must still be computed. Build it only if real maps show compact pins colliding.
-  Zoom detail is its prerequisite either way, since without a minimum size nothing collides.
+- **Zoom detail first, clustering on top** (2026-10-10). Pins scale with zoom, so zoomed out they never
+  collide; they shrink until they cannot be read or hit. Zoom detail fixes that and keeps each pin on its
+  exact spot, and it is clustering's prerequisite, since without a minimum size nothing collides.
+  Clustering was first deferred, because a badge replaces *where* with *how many*, then built the same day
+  once a real map showed about ten pins overlapping even at full size. It is a readability feature, not a
+  performance one: every position must still be computed to group them.
+  **Clusters mix types.** Same-type clusters were considered; on a crowded spot they leave several badges
+  overlapping, which is the glob clustering exists to remove.
   **No per-type opt-out** exists. Add a taxonomy key only when a type genuinely needs true scene size at
   every zoom, such as a measured area marker.
 

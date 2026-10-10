@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Pins stay readable when zoomed out** (`scripts/manager-pins-renderer.js`, `styles/pins.css`). Pins are sized in map units, so on a zoomed-out map they shrank into specks too small to read or click. A pin now stops shrinking at 24px and shows only its shape and icon, with its label on hover. Further out, below 12px, it becomes a small dot in its background colour that still answers hover, click, drag and the right-click menu. Every pin stays centred on its exact spot. The three sizes are CSS variables in `pins.css`, and setting the minimum to `0px` restores the old behaviour.
 
+- **Overlapping pins cluster when zoomed out** (`scripts/manager-pins-renderer.js`, `styles/pins.css`, `scripts/settings.js`). Once pins have shrunk to their minimum size or to dots, pins that overlap merge into one marker showing how many there are. Hovering the marker lists the pins' names, and clicking it zooms in until they separate. A pin at full size never clusters, and neither does the selected pin. Pins hidden by a filter are not counted, and a label that is hidden from players is not shown in the list. New world setting **Cluster Pins When Zoomed Out** in the Pins section, on by default.
+
 ### Fixed
 
 - **Habitat checkboxes in Scene Config now toggle one at a time** (`scripts/ui-scene-geography.js`, `styles/ui-scene-geography.css`). Clicking any habitat ticked all twelve, and clicking again unticked all twelve. Scene Config copies a changed checkbox's state onto every other checkbox of the same name, and the twelve shared one. The group is now a single multi-checkbox element, so there is nothing to mirror. Existing habitats on scenes load as before.

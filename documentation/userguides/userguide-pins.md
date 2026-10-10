@@ -29,6 +29,12 @@ A pin is a marker on the map. Most pins open something when you double-click the
 
 A page pin opens that page when you double-click it. You can pin the same page more than once.
 
+## Pins when you zoom out
+
+As you zoom out, pins shrink with the map until they reach a minimum size, then stop shrinking. At that size a pin shows only its shape and icon, and its name appears when you hover over it. Zoom out further and each pin becomes a small dot in its background colour. Every pin stays on its exact spot, and you can still hover, click, drag and right-click it.
+
+Where pins overlap at that distance, they merge into one round marker showing how many pins it holds. Hover over the marker to see their names, or click it to zoom in until they separate. The pin you have selected never merges. The GM can turn this off with **Cluster Pins When Zoomed Out** in the module settings, under Pins.
+
 ## Select a pin
 
 Click a pin once. An orange outline shows it is selected. Click another pin to move the selection, or click empty map, press Escape, or change scene to clear it.
