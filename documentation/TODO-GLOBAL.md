@@ -1014,6 +1014,24 @@ Already told: Librarian's codex and quests and Artificer's recipes all want `map
 declared subtype, and all three wait on the same seam. Artificer has unblocked item-side work meanwhile
 (`api.importer.buildDocumentData` / `buildDocumentUpdate`).
 
+## Delete the Squire pin takeover calls once every world has loaded (raised 2026-10-09)
+
+Pins made while Squire owned codex, quests and notes still named `coffee-pub-squire` as their module, which
+left them unlisted, unlabelled and untracked. Two one-line calls to `pins.adopt` rewrite the module id once and
+are then dead code, since a run with nothing to move does nothing. Blacksmith keeps no Squire vocabulary
+anywhere, so these calls are the only remaining reference. Delete them once the worlds that matter have each
+loaded once with both updates, a release or two after they ship:
+
+- **Librarian**, `scripts/librarian.js`: the `pins.adopt('coffee-pub-squire', MODULE.ID, { types: ['codex',
+  'quest', 'objective'] })` block after the codex and quest pin init, with its `reconcileQuestPins()` follow-up.
+- **Blacksmith**, `scripts/manager-notes.js`: `NotesManager.adoptSquireNotePins()` and its call at the top of
+  `adoptSquireNotes()`. The page half of `adoptSquireNotes()` stays until Squire's note flags are retired.
+
+Keep `pins.adopt` itself and its suite check: it is a general API for a feature moving between modules, and
+the next move will want it. To confirm a world is done, count the pins by module and type; no row should read
+`coffee-pub-squire`. Librarian's older legacy handling (`LEGACY_CODEX_PAGE_TYPE`, the legacy pin type map) is
+the page-type half of the original migration and is a separate cleanup in Librarian's own TODO.
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)
