@@ -175,6 +175,30 @@ Changing filter state does not reload the scene. PinManager filter mutations cal
 
 Pins render into a DOM overlay that is a sibling of the canvas app element, not as PIXI objects. A canvas layer does exist — `BlacksmithLayer` (see Components) — but it serves only as a pin lifecycle entry point; no pin graphics live on it.
 
+### Zoom detail
+
+`_calculatePinPosition` picks a tier per pin per pass from its **natural** screen size, the shorter side
+times the zoom, via `_zoomDetailFor`, and the renderer writes it to `data-zoom-detail` only when it changes.
+`styles/pins.css` does the hiding; a tier change creates or removes no DOM.
+
+| Tier | Natural size | Drawn at | Shows |
+|---|---|---|---|
+| `full` | at or above `--blacksmith-pin-min-screen-size` (24px) | natural size | everything |
+| `compact` | below the minimum, at or above `--blacksmith-pin-dot-threshold` (12px) | the minimum, aspect kept | shape and icon; label on hover only; no pin-editing glyph |
+| `dot` | below the dot threshold | `--blacksmith-pin-dot-size` (10px), a disc in `--pin-fill-color` (set for every shape, so a `none`-shape pin still has one), with a thin light ring in place of the drop shadow, which is wider than a dot and merges neighbours into one smudge | nothing else; linear label on hover, arc label never; hit area kept at the minimum by `::after` |
+
+- Below `full`, `_calculatePinPosition` returns an **effective scale**, `minimum / shorter side`, rather than
+  the zoom. Stroke, glyphs and text all derive from it, so a compact pin is drawn exactly as a minimum-size
+  pin would be. Position never changes: every tier centers on the same scene point.
+- The CSS rules are `!important` because text display, border and background are written inline.
+  On hover the inline display decides, so `never` and a non-GM's `gm` label stay hidden at every tier.
+- A minimum of `0px` turns zoom detail off. The thresholds are `:root` variables rather than settings: a
+  per-user setting would need the world-scoped Pins heading made `user`.
+- **Arc labels rebuild only when their layout inputs change** (text, position, pin size, text size, stroke,
+  `textMaxWidth`), keyed in `textElement.dataset.arcKey`. The characters sit relative to the pin, so a pan
+  needs no rebuild. `_createCurvedText` measures every character with `offsetWidth`, so rebuilding it per
+  frame was the costliest thing on the pan path. `_updatePinText` clears the key whenever it rebuilds.
+
 ---
 
 ## Event flow
@@ -357,4 +381,12 @@ permission decision as a filter, or vice versa.
   count, per-pin coordinate work on pan/zoom, icon rendering, and event overhead — not raw memory.
   Pre-filtering attacks node count directly and is far simpler than a viewport system. Culling was
   deliberately deferred, and **should not be built without a measurement first**.
+- **Zoom detail, not clustering** (2026-10-10). Pins scale with zoom, so zoomed out they never collide; they
+  shrink until they cannot be read or hit. The fix is a minimum size with compact tiers (see
+  [Zoom detail](#zoom-detail)), which keeps each pin on its exact spot. Clustering was considered and
+  deferred: a badge replaces *where* with *how many*, and grouping costs a pass rather than saving one,
+  because every position must still be computed. Build it only if real maps show compact pins colliding.
+  Zoom detail is its prerequisite either way, since without a minimum size nothing collides.
+  **No per-type opt-out** exists. Add a taxonomy key only when a type genuinely needs true scene size at
+  every zoom, such as a measured area marker.
 

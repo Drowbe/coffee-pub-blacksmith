@@ -274,20 +274,27 @@ class PinDOMElement {
      * Calculate pin position and size - unified function used for both creation and updates
      * @param {HTMLElement} pinElement - The pin DOM element
      * @param {PinData} pinData - Pin data
-     * @returns {{ left: number, top: number, width: number, height: number, iconSizeScreen: number, screen: {x: number, y: number} }}
+     * @returns {{ left: number, top: number, width: number, height: number, iconSizeScreen: number, screen: {x: number, y: number}, scale: number, zoomDetail: 'full'|'compact'|'dot' }}
+     *   `scale` is the effective scale: the zoom, raised in the compact and dot tiers to the scale at which the
+     *   pin would be the minimum size, so stroke, glyphs and text size as they would for a minimum-size pin.
      * @private
      */
     static _calculatePinPosition(pinElement, pinData) {
         // UNIFIED CALCULATION - Used by create, pan, zoom, and drag
         // Convert scene coordinates to screen coordinates
         const screen = this._sceneToScreen(pinData.x, pinData.y);
-        const scale = canvas.stage.scale.x;
-        
-        // Pin size in scene units, converted to screen pixels
+        const zoom = canvas.stage.scale.x;
         const pinWScene = pinData.size.w;
         const pinHScene = pinData.size.h;
-        const pinWScreen = pinWScene * scale;
-        const pinHScreen = pinHScene * scale;
+
+        // Zoom detail: below the minimum screen size a pin stops shrinking (compact), and below the dot
+        // threshold it becomes a dot. The tier is chosen from the size the pin would naturally be.
+        const { zoomDetail, scale } = this._zoomDetailFor(Math.min(pinWScene, pinHScene), zoom);
+        let pinWScreen = pinWScene * scale;
+        let pinHScreen = pinHScene * scale;
+        if (zoomDetail === 'dot') {
+            pinWScreen = pinHScreen = this._rootPx('--blacksmith-pin-dot-size', 10);
+        }
 
         // Icon size is based on the smaller dimension so it fits within non-square pins
         const ratioStr = this._rootVar('--blacksmith-pin-icon-size-ratio');
@@ -298,7 +305,38 @@ class PinDOMElement {
         const left = Math.round(screen.x - pinWScreen / 2);
         const top = Math.round(screen.y - pinHScreen / 2);
 
-        return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale };
+        return { left, top, width: pinWScreen, height: pinHScreen, iconSizeScreen, screen, scale, zoomDetail };
+    }
+
+    /**
+     * Choose a pin's zoom-detail tier from the size it would naturally be on screen.
+     * `--blacksmith-pin-min-screen-size: 0` turns the feature off: every pin is `full` at the true zoom.
+     * @param {number} sceneSize - The pin's shorter side, in scene units
+     * @param {number} zoom - `canvas.stage.scale.x`
+     * @returns {{ zoomDetail: 'full'|'compact'|'dot', scale: number }} The tier and the effective scale
+     * @private
+     */
+    static _zoomDetailFor(sceneSize, zoom) {
+        const minPx = this._rootPx('--blacksmith-pin-min-screen-size', 24);
+        const natural = sceneSize * zoom;
+        if (!(minPx > 0) || !(sceneSize > 0) || natural >= minPx) return { zoomDetail: 'full', scale: zoom };
+        const dotThreshold = this._rootPx('--blacksmith-pin-dot-threshold', 12);
+        return {
+            zoomDetail: natural < dotThreshold ? 'dot' : 'compact',
+            scale: minPx / sceneSize
+        };
+    }
+
+    /**
+     * A `:root` length variable in px, cached through `_rootVar`.
+     * @param {string} name
+     * @param {number} fallback - Used when the variable is missing or unparseable
+     * @returns {number}
+     * @private
+     */
+    static _rootPx(name, fallback) {
+        const n = parseFloat(this._rootVar(name));
+        return Number.isFinite(n) ? n : fallback;
     }
 
     /** Pin-editing corner glyph (GMs only): GM-only (`user-shield`) or Owner (`user-pen`). Not pin visibility. */
@@ -405,6 +443,8 @@ class PinDOMElement {
             pinElement.style.border = 'none';
             pinElement.style.setProperty('--pin-stroke-color', strokeColor);
         }
+        // Set for every shape: a zoomed-out pin draws as a dot in its fill, even one with no shape
+        pinElement.style.setProperty('--pin-fill-color', fillColor);
         
         // Add drop shadow via data attribute (default: true, controlled by CSS)
         if (pinData.dropShadow === false) {
@@ -580,7 +620,8 @@ class PinDOMElement {
 
         try {
             // Use unified calculation function
-            const { left, top, width, height, iconSizeScreen, screen, scale } = this._calculatePinPosition(pinElement, pinData);
+            const { left, top, width, height, iconSizeScreen, screen, scale, zoomDetail } = this._calculatePinPosition(pinElement, pinData);
+            if (pinElement.dataset.zoomDetail !== zoomDetail) pinElement.dataset.zoomDetail = zoomDetail;
             const shape = pinData.shape || 'circle';
             const baseStrokeWidth = typeof pinData.style?.strokeWidth === 'number' ? pinData.style.strokeWidth : 2;
             const scaledStrokeWidth = baseStrokeWidth * scale;
@@ -676,13 +717,17 @@ class PinDOMElement {
                     const scaledTextSize = pinSizeScreen * ratio;
                     textElement.style.fontSize = `${scaledTextSize}px`;
                     textElement.dataset.baseTextSize = String(scaledTextSize);
-                    
-                    // Recalculate character positions on every position update
-                    // This ensures text stays centered when pin moves or canvas scrolls
+
+                    // Rebuild the characters only when something they are laid out from changed. They are
+                    // positioned relative to the pin, so a pan alone needs no rebuild; a dot shows no arc.
                     const originalText = textElement.dataset.originalText || pinData.text || '';
-                    if (originalText) {
+                    if (originalText && zoomDetail !== 'dot') {
                         const position = (textLayout === 'arc-above') ? 'above' : 'below';
-                        this._createCurvedText(textElement, originalText, pinData, pinElement, { position });
+                        const arcKey = `${originalText}|${position}|${pinSizeScreen}|${scaledTextSize}|${scaledStrokeWidth}|${pinData.textMaxWidth ?? 0}`;
+                        if (textElement.dataset.arcKey !== arcKey) {
+                            this._createCurvedText(textElement, originalText, pinData, pinElement, { position });
+                            textElement.dataset.arcKey = arcKey;
+                        }
                     }
                 } else {
                     // For "under" and "over" layouts, respect scale setting
@@ -1510,6 +1555,7 @@ class PinDOMElement {
             const arcLayouts = ['arc-above', 'arc-below'];
             if (arcLayouts.includes(textLayout) || textLayout === 'around') {
                 textElement.dataset.originalText = displayText;
+                delete textElement.dataset.arcKey; // built here at whatever size; the next position update re-lays it out
                 const position = (textLayout === 'arc-above') ? 'above' : 'below';
                 this._createCurvedText(textElement, displayText, pinData, pinElement, { position });
             } else {

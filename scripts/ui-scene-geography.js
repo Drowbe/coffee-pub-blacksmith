@@ -65,26 +65,29 @@ function geographyRows(scene) {
 /**
  * Habitat checkboxes.
  *
- * The value attribute carries the canonical key and the visible text is the label,
- * which is why the vocabulary is {key, label} rather than bare strings. A checkbox
- * group submits one entry per box with `null` for each unticked one, so the read
- * side must filter against the vocabulary rather than for truthiness -- that is
- * what GeographyManager.normalizeHabitats does, and why nothing here trusts
- * the raw stored array.
+ * Rendered as ONE `<multi-checkbox>` element, not twelve checkboxes sharing a name.
+ * Scene Config's `_onChangeForm` "keeps form values with the same name in-sync" by copying
+ * the changed checkbox's `checked` onto every other element of that name
+ * (`client/applications/sheets/scene-config.mjs:609-613`), so a shared-name group ticks and
+ * unticks as a unit -- clicking any one box toggled all twelve. A multi-checkbox is a single
+ * named element, so there is nothing to mirror, and it submits `string[]` of only the
+ * ticked values (`[]` when none), never a `null` per unticked box.
+ *
+ * The option value carries the canonical key and the text is the label, which is why the
+ * vocabulary is {key, label} rather than bare strings. Reads still filter against the
+ * vocabulary (GeographyManager.normalizeHabitats) and nothing here trusts the raw stored
+ * array: flags written before this change hold the `null`-padded shape.
  */
 function habitatRows(scene) {
     const selected = new Set(GeographyManager.getHabitats(scene));
-    const boxes = HABITATS.map((habitat) => `
-        <label class="checkbox blacksmith-geography-habitat">
-            <input type="checkbox" name="${esc(fieldName('habitat'))}"
-                   value="${esc(habitat.key)}" ${selected.has(habitat.key) ? 'checked' : ''} />
-            ${esc(habitat.label)}
-        </label>`).join('');
+    const options = HABITATS.map((habitat) =>
+        `<option value="${esc(habitat.key)}"${selected.has(habitat.key) ? ' selected' : ''}>${esc(habitat.label)}</option>`
+    ).join('');
 
     return `
         <div class="form-group stacked">
             <label>Habitat</label>
-            <div class="blacksmith-geography-habitats">${boxes}</div>
+            <multi-checkbox class="blacksmith-geography-habitats" name="${esc(fieldName('habitat'))}">${options}</multi-checkbox>
             <p class="notes">What this place is like. Other Coffee Pub modules read this ${''
                 }to decide what can be found here and what it sounds like.</p>
         </div>`;

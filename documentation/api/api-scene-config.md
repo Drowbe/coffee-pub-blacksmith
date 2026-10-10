@@ -103,10 +103,22 @@ rather than trusting the form. `scripts/manager-geography.js` does this — see 
 — and it is the reason the geography flag is canonical no matter who wrote it. The alternative, for a
 module that would rather own its submit outright, is a window of its own rather than a tab.
 
-### Checkbox groups submit a null per unchecked box, not an empty array
+### Do not share one `name` across checkboxes — use `<multi-checkbox>`
 
-Several checkboxes sharing one `name` are the natural way to express a multi-select, and they do not
-behave the way either obvious guess suggests. `form.elements.namedItem(name)` returns a `RadioNodeList`,
+Several checkboxes sharing one `name` look like the natural way to express a multi-select, and in Scene
+Config they are broken twice over.
+
+**First, the sheet mirrors them.** Scene Config's `_onChangeForm` "keeps form values with the same name
+in-sync across the form" by copying the changed checkbox's `checked` onto every other element of that
+name (`client/applications/sheets/scene-config.mjs:609-613`). Tick one box and all of them tick; untick
+it and all of them untick. A group like this cannot be operated one box at a time.
+
+Use a single `<multi-checkbox name="flags.<moduleId>.<path>">` with `<option value="..." selected>`
+children instead. It is one named element, so there is nothing to mirror, and it submits the ticked values
+as a `string[]`. `scripts/ui-scene-geography.js` is the working example.
+
+**Second, the shared-name submission shape is surprising too.** It is the shape older flags may still
+carry. `form.elements.namedItem(name)` returns a `RadioNodeList`,
 so `FormDataExtended` maps over every element
 (`client/applications/ux/form-data-extended.mjs:178-181`), and a checkbox carrying a `value` attribute
 yields `field.checked ? field.value : null` (`:191-196`). Twelve boxes with none ticked therefore submit

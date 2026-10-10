@@ -15,7 +15,8 @@
     margin: 0.25rem 0;
 }
 
-.blacksmith-geography-habitat {
+/* The boxes are the `<label class="checkbox">` children a <multi-checkbox> builds. */
+.blacksmith-geography-habitats > label {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -26,7 +27,7 @@
 
 /* Foundry sizes bare checkboxes inconsistently inside an injected panel;
    pin it so the twelve boxes line up as a grid rather than drifting. */
-.blacksmith-geography-habitat input[type="checkbox"] {
+.blacksmith-geography-habitats input[type="checkbox"] {
     flex: 0 0 auto;
     margin: 0;
 }

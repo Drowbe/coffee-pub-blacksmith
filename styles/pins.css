@@ -15,6 +15,12 @@
     /* GM corner glyph: em portion of outward offset (circle = smaller; square = full em past stroke) */
     --blacksmith-pin-gm-indicator-em-out-circle: 0.52;
     --blacksmith-pin-gm-indicator-em-out-square: 1;
+    /* Zoom detail: a pin whose natural screen size falls below the minimum stops shrinking (compact: shape
+       and icon, label on hover); below the dot threshold it becomes a dot in its fill colour. Lengths in
+       px, read by the renderer. A minimum of 0px turns zoom detail off. */
+    --blacksmith-pin-min-screen-size: 24px;
+    --blacksmith-pin-dot-threshold: 12px;
+    --blacksmith-pin-dot-size: 10px;
 }
 
 /* Container for all pins overlay */
@@ -404,6 +410,47 @@
 
 /* Text display: GM only - visibility controlled by JavaScript based on user.isGM */
 /* Note: GM-only visibility is handled in _updatePinText() JavaScript function */
+
+/* ========================================
+   ZOOM DETAIL (data-zoom-detail, set by the renderer)
+   Rules use !important because the renderer writes text display, border and background inline.
+   ======================================== */
+
+/* Below full size the label is hover-only. On hover the inline display decides, so `never` and a
+   non-GM's `gm` label stay hidden. */
+.blacksmith-pin:is([data-zoom-detail="compact"], [data-zoom-detail="dot"]):not(:hover) .blacksmith-pin-text {
+    display: none !important;
+}
+
+/* A dot has no room for an arc */
+.blacksmith-pin[data-zoom-detail="dot"] .blacksmith-pin-text:is([data-layout="around"], [data-layout="arc-above"], [data-layout="arc-below"]) {
+    display: none !important;
+}
+
+.blacksmith-pin:is([data-zoom-detail="compact"], [data-zoom-detail="dot"]) .blacksmith-pin-gm-indicator,
+.blacksmith-pin[data-zoom-detail="dot"] .blacksmith-pin-broken-indicator,
+.blacksmith-pin[data-zoom-detail="dot"] .blacksmith-pin-icon {
+    display: none !important;
+}
+
+/* After the shape rules, so a `none`-shape pin still draws its dot */
+.blacksmith-pin[data-zoom-detail="dot"] {
+    background: var(--pin-fill-color, #000000) !important;
+    border: none !important;
+    border-radius: 50% !important;
+    /* The pin drop shadow is wider than a dot, so neighbouring dots' shadows merge into one smudge.
+       A thin light ring keeps each dot distinct instead. */
+    filter: none;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85), 0 0 2px 1px rgba(0, 0, 0, 0.6);
+}
+
+/* A dot keeps a minimum-size hit area */
+.blacksmith-pin[data-zoom-detail="dot"]::after {
+    content: '';
+    position: absolute;
+    inset: calc((var(--blacksmith-pin-dot-size) - var(--blacksmith-pin-min-screen-size)) / 2);
+    border-radius: 50%;
+}
 
 /* Hover state - scale up slightly */
 .blacksmith-pin:hover {

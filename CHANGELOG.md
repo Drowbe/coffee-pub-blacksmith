@@ -7,7 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Pins stay readable when zoomed out** (`scripts/manager-pins-renderer.js`, `styles/pins.css`). Pins are sized in map units, so on a zoomed-out map they shrank into specks too small to read or click. A pin now stops shrinking at 24px and shows only its shape and icon, with its label on hover. Further out, below 12px, it becomes a small dot in its background colour that still answers hover, click, drag and the right-click menu. Every pin stays centred on its exact spot. The three sizes are CSS variables in `pins.css`, and setting the minimum to `0px` restores the old behaviour.
+
 ### Fixed
+
+- **Habitat checkboxes in Scene Config now toggle one at a time** (`scripts/ui-scene-geography.js`, `styles/ui-scene-geography.css`). Clicking any habitat ticked all twelve, and clicking again unticked all twelve. Scene Config copies a changed checkbox's state onto every other checkbox of the same name, and the twelve shared one. The group is now a single multi-checkbox element, so there is nothing to mirror. Existing habitats on scenes load as before.
+
+- **Pins with curved labels no longer rebuild them on every frame of a pan** (`scripts/manager-pins-renderer.js`). An arc label measured every character afresh on each frame. It now rebuilds only when its text, size or layout changes, since a pan moves the label with its pin.
+
 
 - **Panning and zooming no longer recalculates page styles once per pin** (`scripts/manager-pins-renderer.js`). Each frame of a pan or zoom repositions every pin, and positioning one read three `:root` sizing variables (icon ratio, square corner radius, around-text ratio) from computed style. Each read came after the previous pin's style writes, so the browser recalculated styles once per pin per frame rather than once per frame. The variables are now read once per pass and cached, and the cache is cleared at the start of each pass, so a theme that changes them still applies on the next pan. Verified live 2026-10-10.
 
