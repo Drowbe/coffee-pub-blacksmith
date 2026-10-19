@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`worldClock.rate`, `.running` and `.mode` say how fast the world is moving** (`scripts/api-worldclock.js`, `scripts/manager-time-modes.js`). The clock has long advanced time by itself in Real-time, Slow and Fast modes, but nothing outside Blacksmith could ask how fast. `rate` is in-world seconds per real second and is `0` when nothing is advancing the clock: paused, in combat (core moves time by the round), or no GM connected. It is read from the world setting, so it is the same on every client rather than only on the one that ticks. Changes fire the Hook `blacksmith.worldClockRateChanged` with `{ rate, running, mode, previousRate, previousMode }`. Documented in `api-worldclock.md`.
+- **`worldClock.rate`, `.running` and `.mode` say how fast the world is moving** (`scripts/api-worldclock.js`, `scripts/manager-time-modes.js`). The clock has long advanced time by itself in Real-time, Slow and Fast modes, but nothing outside Blacksmith could ask how fast. `rate` is in-world seconds per real second and is `0` when nothing is advancing the clock: paused, in combat (core moves time by the round), or no GM connected. It is read from the world setting, so it is the same on every client rather than only on the one that ticks. Changes fire the Hook `blacksmith.worldClockRateChanged` with `{ rate, running, mode, previousRate, previousMode }`. Documented in `api-worldclock.md`. Verified live 2026-10-18: Real-time, Fast and Paused read the right values on the GM and on a player client, and each switch fired the Hook with the previous rate and mode.
 
 ## [14.4.0]
 
