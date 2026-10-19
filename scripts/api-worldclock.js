@@ -18,6 +18,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { TimeModes } from './manager-time-modes.js';
 
 class WorldClockAPI {
 
@@ -95,6 +96,26 @@ class WorldClockAPI {
         });
 
         return id;
+    }
+
+    /**
+     * World seconds per real second right now. Zero when the clock is not advancing:
+     * paused, in combat (core moves time by the round), or no GM connected.
+     * @returns {number}
+     */
+    static get rate() {
+        const { rate, running } = TimeModes.state();
+        return running ? rate : 0;
+    }
+
+    /** Whether the clock is advancing on its own. @returns {boolean} */
+    static get running() {
+        return TimeModes.state().running;
+    }
+
+    /** The selected time mode: 'combat', 'real', 'slow', 'fast' or 'paused'. @returns {string} */
+    static get mode() {
+        return TimeModes.state().mode;
     }
 
     /** @returns {boolean} Whether anything was removed. */

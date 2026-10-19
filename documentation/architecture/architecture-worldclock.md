@@ -538,6 +538,15 @@ The dependency runs clock -> modes and never back. `TimeModes.onChange(callback)
 about a switch, which keeps the pair from being circular -- the same shape as the option providers the
 clock already exposes.
 
+### The speed is read from the setting, not the driver
+
+`TimeModes.state()` backs `api.worldClock.rate / running / mode` and the Hook
+`blacksmith.worldClockRateChanged`. It derives from the world setting rather than `TimeDriver`, because the
+driver runs on one client only: asked there, every other client would read "stopped" while the world moves.
+`running` also needs `game.users.activeGM`, since with no GM the selected mode is a wish. `_announce()`
+compares against the last state before firing, because `apply()` also runs on every `userConnected`, and it
+stays silent for the first apply (which precedes any listener).
+
 ## Invariants that fail silently
 
 Three couplings span files, and every one of them fails without an error. `node tools/check-worldclock.mjs`

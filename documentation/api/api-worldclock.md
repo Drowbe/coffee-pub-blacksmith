@@ -52,6 +52,35 @@ Returns `true` if something was removed.
 
 Every registered schedule, for debugging.
 
+## rate, running, mode
+
+How fast the world is moving, read-only.
+
+```js
+worldClock.rate;     // in-world seconds per real second; 0 when nothing is advancing the clock
+worldClock.running;  // true when the clock is advancing on its own
+worldClock.mode;     // 'combat' | 'real' | 'slow' | 'fast' | 'paused' -- more speeds may be added
+```
+
+Treat `mode` as an open string: branch on `rate` and `running`, which are numbers whatever the modes are,
+and use `mode` only for display or for `'combat'` / `'paused'`.
+
+`rate` is `0` when paused, in combat (core moves time by the round, so the clock's own driver stands
+down), or when no GM is connected -- with no GM nobody holds the timer, so the selected mode is not a fact.
+The values come from a world setting, so they are the same on every client, not only on the GM that ticks.
+They are the **nominal** rate: `worldTime` itself arrives in whole-minute steps with a short real-time floor
+between them, so a consumer animating smoothly should read the rate and run its own clock rather than
+sampling `worldTime`.
+
+### Hook: `blacksmith.worldClockRateChanged`
+
+```js
+Hooks.on('blacksmith.worldClockRateChanged', ({ rate, running, mode, previousRate, previousMode }) => { /* ... */ });
+```
+
+Fires on every client when the rate, running state or mode changes. It does **not** fire for the starting
+state: read `worldClock.rate` at `ready` for that.
+
 ## Things worth knowing before you use it
 
 **`crossings` can be greater than one, and you have to decide what that means.** A party resting a week

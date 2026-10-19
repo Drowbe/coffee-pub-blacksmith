@@ -980,6 +980,23 @@ surfaces, deliberately not one: `countdown`, `schedule`, `session`. **World time
 separate** -- merging them would be the third time that mistake was made. Each step is finished when the
 old interval is *deleted*, and consumers come before further migration.
 
+### A calendar duration formatter (requested by Cartographer, 2026-10-18)
+
+`formatMoment` formats a moment; nothing formats a **span**. Wanted on `api.worldClock` (or the calendar
+API, whichever owns the calendar's units): seconds in, string out, built from the calendar's own
+`secondsPerMinute` / `minutesPerHour` / `hoursPerDay` rather than 86400, with `{ largestUnits: 2 }` giving
+"2 days, 4 hours". Cartographer uses it for travel ETAs. Medium priority (the author's ranking; Cartographer
+calls it low) -- nothing of theirs is gated on it.
+
+**Decided 2026-10-18: the time surface stays read-only.** No `setMode` / `pause` / `resume` for siblings;
+the clock is the table's, not a module's. Revisit only on a real need.
+
+### More time modes: Medium and Very Fast
+
+The author wants two more modes beside Slow and Fast. Each is a `TIME_MODES` entry plus a speed setting
+read by `TimeModes.rateFor` and listed in the `apply()` setting-change filter. `api.worldClock.mode` is an
+open string, so adding them breaks no consumer; do not hardcode the set anywhere else.
+
 ### The interruptible rest
 
 Plan: **`documentation/plans/plan-interruptible-rest.md`**. The one genuinely novel piece of what remains

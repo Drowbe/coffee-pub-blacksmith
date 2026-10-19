@@ -398,5 +398,52 @@ export class TimeModes {
                 postConsoleAndNotification(MODULE.NAME, 'Time modes: a change subscriber threw', error, false, false);
             }
         }
+        this._announce();
+    }
+
+    /**
+     * How fast the world is moving, as a value rather than a mode name.
+     *
+     * Derived from the SETTING, not from `TimeDriver`: the driver only runs on the
+     * one client that ticks, so on every other client it reads as stopped while the
+     * world is moving. The setting is world scope and arrives everywhere.
+     *
+     * `running` also requires a connected GM, because with none, nobody holds the
+     * interval and the selected mode is a wish rather than a fact.
+     *
+     * @returns {{rate: number, running: boolean, mode: string}} `rate` is world seconds
+     *   per real second, 0 when nothing is advancing the clock.
+     */
+    static state() {
+        const mode = this.current();
+        const rate = this.rateFor(mode);
+        return { rate, running: rate > 0 && !!game.users?.activeGM, mode: mode.id };
+    }
+
+    /** @type {{rate: number, running: boolean, mode: string}|null} The last state announced. */
+    static _announced = null;
+
+    /**
+     * Tell other modules the speed changed.
+     *
+     * `apply()` runs on every setting change and every user connecting, most of
+     * which leave the speed alone, so this compares before firing.
+     *
+     * The first apply is the initial read, not a change, and it happens before any
+     * other module has registered a listener -- so nothing fires for it. A consumer
+     * reads `api.worldClock.rate` at `ready` for its starting value, and the payload
+     * carries `previousRate` / `previousMode` so it need not cache the old one.
+     */
+    static _announce() {
+        const state = this.state();
+        const last = this._announced;
+        this._announced = state;
+        if (!last) return;
+        if (last.rate === state.rate && last.running === state.running && last.mode === state.mode) return;
+        Hooks.callAll('blacksmith.worldClockRateChanged', {
+            ...state,
+            previousRate: last.running ? last.rate : 0,
+            previousMode: last.mode
+        });
     }
 }
