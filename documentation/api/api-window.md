@@ -61,6 +61,30 @@ import {
 export class MyWindow extends BlacksmithWindowBaseV2 { }
 ```
 
+### `DEFAULT_OPTIONS` declares only your own options
+
+Declare `DEFAULT_OPTIONS` as a plain object holding only what your class adds or changes. **Do not copy the
+base's options in** with `foundry.utils.mergeObject(foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}), {...})`.
+
+```javascript
+export class MyWindow extends BlacksmithToolWindowBaseV2 {
+    static DEFAULT_OPTIONS = {
+        id: 'my-module-tool',
+        classes: ['my-module-tool-window'],
+        position: { width: 340, height: 'auto' },
+        window: { title: 'My Tool' }
+    };
+}
+```
+
+Foundry already walks the class chain and merges every level's `DEFAULT_OPTIONS` itself: objects merge deeply
+and **arrays concatenate**. Copying `super`'s options in was always redundant, and on v14 it is wrong: core
+added `window.controls: [detach, attach]` to ApplicationV2's defaults, and every level that copies `super`
+re-contributes that pair, so the header menu shows "Detach Window / Re-attach Window" twice per copying
+level. The bases' own classes (`blacksmith-window-tool` and the rest) arrive through the same chain merge,
+so `classes` lists only your own. See the comment on `DEFAULT_OPTIONS` in `scripts/window-tool-base.js` and
+the CHANGELOG entry that removed the pattern from Blacksmith's own windows.
+
 `BLACKSMITH_WINDOW_STYLES`, `BLACKSMITH_TOOL_TITLEBARS`, `BLACKSMITH_TOOL_THEMES`, `BLACKSMITH_FULLSCREEN_LAYOUTS`, and `BLACKSMITH_FULLSCREEN_FITS` are exported from the same path, and are the same objects as `api.windowStyles`, `api.toolTitlebars`, `api.toolThemes`, `api.fullscreenLayouts`, and `api.fullscreenFits`.
 
 The bridge is the supported path for this one purpose. Do not deep-link anything under `scripts/` — those paths are not the stable contract.
@@ -229,15 +253,12 @@ Hooks.on('blacksmith.toolWindowThemeChanged', (app, theme, previousTheme) => {
 The callback and hook fire after the shared frame state and requested rerender have completed. They fire only for an actual runtime change, not when the saved initial theme is restored during construction. CSS-driven content normally needs neither: it should inherit `--blacksmith-tool-*`, or select the frame's `data-tool-theme` / `.blacksmith-window-tool-theme-light|dark|glass` state.
 
 ```javascript
-static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-    foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
-    {
-        id: 'my-module-micro-tool',
-        toolTitlebar: 'micro',
-        position: { width: 340, height: 'auto' },
-        window: { title: 'My Tool', resizable: false, minimizable: true }
-    }
-);
+static DEFAULT_OPTIONS = {
+    id: 'my-module-micro-tool',
+    toolTitlebar: 'micro',
+    position: { width: 340, height: 'auto' },
+    window: { title: 'My Tool', resizable: false, minimizable: true }
+};
 ```
 
 `"full"` is the fallback for an omitted or unknown value. Foundry freezes finalized Application V2 options, so consumers must use `setToolTitlebarMode()` for runtime changes rather than assigning `this.options.toolTitlebar`.
@@ -256,18 +277,14 @@ The tool template accepts:
 Subclass `getToolHeaderActions()` to add direct icon controls beside Foundry's native title controls. Each entry accepts `{ id, icon, label, active, disabled, onClick }`. `label` may be a localization key. Blacksmith renders it as `data-tooltip` and an accessible label.
 
 ```javascript
-const api = game.modules.get('coffee-pub-blacksmith')?.api;
-const ToolBase = api.BlacksmithToolWindowBaseV2;
+import { BlacksmithToolWindowBaseV2 } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
-class MyCanvasTool extends ToolBase {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
-        {
-            id: 'my-module-canvas-tool',
-            position: { width: 340, height: 'auto' },
-            window: { title: 'My Tool', resizable: false }
-        }
-    );
+class MyCanvasTool extends BlacksmithToolWindowBaseV2 {
+    static DEFAULT_OPTIONS = {
+        id: 'my-module-canvas-tool',
+        position: { width: 340, height: 'auto' },
+        window: { title: 'My Tool', resizable: false }
+    };
 
     getToolHeaderActions() {
         return [{
@@ -366,20 +383,17 @@ import {
 } from '/modules/coffee-pub-blacksmith/api/blacksmith-api.js';
 
 class HandoutWindow extends BlacksmithFullscreenWindowBaseV2 {
-    static DEFAULT_OPTIONS = foundry.utils.mergeObject(
-        foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
-        {
-            id: 'my-module-handout',
-            fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.CENTERED,
-            fullscreenBackdrop: {
-                image: 'modules/my-module/images/parchment.webp',
-                color: 'rgba(0, 0, 0, 0.8)',
-                opacity: 0.35,
-                blur: 8,
-                fit: 'cover'
-            }
+    static DEFAULT_OPTIONS = {
+        id: 'my-module-handout',
+        fullscreenLayout: BLACKSMITH_FULLSCREEN_LAYOUTS.CENTERED,
+        fullscreenBackdrop: {
+            image: 'modules/my-module/images/parchment.webp',
+            color: 'rgba(0, 0, 0, 0.8)',
+            opacity: 0.35,
+            blur: 8,
+            fit: 'cover'
         }
-    );
+    };
 
     async getData() {
         return {
@@ -645,21 +659,16 @@ When extending `BlacksmithWindowBaseV2`, set **`DEFAULT_OPTIONS`** (or pass opti
 - **`position.width`** / **`position.height`** — Initial size (numbers or `"auto"` per Foundry). Do **not** add `minWidth`/`maxWidth`/`minHeight`/`maxHeight` to `position` — Foundry's position object is not extensible.
 - **`windowSizeConstraints`** (object, optional) — Min/max size applied by the base class to the window element after render: `{ minWidth, minHeight, maxWidth, maxHeight }` (numbers in pixels). Omit to leave unconstrained.
   - Applied as **CSS custom properties** (`--blacksmith-window-min-width` and siblings) on the application element, which also receives a `blacksmith-window` class — not as inline `min-width` / `min-height`. This is what lets minimising work: Foundry collapses a window with an inline `max-height`, and CSS resolves min-height over max-height, so an inline minimum would pin the frame open and render a title bar above an empty rectangle. In the cascade, `.blacksmith-window.minimized` and `.blacksmith-window.minimizing` zero the minima with ordinary specificity.
-  - Consequently you do **not** need `!important` overrides in a consumer stylesheet to make a constrained window minimise, and you should not add the `blacksmith-window` class through `DEFAULT_OPTIONS.classes` — `mergeObject` overwrites arrays rather than concatenating, so classes declared on a base are dropped by any subclass that declares its own.
+  - Consequently you do **not** need `!important` overrides in a consumer stylesheet to make a constrained window minimise, and you should not add the `blacksmith-window` class through `DEFAULT_OPTIONS.classes` — the base applies it. List only your own classes; Foundry's chain merge concatenates them with the bases'. (Copying `super.DEFAULT_OPTIONS` in with `mergeObject` is what used to drop a base's classes, and is not done -- see "`DEFAULT_OPTIONS` declares only your own options".)
 
 Example (in your window class):
 
 ```javascript
-static get DEFAULT_OPTIONS() {
-  return foundry.utils.mergeObject(
-    foundry.utils.mergeObject({}, super.DEFAULT_OPTIONS ?? {}),
-    {
-      position: { width: 800, height: 600 },
-      window: { title: 'My Window', resizable: true, minimizable: true },
-      windowSizeConstraints: { minWidth: 500, maxWidth: 1400 }
-    }
-  );
-}
+static DEFAULT_OPTIONS = {
+  position: { width: 800, height: 600 },
+  window: { title: 'My Window', resizable: true, minimizable: true },
+  windowSizeConstraints: { minWidth: 500, maxWidth: 1400 }
+};
 ```
 
 ---
