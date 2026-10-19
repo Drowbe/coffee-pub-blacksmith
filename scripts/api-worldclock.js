@@ -113,7 +113,7 @@ class WorldClockAPI {
         return TimeModes.state().running;
     }
 
-    /** The selected time mode: 'combat', 'real', 'slow', 'fast' or 'paused'. @returns {string} */
+    /** The selected time mode: 'combat', 'paused', 'slow', 'real', 'medium', 'fast' or 'veryfast'. @returns {string} */
     static get mode() {
         return TimeModes.state().mode;
     }

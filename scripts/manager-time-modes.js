@@ -188,7 +188,9 @@ export class TimeDriver {
 // ==================================================================
 
 /**
- * The five modes, in menu order.
+ * The five modes, in menu order: the two stood-down states, then the speeds
+ * from slowest to fastest. `menuItems()` puts a divider after Paused, so the
+ * order here is the order on screen.
  *
  * `rate` is world seconds per real second, or null when the mode means "the
  * driver stands down". Combat and Paused are both stood-down states and differ
@@ -203,12 +205,12 @@ export const TIME_MODES = Object.freeze({
         rate: null,
         description: 'Core advances time by the round. The driver stands down.'
     },
-    real: {
-        id: 'real',
-        label: 'Real-time',
-        icon: 'fa-solid fa-play',
-        rate: 1,
-        description: 'One second in the world for every second at the table.'
+    paused: {
+        id: 'paused',
+        label: 'Paused',
+        icon: 'fa-solid fa-pause',
+        rate: null,
+        description: 'Nothing moves the clock.'
     },
     slow: {
         id: 'slow',
@@ -216,7 +218,26 @@ export const TIME_MODES = Object.freeze({
         icon: 'fa-solid fa-turtle',
         rate: null,          // read from the setting
         configurable: true,
+        setting: 'worldClockSlowMultiplier',
+        fallback: 0.25,
         description: 'Time passes more slowly than real time.'
+    },
+    real: {
+        id: 'real',
+        label: 'Real-time',
+        icon: 'fa-solid fa-play',
+        rate: 1,
+        description: 'One second in the world for every second at the table.'
+    },
+    medium: {
+        id: 'medium',
+        label: 'Medium',
+        icon: 'fa-solid fa-angles-right',
+        rate: null,          // read from the setting
+        configurable: true,
+        setting: 'worldClockMediumMultiplier',
+        fallback: 30,
+        description: 'Time passes more quickly than real time.'
     },
     fast: {
         id: 'fast',
@@ -224,16 +245,24 @@ export const TIME_MODES = Object.freeze({
         icon: 'fa-solid fa-forward',
         rate: null,          // read from the setting
         configurable: true,
-        description: 'Time passes more quickly than real time.'
+        setting: 'worldClockFastMultiplier',
+        fallback: 60,
+        description: 'Time passes much more quickly than real time.'
     },
-    paused: {
-        id: 'paused',
-        label: 'Paused',
-        icon: 'fa-solid fa-pause',
-        rate: null,
-        description: 'Nothing moves the clock.'
+    veryfast: {
+        id: 'veryfast',
+        label: 'Very Fast',
+        icon: 'fa-solid fa-forward-fast',
+        rate: null,          // read from the setting
+        configurable: true,
+        setting: 'worldClockVeryFastMultiplier',
+        fallback: 240,
+        description: 'Time passes far more quickly than real time.'
     }
 });
+
+/** The settings that hold a mode's speed, so a change to any of them re-applies the driver. */
+const SPEED_SETTINGS = Object.values(TIME_MODES).filter(mode => mode.configurable).map(mode => mode.setting);
 
 export class TimeModes {
     static SETTING = 'worldClockTimeMode';
@@ -249,8 +278,7 @@ export class TimeModes {
             priority: 3,
             callback: (namespace, key) => {
                 if (namespace !== MODULE.ID) return;
-                if (![this.SETTING, 'worldClockSlowMultiplier', 'worldClockFastMultiplier',
-                    'worldClockMinUpdateSeconds'].includes(key)) return;
+                if (![this.SETTING, ...SPEED_SETTINGS, 'worldClockMinUpdateSeconds'].includes(key)) return;
                 this.apply();
             }
         });
@@ -283,12 +311,10 @@ export class TimeModes {
      * so changing one in settings takes effect on the next apply without a reload.
      */
     static rateFor(mode) {
-        switch (mode.id) {
-            case 'real': return 1;
-            case 'slow': return Math.max(0, Number(getSettingSafely(MODULE.ID, 'worldClockSlowMultiplier', 0.25)) || 0);
-            case 'fast': return Math.max(0, Number(getSettingSafely(MODULE.ID, 'worldClockFastMultiplier', 60)) || 0);
-            default: return 0;   // combat and paused
+        if (mode.configurable) {
+            return Math.max(0, Number(getSettingSafely(MODULE.ID, mode.setting, mode.fallback)) || 0);
         }
+        return mode.id === TIME_MODES.real.id ? 1 : 0;   // combat and paused stand down
     }
 
     /** Bring the driver into line with the selected mode. Safe to call repeatedly. */
@@ -352,14 +378,19 @@ export class TimeModes {
      */
     static menuItems() {
         const currentId = this.current().id;
-        return Object.values(TIME_MODES).map((mode) => {
-            const label = mode.configurable ? `${mode.label} (${this.speedLabel(mode)})` : mode.label;
-            return {
+        const items = [];
+        for (const mode of Object.values(TIME_MODES)) {
+            // The stood-down states head the menu; the speeds follow a divider.
+            if (mode.id === TIME_MODES.slow.id) items.push({ separator: true });
+            const showSpeed = mode.configurable || mode.id === TIME_MODES.real.id;
+            const label = showSpeed ? `${mode.label} (${this.speedLabel(mode)})` : mode.label;
+            items.push({
                 name: mode.id === currentId ? `${label} — current` : label,
                 icon: mode.icon,
                 callback: () => void this.set(mode.id)
-            };
-        });
+            });
+        }
+        return items;
     }
 
     /**

@@ -991,12 +991,6 @@ calls it low) -- nothing of theirs is gated on it.
 **Decided 2026-10-18: the time surface stays read-only.** No `setMode` / `pause` / `resume` for siblings;
 the clock is the table's, not a module's. Revisit only on a real need.
 
-### More time modes: Medium and Very Fast
-
-The author wants two more modes beside Slow and Fast. Each is a `TIME_MODES` entry plus a speed setting
-read by `TimeModes.rateFor` and listed in the `apply()` setting-change filter. `api.worldClock.mode` is an
-open string, so adding them breaks no consumer; do not hardcode the set anywhere else.
-
 ### The interruptible rest
 
 Plan: **`documentation/plans/plan-interruptible-rest.md`**. The one genuinely novel piece of what remains

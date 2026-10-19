@@ -29,7 +29,9 @@ export default {
             { label: 'Current mode', value: `${mode.label} (${mode.id})` },
             { label: 'Rate', value: `${TimeModes.rateFor(mode)} world seconds per real second` },
             { label: 'Slow multiplier', value: String(setting('worldClockSlowMultiplier', 0.25)) },
+            { label: 'Medium multiplier', value: String(setting('worldClockMediumMultiplier', 30)) },
             { label: 'Fast multiplier', value: String(setting('worldClockFastMultiplier', 60)) },
+            { label: 'Very Fast multiplier', value: String(setting('worldClockVeryFastMultiplier', 240)) },
             { label: 'Minimum update', value: `${setting('worldClockMinUpdateSeconds', 0.5)}s (real)` },
             { label: 'This client ticks', value: TimeDriver.isOwner() ? 'yes' : 'no', note: 'only the active GM does' },
             { label: 'Driver running', value: TimeDriver.isRunning() ? 'yes' : 'no' }
@@ -50,9 +52,13 @@ export default {
                 // Slow and fast read their settings, so assert the relationship rather
                 // than a number a GM is free to change.
                 const slow = TimeModes.rateFor(TIME_MODES.slow);
+                const medium = TimeModes.rateFor(TIME_MODES.medium);
                 const fast = TimeModes.rateFor(TIME_MODES.fast);
+                const veryfast = TimeModes.rateFor(TIME_MODES.veryfast);
                 expect.ok(`slow (${slow}) is slower than real time`, slow < 1 || slow === 0);
+                expect.ok(`medium (${medium}) is faster than real time`, medium > 1);
                 expect.ok(`fast (${fast}) is faster than real time`, fast > 1);
+                expect.ok(`very fast (${veryfast}) is faster than real time`, veryfast > 1);
             }
         },
         {
@@ -189,8 +195,11 @@ export default {
             group: 'Surface',
             label: 'The menu offers every mode and marks the current one',
             run: async ({ expect }) => {
-                const items = TimeModes.menuItems();
+                const all = TimeModes.menuItems();
+                const items = all.filter(item => !item.separator);
                 expect('one entry per mode', items.length, Object.keys(TIME_MODES).length);
+                expect('one divider, between the stood-down states and the speeds',
+                    all.findIndex(item => item.separator), 2);
                 expect.ok('every entry has an icon', items.every(item => !!item.icon));
                 expect.ok('every entry has a callback', items.every(item => typeof item.callback === 'function'));
 

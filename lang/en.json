@@ -590,13 +590,19 @@
 		"headingH3WorldClock-Hint": "The in-world time of day shown in the menubar. The calendar itself comes from the game system, not from Blacksmith.",
 
 			"worldClockTimeMode-Label": "Time Mode",
-			"worldClockTimeMode-Hint": "How in-world time passes. Combat leaves it to the game system, which advances the clock by the round. Real-time, Slow and Fast run the clock on their own. Paused stops it. Easier to change from the clock's right-click menu than from here.",
+			"worldClockTimeMode-Hint": "How in-world time passes. Combat leaves it to the game system, which advances the clock by the round. Real-time, Slow, Medium, Fast and Very Fast run the clock on their own. Paused stops it. Easier to change from the clock's right-click menu than from here.",
 
 			"worldClockSlowMultiplier-Label": "Slow Speed",
 			"worldClockSlowMultiplier-Hint": "How fast in-world time runs in Slow mode, compared to real time.",
 
+			"worldClockMediumMultiplier-Label": "Medium Speed",
+			"worldClockMediumMultiplier-Hint": "How fast in-world time runs in Medium mode, compared to real time.",
+
 			"worldClockFastMultiplier-Label": "Fast Speed",
 			"worldClockFastMultiplier-Hint": "How fast in-world time runs in Fast mode, compared to real time.",
+
+			"worldClockVeryFastMultiplier-Label": "Very Fast Speed",
+			"worldClockVeryFastMultiplier-Hint": "How fast in-world time runs in Very Fast mode, compared to real time.",
 
 			"worldClockMinUpdateSeconds-Label": "Minimum Update Interval",
 			"worldClockMinUpdateSeconds-Hint": "The shortest time, in real seconds, between clock updates. The clock advances one in-world minute at a time, and at the default every speed up to 120x does exactly that. Faster than that, a minute arrives sooner than this limit allows and the clock steps by several minutes instead. Lower it for smoother fast-forward at the cost of more updates sent to players; raise it to send fewer.",

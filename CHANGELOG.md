@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`worldClock.rate`, `.running` and `.mode` say how fast the world is moving** (`scripts/api-worldclock.js`, `scripts/manager-time-modes.js`). The clock has long advanced time by itself in Real-time, Slow and Fast modes, but nothing outside Blacksmith could ask how fast. `rate` is in-world seconds per real second and is `0` when nothing is advancing the clock: paused, in combat (core moves time by the round), or no GM connected. It is read from the world setting, so it is the same on every client rather than only on the one that ticks. Changes fire the Hook `blacksmith.worldClockRateChanged` with `{ rate, running, mode, previousRate, previousMode }`. Documented in `api-worldclock.md`. Verified live 2026-10-18: Real-time, Fast and Paused read the right values on the GM and on a player client, and each switch fired the Hook with the previous rate and mode.
 
+- **Medium and Very Fast time modes** (`scripts/manager-time-modes.js`, `scripts/settings.js`, `lang/en.json`). The clock now has seven modes: Combat, Paused, Slow, Real-time, Medium, Fast and Very Fast. Each speed is its own World Clock setting with the same wording as Slow and Fast, set from the same ladder of rates, with defaults of 0.25x, 1x, 30x, 60x and 240x. Fast keeps its saved value, so a world that already set it is unchanged. A mode's speed setting is now declared on the mode itself, so adding another needs no second list kept in step.
+
+### Changed
+
+- **The Time Mode menu lists the stood-down states first, then the speeds slowest to fastest** (`scripts/manager-time-modes.js`). Combat and Paused now head the menu, a divider follows, then Slow, Real-time and Fast. It used to run Combat, Real-time, Slow, Fast, Paused.
+
 ## [14.4.0]
 
 ### Added

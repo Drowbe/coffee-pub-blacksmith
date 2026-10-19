@@ -101,8 +101,8 @@ Pause Time             the same toggle double-clicking performs
 Rest and Recovery      the rest window; the kind of rest is the first question it asks
 Calendar and Events    the calendar window
 Jump to >              Dawn, Noon, Dusk, Midnight -- always forward
-Time Mode >            Combat, Real-time, Slow (0.25x), Fast (60x), Paused
-                       swords / play / turtle / forward / pause
+Time Mode >            Combat, Paused, divider, Slow (0.25x), Real-time (1x), Medium (30x), Fast (60x), Very Fast (240x)
+                       swords / pause / turtle / play / angles-right / forward / forward-fast
 Options >              Set Time, Set Date, then anything contributed
     Set Time               our dialog: time of day only, bounds from the calendar
     Set Date               the system's dnd5e.applications.calendar.SetDateDialog
@@ -435,10 +435,12 @@ needs no branch.
 
 ## Time modes
 
-`manager-time-modes.js` lets the clock run at a chosen speed. Five modes: **Combat**, **Real-time**,
-**Slow**, **Fast**, **Paused**. The mode is the world setting `worldClockTimeMode`, so every client agrees
-about how time is passing; the speeds are `worldClockSlowMultiplier` and `worldClockFastMultiplier`, in
-world seconds per real second.
+`manager-time-modes.js` lets the clock run at a chosen speed. Seven modes, in menu order: **Combat**,
+**Paused**, then **Slow**, **Real-time**, **Medium**, **Fast**, **Very Fast**. The mode is the world setting
+`worldClockTimeMode`, so every client agrees about how time is passing. Each speed except Real-time is its own
+setting (`worldClockSlowMultiplier`, `...MediumMultiplier`, `...FastMultiplier`, `...VeryFastMultiplier`), in
+world seconds per real second, declared on the mode itself (`setting`, `fallback`) so `rateFor` and the
+change filter are driven by `TIME_MODES` rather than by a list that has to be kept in step with it.
 
 **The indicator and the time are ONE control, with two gestures.** They share a wrapper, `.worldclock-readout`
 -- one element, one hit target, one hover that lights both halves. Bound separately they left a dead gap
@@ -503,7 +505,7 @@ the balance is the whole design. `game.time.advance` writes a world setting and 
 client, firing `updateWorldTime` on all of them -- which also runs the darkness driver. So the driver writes
 one world minute per update, which is what makes the readout tick over minute by minute rather than leaping,
 and refuses to do it more often than `worldClockMinUpdateSeconds` (default 3s real). Real-time writes once a
-minute; Slow once every four; only Fast reaches the floor, where a world minute arrives every real second
+minute; Slow once every four; only the fastest speeds reach the floor, where a world minute arrives every real second
 and the floor holds it to a write every three carrying three minutes each.
 
 `TimeDriver.plan(rate, floor)` is that arithmetic, pure and separately testable: it returns the cadence and

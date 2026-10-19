@@ -59,7 +59,7 @@ How fast the world is moving, read-only.
 ```js
 worldClock.rate;     // in-world seconds per real second; 0 when nothing is advancing the clock
 worldClock.running;  // true when the clock is advancing on its own
-worldClock.mode;     // 'combat' | 'real' | 'slow' | 'fast' | 'paused' -- more speeds may be added
+worldClock.mode;     // 'combat' | 'paused' | 'slow' | 'real' | 'medium' | 'fast' | 'veryfast' -- more may be added
 ```
 
 Treat `mode` as an open string: branch on `rate` and `running`, which are numbers whatever the modes are,

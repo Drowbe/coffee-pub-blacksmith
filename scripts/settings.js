@@ -3569,10 +3569,12 @@ export const registerSettings = () => {
 		type: String,
 		choices: {
 			combat: 'Combat — core advances time by the round',
-			real: 'Real-time — one second per second',
+			paused: 'Paused — nothing moves the clock',
 			slow: 'Slow — decelerated',
+			real: 'Real-time — one second per second',
+			medium: 'Medium — quickened',
 			fast: 'Fast — accelerated',
-			paused: 'Paused — nothing moves the clock'
+			veryfast: 'Very Fast — greatly accelerated'
 		},
 		default: 'paused',
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
@@ -3624,27 +3626,37 @@ export const registerSettings = () => {
 		group: WORKFLOW_GROUPS.RUN_THE_GAME
 	});
 
-	game.settings.register(MODULE.ID, 'worldClockFastMultiplier', {
-		name: MODULE.ID + '.worldClockFastMultiplier-Label',
-		hint: MODULE.ID + '.worldClockFastMultiplier-Hint',
-		scope: 'world',
-		config: true,
-		type: String,
-		choices: {
-			'2': '2x - a minute of play is two in-world minutes',
-			'5': '5x - a minute of play is five in-world minutes',
-			'10': '10x - a minute of play is ten in-world minutes',
-			'15': '15x - a minute of play is fifteen in-world minutes',
-			'30': '30x - a minute of play is thirty in-world minutes',
-			'60': '60x - a minute of play is one in-world hour',
-			'120': '120x - a minute of play is two in-world hours',
-			'240': '240x - a minute of play is four in-world hours',
-			'360': '360x - a minute of play is six in-world hours',
-			'720': '720x - a minute of play is twelve in-world hours'
-		},
-		default: '60',
-		group: WORKFLOW_GROUPS.RUN_THE_GAME
-	});
+	// Medium, Fast and Very Fast share one ladder, so a GM can set any of them to any
+	// rung. Only the defaults differ.
+	const quickSpeedChoices = {
+		'2': '2x - a minute of play is two in-world minutes',
+		'5': '5x - a minute of play is five in-world minutes',
+		'10': '10x - a minute of play is ten in-world minutes',
+		'15': '15x - a minute of play is fifteen in-world minutes',
+		'30': '30x - a minute of play is thirty in-world minutes',
+		'60': '60x - a minute of play is one in-world hour',
+		'120': '120x - a minute of play is two in-world hours',
+		'240': '240x - a minute of play is four in-world hours',
+		'360': '360x - a minute of play is six in-world hours',
+		'720': '720x - a minute of play is twelve in-world hours'
+	};
+
+	for (const [key, fallback] of [
+		['worldClockMediumMultiplier', '30'],
+		['worldClockFastMultiplier', '60'],
+		['worldClockVeryFastMultiplier', '240']
+	]) {
+		game.settings.register(MODULE.ID, key, {
+			name: MODULE.ID + '.' + key + '-Label',
+			hint: MODULE.ID + '.' + key + '-Hint',
+			scope: 'world',
+			config: true,
+			type: String,
+			choices: quickSpeedChoices,
+			default: fallback,
+			group: WORKFLOW_GROUPS.RUN_THE_GAME
+		});
+	}
 
 	// -- Minimum update interval --
 	// The driver writes one world MINUTE per update, so the clock ticks over minute
