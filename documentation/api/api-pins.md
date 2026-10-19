@@ -1766,6 +1766,42 @@ GMs may see **at most one** small Font Awesome icon in the **upper-right** of a 
 
 The glyph color follows the pin **stroke** (`--pin-stroke-color`; blank → `#ffffff`). Positioned outside the pin box via **`--pin-stroke-px + --gm-fs × M`** (see `styles/pins.css`).
 
+### `pins.setLivePosition(pinId, { x, y })` / `pins.clearLivePosition(pinId)` / `pins.getLivePosition(pinId)`
+Draw a pin somewhere other than its stored position, **on this client only**. For a pin that moves
+continuously (a marker travelling along a route) where writing the scene every frame is not an option.
+Nothing is saved and nothing is broadcast: every client calls it itself, from whatever clock they share.
+
+```javascript
+// Every client, every frame, from a shared clock
+pins.setLivePosition(pinId, { x: point.x, y: point.y });   // scene coordinates of the pin's centre
+
+// Arrival, GM only: keep where it ended up, then let go of the live position
+await pins.update(pinId, { x: point.x, y: point.y });
+pins.clearLivePosition(pinId);                              // after the update resolves, so it does not jump
+```
+
+| Call | Returns |
+|---|---|
+| `setLivePosition(pinId, { x, y })` | `true`. Throws `TypeError` for a missing id or a non-finite `x` or `y`. Synchronous. |
+| `clearLivePosition(pinId)` | `true` if the pin had a live position, `false` if not. |
+| `getLivePosition(pinId)` | A copy of `{ x, y }`, or `null`. |
+
+Feature-detect with `typeof pins.setLivePosition === 'function'`.
+
+**While a pin has a live position:**
+- It is drawn there through pan and zoom, not snapped back to its stored `x`/`y`.
+- It does not join a cluster when the map is zoomed out.
+- A user cannot drag it. The press is a click instead, so selecting and the right-click menu still work.
+- Everything else still sees the **stored** position: `get`, `list`, `panTo`, exports and the `updated` events.
+
+**How long it lasts:** until `clearLivePosition`, a scene change, or the pin being deleted, unplaced or removed
+from the scene. A client that reloads starts with none, so call it again once the canvas is ready. A pin the
+user cannot see (hidden from players, or filtered out) is not drawn, but keeps its live position and is placed
+from it when it appears, so there is no need to stop calling it for a hidden pin.
+
+**Cost:** each call writes only the pin's `left` and `top`, and calls within one frame coalesce into a single
+write, so calling every frame for a few pins is fine. Calling `update` every frame is not: it writes the scene.
+
 ### `pins.panTo(pinId, options?)`
 Pan the canvas to center on a pin's location. Useful for navigating to pins from other UI elements (e.g., clicking a note in a journal to pan to its associated pin). Optionally ping the pin after panning to draw attention.
 

@@ -87,6 +87,9 @@ class PinDOMElement {
     static _rootVarCache = new Map(); // CSS custom property name -> trimmed :root value; cleared each updateAllPositions pass
     static _layout = new Map(); // pinId -> { x, y, zoomDetail }: screen center and tier from the last updatePosition
     static _clusters = new Map(); // member key (sorted pin ids) -> cluster badge element
+    static _live = new Map(); // pinId -> { x, y }: a client-local display position in scene units; never saved, never sent
+    static _livePending = new Set(); // pin ids moved since the last frame, flushed together
+    static _liveFrame = null; // requestAnimationFrame handle for that flush
 
     /**
      * Read a `:root` CSS custom property, cached. Reading computed style inside the per-pin loop, after the
@@ -283,8 +286,10 @@ class PinDOMElement {
      */
     static _calculatePinPosition(pinElement, pinData) {
         // UNIFIED CALCULATION - Used by create, pan, zoom, and drag
-        // Convert scene coordinates to screen coordinates
-        const screen = this._sceneToScreen(pinData.x, pinData.y);
+        // Convert scene coordinates to screen coordinates. A live position, when one is set, stands
+        // in for the stored x/y; it is what keeps a pan or zoom from snapping a moving pin back.
+        const live = this._live.get(pinData.id);
+        const screen = this._sceneToScreen(live?.x ?? pinData.x, live?.y ?? pinData.y);
         const zoom = canvas.stage.scale.x;
         const pinWScene = pinData.size.w;
         const pinHScene = pinData.size.h;
@@ -865,11 +870,12 @@ class PinDOMElement {
                 const canEdit = PinManager._canEdit(currentPinData, userId);
                 this.select(currentPinData.id, { canEdit });
 
-                if (canEdit) {
+                if (canEdit && !this._live.has(currentPinData.id)) {
                     // Start potential drag immediately - it decides whether this press was a click or a drag
                     await this._startPotentialDrag(pinElement, currentPinData, e);
                 } else {
-                    // Not editable: no drag possible, so the press is the click
+                    // Not editable, or being moved by its owner (a live position): no drag possible,
+                    // so the press is the click. A drag would fight the position the owner is drawing.
                     this._registerClick(currentPinData, e);
                 }
             } else if (button === 2) {
@@ -1919,6 +1925,90 @@ class PinDOMElement {
     }
 
     /**
+     * Remove a pin that is gone for good (deleted, unplaced, or no longer on the scene), and forget its
+     * live position. `removePin` alone is for a pin that is only not drawn right now (hidden, filtered),
+     * which keeps its live position for when it is drawn again.
+     * @param {string} pinId
+     */
+    static forgetPin(pinId) {
+        this._live.delete(pinId);
+        this._livePending.delete(pinId);
+        this.removePin(pinId);
+    }
+
+    // ===== LIVE POSITIONS =====
+
+    /**
+     * Draw a pin at a position that is not its stored one, on this client only.
+     * Nothing is written and nothing is sent: the caller supplies the same point on every client.
+     * Calls within one frame coalesce into a single write of `left` and `top`, so this is cheap to
+     * call from a ticker. Pan and zoom keep using the live point (`_calculatePinPosition`).
+     * @param {string} pinId
+     * @param {{x: number, y: number}} position - Scene coordinates of the pin's centre
+     */
+    static setLivePosition(pinId, { x, y } = {}) {
+        const isNew = !this._live.has(pinId);
+        this._live.set(pinId, { x, y });
+        if (isNew) {
+            // Re-run the full pass once: it re-clusters without this pin and drops it onto the live point.
+            this._scheduleUpdate();
+            return;
+        }
+        this._livePending.add(pinId);
+        if (this._liveFrame === null) {
+            this._liveFrame = requestAnimationFrame(() => this._flushLive());
+        }
+    }
+
+    /**
+     * Put a pin back at its stored position.
+     * @param {string} pinId
+     * @returns {boolean} Whether it had a live position
+     */
+    static clearLivePosition(pinId) {
+        this._livePending.delete(pinId);
+        if (!this._live.delete(pinId)) return false;
+        this._scheduleUpdate();
+        return true;
+    }
+
+    /**
+     * @param {string} pinId
+     * @returns {{x: number, y: number}|null} A copy of the live position, or null when there is none
+     */
+    static getLivePosition(pinId) {
+        const live = this._live.get(pinId);
+        return live ? { x: live.x, y: live.y } : null;
+    }
+
+    /**
+     * Write the frame's live moves. Only `left` and `top`: size, stroke, text and icon do not depend on
+     * where a pin is, and recomputing them per frame is what `updatePosition` is too heavy to do.
+     * A pin with no element here (hidden from this user, or not drawn yet) keeps its live position and
+     * is placed from it when it is drawn.
+     * @private
+     */
+    static _flushLive() {
+        this._liveFrame = null;
+        const pending = [...this._livePending];
+        this._livePending.clear();
+        for (const pinId of pending) {
+            const live = this._live.get(pinId);
+            const pinElement = this._pins.get(pinId);
+            if (!live || !pinElement) continue;
+            // The size updatePosition last set. Not yet sized means not yet placed: the full pass will.
+            const width = parseFloat(pinElement.style.width);
+            const height = parseFloat(pinElement.style.height);
+            if (!Number.isFinite(width) || !Number.isFinite(height)) continue;
+            const screen = this._sceneToScreen(live.x, live.y);
+            pinElement.style.left = `${Math.round(screen.x - width / 2)}px`;
+            pinElement.style.top = `${Math.round(screen.y - height / 2)}px`;
+            const layout = this._layout.get(pinId);
+            if (layout) { layout.x = screen.x; layout.y = screen.y; }
+        }
+    }
+
+    /**
      * Remove all pin DOM elements
      */
     static clear() {
@@ -1928,6 +2018,9 @@ class PinDOMElement {
         }
         this._pins.clear();
         this._layout.clear();
+        // A live position belongs to the scene it was set on; none carries over a scene change.
+        this._live.clear();
+        this._livePending.clear();
         this._clearClusters();
     }
 
@@ -1953,6 +2046,9 @@ class PinDOMElement {
                 const layout = this._layout.get(pinId);
                 if (!layout || layout.zoomDetail === 'full') continue;
                 if (pinElement.dataset.hiddenByFilter === 'true' || pinId === this._selectedPinId) continue;
+                // A pin on the move is never absorbed: a cluster is recomputed on zoom, not on every
+                // step, so a merged pin would stay merged while its owner walked it somewhere else.
+                if (this._live.has(pinId)) continue;
                 points.push({ pinId, x: layout.x, y: layout.y });
             }
         }
@@ -2868,7 +2964,7 @@ export class PinRenderer {
             if (allPins.length === 0) {
                 for (const pinId of [...PinDOMElement._pins.keys()]) {
                     if (gen !== this._visibilityFilterSyncGen) return;
-                    PinDOMElement.removePin(pinId);
+                    PinDOMElement.forgetPin(pinId);
                 }
                 return;
             }
@@ -2881,7 +2977,7 @@ export class PinRenderer {
             }
             for (const pinId of [...PinDOMElement._pins.keys()]) {
                 if (gen !== this._visibilityFilterSyncGen) return;
-                if (!idsInScene.has(pinId)) PinDOMElement.removePin(pinId);
+                if (!idsInScene.has(pinId)) PinDOMElement.forgetPin(pinId);
             }
         } else {
             for (const [pinId] of PinDOMElement._pins.entries()) {
@@ -2953,6 +3049,14 @@ export class PinRenderer {
     }
 
     /**
+     * Remove a pin that is gone for good, forgetting any live position it had.
+     * @param {string} pinId
+     */
+    static forgetPin(pinId) {
+        PinDOMElement.forgetPin(pinId);
+    }
+
+    /**
      * Refresh/re-render a single pin by forcing a rebuild of its icon element.
      * Useful for edge cases where update() doesn't fully refresh the visual.
      * Note: This should rarely be needed as update() now handles icon/image type changes automatically.
@@ -2981,6 +3085,31 @@ export class PinRenderer {
         // Rebuild the pin with fresh data
         await this.updatePin(pinData);
         return true;
+    }
+
+    /**
+     * Draw a pin at a client-local position. See `PinsAPI.setLivePosition`.
+     * @param {string} pinId
+     * @param {{x: number, y: number}} position
+     */
+    static setLivePosition(pinId, position) {
+        PinDOMElement.setLivePosition(pinId, position);
+    }
+
+    /**
+     * @param {string} pinId
+     * @returns {boolean}
+     */
+    static clearLivePosition(pinId) {
+        return PinDOMElement.clearLivePosition(pinId);
+    }
+
+    /**
+     * @param {string} pinId
+     * @returns {{x: number, y: number}|null}
+     */
+    static getLivePosition(pinId) {
+        return PinDOMElement.getLivePosition(pinId);
     }
 
     /**

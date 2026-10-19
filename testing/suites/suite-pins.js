@@ -90,6 +90,41 @@ export default {
     ],
 
     checks: [
+        // ---------------------------------------------------------------- live position
+        {
+            id: 'live-position-contract',
+            label: 'A live position reads back as a copy, clears once, and refuses a bad position',
+            tier: 'headless',
+            group: 'Live position',
+            note: 'Client-local and unsaved. The pin id need not exist: a pin this user cannot see keeps its live position for when it is drawn.',
+            run: async ({ api, expect }) => {
+                requireApi('pins.setLivePosition', 'pins.getLivePosition', 'pins.clearLivePosition');
+                const id = `zz-live-${foundry.utils.randomID(6)}`;
+                try {
+                    expect('none to begin with', api.pins.getLivePosition(id), null);
+                    expect('set returns true', api.pins.setLivePosition(id, { x: 120, y: 340 }), true);
+                    expect('reads back', api.pins.getLivePosition(id), { x: 120, y: 340 });
+
+                    const copy = api.pins.getLivePosition(id);
+                    copy.x = 999;
+                    expect('the read is a copy', api.pins.getLivePosition(id).x, 120);
+
+                    api.pins.setLivePosition(id, { x: 130, y: 350 });
+                    expect('a second set replaces the first', api.pins.getLivePosition(id), { x: 130, y: 350 });
+
+                    expect('clear reports it had one', api.pins.clearLivePosition(id), true);
+                    expect('and the position is gone', api.pins.getLivePosition(id), null);
+                    expect('clearing again reports there was none', api.pins.clearLivePosition(id), false);
+
+                    await expect.throws('a missing y is refused', () => api.pins.setLivePosition(id, { x: 1 }));
+                    await expect.throws('a non-numeric x is refused', () => api.pins.setLivePosition(id, { x: '1', y: 2 }));
+                    await expect.throws('a missing id is refused', () => api.pins.setLivePosition('', { x: 1, y: 2 }));
+                    expect('a refused call stored nothing', api.pins.getLivePosition(id), null);
+                } finally {
+                    api.pins.clearLivePosition(id);
+                }
+            }
+        },
         // ---------------------------------------------------------------- declarations
         {
             id: 'declarations-default-off',

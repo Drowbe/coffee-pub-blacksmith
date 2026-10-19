@@ -209,8 +209,9 @@ World setting `pinsClusterWhenZoomedOut`, on by default. `_applyClusters` runs a
 - **Groups are connected components** of pins whose screen centers lie within the minimum pin size of each
   other, found by union-find over a grid of minimum-size cells. Screen distance does not change on a pan,
   so groups change only on zoom.
-- **Excluded:** pins hidden by filter (so they never inflate a count) and the selected pin (so the pin being
-  acted on, or dragged, stays put).
+- **Excluded:** pins hidden by filter (so they never inflate a count), the selected pin (so the pin being
+  acted on, or dragged, stays put), and any pin with a live position (see below): groups are only recomputed
+  on zoom, so a pin walked somewhere else would stay merged into the group it left.
 - Members get `data-clustered="true"`, which CSS hides. The badge, `.blacksmith-pin-cluster`, sits at the
   members' screen centroid, minimum-size, above every pin's stack order. Badges are kept in
   `PinDOMElement._clusters`, keyed by the sorted member ids, so an unchanged group reuses its element.
@@ -221,6 +222,28 @@ World setting `pinsClusterWhenZoomedOut`, on by default. `_applyClusters` runs a
 - **Re-clustering** is scheduled (`_scheduleUpdate`) when a pin is created, updated, removed or filtered, on
   deselect, and when the setting changes (`PinRenderer.refreshLayout`). `_scheduleUpdate` does nothing until
   the renderer is initialized.
+
+### Live position
+
+`PinDOMElement._live` maps a pin id to a scene-unit `{ x, y }` that stands in for the stored position on this
+client. It exists so a module can move a marker every frame without writing the scene; the public calls are
+`pins.setLivePosition` / `clearLivePosition` / `getLivePosition`.
+
+- **One place reads it.** `_calculatePinPosition` uses the live point when there is one, so create, pan, zoom
+  and `reloadScene` all honour it with no other change.
+- **A fast path for the per-frame move.** `updatePosition` does the whole job (icon, stroke, text, opacity)
+  and is far too heavy to run every frame. `_flushLive` writes only `left` and `top`, from the size
+  `updatePosition` last set, and calls within one frame coalesce into one `requestAnimationFrame`. The *first*
+  call for a pin runs the full pass once instead, which also re-clusters without it.
+- **Not a lock flag.** The press handler sends a pin with a live position down the same branch as a pin the
+  user cannot edit (the press is the click), so there is no drag to fight the owner's position. Nothing
+  else about a live pin changes: selection and the menu work.
+- **Lifetime is tied to the pin existing, not to being drawn.** `PinRenderer.forgetPin` (delete, unplace, and
+  the sync that finds a pin gone from the scene) drops it; `removePin` (hidden, filtered, "hide all pins")
+  does not, so a pin that is only out of sight comes back where its owner has it. `PinDOMElement.clear()`
+  drops every one, which covers a scene change. Nothing is persisted, so a reload starts empty.
+- **Readers of the stored position do not see it:** `get`, `list`, `panTo`, exports and the lifecycle events.
+  That is deliberate and documented in `api-pins.md`.
 
 ---
 

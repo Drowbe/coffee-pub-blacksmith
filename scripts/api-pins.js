@@ -6,6 +6,7 @@
 // ==================================================================
 
 import { PinManager } from './manager-pins.js';
+import { PinRenderer } from './manager-pins-renderer.js';
 import { assetLookup } from './utility-asset-lookup.js';
 
 /** Module ID for availability checks. */
@@ -694,6 +695,54 @@ export class PinsAPI {
             console.error('Pins API: Error panning to pin', err);
             return false;
         }
+    }
+
+    /**
+     * Draw a pin at a position other than its stored one, on this client only.
+     *
+     * For a pin that moves continuously (a marker travelling along a route) where writing the scene every
+     * frame is not an option. Nothing is saved and nothing is broadcast: every client calls this itself
+     * from whatever clock they share. Synchronous and cheap to call every frame; calls within one frame
+     * coalesce into a single write of the pin's `left` and `top`.
+     *
+     * While a pin has a live position it is drawn there through pan and zoom, it does not join clusters,
+     * and a user cannot drag it. Everything else that reads the pin (`get`, `panTo`, exports) still sees
+     * the stored `x`/`y`. A live position lasts until `clearLivePosition`, a scene change, or the pin being
+     * deleted; a reloaded client starts with none. A pin this user cannot see is not drawn, but keeps its
+     * live position and is placed from it when it appears.
+     *
+     * To keep the final position, call `update(pinId, { x, y })` once (GM) and clear afterwards.
+     *
+     * @param {string} pinId
+     * @param {{x: number, y: number}} position - Scene coordinates of the pin's centre
+     * @returns {true}
+     * @throws {TypeError} When `pinId` is not a string or `x`/`y` are not finite numbers
+     */
+    static setLivePosition(pinId, position) {
+        if (typeof pinId !== 'string' || !pinId) throw new TypeError('Pins API: setLivePosition needs a pin id.');
+        if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) {
+            throw new TypeError('Pins API: setLivePosition needs a position with finite x and y.');
+        }
+        PinRenderer.setLivePosition(pinId, { x: position.x, y: position.y });
+        return true;
+    }
+
+    /**
+     * Put a pin back at its stored position. Call after `update(pinId, { x, y })` has resolved so the
+     * pin does not jump.
+     * @param {string} pinId
+     * @returns {boolean} Whether the pin had a live position
+     */
+    static clearLivePosition(pinId) {
+        return PinRenderer.clearLivePosition(pinId);
+    }
+
+    /**
+     * @param {string} pinId
+     * @returns {{x: number, y: number}|null} The live position on this client, or null when there is none
+     */
+    static getLivePosition(pinId) {
+        return PinRenderer.getLivePosition(pinId);
     }
 
     /**

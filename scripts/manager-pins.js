@@ -2551,7 +2551,7 @@ export class PinManager {
             const result = await this.requestGM('unplace', { pinId, sceneId: loc.scene.id });
             if (result != null && loc.scene.id === canvas?.scene?.id) {
                 import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
-                    PinRenderer.removePin(pinId);
+                    PinRenderer.forgetPin(pinId);
                 }).catch(err => {
                     console.error('BLACKSMITH | PINS Error removing pin from renderer after requestGM unplace:', err);
                 });
@@ -2578,7 +2578,7 @@ export class PinManager {
         });
         if (loc.scene.id === canvas?.scene?.id) {
             import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
-                PinRenderer.removePin(pinId);
+                PinRenderer.forgetPin(pinId);
             }).catch(err => {
                 console.error('BLACKSMITH | PINS Error removing pin from renderer:', err);
             });
@@ -2617,7 +2617,7 @@ export class PinManager {
             await this.requestGM('delete', { sceneId, pinId, options });
             if (wasOnCurrentScene) {
                 import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
-                    PinRenderer.removePin(pinId);
+                    PinRenderer.forgetPin(pinId);
                 }).catch(() => {});
             }
             return;
@@ -2630,7 +2630,7 @@ export class PinManager {
             await loc.scene.setFlag(MODULE.ID, this.FLAG_KEY, pins);
             if (loc.scene.id === canvas?.scene?.id) {
                 import('./manager-pins-renderer.js').then(({ PinRenderer }) => {
-                    PinRenderer.removePin(pinId);
+                    PinRenderer.forgetPin(pinId);
                 }).catch(() => {});
             }
         }
@@ -2741,7 +2741,7 @@ export class PinManager {
         // Remove from renderer
         const { PinRenderer } = await import('./manager-pins-renderer.js');
         for (const pin of pins) {
-            PinRenderer.removePin(pin.id);
+            PinRenderer.forgetPin(pin.id);
         }
 
         // Emit event if not silent
@@ -2803,7 +2803,7 @@ export class PinManager {
         // Remove from renderer
         const { PinRenderer } = await import('./manager-pins-renderer.js');
         for (const pin of pinsToDelete) {
-            PinRenderer.removePin(pin.id);
+            PinRenderer.forgetPin(pin.id);
         }
 
         // Emit event if not silent
