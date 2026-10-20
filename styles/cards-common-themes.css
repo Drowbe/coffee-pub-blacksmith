@@ -194,3 +194,76 @@
     --blacksmith-card-header-text: var(--blacksmith-card-header-dark-text);
 }
 
+
+/* ------------------------------------ */
+/* --- DARK INTERFACE (Foundry v14) --- */
+/* ------------------------------------ */
+
+/*
+    Foundry v14 lets the user pick a dark interface, and #interface (the chat log,
+    the sidebar) then carries `.themed.theme-dark`. Every card theme above is
+    authored for a light ground -- dark-brown text over a faint tint -- so on the
+    dark log it read as dark on dark.
+
+    This block overrides only the NEUTRAL tokens (ink, edges, fills) and leaves each
+    theme's hue alone, so the nine themes stay distinguishable. It sits at (0,3,0),
+    above the per-theme blocks at (0,2,0), so it needs no !important and no
+    per-theme copy.
+
+    A chat popout is forced `.theme-light` by core and lives on <body>, outside
+    #interface, so it correctly keeps the light tokens above.
+*/
+.themed.theme-dark .blacksmith-card {
+    --blacksmith-card-text: #e3dccf;
+    --blacksmith-card-header-text: #ece6da;
+    --blacksmith-card-section-header-text: #f0c9a8;
+    --blacksmith-card-section-header-border: rgba(255, 255, 255, 0.2);
+    --blacksmith-card-section-subheader-text: #f0c9a8;
+    --blacksmith-card-section-subheader-bg: rgba(255, 255, 255, 0.08);
+    --blacksmith-card-section-content-text: #e3dccf;
+    --blacksmith-card-button-text: #e3dccf;
+    --blacksmith-card-button-border: rgba(255, 255, 255, 0.35);
+    --blacksmith-card-button-hover-bg: rgba(255, 255, 255, 0.12);
+    --blacksmith-card-button-container-bg: rgba(255, 255, 255, 0.05);
+    /* Primary fills with the button ink, which is now light, so its label goes dark. */
+    --blacksmith-card-button-primary-text: rgba(24, 20, 16, 1.0);
+
+    --blacksmith-card-box-fill: rgba(255, 255, 255, 0.07);
+    --blacksmith-card-border-color: rgba(255, 255, 255, 0.08);
+    --blacksmith-card-border-strong: rgba(255, 255, 255, 0.22);
+    --blacksmith-card-image-ground: rgba(255, 255, 255, 0.07);
+    --blacksmith-card-badge-border: rgba(255, 255, 255, 0.45);
+    --blacksmith-card-table-rule: rgba(255, 255, 255, 0.12);
+    --blacksmith-card-table-head-fill: rgba(255, 255, 255, 0.12);
+    --blacksmith-card-table-row-fill: rgba(255, 255, 255, 0.04);
+    --blacksmith-card-rule: rgba(255, 255, 255, 0.18);
+
+    /* Tones are text on a tinted fill, so the ink lifts and the fill stays a tint. */
+    --blacksmith-card-tone-positive: #8fd17e;
+    --blacksmith-card-tone-positive-bg: rgba(110, 200, 90, 0.14);
+    --blacksmith-card-tone-positive-border: rgba(110, 200, 90, 0.55);
+    --blacksmith-card-tone-negative: #ff8a80;
+    --blacksmith-card-tone-negative-bg: rgba(255, 110, 100, 0.14);
+    --blacksmith-card-tone-negative-border: rgba(255, 110, 100, 0.55);
+    --blacksmith-card-tone-info: #7cc8ee;
+    --blacksmith-card-tone-info-bg: rgba(90, 175, 225, 0.14);
+    --blacksmith-card-tone-info-border: rgba(90, 175, 225, 0.55);
+}
+
+/* Literals the tokens do not reach (cards-common-layout.css, cards-parts.css). */
+.themed.theme-dark .blacksmith-card .row-content {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.themed.theme-dark .blacksmith-card .blacksmith-part-row {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.themed.theme-dark .blacksmith-card .blacksmith-part-pip {
+    background-color: rgba(255, 255, 255, 0.14);
+}
+
+.themed.theme-dark .blacksmith-card .markdown-blockquote {
+    background-color: rgba(255, 255, 255, 0.07);
+}
