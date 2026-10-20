@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The Time Mode menu lists the stood-down states first, then the speeds slowest to fastest** (`scripts/manager-time-modes.js`). Combat and Paused now head the menu, a divider follows, then Slow, Real-time and Fast. It used to run Combat, Real-time, Slow, Fast, Paused.
 
+### Fixed
+
+- **Chat cards and Blacksmith's settings are readable in Foundry v14's dark mode** (`styles/cards-common-themes.css`, `styles/settings.css`, `styles/menubar.css`). Cards were authored for a light ground, so a dark chat log showed dark-brown text on dark. A dark block now overrides the cards' neutral colours (text, edges, fills, tones) and leaves each theme's hue alone. Five derived tokens (`-row-border`, `-image-border`, `-table-border`, `-bar-border`, `-button-primary-bg`) were declared on `:root` and so froze at their light values; they are re-derived on the card. The settings dark overrides keyed on `[data-theme="dark"]`, which Foundry never sets, so they never applied; they now use `body.theme-dark`. Timer warning and expired chat messages get a light ink too. Verified live on v14 with a dark interface.
+
 ## [14.4.0]
 
 ### Added
