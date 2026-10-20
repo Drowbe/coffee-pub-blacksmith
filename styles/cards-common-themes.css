@@ -238,6 +238,18 @@
     --blacksmith-card-table-row-fill: rgba(255, 255, 255, 0.04);
     --blacksmith-card-rule: rgba(255, 255, 255, 0.18);
 
+    /* These five are declared on :root as `var(--blacksmith-card-border-strong)` /
+       `var(--blacksmith-card-button-text)`, and a var() in a custom property resolves
+       where it is DECLARED -- so they froze at the light values and ignore the
+       overrides above. Re-derived here, on the card, so they resolve against the dark
+       ones. Without this every row, image, bar and table edge stayed black on dark,
+       and the primary button kept its light-theme fill under its new dark label. */
+    --blacksmith-card-image-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-row-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-table-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-bar-border: var(--blacksmith-card-border-strong);
+    --blacksmith-card-button-primary-bg: var(--blacksmith-card-button-text);
+
     /* Tones are text on a tinted fill, so the ink lifts and the fill stays a tint. */
     --blacksmith-card-tone-positive: #8fd17e;
     --blacksmith-card-tone-positive-bg: rgba(110, 200, 90, 0.14);

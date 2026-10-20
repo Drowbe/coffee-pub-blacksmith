@@ -589,6 +589,12 @@
     color: #461313;
 }
 
+/* Dark ink on a faint tint reads as dark on dark in a v14 dark chat log. */
+.themed.theme-dark .chat-message.timer-warning p,
+.themed.theme-dark .chat-message.timer-expired p {
+    color: #f0c9bf;
+}
+
 
 /* ------------------------------------ */
 
