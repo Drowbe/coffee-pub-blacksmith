@@ -238,6 +238,14 @@ client. It exists so a module can move a marker every frame without writing the 
 - **Not a lock flag.** The press handler sends a pin with a live position down the same branch as a pin the
   user cannot edit (the press is the click), so there is no drag to fight the owner's position. Nothing
   else about a live pin changes: selection and the menu work.
+- **Unless the owner opts in.** `setLivePosition(..., { draggable: true })` stores `draggable` on the entry and
+  the press handler then starts a drag. The live position is dropped at the real drag *start* (threshold
+  crossed), not on the press, so a plain click does not snap a travelling pin back. At that moment the drag
+  is re-based on the pin's current live point and the current pointer, because the pin kept moving while the
+  pointer crossed the threshold. The pin id goes into `_draggingPins`, and `setLivePosition` ignores it until
+  the drag ends, otherwise the owner's ticker would put the live position back between `dragStart` and the
+  owner reacting to it. A drag that took over a live pin always saves, even if it ended near the press,
+  since its live position is already gone.
 - **Lifetime is tied to the pin existing, not to being drawn.** `PinRenderer.forgetPin` (delete, unplace, and
   the sync that finds a pin gone from the scene) drops it; `removePin` (hidden, filtered, "hide all pins")
   does not, so a pin that is only out of sight comes back where its owner has it. `PinDOMElement.clear()`

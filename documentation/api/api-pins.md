@@ -1766,7 +1766,7 @@ GMs may see **at most one** small Font Awesome icon in the **upper-right** of a 
 
 The glyph color follows the pin **stroke** (`--pin-stroke-color`; blank → `#ffffff`). Positioned outside the pin box via **`--pin-stroke-px + --gm-fs × M`** (see `styles/pins.css`).
 
-### `pins.setLivePosition(pinId, { x, y })` / `pins.clearLivePosition(pinId)` / `pins.getLivePosition(pinId)`
+### `pins.setLivePosition(pinId, { x, y }, options?)` / `pins.clearLivePosition(pinId)` / `pins.getLivePosition(pinId)`
 Draw a pin somewhere other than its stored position, **on this client only**. For a pin that moves
 continuously (a marker travelling along a route) where writing the scene every frame is not an option.
 Nothing is saved and nothing is broadcast: every client calls it itself, from whatever clock they share.
@@ -1782,7 +1782,7 @@ pins.clearLivePosition(pinId);                              // after the update 
 
 | Call | Returns |
 |---|---|
-| `setLivePosition(pinId, { x, y })` | `true`. Throws `TypeError` for a missing id or a non-finite `x` or `y`. Synchronous. |
+| `setLivePosition(pinId, { x, y }, { draggable }?)` | `true`. Throws `TypeError` for a missing id or a non-finite `x` or `y`. Synchronous. |
 | `clearLivePosition(pinId)` | `true` if the pin had a live position, `false` if not. |
 | `getLivePosition(pinId)` | A copy of `{ x, y }`, or `null`. |
 
@@ -1792,7 +1792,25 @@ Feature-detect with `typeof pins.setLivePosition === 'function'`.
 - It is drawn there through pan and zoom, not snapped back to its stored `x`/`y`.
 - It does not join a cluster when the map is zoomed out.
 - A user cannot drag it. The press is a click instead, so selecting and the right-click menu still work.
+  Unless you pass `{ draggable: true }` (see below).
 - Everything else still sees the **stored** position: `get`, `list`, `panTo`, exports and the `updated` events.
+
+**Letting the owner drag it: `{ draggable: true }`.** A live pin is locked by default. Passing
+`pins.setLivePosition(pinId, point, { draggable: true })` lets a user who could drag the pin anyway (its
+editors, so the GM for a GM-owned pin) drag it; restate it on every call, since omitting it means locked.
+When the drag *starts* (the pointer has moved past the click threshold, not on the press):
+- the live position is dropped, and the drag begins from where the pin is drawn at that moment, not from its
+  stored `x`/`y`, so it does not jump;
+- `setLivePosition` calls for that pin are **ignored until the drag ends**, so your ticker cannot fight the
+  user's hand even for a frame before you react to `dragStart`;
+- `dragStart`, `dragMove` and `dragEnd` fire as for any pin (subscribe with `pins.on('dragStart', ...)`). The
+  `dragStart` event's `pin` carries the position the pin was drawn at.
+- On release the drop is saved through `update`, and **`dragEnd` fires after that save resolves**, with
+  `event.pin.x` / `event.pin.y` already the saved position, so there is no need to re-read `pins.get`. If the
+  save fails (no permission), an error is shown and `dragEnd` does not fire.
+
+A press that never moves past the threshold is a click and leaves the live position alone. After `dragEnd`
+the pin has no live position until you call `setLivePosition` again.
 
 **How long it lasts:** until `clearLivePosition`, a scene change, or the pin being deleted, unplaced or removed
 from the scene. A client that reloads starts with none, so call it again once the canvas is ready. A pin the

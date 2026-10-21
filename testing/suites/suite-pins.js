@@ -111,6 +111,8 @@ export default {
 
                     api.pins.setLivePosition(id, { x: 130, y: 350 });
                     expect('a second set replaces the first', api.pins.getLivePosition(id), { x: 130, y: 350 });
+                    expect('the draggable option is accepted', api.pins.setLivePosition(id, { x: 140, y: 360 }, { draggable: true }), true);
+                    expect('and does not change the position', api.pins.getLivePosition(id), { x: 140, y: 360 });
 
                     expect('clear reports it had one', api.pins.clearLivePosition(id), true);
                     expect('and the position is gone', api.pins.getLivePosition(id), null);

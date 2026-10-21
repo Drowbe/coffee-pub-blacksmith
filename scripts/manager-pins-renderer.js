@@ -87,7 +87,8 @@ class PinDOMElement {
     static _rootVarCache = new Map(); // CSS custom property name -> trimmed :root value; cleared each updateAllPositions pass
     static _layout = new Map(); // pinId -> { x, y, zoomDetail }: screen center and tier from the last updatePosition
     static _clusters = new Map(); // member key (sorted pin ids) -> cluster badge element
-    static _live = new Map(); // pinId -> { x, y }: a client-local display position in scene units; never saved, never sent
+    static _live = new Map(); // pinId -> { x, y, draggable }: a client-local display position in scene units; never saved, never sent
+    static _draggingPins = new Set(); // pin ids a user is dragging right now; a live position for one is ignored
     static _livePending = new Set(); // pin ids moved since the last frame, flushed together
     static _liveFrame = null; // requestAnimationFrame handle for that flush
 
@@ -870,12 +871,14 @@ class PinDOMElement {
                 const canEdit = PinManager._canEdit(currentPinData, userId);
                 this.select(currentPinData.id, { canEdit });
 
-                if (canEdit && !this._live.has(currentPinData.id)) {
+                const live = this._live.get(currentPinData.id);
+                if (canEdit && (!live || live.draggable)) {
                     // Start potential drag immediately - it decides whether this press was a click or a drag
                     await this._startPotentialDrag(pinElement, currentPinData, e);
                 } else {
-                    // Not editable, or being moved by its owner (a live position): no drag possible,
-                    // so the press is the click. A drag would fight the position the owner is drawing.
+                    // Not editable, or being moved by its owner (a live position) who did not allow a
+                    // drag: no drag possible, so the press is the click. A drag would fight the position
+                    // the owner is drawing.
                     this._registerClick(currentPinData, e);
                 }
             } else if (button === 2) {
@@ -961,7 +964,7 @@ class PinDOMElement {
         // Store initial positions
         const startScreenX = event.clientX;
         const startScreenY = event.clientY;
-        const startScenePos = { x: pinData.x, y: pinData.y };
+        let startScenePos = { x: pinData.x, y: pinData.y };
         
         // Convert initial screen to scene
         const canvasElement = canvas.app?.renderer?.view || canvas.app?.canvas || canvas.canvas;
@@ -975,9 +978,10 @@ class PinDOMElement {
             PinDOMElement._reusableDragPoint = new PIXI.Point(0, 0);
         }
         PinDOMElement._reusableDragPoint.set(startScreenRelative.x, startScreenRelative.y);
-        const startSceneFromScreen = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
-        
+        let startSceneFromScreen = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
+
         let dragStarted = false;
+        let droppedLive = false; // This drag took over a pin that was drawn at a live position
         let mouseMoved = false; // Track if mouse moved at all
         let lastDraggedPosition = null; // Track the last dragged position
         const DRAG_THRESHOLD = 10; // pixels in screen space (increased for better click detection)
@@ -1009,12 +1013,28 @@ class PinDOMElement {
                 dragStarted = true;
 
                 pinElement.style.opacity = '0.7';
-                
+
+                // A live pin its owner allowed to be dragged: the drag takes over from where the pin is NOW,
+                // not where the press landed (it kept moving while the threshold was crossed) and not its
+                // stored x/y, so nothing jumps. The live position is dropped for the rest of the drag; a
+                // `setLivePosition` from the owner's ticker is ignored until the drag ends.
+                const live = this._live.get(pinData.id);
+                if (live) {
+                    droppedLive = true;
+                    this._live.delete(pinData.id);
+                    this._livePending.delete(pinData.id);
+                    this._draggingPins.add(pinData.id);
+                    PinDOMElement._reusableDragPoint.set(currentScreenX - canvasRect.left, currentScreenY - canvasRect.top);
+                    startSceneFromScreen = canvas.stage.toLocal(PinDOMElement._reusableDragPoint);
+                    startScenePos = { x: live.x, y: live.y };
+                }
+                const dragStartPin = droppedLive ? { ...pinData, x: startScenePos.x, y: startScenePos.y } : pinData;
+
                 import('./manager-pins.js').then(({ PinManager }) => {
                     const modifiers = this._extractModifiers(e);
                     const sceneId = canvas?.scene?.id || '';
                     const userId = game.user?.id || '';
-                    PinManager._invokeHandlers('dragStart', pinData, sceneId, userId, modifiers, e);
+                    PinManager._invokeHandlers('dragStart', dragStartPin, sceneId, userId, modifiers, e);
                 }).catch(() => {});
             }
             
@@ -1060,7 +1080,10 @@ class PinDOMElement {
             const totalDistance = Math.sqrt(screenDeltaX * screenDeltaX + screenDeltaY * screenDeltaY);
             
             // Decide if this was a drag or a click based on total movement
-            const wasActualDrag = totalDistance > DRAG_THRESHOLD;
+            // A drag that took over a live position counts as a drag even if it ended near the press:
+            // its live position is already gone, so treating it as a click would strand the pin at its
+            // stored position instead of where it was left.
+            const wasActualDrag = totalDistance > DRAG_THRESHOLD || droppedLive;
             
             if (wasActualDrag) {
                 pinElement.style.opacity = String(_getPinDisplayOpacity(pinData));
@@ -1104,14 +1127,16 @@ class PinDOMElement {
             
             document.removeEventListener('mousemove', onDragMove);
             document.removeEventListener('mouseup', onDragEnd);
+            this._draggingPins.delete(pinData.id);
         };
-        
+
         document.addEventListener('mousemove', onDragMove);
         document.addEventListener('mouseup', onDragEnd);
-        
+
         signal.addEventListener('abort', () => {
             document.removeEventListener('mousemove', onDragMove);
             document.removeEventListener('mouseup', onDragEnd);
+            this._draggingPins.delete(pinData.id);
         });
     }
 
@@ -1945,10 +1970,14 @@ class PinDOMElement {
      * call from a ticker. Pan and zoom keep using the live point (`_calculatePinPosition`).
      * @param {string} pinId
      * @param {{x: number, y: number}} position - Scene coordinates of the pin's centre
+     * @param {{draggable?: boolean}} [options] - `draggable`: a user who could drag the pin anyway may,
+     *   which drops the live position for the drag. Restated on every call; omitted means locked.
      */
-    static setLivePosition(pinId, { x, y } = {}) {
+    static setLivePosition(pinId, { x, y } = {}, { draggable = false } = {}) {
+        // The user is dragging this pin right now: their hand wins until they let go.
+        if (this._draggingPins.has(pinId)) return;
         const isNew = !this._live.has(pinId);
-        this._live.set(pinId, { x, y });
+        this._live.set(pinId, { x, y, draggable: !!draggable });
         if (isNew) {
             // Re-run the full pass once: it re-clusters without this pin and drops it onto the live point.
             this._scheduleUpdate();
@@ -3091,9 +3120,10 @@ export class PinRenderer {
      * Draw a pin at a client-local position. See `PinsAPI.setLivePosition`.
      * @param {string} pinId
      * @param {{x: number, y: number}} position
+     * @param {{draggable?: boolean}} [options]
      */
-    static setLivePosition(pinId, position) {
-        PinDOMElement.setLivePosition(pinId, position);
+    static setLivePosition(pinId, position, options) {
+        PinDOMElement.setLivePosition(pinId, position, options);
     }
 
     /**

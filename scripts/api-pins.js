@@ -715,15 +715,20 @@ export class PinsAPI {
      *
      * @param {string} pinId
      * @param {{x: number, y: number}} position - Scene coordinates of the pin's centre
+     * @param {object} [options]
+     * @param {boolean} [options.draggable=false] - Let a user who could drag this pin anyway drag it. The
+     *   drag drops the live position and starts from where the pin is drawn, then fires the usual
+     *   `dragStart` / `dragMove` / `dragEnd` and saves the drop through `update`. While that user holds
+     *   the pin, `setLivePosition` calls for it are ignored. Restate it on every call; omitted means locked.
      * @returns {true}
      * @throws {TypeError} When `pinId` is not a string or `x`/`y` are not finite numbers
      */
-    static setLivePosition(pinId, position) {
+    static setLivePosition(pinId, position, options = {}) {
         if (typeof pinId !== 'string' || !pinId) throw new TypeError('Pins API: setLivePosition needs a pin id.');
         if (!Number.isFinite(position?.x) || !Number.isFinite(position?.y)) {
             throw new TypeError('Pins API: setLivePosition needs a position with finite x and y.');
         }
-        PinRenderer.setLivePosition(pinId, { x: position.x, y: position.y });
+        PinRenderer.setLivePosition(pinId, { x: position.x, y: position.y }, { draggable: options?.draggable === true });
         return true;
     }
 
