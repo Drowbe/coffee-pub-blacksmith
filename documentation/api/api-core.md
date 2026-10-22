@@ -181,8 +181,8 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 
 | Function | Signature | Notes |
 |---|---|---|
-| `postConsoleAndNotification` | `(moduleId, message, result, debug, notification)` | Console logging; `debug: true` logs only when Blacksmith debug is on, `notification: true` also shows a UI toast |
-| `registerLogStyle` | `(moduleName, style)` | Sets the console colours for your `postConsoleAndNotification` label. `style` is a hue `0-360`, or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`; anything omitted is derived from the hue. Call once in `init`. An unregistered label gets a stable colour hashed from its name |
+| `postConsoleAndNotification` | `(moduleName, message, result, debug, notification)` | Console logging. The first argument is a display label, not a module id. `debug: true` prints only while Blacksmith's Debug Mode is on; `notification: true` also shows a UI notification. See [Logging](#logging) |
+| `registerLogStyle` | `(moduleName, style)` | Sets the console colours for your label (see [Logging](#logging)). `style` is a hue `0-360`, or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`; anything omitted is derived from the hue. An unregistered label gets a stable colour hashed from its name |
 | `playSound` | `(sound, volume?, loop?, broadcast?, duration?)` | See below |
 | `getSettingSafely` | `(moduleId, settingKey, defaultValue)` | Never throws on an unregistered setting |
 | `setSettingSafely` | `(moduleId, settingKey, value)` | Async |
@@ -210,30 +210,10 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 ```javascript
 const utils = game.modules.get('coffee-pub-blacksmith')?.api?.utils;
 
-utils.postConsoleAndNotification('my-module-id', 'Registered', { count: 3 }, false, false);
+utils.postConsoleAndNotification('MYMODULE', 'Registered', { count: 3 }, false, false);
 
 const theme = utils.getSettingSafely('my-module-id', 'cardTheme', 'theme-default');
 ```
-
-### `registerLogStyle(moduleName, style)`
-
-Sets the colours of your lines in the browser console. `moduleName` is the label you pass as the first argument to `postConsoleAndNotification`, matched case-insensitively. Call it once, in `init` or early in `ready`, before your first log line.
-
-```javascript
-const utils = game.modules.get('coffee-pub-blacksmith')?.api?.utils;
-
-// A hue (0-360) is enough. Title, caption border, background and text are derived from it.
-utils.registerLogStyle('MYMODULE', 285);
-
-// Or take over any part. Values are bare CSS colours; whatever you omit is derived from the hue.
-utils.registerLogStyle('MYMODULE', {
-    hue: 285,
-    titleColor: 'rgb(127, 21, 197)',
-    captionBackground: '#3a1457'
-});
-```
-
-If you never register, your label still gets a stable colour hashed from its name, so registering is optional. Registering again for the same label replaces the earlier colours. It throws if `moduleName` is empty.
 
 ### `playSound(sound, volume?, loop?, broadcast?, duration?)`
 
@@ -248,6 +228,79 @@ If you never register, your label still gets a stable colour hashed from its nam
 ### Markdown subset
 
 `markdownToHtml` / `htmlToMarkdown` handle a deliberately small subset; anything else is treated as plain text: `#`/`##`/`###` headings, `---` rules, `**bold**`, `*italic*`, `-`/`*` unordered lists, `1.` ordered lists, and `>` blockquotes.
+
+## Logging
+
+**`postConsoleAndNotification` is the logger. Call it directly.** It already bundles everything a module-local `log()` wrapper is written to do, and Blacksmith is a required dependency, so there is nothing to guard against. Do not wrap it, and do not add a debug setting or flag of your own: there is one debug switch, in Blacksmith's settings, and it controls the debug lines of every Coffee Pub module.
+
+```javascript
+const utils = game.modules.get('coffee-pub-blacksmith')?.api?.utils;   // or the BlacksmithUtils global
+
+utils.postConsoleAndNotification(MODULE.NAME, 'Table rolled', { table: 'Fumbles', total: 7 }, false, false);
+```
+
+### Arguments
+
+| # | Name | Meaning |
+|---|---|---|
+| 1 | `strModuleName` | **A display label, not a module id.** Shown uppercased in every line, and it picks the line's colours (see `registerLogStyle`). Pass your short code name, such as `MODULE.NAME` (`"SQUIRE"`). Passing `coffee-pub-squire` prints `COFFEE-PUB-SQUIRE` |
+| 2 | `message` | **Required.** An empty message throws |
+| 3 | `result` | Optional extra value, logged beside the message and expandable in devtools. `null`, `undefined` and `""` mean none |
+| 4 | `blnDebug` | `true` marks the line as a debug line. It prints only while Blacksmith's Debug Mode is on, and is silently dropped otherwise. `false` always prints |
+| 5 | `blnNotification` | `true` also shows a Foundry notification with the same text |
+
+### The debug flag
+
+Debug is not something your module controls or reads. You mark a line as debug with the fourth argument, and Blacksmith decides whether to print it.
+
+- **Where it is set:** Blacksmith's settings, Developer Tools section, **Debug Mode** (`globalDebugMode`). It is a per-user setting, so each person turns it on for themselves, and it takes effect after a reload. Default off.
+- **One switch for everything.** Turning it on shows the debug lines of every Coffee Pub module at once. Do not register a debug setting of your own, and do not keep a module-level `DEBUG` constant. Both split the one switch into several.
+- **Debug lines are dropped, not buffered.** While the flag is off, a `blnDebug: true` call returns without printing. A debug line logged before Blacksmith has applied its settings at load is also dropped.
+- **Debug and notification together.** A debug line with `blnNotification: true` shows a permanent warning notification, and only while Debug Mode is on. A normal line with `blnNotification: true` shows an ordinary, self-clearing info notification.
+- **How debug lines look** depends on two more settings in the same section: **Fancy Console** (rich colours on or off) and **Debug Style** (`fancy`, `simple` or `plain`). Debug lines carry `DEBUG` after the label.
+
+The arguments to a debug call are built before the call is made, so Blacksmith cannot skip that work for you. If building the `result` is expensive, check the flag first:
+
+```javascript
+const blacksmith = game.modules.get('coffee-pub-blacksmith')?.api;
+
+if (blacksmith.BLACKSMITH.blnDebugOn) {
+    utils.postConsoleAndNotification(MODULE.NAME, 'Full scene dump', buildExpensiveDump(), true, false);
+}
+```
+
+Read `BLACKSMITH.blnDebugOn` for this. Do not read the `globalDebugMode` setting directly, and do not read `COFFEEPUB.blnDebugOn`: the global `window.COFFEEPUB` holds asset constants only and has no such key, so a check against it is always false and the debug lines it guards never run.
+
+### Choosing the arguments
+
+| You want | Call |
+|---|---|
+| A line that always prints (startup, a state change a player might ask about) | `(NAME, msg, data, false, false)` |
+| Diagnostic detail for troubleshooting | `(NAME, msg, data, true, false)` |
+| The user to be told something | `(NAME, msg, data, false, true)` |
+| To tell the user, and only while debugging | `(NAME, msg, data, true, true)` |
+
+Every line is written with `console.info`; there are no separate warn and error levels. For something that must show as a warning or an error in devtools, call `console.warn` or `console.error` yourself, and use `blnNotification: true` if the user needs to see it.
+
+To group lines from one area of your module, put the area in the message itself, such as `'LOOT | Find resolved'`, rather than writing a wrapper that adds it.
+
+### `registerLogStyle(moduleName, style)`
+
+Sets the colours of your lines in the browser console. `moduleName` is the same label you pass to `postConsoleAndNotification`, matched case-insensitively. Call it once, in `init` or early in `ready`, before your first log line.
+
+```javascript
+// A hue (0-360) is enough. Title, caption border, background and text are derived from it.
+utils.registerLogStyle('MYMODULE', 285);
+
+// Or take over any part. Values are bare CSS colours; whatever you omit is derived from the hue.
+utils.registerLogStyle('MYMODULE', {
+    hue: 285,
+    titleColor: 'rgb(127, 21, 197)',
+    captionBackground: '#3a1457'
+});
+```
+
+If you never register, your label still gets a stable colour hashed from its name, so registering is optional. Registering again for the same label replaces the earlier colours. It throws if `moduleName` is empty.
 
 ## Handlebars helpers
 
