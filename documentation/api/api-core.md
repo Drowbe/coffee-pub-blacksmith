@@ -182,6 +182,7 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 | Function | Signature | Notes |
 |---|---|---|
 | `postConsoleAndNotification` | `(moduleId, message, result, debug, notification)` | Console logging; `debug: true` logs only when Blacksmith debug is on, `notification: true` also shows a UI toast |
+| `registerLogStyle` | `(moduleName, style)` | Sets the console colours for your `postConsoleAndNotification` label. `style` is a hue `0-360`, or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`; anything omitted is derived from the hue. Call once in `init`. An unregistered label gets a stable colour hashed from its name |
 | `playSound` | `(sound, volume?, loop?, broadcast?, duration?)` | See below |
 | `getSettingSafely` | `(moduleId, settingKey, defaultValue)` | Never throws on an unregistered setting |
 | `setSettingSafely` | `(moduleId, settingKey, value)` | Async |
@@ -213,6 +214,26 @@ utils.postConsoleAndNotification('my-module-id', 'Registered', { count: 3 }, fal
 
 const theme = utils.getSettingSafely('my-module-id', 'cardTheme', 'theme-default');
 ```
+
+### `registerLogStyle(moduleName, style)`
+
+Sets the colours of your lines in the browser console. `moduleName` is the label you pass as the first argument to `postConsoleAndNotification`, matched case-insensitively. Call it once, in `init` or early in `ready`, before your first log line.
+
+```javascript
+const utils = game.modules.get('coffee-pub-blacksmith')?.api?.utils;
+
+// A hue (0-360) is enough. Title, caption border, background and text are derived from it.
+utils.registerLogStyle('MYMODULE', 285);
+
+// Or take over any part. Values are bare CSS colours; whatever you omit is derived from the hue.
+utils.registerLogStyle('MYMODULE', {
+    hue: 285,
+    titleColor: 'rgb(127, 21, 197)',
+    captionBackground: '#3a1457'
+});
+```
+
+If you never register, your label still gets a stable colour hashed from its name, so registering is optional. Registering again for the same label replaces the earlier colours. It throws if `moduleName` is empty.
 
 ### `playSound(sound, volume?, loop?, broadcast?, duration?)`
 

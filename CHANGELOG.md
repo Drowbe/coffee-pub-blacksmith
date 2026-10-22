@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`utils.registerLogStyle(moduleName, style)` lets a module set its own console colours** (`scripts/api-core.js`, `scripts/manager-utilities.js`). `postConsoleAndNotification` carried a hard-coded table of eleven sibling labels, one of them the retired Bubo. Each module now registers its own, as a hue (`285`) or a hue plus any of `titleColor`, `captionBorder`, `captionBackground`, `captionFontColor`; everything omitted is derived from the hue. A label that never registers gets a stable colour hashed from its name instead of Blacksmith's. Blacksmith registers its own colours through the same call. Documented in `api-core.md`.
+
+### Changed
+
+- **Sibling console colours are no longer built in** (`scripts/api-core.js`). Until a sibling calls `registerLogStyle`, its console lines use a hashed colour rather than the one that used to be hard-coded. The unused Bubo entry is gone.
+
 ## [14.4.1]
 
 ### Added

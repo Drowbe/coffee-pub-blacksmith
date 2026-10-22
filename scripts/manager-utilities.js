@@ -37,6 +37,11 @@ export class UtilsManager {
         return GlobalUtils.postConsoleAndNotification(strModuleID, message, result, blnDebug, blnNotification);
     }
 
+    static registerLogStyle(moduleName, style) {
+        this.checkInitialized();
+        return GlobalUtils.registerLogStyle(moduleName, style);
+    }
+
     // Time and Formatting
     static formatTime(ms, format = "colon") {
         this.checkInitialized();
@@ -151,6 +156,7 @@ export class UtilsManager {
         return {
             postConsoleAndNotification: (strModuleID = "BLACKSMITH", message, result = "", blnDebug = false, blnNotification = false) => 
                 this.postConsoleAndNotification(strModuleID, message, result, blnDebug, blnNotification),
+            registerLogStyle: this.registerLogStyle.bind(this),
             formatTime: this.formatTime.bind(this),
             generateFormattedDate: this.generateFormattedDate.bind(this),
             trimString: this.trimString.bind(this),

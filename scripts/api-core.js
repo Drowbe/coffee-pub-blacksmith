@@ -1271,6 +1271,65 @@ export function matchUserBySetting(user, settingValue) {
 
 
 // ************************************
+// ** UTILITY: Console style registry
+// ************************************
+// Each module owns its console colours and registers them once. Blacksmith does not know its
+// siblings by name: an unregistered label gets a stable colour hashed from the label, so every
+// module is distinguishable in the console without having to register anything.
+
+const LOG_STYLES = new Map();
+
+/**
+ * Colours for one module label, from a hue (0-360) plus optional per-part overrides.
+ * Parts are bare CSS colour values, not declarations: `titleColor: "rgb(255, 86, 64)"`.
+ */
+function buildLogStyle(moduleKey, { hue, titleColor, captionBorder, captionBackground, captionFontColor } = {}) {
+    if (!Number.isFinite(hue)) {
+        let hash = 5381;
+        for (const char of moduleKey) hash = ((hash * 33) ^ char.charCodeAt(0)) >>> 0;
+        hue = hash % 360;
+    }
+    const h = Math.round(((hue % 360) + 360) % 360);
+    return {
+        titleColor: `color:${titleColor ?? `hsl(${h}, 70%, 55%)`}`,
+        captionBorder: `border: 1px dotted ${captionBorder ?? `hsl(${h}, 45%, 60%)`}`,
+        captionBackground: `background: ${captionBackground ?? `hsl(${h}, 50%, 20%)`}`,
+        captionFontColor: `color:${captionFontColor ?? `hsl(${h}, 45%, 75%)`}`,
+    };
+}
+
+/**
+ * Register the console colours for a module label used with postConsoleAndNotification.
+ * @param {string} moduleName - The label passed to postConsoleAndNotification (case-insensitive).
+ * @param {number|object} style - A hue (0-360), or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`.
+ *   Everything not given is derived from the hue.
+ */
+export function registerLogStyle(moduleName, style = {}) {
+    if (typeof moduleName !== "string" || !moduleName.trim()) {
+        throw new Error("registerLogStyle requires a module name.");
+    }
+    const moduleKey = moduleName.trim().toUpperCase();
+    LOG_STYLES.set(moduleKey, buildLogStyle(moduleKey, typeof style === "number" ? { hue: style } : style));
+}
+
+function getLogStyle(moduleKey) {
+    let style = LOG_STYLES.get(moduleKey);
+    if (!style) {
+        style = buildLogStyle(moduleKey);
+        LOG_STYLES.set(moduleKey, style);
+    }
+    return style;
+}
+
+// Blacksmith registers through the same call it offers everyone else.
+registerLogStyle("BLACKSMITH", {
+    titleColor: "rgb(255, 86, 64)",
+    captionBorder: "#A4C76A",
+    captionBackground: "#2D3F11",
+    captionFontColor: "rgb(164, 199, 106)",
+});
+
+// ************************************
 // ** UTILITY: Post to Console (+ optional notification)
 // ************************************
 // Obvious Note: Do not "debug" the "debug" using this function as it will call itself.
@@ -1305,79 +1364,9 @@ export function postConsoleAndNotification(
     const strMessage = message;
     const hasResult = !(result === "" || result === undefined || result === null);
 
-    // ----- Configurable style packs per module label (key must be uppercase) -----
-    const moduleStyles = {
-      BLACKSMITH: {
-        titleColor: "color:rgb(255, 86, 64)",
-        captionBorder: "border: 1px dotted #A4C76A",
-        captionBackground: "background: #2D3F11",
-        captionFontColor: "color:rgb(164, 199, 106)",
-      },
-      CRIER: {
-        titleColor: "color:rgb(136, 9, 161)",
-        captionBorder: "border: 1px dotted rgb(191, 123, 191)",
-        captionBackground: "background: rgb(191, 123, 191)",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      BIBLIOSOPH: {
-        titleColor: "color:rgb(186, 189, 5)",
-        captionBorder: "border: 1px dotted #E9E936",
-        captionBackground: "background: #64640A",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      SCRIBE: {
-        titleColor: "color:rgb(11, 167, 167)",
-        captionBorder: "border: 1px dotted #2C9090",
-        captionBackground: "background: #104545",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      SQUIRE: {
-        titleColor: "color:rgb(127, 21, 197)",
-        captionBorder: "border: 1px dotted rgb(95, 25, 175)",
-        captionBackground: "background: rgb(120, 25, 175)",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      CARTOGRAPHER: {
-        titleColor: "color:rgb(44, 78, 233)",
-        captionBorder: "border: 1px dotted rgb(45, 35, 194)",
-        captionBackground: "background: rgb(27, 21, 119)",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      ARTIFICER: {
-        titleColor: "color:rgb(72, 192, 3)",
-        captionBorder: "border: 1px dotted rgb(60, 151, 8)",
-        captionBackground: "background: rgb(45, 117, 3)",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      REGENT: {
-        titleColor: "color: #ff3377",
-        captionBorder: "border: 1px dotted #ED6B96",
-        captionBackground: "background: #550922",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      },
-      HERALD: {
-        titleColor: "color:rgb(197, 153, 9)",
-        captionBorder: "border: 1px dotted rgb(221, 176, 29)",
-        captionBackground: "background:rgb(100, 71, 17)",
-        captionFontColor: "color: rgb(179, 168, 20)",
-      },
-      CURATOR: {
-        titleColor: "color:rgb(36, 158, 5)",
-        captionBorder: "border: 1px dotted rgb(39, 136, 15)",
-        captionBackground: "background:rgb(51, 194, 115)",
-        captionFontColor: "color: rgb(28, 87, 5)",
-      },
-      BUBO: {
-        titleColor: "color: #ff3377",
-        captionBorder: "border: 1px dotted #ED6B96",
-        captionBackground: "background: #550922",
-        captionFontColor: "color: rgb(164, 199, 106)",
-      }
-    };
-  
-    // Normalize module key lookup
+    // ----- Style pack for this module label (registered via registerLogStyle) -----
     const moduleKey = String(strModuleName || "BLACKSMITH").toUpperCase();
-    const stylesForModule = moduleStyles[moduleKey] || moduleStyles.BLACKSMITH;
+    const stylesForModule = getLogStyle(moduleKey);
   
     // Unpack current theme
     const strTitleColor = stylesForModule.titleColor;
