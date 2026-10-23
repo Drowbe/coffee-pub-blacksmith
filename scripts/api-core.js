@@ -1279,6 +1279,11 @@ export function matchUserBySetting(user, settingValue) {
 
 const LOG_STYLES = new Map();
 
+// The colour of the "COFFEE PUB" segment in every module's lines, so the whole suite is recognisable at
+// a glance while the module name beside it carries the module's own colour. A module can override it, but
+// it is not derived from the hue: the point of it is that it is the same everywhere.
+const SUITE_LOG_COLOR = "rgb(164, 199, 106)";
+
 /**
  * Colours for one module label, from a hue (0-360) plus optional per-part overrides.
  * Parts are bare CSS colour values, not declarations: `titleColor: "rgb(255, 86, 64)"`.
@@ -1294,7 +1299,7 @@ function buildLogStyle(moduleKey, { hue, titleColor, captionBorder, captionBackg
         titleColor: `color:${titleColor ?? `hsl(${h}, 70%, 55%)`}`,
         captionBorder: `border: 1px dotted ${captionBorder ?? `hsl(${h}, 45%, 60%)`}`,
         captionBackground: `background: ${captionBackground ?? `hsl(${h}, 50%, 20%)`}`,
-        captionFontColor: `color:${captionFontColor ?? `hsl(${h}, 45%, 75%)`}`,
+        captionFontColor: `color:${captionFontColor ?? SUITE_LOG_COLOR}`,
     };
 }
 
@@ -1302,7 +1307,7 @@ function buildLogStyle(moduleKey, { hue, titleColor, captionBorder, captionBackg
  * Register the console colours for a module label used with postConsoleAndNotification.
  * @param {string} moduleName - The label passed to postConsoleAndNotification (case-insensitive).
  * @param {number|object} style - A hue (0-360), or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`.
- *   Everything not given is derived from the hue.
+ *   Everything not given is derived from the hue, except `captionFontColor`, which defaults to the suite colour.
  */
 export function registerLogStyle(moduleName, style = {}) {
     if (typeof moduleName !== "string" || !moduleName.trim()) {
@@ -1326,7 +1331,6 @@ registerLogStyle("BLACKSMITH", {
     titleColor: "rgb(255, 86, 64)",
     captionBorder: "#A4C76A",
     captionBackground: "#2D3F11",
-    captionFontColor: "rgb(164, 199, 106)",
 });
 
 // ************************************
@@ -1375,12 +1379,7 @@ export function postConsoleAndNotification(
     const strFancyCaptionFontColor = stylesForModule.captionFontColor;
   
     // === COMMON ICONS ===
-    const ICON_FLAME = String.fromCodePoint(0x1f525);
-    const ICON_MARTINI = String.fromCodePoint(0x1f378);
-    const ICON_TUMBLER = String.fromCodePoint(0x1f943);
-    const ICON_COFFEE = String.fromCodePoint(0x2615);
     const ICON_BUG = String.fromCodePoint(0x1fab0);
-    const ICON_SKULL = String.fromCodePoint(0x1f480);
     const ICON_MAGNIFYING = String.fromCodePoint(0x1f50e);
     const PIPE = "•";
   
@@ -1548,7 +1547,7 @@ export function postConsoleAndNotification(
       // Read console styling settings using our safe wrapper
       const blnFancyConsole = getSettingSafely('coffee-pub-blacksmith', 'globalFancyConsole', false);
       if (blnFancyConsole) {
-        let fmt = `%c${MODULE.AUTHOR}%c${PIPE}%c${moduleKey}%c ${strMessage}`;
+        let fmt = `${ICON_MAGNIFYING} %c${MODULE.AUTHOR}%c${PIPE}%c${moduleKey}%c ${strMessage}`;
         const styles = [STYLE_NORMAL_AUTHOR, STYLE_PIPE, STYLE_NORMAL_MODULE, STYLE_NORMAL_TEXT];
   
         if (hasResult) {
@@ -1557,7 +1556,7 @@ export function postConsoleAndNotification(
           console.info(fmt, ...styles);
         }
       } else {
-        const line = `${MODULE.AUTHOR} ${PIPE} ${moduleKey}: ${strMessage}`;
+        const line = `${ICON_MAGNIFYING} ${MODULE.AUTHOR} ${PIPE} ${moduleKey}: ${strMessage}`;
         if (hasResult) console.info(line, result);
         else console.info(line);
       }

@@ -182,7 +182,7 @@ Also available as the `BlacksmithUtils` global once Blacksmith is ready.
 | Function | Signature | Notes |
 |---|---|---|
 | `postConsoleAndNotification` | `(moduleName, message, result, debug, notification)` | Console logging. The first argument is a display label, not a module id. `debug: true` prints only while Blacksmith's Debug Mode is on; `notification: true` also shows a UI notification. See [Logging](#logging) |
-| `registerLogStyle` | `(moduleName, style)` | Sets the console colours for your label (see [Logging](#logging)). `style` is a hue `0-360`, or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`; anything omitted is derived from the hue. An unregistered label gets a stable colour hashed from its name |
+| `registerLogStyle` | `(moduleName, style)` | Sets the console colours for your label (see [Logging](#logging)). `style` is a hue `0-360`, or `{ hue?, titleColor?, captionBorder?, captionBackground?, captionFontColor? }`; anything omitted is derived from the hue, except `captionFontColor`, which is the suite colour. An unregistered label gets a stable colour hashed from its name |
 | `playSound` | `(sound, volume?, loop?, broadcast?, duration?)` | See below |
 | `getSettingSafely` | `(moduleId, settingKey, defaultValue)` | Never throws on an unregistered setting |
 | `setSettingSafely` | `(moduleId, settingKey, value)` | Async |
@@ -289,10 +289,11 @@ To group lines from one area of your module, put the area in the message itself,
 Sets the colours of your lines in the browser console. `moduleName` is the same label you pass to `postConsoleAndNotification`, matched case-insensitively. Call it once, in `init` or early in `ready`, before your first log line.
 
 ```javascript
-// A hue (0-360) is enough. Title, caption border, background and text are derived from it.
+// A hue (0-360) is enough. The module name, caption border and caption background are derived from it.
+// The "COFFEE PUB" text keeps the suite colour that every module shares.
 utils.registerLogStyle('MYMODULE', 285);
 
-// Or take over any part. Values are bare CSS colours; whatever you omit is derived from the hue.
+// Or take over any part. Values are bare CSS colours; whatever you omit is derived from the hue (the "COFFEE PUB" text, `captionFontColor`, defaults to the shared suite colour, and you rarely want to change it).
 utils.registerLogStyle('MYMODULE', {
     hue: 285,
     titleColor: 'rgb(127, 21, 197)',
