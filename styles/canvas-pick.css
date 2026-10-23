@@ -1,0 +1,31 @@
+/* ------------------------------------ */
+/* --- CANVAS PICK -------------------- */
+/* ------------------------------------ */
+/* The rubber band and hint for canvas.pickArea -- scripts/manager-canvas-pick.js.
+   Both are fixed to the viewport and ignore the pointer, so nothing here can catch a click meant for
+   the canvas. Above the canvas and its pins, below windows (Foundry's own z-index ladder). */
+
+.blacksmith-pick-area-band {
+    position: fixed;
+    z-index: var(--z-index-ui);
+    pointer-events: none;
+    box-sizing: border-box;
+    border: 1px dashed var(--blacksmith-color-brand-accent);
+    background: color-mix(in srgb, var(--blacksmith-color-brand-accent) 18%, transparent);
+}
+
+.blacksmith-pick-area-hint {
+    position: fixed;
+    z-index: var(--z-index-ui);
+    top: var(--blacksmith-space-xl);
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    padding: var(--blacksmith-space-sm) var(--blacksmith-space-lg);
+    border: 1px solid var(--blacksmith-border-subtle);
+    border-radius: var(--blacksmith-radius-pill);
+    background: var(--blacksmith-surface-dark-1);
+    color: var(--blacksmith-text-inverse);
+    font-size: var(--blacksmith-font-size-sm);
+    box-shadow: var(--blacksmith-shadow-md);
+}

@@ -128,3 +128,4 @@
    errors. Found 2026-08-16 by diffing the files on disk against this list. */
 @import "widget-tags.css";
 @import "ui-scene-geography.css";
+@import "canvas-pick.css";

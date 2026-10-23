@@ -142,6 +142,7 @@ import { TokenIndicatorManager } from './manager-token-indicators.js';
 import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
+import { CanvasAPI } from './api-canvas.js';
 import { RollsAPI } from './api-rolls.js';
 import { EffectsAPI } from './api-effects.js';
 import { TokenInteractionsAPI } from './api-token-interactions.js';
@@ -1325,6 +1326,7 @@ Hooks.once('init', async function() {
         quantitySplit: QuantitySplitAPI,
         campaign: CampaignAPI,
         compendiums: CompendiumsAPI,
+        canvas: CanvasAPI,
         rolls: RollsAPI,
         effects: EffectsAPI,
         tokens: TokenInteractionsAPI,

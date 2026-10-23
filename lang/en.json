@@ -1257,6 +1257,8 @@
 				"globalDebugMode-Hint": "Log errors to the console and notification system as appropriate. Make the console bleed. Default: Off (unchecked).",
 			
 				"globalConsoleDebugStyle-Label": "Debug Style",
-				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants."
+				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
+
+				"canvasPickArea-Hint": "Drag a box to pick. Esc to cancel."
 	}
 }

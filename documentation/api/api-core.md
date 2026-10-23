@@ -125,7 +125,7 @@ Function groups on `api` directly:
 | Menubar | `registerMenubarTool`, `unregisterMenubarTool`, `getRegisteredMenubarTools`, `getMenubarToolsByModule`, `getMenubarToolsByZone`, `isMenubarToolRegistered`, `renderMenubar`, `updateMenubarToolActive` | `api-menubar.md` |
 | Menubar notifications | `addNotification`, `updateNotification`, `removeNotification`, `clearNotificationsByModule`, `clearAllNotifications`, `getActiveNotifications`, `getNotificationIdsByModule` | `api-menubar.md` |
 | Secondary bars | `registerSecondaryBarType`, `registerSecondaryBarItem`, `registerSecondaryBarTool`, `unregisterSecondaryBarItem`, `updateSecondaryBarItemActive`, `updateSecondaryBarItemInfo`, `getSecondaryBarItems`, `openSecondaryBar`, `closeSecondaryBar`, `toggleSecondaryBar` | `api-menubar.md` |
-| Canvas | `CanvasLayer`, `getCanvasLayer` | `api-canvas.md` |
+| Canvas | `CanvasLayer`, `getCanvasLayer`, `canvas.pickArea` | `api-canvas.md` |
 | Rolls | `openRequestRollDialog`, `rolls` | `api-requestroll.md`, `api-rolls.md` |
 | Encounters | `getPartyCR`, `getMonsterCR`, `parseCR`, `formatCR`, `calculateEncounterDifficulty`, `getCombatAssessment`, `deployMonsters` | this document |
 | Party | `getPartyHealthSummary`, `getPartyActorHp`, `deployParty`, `clearPartyFromCanvas`, `isCurrentUserPartyLeader`, `getPartyReputation`, `setPartyReputation`, `getReputationScaleEntry`, `postCurrentReputationCard`, `postNewReputationCard` | this document |

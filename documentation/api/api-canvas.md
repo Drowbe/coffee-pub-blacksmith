@@ -89,6 +89,47 @@ if (window.BlacksmithCanvasLayer) {
 }
 ```
 
+## Area pick (`api.canvas`)
+
+`api.canvas.pickArea(options)` lets the user drag a box on the canvas and resolves with the documents inside it, across every layer in one pick. Foundry's own marquee only selects on the active layer. The pick does not change the current selection or the active layer, Esc cancels, and right-drag pan and wheel zoom keep working while it is open.
+
+```javascript
+const canvasApi = game.modules.get('coffee-pub-blacksmith')?.api?.canvas;
+
+const picked = await canvasApi.pickArea({
+    types: ['Tile', 'AmbientLight', 'Wall'],
+    containment: 'centre',
+    prompt: 'Drag a box around the group'
+});
+
+if (!picked) return;                       // cancelled
+const { rect, documents } = picked;        // rect: { x, y, width, height } in scene coordinates
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `types` | all of `canvas.pickTypes` | Document names to include: `Tile`, `Drawing`, `AmbientLight`, `AmbientSound`, `Wall`, `Note`, `Token`. An unknown name throws a `TypeError` |
+| `containment` | `'centre'` | How a document must relate to the box: `'centre'`, `'inside'` or `'intersects'` |
+| `levels` | `'current'` | `'current'` keeps documents on the level being viewed; `'all'` ignores levels |
+| `prompt` | a localized "Drag a box to pick. Esc to cancel." | The hint shown at the top of the screen while picking |
+| `signal` | none | An `AbortSignal`; aborting cancels the pick |
+
+**Returns** `Promise<{ rect, documents } | null>`. `null` means the pick was cancelled: Esc, an abort, a scene change, or another `pickArea` call replacing this one. `rect` is normalized, so `width` and `height` are never negative. `documents` are the live Document instances, grouped by type in the order of `canvas.pickTypes`.
+
+**Containment.** A wall is a segment: `'centre'` is its midpoint, `'inside'` needs both endpoints in the box, `'intersects'` is any contact. Every other type uses the bounds Foundry reports for it: `'centre'` is the centre point, `'inside'` needs the whole bounds in the box, `'intersects'` is any overlap. A light or sound reports its radius as its bounds, so `'centre'` (its origin) is the rule that means "the light I can see the source of". Rotation is as Foundry reports it.
+
+**Levels.** In Foundry v14 a wall, tile, light, sound, note or drawing carries a set of levels, and an empty set means every level. A token carries one level. With `levels: 'current'` a document is kept when its set is empty or contains the level being viewed. On a world with no levels this keeps everything.
+
+**Who gets what.** Only documents the current user owns are returned, so a player picking over a scene gets their own tokens and nothing else. A GM gets everything in the box.
+
+**Behaviour to know about.**
+
+- A click without a drag is ignored and the pick stays open; only a drag of a few pixels or more completes it.
+- One pick is open at a time. Calling `pickArea` while one is open cancels the open one, whose promise resolves `null`.
+- The box is kept in scene coordinates, so panning during a drag keeps it on the same part of the map.
+- It rejects with an `Error` when there is no active scene, and throws a `TypeError` for invalid options.
+- `canvas.cancelPick()` cancels the open pick from outside, and `canvas.pickTypes`, `canvas.pickContainment` and `canvas.pickLevels` list the accepted values.
+
 ## Layer Properties
 
 The BlacksmithLayer extends `foundry.canvas.layers.CanvasLayer` and provides:
