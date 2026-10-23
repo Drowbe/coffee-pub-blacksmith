@@ -148,7 +148,6 @@ export function ownsAnyCharacter(user) {
 export const COFFEEPUB = {
     // SHARED MODULE VARIABLES
     blnDebugOn: false, // Display debug messages
-    strDEFAULTCARDTHEME: "default", // Default Card Theme
 }
 
 // ================================================================== 
@@ -799,8 +798,6 @@ export function registerBlacksmithUpdatedHook() {
 			// RICH CONSOLE - Removed, only used internally in postConsoleAndNotification
 			// DEBUG ON/OFF
 			COFFEEPUB.blnDebugOn = newBlacksmith.blnDebugOn;
-			// Get the default theme
-			COFFEEPUB.strDEFAULTCARDTHEME = newBlacksmith.strDefaultCardTheme;
 			// Get the Themes list
 			COFFEEPUB.arrTHEMECHOICES = newBlacksmith.arrThemeChoices;
 			// Get the Macro list

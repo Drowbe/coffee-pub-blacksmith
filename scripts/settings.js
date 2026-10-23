@@ -9,6 +9,7 @@ import { MODULE, BLACKSMITH } from './const.js';
 // -- Load the shared GLOBAL functions --
 import { registerBlacksmithUpdatedHook, postConsoleAndNotification, getActorId, resetModuleSettings, getSettingSafely, setSettingSafely } from './api-core.js';
 import { CHAT_CARD_THEMES } from './api-chat-cards.js';
+import { ChatCardsManager } from './manager-chat-cards.js';
 import { getUnknownExcludedUserNames, flushToastChannelSettings } from './api-toast.js';
 import { getNamingKeyList, tokenNameTableSettingId, NAMING_TAXONOMY_SETTING, DEFAULT_TAXONOMY_PATH } from './utility-token-naming.js';
 import { assetLookup } from './utility-asset-lookup.js';
@@ -1952,10 +1953,27 @@ export const registerSettings = () => {
 		hint: MODULE.ID + '.defaultCardTheme-Hint',
 		scope: 'world',
 		config: true,
-		requiresReload: true,
+		requiresReload: false,
 		type: String,
 		default: 'default',
 		choices: BLACKSMITH.arrThemeChoices,
+		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
+	});
+
+	game.settings.register(MODULE.ID, 'cardColorMode', {
+		name: MODULE.ID + '.cardColorMode-Label',
+		hint: MODULE.ID + '.cardColorMode-Hint',
+		scope: 'world',
+		config: true,
+		requiresReload: false,
+		type: String,
+		default: 'follow',
+		choices: {
+			'follow': 'Follow Foundry',
+			'light': 'Light Mode',
+			'dark': 'Dark Mode'
+		},
+		onChange: () => ChatCardsManager.applyColorMode(),
 		group: WORKFLOW_GROUPS.THEMES_AND_EXPERIENCE
 	});
 

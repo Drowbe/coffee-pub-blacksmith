@@ -893,7 +893,7 @@ export default {
             tier: 'interactive',
             group: 'Cards',
             label: 'One card per theme',
-            note: 'one per theme, light and dark; structure identical, only colour differs',
+            note: 'one per theme; structure identical, only colour differs. Run it on the light interface and again on the dark one',
             run: async ({ log }) => {
                 const { chatCards } = requireApi('chatCards');
                 for (const theme of chatCards.getThemes()) {
@@ -930,12 +930,12 @@ export default {
             id: 'c-themes-header-only',
             tier: 'interactive',
             group: 'Cards',
-            label: 'Dark headers, header only',
-            note: 'the case the -dark variants exist for: a card that is nothing but its header',
+            label: 'Header only, every theme, plus a retired id',
+            note: 'a card that is nothing but its header: the band takes all four corners and reads in both schemes. The last card posts the retired id green-dark, which must render as plain green',
             run: async ({ log }) => {
                 const { chatCards } = requireApi('chatCards');
-                const dark = chatCards.getThemes().filter((theme) => theme.id.endsWith('-dark'));
-                for (const theme of dark) {
+                const themes = chatCards.getThemes();
+                for (const theme of themes) {
                     await chatCards.post({
                         moduleId: MOD,
                         type: 'harness-theme',
@@ -943,7 +943,13 @@ export default {
                         parts: [{ part: 'header', icon: 'fa-solid fa-bullhorn', title: theme.name }]
                     });
                 }
-                log(`Posted ${dark.length} header-only cards.`);
+                await chatCards.post({
+                    moduleId: MOD,
+                    type: 'harness-theme',
+                    theme: 'green-dark',
+                    parts: [{ part: 'header', icon: 'fa-solid fa-bullhorn', title: 'Retired id: green-dark' }]
+                });
+                log(`Posted ${themes.length} header-only cards and one retired-id card.`);
             }
         },
 

@@ -209,7 +209,7 @@
 /* The die says "roll me", so it carries the accent rather than the muted grey a
    marker gets when it is only qualifying a label. */
 .blacksmith-card .blacksmith-row-clickable .blacksmith-part-row-marker {
-    color: var(--blacksmith-color-brand-dark);
+    color: var(--blacksmith-card-marker-accent);
 }
 
 .blacksmith-card .blacksmith-row-clickable:hover {
@@ -677,7 +677,7 @@
     align-items: center;
     justify-content: space-between;
     padding: var(--blacksmith-card-box-padding);
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--blacksmith-card-row-fill);
     border: 1px solid var(--blacksmith-card-row-border);
     border-radius: var(--blacksmith-card-box-radius);
     min-width: 0;
@@ -1097,7 +1097,7 @@
     height: 13px;
     margin: 0 6px;
     border-radius: 25%;
-    background-color: rgba(0, 0, 0, 0.12);
+    background-color: var(--blacksmith-card-pip-empty);
 }
 
 .blacksmith-card .blacksmith-pip-tone-positive .blacksmith-part-pip.blacksmith-pip-filled { background-color: rgba(27, 63, 31, 0.9); }

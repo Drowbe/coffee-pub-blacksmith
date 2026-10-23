@@ -17,23 +17,44 @@
 
 /* CSS Variables - Default Theme Colors (can be overridden by themes) */
 :root {
-    --blacksmith-card-bg: var(--blacksmith-surface-0);
-    --blacksmith-card-border: var(--blacksmith-color-brand);
-    --blacksmith-card-text: var(--blacksmith-color-brand);
-    --blacksmith-card-header-text: var(--blacksmith-color-brand);
-    /* Text on a filled dark header. One value for all six -dark variants: the grounds
-       differ, the text on them does not. */
-    --blacksmith-card-header-dark-text: rgba(235, 233, 225, 1.0);
-    --blacksmith-card-section-header-text: var(--blacksmith-color-brand-dark);
-    --blacksmith-card-section-header-border: rgba(0, 0, 0, 0.2);
-    --blacksmith-card-section-subheader-text: var(--blacksmith-color-brand-dark);
-    --blacksmith-card-section-subheader-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-section-content-text: var(--blacksmith-color-brand);
+    /* The opaque base a card sits on. Transparent by default, so the card is a tint over
+       whatever the message behind it is; the light and dark card modes set a real colour
+       (cards-common-themes.css) so a card forced to a mode does not depend on the message
+       behind it being the matching brightness. */
+    --blacksmith-card-ground: transparent;
+    --blacksmith-card-bg: light-dark(var(--blacksmith-surface-0), rgba(255, 255, 255, 0.05));
+    --blacksmith-card-border: light-dark(var(--blacksmith-color-brand), rgba(255, 255, 255, 0.2));
+
+    /* LIGHT AND DARK. Every colour that has to change with Foundry's colour scheme is
+       written as light-dark(light, dark) -- here for the neutrals every theme shares, and
+       in cards-common-themes.css for each theme's own hue.
+
+       The scheme is Foundry's, not ours: it puts `color-scheme` on `body.theme-dark` and
+       on every `.themed.theme-dark` element (the chat log and sidebar among them), and
+       light-dark() reads it where the value is USED. That last part matters twice over:
+       a card needs no theme-dark selector anywhere, and a token derived from another
+       (`--blacksmith-card-row-border: var(--blacksmith-card-border-strong)`) cannot freeze
+       at its light value, because nothing is resolved at the point of declaration.
+
+       Light values are the originals, unchanged. Dark ink is warm off-white; dark edges
+       and fills are white with transparency, the mirror of the black ones, since a black
+       hairline disappears on a dark ground. */
+    --blacksmith-card-text: light-dark(var(--blacksmith-color-brand), #e3dccf);
+    --blacksmith-card-header-text: light-dark(var(--blacksmith-color-brand), #ece6da);
+    --blacksmith-card-section-header-text: light-dark(var(--blacksmith-color-brand-dark), #f0c9a8);
+    --blacksmith-card-section-header-border: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.2));
+    --blacksmith-card-section-subheader-text: light-dark(var(--blacksmith-color-brand-dark), #f0c9a8);
+    --blacksmith-card-section-subheader-bg: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.08));
+    --blacksmith-card-section-content-text: light-dark(var(--blacksmith-color-brand), #e3dccf);
     --blacksmith-card-hover-color: var(--blacksmith-color-brand-accent);
-    --blacksmith-card-button-text: var(--blacksmith-color-brand);
-    --blacksmith-card-button-border: #999;
-    --blacksmith-card-button-hover-bg: rgba(0, 0, 0, 0.1);
-    --blacksmith-card-button-container-bg: rgba(0, 0, 0, 0.05);
+    --blacksmith-card-button-text: light-dark(var(--blacksmith-color-brand), #e3dccf);
+    --blacksmith-card-button-border: light-dark(#999, rgba(255, 255, 255, 0.35));
+    --blacksmith-card-button-hover-bg: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.12));
+    --blacksmith-card-button-container-bg: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+
+    /* The "roll me" die on a clickable row, and any other glyph that says "this is live".
+       Brand-dark on light; the brand accent on dark, where brand-dark is near-black. */
+    --blacksmith-card-marker-accent: light-dark(var(--blacksmith-color-brand-dark), var(--blacksmith-color-brand-accent));
 
     /* A button states its weight, the way window buttons do (window-template.css
        `.blacksmith-window-btn-*`). Same three names on both surfaces so one
@@ -50,7 +71,9 @@
        no way in plain CSS to derive "slightly lighter than whatever the theme set",
        and hard-coding a hover fill per theme is nine more values to drift. */
     --blacksmith-card-button-primary-bg: var(--blacksmith-card-button-text);
-    --blacksmith-card-button-primary-text: rgba(248, 244, 241, 1.0);
+    /* Primary fills with the button ink, so its label is the opposite: light on the
+       light scheme's brown fill, dark on the dark scheme's cream one. */
+    --blacksmith-card-button-primary-text: light-dark(rgba(248, 244, 241, 1.0), rgba(24, 20, 16, 1.0));
     --blacksmith-card-button-critical-bg: rgba(120, 30, 30, 0.9);
     --blacksmith-card-button-critical-text: rgba(248, 244, 241, 1.0);
     /* Matches the window buttons exactly -- a disabled control should not read as
@@ -64,12 +87,12 @@
        enough to look like a mistake and far enough to see, which is the worst
        kind of inconsistency. Named to match -box-padding and -box-radius, since
        the three describe the same object. */
-    --blacksmith-card-box-fill: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-box-fill: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.07));
 
-    /* Borders are black with transparency, never white. A light border only works
-       over a dark ground, and a card's ground is light -- a white edge tried here
-       first vanished against pale art and glowed against dark art, which is the
-       wrong way round.
+    /* Borders are black with transparency on the light scheme and white with
+       transparency on the dark one -- never an opaque colour, so they take on whatever
+       ground the theme provides. A white edge on a LIGHT card vanished against pale art
+       and glowed against dark art, which is why the light scheme stays black.
 
        -border-color is a hairline INSIDE something already filled.
        -border-strong is the shared WEIGHT for the edge of a discrete object.
@@ -79,8 +102,8 @@
        as tidy and was not: tweaking a portrait's edge would silently have moved
        every row and every bar with it. Change one line below to retune one kind of
        thing; change -border-strong to retune all of them at once. */
-    --blacksmith-card-border-color: rgba(0, 0, 0, 0.05);
-    --blacksmith-card-border-strong: rgba(0, 0, 0, 0.2);
+    --blacksmith-card-border-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.08));
+    --blacksmith-card-border-strong: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.22));
     --blacksmith-card-image-border: var(--blacksmith-card-border-strong);
 
     /* Every image sits on a ground. Opaque art covers it and nothing shows;
@@ -90,7 +113,7 @@
        a near-black ground made every thumbnail look like a framed exception.
 
        No caller has to ask for this. It just happens. */
-    --blacksmith-card-image-ground: rgba(0, 0, 0, 0.1);
+    --blacksmith-card-image-ground: light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.07));
 
     /* The thumbnail box. Declared so an icon standing in for a picture can size
        itself against the box rather than carrying a number of its own. */
@@ -117,7 +140,7 @@
        edge shows perhaps half the ink of a solid one of the same colour, so at the
        shared 0.2 weight the badge outline all but disappeared. This is the weight
        that makes a DOTTED line read as the shared weight does solid. */
-    --blacksmith-card-badge-border: rgba(0, 0, 0, 0.4);
+    --blacksmith-card-badge-border: light-dark(rgba(0, 0, 0, 0.4), rgba(255, 255, 255, 0.45));
 
     /* A table arrives inside richtext, authored in a journal, so the card cannot
        negotiate with it -- it can only govern how it looks. These were five
@@ -126,13 +149,13 @@
        floating in it. Black-with-transparency like every other card edge, so a
        table takes on whatever ground the theme provides. */
     --blacksmith-card-table-border: var(--blacksmith-card-border-strong);
-    --blacksmith-card-table-rule: rgba(0, 0, 0, 0.12);
+    --blacksmith-card-table-rule: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.12));
 
     /* The hairline that separates prose: a horizontal rule, and the line under an h3.
        Black with transparency like every other card edge, so it reads on any theme
        rather than being a fixed grey. Foundry core draws both of these itself, in its
        own colours, and they arrived far heavier than anything else on a card. */
-    --blacksmith-card-rule: rgba(0, 0, 0, 0.15);
+    --blacksmith-card-rule: light-dark(rgba(0, 0, 0, 0.15), rgba(255, 255, 255, 0.18));
 
     /* The radius anything flush against the INSIDE of the card's border must use.
        A border-radius applies to the border box, so the curve left on the padding box
@@ -149,8 +172,16 @@
        which is what made the corners look wrong however the radius was tuned.
        Anything cancelling this padding must derive from this token. */
     --blacksmith-card-padding: var(--blacksmith-space-md);
-    --blacksmith-card-table-head-fill: rgba(0, 0, 0, 0.14);
-    --blacksmith-card-table-row-fill: rgba(0, 0, 0, 0.04);
+    --blacksmith-card-table-head-fill: light-dark(rgba(0, 0, 0, 0.14), rgba(255, 255, 255, 0.12));
+    --blacksmith-card-table-row-fill: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.04));
+
+    /* Fills and ink that were literals in the rules below, named so a scheme can
+       change them. Row and row-content are two surfaces at one weight; the pip is
+       an empty slot; the quote is a markdown blockquote's ground. */
+    --blacksmith-card-row-fill: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+    --blacksmith-card-row-content-text: light-dark(rgba(0, 0, 0, 0.7), rgba(255, 255, 255, 0.8));
+    --blacksmith-card-pip-empty: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.14));
+    --blacksmith-card-quote-fill: light-dark(#f0ecdd, rgba(255, 255, 255, 0.07));
 
     /* A badge is a dnd5e pill -- specifically `.pill.transparent`, the variant the
        system uses for item tags (ACTION, REACH 10 FT, PROFICIENT). It should be
@@ -197,15 +228,15 @@
 
        Distinct from the meter's ok/caution/warn/danger/empty, which is a five-step
        ramp of severity rather than a valence. */
-    --blacksmith-card-tone-positive: #18520b;
-    --blacksmith-card-tone-positive-bg: rgba(24, 82, 11, 0.1);
-    --blacksmith-card-tone-positive-border: rgba(24, 82, 11, 0.6);
-    --blacksmith-card-tone-negative: #aa0200;
-    --blacksmith-card-tone-negative-bg: rgba(170, 2, 0, 0.1);
-    --blacksmith-card-tone-negative-border: rgba(170, 2, 0, 0.6);
-    --blacksmith-card-tone-info: rgb(3, 109, 151);
-    --blacksmith-card-tone-info-bg: rgba(3, 109, 151, 0.1);
-    --blacksmith-card-tone-info-border: rgba(3, 109, 151, 0.6);
+    --blacksmith-card-tone-positive: light-dark(#18520b, #8fd17e);
+    --blacksmith-card-tone-positive-bg: light-dark(rgba(24, 82, 11, 0.1), rgba(110, 200, 90, 0.14));
+    --blacksmith-card-tone-positive-border: light-dark(rgba(24, 82, 11, 0.6), rgba(110, 200, 90, 0.55));
+    --blacksmith-card-tone-negative: light-dark(#aa0200, #ff8a80);
+    --blacksmith-card-tone-negative-bg: light-dark(rgba(170, 2, 0, 0.1), rgba(255, 110, 100, 0.14));
+    --blacksmith-card-tone-negative-border: light-dark(rgba(170, 2, 0, 0.6), rgba(255, 110, 100, 0.55));
+    --blacksmith-card-tone-info: light-dark(rgb(3, 109, 151), #7cc8ee);
+    --blacksmith-card-tone-info-bg: light-dark(rgba(3, 109, 151, 0.1), rgba(90, 175, 225, 0.14));
+    --blacksmith-card-tone-info-border: light-dark(rgba(3, 109, 151, 0.6), rgba(90, 175, 225, 0.55));
 }
 
 /* Base Container */
@@ -227,7 +258,8 @@
     padding: var(--blacksmith-card-padding);
     margin: 0 0 0 0;
     font-family: var(--dnd5e-font-roboto);
-    background-color: var(--blacksmith-card-bg);
+    /* The tint over the ground, as one background so the ground shows through it. */
+    background: linear-gradient(var(--blacksmith-card-bg), var(--blacksmith-card-bg)), var(--blacksmith-card-ground);
     border: 1px solid var(--blacksmith-card-border);
     border-radius: var(--blacksmith-radius-lg);
 }
@@ -421,8 +453,8 @@
     font-style: inherit;
     font-weight: 600;
     font-size: var(--blacksmith-font-size-base);
-    background: rgba(0, 0, 0, 0.05);
-    color: rgba(0, 0, 0, 0.7);
+    background: var(--blacksmith-card-row-fill);
+    color: var(--blacksmith-card-row-content-text);
     margin: 0px 0;
     padding: var(--blacksmith-space-sm) var(--blacksmith-space-md);
     border-radius: 0px var(--blacksmith-radius-md) var(--blacksmith-radius-md) 0px;
@@ -850,7 +882,7 @@
 	margin: var(--blacksmith-space-sm) 0;
 }
 .blacksmith-card .markdown-blockquote {
-	background-color: #f0ecdd;
+	background-color: var(--blacksmith-card-quote-fill);
 	padding: 3px var(--blacksmith-space-md);
 	margin: var(--blacksmith-space-lg) 0;
 	border-left: 5px solid #8a857c;

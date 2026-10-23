@@ -20,7 +20,11 @@ Results go to the relevant `CHANGELOG.md` entry, not back into this file.
 
 ## Needs a setting or a theme chosen on purpose
 
-- [ ] **Themes tint without changing structure.** Post the same composition in each theme. Structure identical, colours differ. Each theme's `-dark` partner fills only the card header, leaving the body as the light theme has it.
+- [ ] **Themes tint without changing structure, in both schemes.** Post the same composition in each of the six themes, once with Game Settings, Core Settings, Color Scheme set to Light for the Interface and once to Dark. Structure identical, colours differ by theme. On Dark every card reads: light ink, visible edges and rows, tinted header band, no dark-on-dark and no pale slab. Also set Interface Dark and Applications Light, and the reverse, and confirm cards follow the Interface setting only.
+- [ ] **Card Color Mode forces the cards, and applies without a reload.** Settings, Themes and Experience, Card Color Mode. With the interface Dark: choose Light Mode and the cards in the log (old and new) turn light-inked on a pale ground immediately; choose Dark Mode and they stay dark; choose Follow Foundry and they match the interface again. Repeat with the interface Light. A whispered card must read in every one of the six combinations.
+- [ ] **Changing the default theme applies without a reload.** Change `defaultCardTheme` and post a card with no `theme` straight away: it uses the new theme, and Foundry did not offer a reload.
+- [ ] **A whisper or blind card is readable on the dark interface.** As GM, post a Request a Roll (the GM's copy is a whisper) and a blind GM roll with a card. Dark lavender and dark purple grounds, readable text.
+- [ ] **A retired `-dark` theme id still renders.** Post a card with `theme: 'green-dark'`, and set `defaultCardTheme` to `green-dark` through the console and post one with no theme. Both render as plain green with no "unknown theme" console line.
 - [ ] **The world default applies.** With `defaultCardTheme` set to something other than Tan, post a card with no `theme`. It uses the configured theme. Then post one with `theme: 'default'` and confirm it is Tan and **stays** Tan -- that pinning is the thing the old sentinel made impossible.
 - [ ] **Card padding still applies.** The `removeChatCardPadding` setting still affects new parts-based cards -- they go through the same libwrapper path.
 - [ ] **An unregistered action degrades quietly.** Post a card naming an action nothing registered. The button is inert and logs, rather than throwing.

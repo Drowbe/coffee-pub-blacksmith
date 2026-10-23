@@ -72,6 +72,8 @@
 
 				"defaultCardTheme-Label": "Default Coffee Pub Theme",
 				"defaultCardTheme-Hint": "This theme will be used as the default theme unless you override it in the other coffee pub modules.",
+				"cardColorMode-Label": "Card Color Mode",
+				"cardColorMode-Hint": "Whether chat cards use their light or dark colors. Follow Foundry uses each player's own Interface choice under User Interface Configuration. Light and Dark force every card to that mode for everyone, whatever the interface is set to.",
 			
 		"headingH2FoundryEnhancements-Label": "Foundry Enhancements",
 		"headingH2FoundryEnhancements-Hint": "Enhancements and improvements to FoundryVTT's interface and functionality",

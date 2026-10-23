@@ -94,9 +94,22 @@ Foundry performs stage 3 on any chat content. Stages 1 and 2 exist nowhere else 
 
 ## Themes
 
-Themes are colour. A part looks the same in every theme; the theme tints it through the `--blacksmith-card-*` variables defined per theme in `styles/cards-common-themes.css`. The theme list is `CHAT_CARD_THEMES` in `scripts/manager-chat-cards.js`.
+Themes are colour. A part looks the same in every theme; the theme tints it through the `--blacksmith-card-*` variables. The theme list is `CHAT_CARD_THEMES` in `scripts/manager-chat-cards.js`.
 
-The world default is resolved **once, at post time**, in `ChatCardsManager.resolveThemeId`, and the concrete theme id is what gets stored. An unknown theme id falls back to Tan and logs.
+**Light and dark live in the tokens, not in selectors.** Every colour that differs between Foundry's light and dark interface is written `light-dark(light, dark)`. The neutrals every theme shares (ink, section heads, buttons, edges, fills, tones, the roll-me marker) are declared once on `:root` in `styles/cards-common-layout.css`; each theme block in `styles/cards-common-themes.css` states only what it changes, which for most is hue alone (ground, edge, hover, header tint). Nothing selects on `theme-dark`. Foundry sets `color-scheme` on `body.theme-dark` and on every `.themed.theme-dark` element (the chat log is `#interface`), and `light-dark()` reads it where the value is *used*.
+
+Two consequences worth knowing before you edit:
+
+- **A new colour literal in the card CSS is a dark-mode bug.** A black-alpha edge or a dark-brown ink vanishes on the dark log. Give it a token with both values. The five `-border`/`-primary-bg` tokens used to be derived with a plain `var()` on `:root`, which froze them at their light values; with `light-dark()` nothing resolves at the point of declaration, so derivation is safe.
+- **The message around a card is Foundry's, not ours.** A whispered, blind or emote message gets an opaque pale ground that Foundry does not darken, so `cards-common-themes.css` darkens it, for messages carrying one of our cards only, by keying on `.themed.theme-dark .chat-message.whisper`. That is the one place a selector names the dark interface.
+
+A chat popout is forced `theme-light` by core and sits outside `#interface`, so it shows the light values.
+
+**The mode setting.** `cardColorMode` (world; Follow Foundry, Light Mode, Dark Mode) decides which side of every `light-dark()` a card reads. *Follow* is the default and sets nothing, so each client shows its own scheme. *Light* and *Dark* make `ChatCardsManager.applyColorMode()` put `data-blacksmith-card-mode` on `<body>` (at `ready` and from the setting's `onChange`; removing the attribute is the Follow state). `cards-common-themes.css` then pins `color-scheme` on every `.blacksmith-card` and gives it an opaque ground (`--blacksmith-card-ground`), because a forced card is only a faint tint and would otherwise depend on the message behind it being the matching brightness. The whisper/blind/emote darkening follows the *effective* mode, not the interface: it applies on the dark interface when following, and always when forced dark. The setting is world-scoped, so a forced mode is the table's choice; a player who wants their own override has no lever, which is what Follow is for.
+
+There is no dark-header variant. The old `*-dark` ids are mapped to their plain colour by `RETIRED_THEME_IDS` and resolved inside `findTheme`, which every lookup goes through, so a stored id or a card already in the log never reaches the unknown-theme fallback.
+
+The world default is resolved **once, at post time**, in `ChatCardsManager.resolveThemeId`, and the concrete theme id is what gets stored. An unknown theme id falls back to the world default and logs.
 
 ## Card actions
 

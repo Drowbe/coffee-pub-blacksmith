@@ -265,7 +265,7 @@ Things that cost someone an hour of grep to discover. Written down so nobody pay
   version. They are unrelated and drift on purpose.
 - **`window.COFFEEPUB` is not a config object.** It holds *generated asset constants* only, assigned in
   `asset-lookup.js`. The exported `COFFEEPUB` in `api-core.js` is a **different object** with just
-  `blnDebugOn` and `strDEFAULTCARDTHEME`. Don't assume a key exists on either.
+  `blnDebugOn`. Don't assume a key exists on either.
   - This bit us: `ModuleManager` read a `COFFEEPUB.MODULES` that nothing ever assigned, so
     `registerModule()` returned `false` for every sibling module — silently, because the error was
     debug-gated. Fixed by detecting from `game.modules` directly.

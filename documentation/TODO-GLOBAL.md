@@ -708,6 +708,26 @@ Neither sibling crashes. Both need a small change to look right again.
   gone, and no `getThemeClassName` / `getTheme` calls remain. The announcement branch was deleted rather
   than migrated — all three callers passed `'card'`, so it had never executed even before the removal.
 
+### Superseded 2026-10-23: the `-dark` partners are gone too — Crier
+
+The `-dark` themes above no longer exist. A card theme is one look that carries a light and a dark
+version and follows Foundry's colour scheme; it has one tinted header band. `default-dark`, `amber-dark`,
+`blue-dark`, `green-dark`, `red-dark` and `orange-dark` still **resolve**, to the plain colour
+(`RETIRED_THEME_IDS` in `manager-chat-cards.js`, applied in `findTheme`), so nothing in a world breaks
+and no console line prints. The `-dark` ids are no longer returned by `getThemeChoices()`.
+
+- **Crier** — the table of class names in the section above is obsolete: Crier now posts through
+  `chatCards.post` with theme **ids** and builds its choices from `getThemeChoices('card')`
+  (`settings.js:30`), so no class name reaches a template. Two things remain, and neither is urgent for
+  correctness:
+  1. **The look changes.** Crier's round and combat cards defaulted to `green-dark`
+     (`crier.js:1393`, `:1474`, `:1630`), a solid dark-green header. They now get the plain green: a
+     green-tinted band. If Crier wants the loud header, that is a new Blacksmith theme to ask for, not a
+     flag on an old one.
+  2. **Change the defaults to `'green'`** at those three sites, and drop the `-dark` rows from the fallback
+     list at `settings.js:48`, so a fresh world stores a live id. Needed before Blacksmith deletes
+     `RETIRED_THEME_IDS`; until then it is tidiness. Gates nothing today.
+
 ## Time-bound events across the suite (raised 2026-08-23)
 
 **Blacksmith side planned, not started: `documentation/plans/plan-time-api.md`.** Nothing to adopt yet;

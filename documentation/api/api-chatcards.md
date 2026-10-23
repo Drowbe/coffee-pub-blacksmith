@@ -615,11 +615,9 @@ A pass must be **idempotent**: it can run more than once on the same card, so gu
 
 Themes set colour only; structure comes from parts.
 
-Each colour comes in two: the ordinary theme, and a `-dark` variant -- `red` and
-`red-dark`, `blue` and `blue-dark`, and so on. A `-dark` variant changes one thing,
-the card header, which it fills with a dark ground and light text. Everything else
-on the card is identical to the ordinary theme. It suits a card that is little more
-than a header; a full card in a `-dark` variant simply has a banner across the top.
+The themes are `default` (Tan), `amber`, `blue`, `green`, `red` and `orange`. Each is one look with a light and a dark version in it, and the card shows whichever matches the reader's Foundry interface (Game Settings, Core Settings, Color Scheme). There is nothing to choose and no id for it: a card posted as `blue` is the light blue to a reader on the light interface and the dark blue to a reader on the dark one, on the same message. A theme has one header band, tinted.
+
+The `-dark` ids (`default-dark`, `amber-dark`, `blue-dark`, `green-dark`, `red-dark`, `orange-dark`) are retired. They used to fill the header with a dark ground. They still resolve, to the plain colour, so a stored setting or a card already in the log keeps working -- but they are no longer listed, and nothing new should use them.
 
 - `getThemes([type])` - theme objects, optionally filtered by type. Every theme is currently type `'card'`.
 - `getThemeChoices([type])` - id-to-name map for a settings dropdown.

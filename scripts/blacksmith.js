@@ -910,9 +910,8 @@ function initializeSettingsDependentFeatures() {
     updateChatStyles();
     // Update any scene overrides
     updateSceneStyles();
-    // Set default card theme
-    let strDefaultCardTheme = getSettingSafely(MODULE.ID, 'defaultCardTheme', 'default');
-    BLACKSMITH.updateValue('strDefaultCardTheme', strDefaultCardTheme);
+    // Card light/dark mode (the default theme is read at post time, not cached here)
+    ChatCardsManager.applyColorMode();
 
     // Function to initialize scene interactions
     function initializeSceneInteractions() {

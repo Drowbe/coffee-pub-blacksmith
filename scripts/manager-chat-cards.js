@@ -27,15 +27,13 @@ import { postConsoleAndNotification, getSettingSafely } from './api-core.js';
  * and the API layer imports the renderer; keeping it here avoids a cycle.
  * `api-chat-cards.js` re-exports it, so existing importers are unaffected.
  *
- * Every theme is type 'card'. Each colour comes in two: the ordinary one, and a
- * `-dark` variant that changes NOTHING but the card header, which it fills with a
- * dark ground and light text.
+ * Every theme is type 'card'. A theme is one look with TWO schemes in it: its colours
+ * are written light-dark() and follow Foundry's light or dark interface, so there is no
+ * dark theme to choose and no id that means one. A theme has one header band, tinted.
+ * A card that wants a loud filled header on the light scheme is a new theme.
  *
- * The `-dark` variants replaced three `theme-announcement-*` themes that darkened the
- * whole card. Those were named for an occasion rather than for a look, and they
- * darkened the ground while leaving every text token at its light value -- readable
- * only for a card that was nothing but a header, which is what they were always used
- * for. The variant now does that one thing honestly.
+ * The `*-dark` ids that used to sit here (a filled header band) are retired but still
+ * resolve -- see RETIRED_THEME_IDS below.
  */
 export const CHAT_CARD_THEMES = Object.freeze([
     { id: 'default', name: 'Tan', className: 'theme-default', type: 'card', description: 'Tan parchment theme with subtle borders' },
@@ -43,14 +41,27 @@ export const CHAT_CARD_THEMES = Object.freeze([
     { id: 'blue', name: 'Blue', className: 'theme-blue', type: 'card', description: 'Blue accent theme' },
     { id: 'green', name: 'Green', className: 'theme-green', type: 'card', description: 'Green accent theme' },
     { id: 'red', name: 'Red', className: 'theme-red', type: 'card', description: 'Red accent theme' },
-    { id: 'orange', name: 'Orange', className: 'theme-orange', type: 'card', description: 'Orange accent theme' },
-    { id: 'default-dark', name: 'Tan (dark header)', className: 'theme-default-dark', type: 'card', description: 'Tan card with a dark brown header band' },
-    { id: 'amber-dark', name: 'Amber (dark header)', className: 'theme-amber-dark', type: 'card', description: 'Amber card with a deep amber header band' },
-    { id: 'blue-dark', name: 'Blue (dark header)', className: 'theme-blue-dark', type: 'card', description: 'Blue card with a dark blue header band' },
-    { id: 'green-dark', name: 'Green (dark header)', className: 'theme-green-dark', type: 'card', description: 'Green card with a dark green header band' },
-    { id: 'red-dark', name: 'Red (dark header)', className: 'theme-red-dark', type: 'card', description: 'Red card with a dark red header band' },
-    { id: 'orange-dark', name: 'Orange (dark header)', className: 'theme-orange-dark', type: 'card', description: 'Orange card with a burnt orange header band' }
+    { id: 'orange', name: 'Orange', className: 'theme-orange', type: 'card', description: 'Orange accent theme' }
 ]);
+
+/**
+ * Theme ids that no longer exist, and the theme each one became.
+ *
+ * The `*-dark` variants filled the header band. A theme now has one band and follows
+ * the interface's light or dark scheme, so each retired id maps to its plain colour.
+ * Resolved in `findTheme`, which every lookup goes through -- a stored id never reaches
+ * the "unknown theme" fallback, and a card already in the chat log re-renders as its
+ * plain theme rather than as Tan. Only the `-dark` ids belong here: an id that was never
+ * ours (Scribe's `theme-dark`) must still miss, so it falls to the world default.
+ */
+export const RETIRED_THEME_IDS = Object.freeze({
+    'default-dark': 'default',
+    'amber-dark': 'amber',
+    'blue-dark': 'blue',
+    'green-dark': 'green',
+    'red-dark': 'red',
+    'orange-dark': 'orange'
+});
 
 // ==================================================================
 // ===== PART REGISTRY ==============================================
@@ -815,7 +826,8 @@ export class ChatCardsManager {
      * so a caller deciding what to do about a miss can ask without provoking one.
      */
     static findTheme(themeId) {
-        return CHAT_CARD_THEMES.find((t) => t.id === themeId) ?? null;
+        const id = RETIRED_THEME_IDS[themeId] ?? themeId;
+        return CHAT_CARD_THEMES.find((t) => t.id === id) ?? null;
     }
 
     /**
@@ -862,5 +874,24 @@ export class ChatCardsManager {
         if (theme) return theme;
         postConsoleAndNotification(MODULE.NAME, 'Chat Cards | Unknown theme, falling back to Tan', String(themeId), false, false);
         return CHAT_CARD_THEMES[0];
+    }
+
+    /**
+     * Publish the `cardColorMode` setting to the stylesheet.
+     *
+     * 'follow' (the default) sets nothing: a card's light-dark() colours then read
+     * Foundry's own scheme for the reader, so each client shows its own. 'light' and 'dark'
+     * set `data-blacksmith-card-mode` on <body>, and `cards-common-themes.css` pins
+     * `color-scheme` on every card to match, over an opaque ground so the card does not
+     * depend on the message behind it being the right brightness.
+     *
+     * A plain attribute rather than a class: it is one value, not a set, and removing
+     * it IS the 'follow' state, so there is no third value to keep in step with the CSS.
+     * Reads the setting each call, so it is safe to run again from onChange.
+     */
+    static applyColorMode() {
+        const mode = getSettingSafely(MODULE.ID, 'cardColorMode', 'follow');
+        if (mode === 'light' || mode === 'dark') document.body.dataset.blacksmithCardMode = mode;
+        else delete document.body.dataset.blacksmithCardMode;
     }
 }
