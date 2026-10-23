@@ -272,10 +272,37 @@
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* "Roll me" die: brand-dark (#481515) on a clickable row is near-black on the dark
+   log. The brand accent is the system's "interactive" colour, so it still reads as
+   the live thing on the card -- and a module that overrides the accent (vars.css
+   documents how) carries its dice with it. */
+.themed.theme-dark .blacksmith-card .blacksmith-row-clickable .blacksmith-part-row-marker {
+    color: var(--blacksmith-color-brand-accent);
+}
+
 .themed.theme-dark .blacksmith-card .blacksmith-part-pip {
     background-color: rgba(255, 255, 255, 0.14);
 }
 
 .themed.theme-dark .blacksmith-card .markdown-blockquote {
     background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Foundry paints a whispered, blind or emote message with an OPAQUE pale ground
+   (--color-whisper-background #e8e8ef, --color-blind-background #f5eaf5,
+   --color-emote-background #f3edde) and does not darken it for a dark interface.
+   A GM sees their copy of a roll request as a whisper, so the card -- now light-inked
+   -- sat on pale lavender and vanished. Only messages carrying one of our cards are
+   restyled: other systems' cards still ink dark and want the pale ground. The hue
+   survives as a dark tint of each kind, and Foundry's own borders are left alone. */
+.themed.theme-dark .chat-message.whisper:has(.blacksmith-card) {
+    --color-whisper-background: #26262f;
+}
+
+.themed.theme-dark .chat-message.blind:has(.blacksmith-card) {
+    --color-blind-background: #2e2331;
+}
+
+.themed.theme-dark .chat-message.emote:has(.blacksmith-card) {
+    --color-emote-background: #2e2a20;
 }
