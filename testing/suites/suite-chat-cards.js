@@ -912,8 +912,10 @@ export default {
                             { part: 'rows', items: [
                                 { img: IMG, cover: true, label: 'Favia Gita', sublabel: 'Ranger 4', trailing: '18',
                                   trailingSize: 'large', trailingIcon: 'fa-solid fa-check', tone: 'positive' },
-                                { icon: 'fa-solid fa-scroll', label: 'A quest thumbnail', sublabel: 'with its own ground',
-                                  ground: 'rgba(72, 21, 21, 0.85)', iconColor: 'rgba(255, 235, 200, 0.95)' } ] },
+                                // No ground or iconColor: those are a caller's categorical colour and
+                                // are tested on their own card above. Here the icon thumbnail must be
+                                // whatever the THEME makes it, or every theme shows the same red box.
+                                { icon: 'fa-solid fa-scroll', label: 'An icon thumbnail', sublabel: 'on the theme\'s own ground' } ] },
                             { part: 'badges', items: [{ label: 'Action' }, { label: 'Reach 10 ft' }] },
                             { part: 'actions', buttons: [
                                 { moduleId: MOD, action: TEST_ACTION, label: 'Cancel' },

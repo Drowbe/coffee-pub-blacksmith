@@ -53,7 +53,9 @@
     --blacksmith-card-button-container-bg: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
 
     /* The "roll me" die on a clickable row, and any other glyph that says "this is live".
-       Brand-dark on light; the brand accent on dark, where brand-dark is near-black. */
+       EVERY THEME sets this in its own hue; what is here is the fallback for a card with no
+       theme class. Brand-dark on light; the brand accent on dark, where brand-dark is
+       near-black. */
     --blacksmith-card-marker-accent: light-dark(var(--blacksmith-color-brand-dark), var(--blacksmith-color-brand-accent));
 
     /* A button states its weight, the way window buttons do (window-template.css

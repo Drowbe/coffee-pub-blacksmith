@@ -12,11 +12,15 @@
     `body.theme-dark` and every `.themed.theme-dark` element (the chat log among them);
     light-dark() reads it, so nothing here selects on a theme-dark class.
 
-    A theme states only what it changes. The neutrals every theme shares -- ink, section
+    A theme states what makes it itself. The neutrals every theme shares -- ink, section
     heads, buttons, edges, tones -- are declared once on :root in cards-common-layout.css,
-    already in both schemes. Tan, orange, red, blue and green therefore state hue alone
-    (ground, edge, hover, header tint); amber also states its own ink, because its text is
-    a warm brown rather than the shared one.
+    already in both schemes. Every theme then states its hue: ground, edge, hover, header
+    tint, and the accent on a live glyph (the roll-me die). Amber also states its own ink,
+    because its text is a warm brown rather than the shared one.
+
+    A part never carries a colour of its own that a theme cannot reach. If something on
+    a card is a colour, some theme block sets it; the :root value is only the fallback for
+    a card with no theme class.
 
     There is no "dark header" variant. A theme has one header band, tinted. A card that
     wants a loud filled header in the light scheme is a new theme, not a flag on an old
@@ -32,6 +36,7 @@
     /* A hint of the theme, so the header reads as a header rather than as the
        first line of the card. */
     --blacksmith-card-header-bg: light-dark(rgba(0, 0, 0, 0.08), rgba(255, 255, 255, 0.08));
+    --blacksmith-card-marker-accent: light-dark(#7a5230, #d9a066);
 }
 
 /* Amber Theme -- the one theme with its own ink. */
@@ -52,6 +57,7 @@
     --blacksmith-card-button-border: light-dark(rgba(122, 83, 31, 0.45), rgba(214, 170, 100, 0.45));
     --blacksmith-card-button-hover-bg: light-dark(rgba(143, 104, 42, 0.12), rgba(214, 170, 100, 0.16));
     --blacksmith-card-button-container-bg: light-dark(rgba(122, 83, 31, 0.06), rgba(214, 170, 100, 0.07));
+    --blacksmith-card-marker-accent: light-dark(#8f5f14, #f0b455);
 }
 
 /* Orange Theme */
@@ -60,6 +66,7 @@
     --blacksmith-card-border: light-dark(rgba(247, 140, 1, 0.07), rgba(247, 140, 1, 0.22));
     --blacksmith-card-hover-color: rgba(247, 140, 1, 0.8);
     --blacksmith-card-header-bg: light-dark(rgba(247, 140, 1, 0.18), rgba(247, 140, 1, 0.26));
+    --blacksmith-card-marker-accent: light-dark(#b35f00, #ffa733);
 }
 
 /* Red Theme -- the light red is a brick colour that vanishes on a dark ground, so the
@@ -69,6 +76,7 @@
     --blacksmith-card-border: light-dark(rgba(118, 31, 19, 0.07), rgba(214, 70, 50, 0.25));
     --blacksmith-card-hover-color: light-dark(rgba(118, 31, 19, 0.8), rgba(232, 98, 78, 0.95));
     --blacksmith-card-header-bg: light-dark(rgba(118, 31, 19, 0.18), rgba(214, 70, 50, 0.28));
+    --blacksmith-card-marker-accent: light-dark(#8f1d12, #ff7a66);
 }
 
 /* Blue Theme */
@@ -77,6 +85,7 @@
     --blacksmith-card-border: light-dark(rgba(0, 120, 212, 0.07), rgba(60, 150, 230, 0.25));
     --blacksmith-card-hover-color: light-dark(rgba(0, 120, 212, 0.8), rgba(96, 175, 240, 0.95));
     --blacksmith-card-header-bg: light-dark(rgba(0, 120, 212, 0.16), rgba(60, 150, 230, 0.26));
+    --blacksmith-card-marker-accent: light-dark(#0a5a9c, #6ab4f0);
 }
 
 /* Green Theme */
@@ -85,6 +94,7 @@
     --blacksmith-card-border: light-dark(rgba(0, 212, 64, 0.07), rgba(0, 212, 64, 0.25));
     --blacksmith-card-hover-color: light-dark(rgba(0, 212, 64, 0.8), rgba(70, 230, 110, 0.9));
     --blacksmith-card-header-bg: light-dark(rgba(0, 212, 64, 0.16), rgba(0, 212, 64, 0.22));
+    --blacksmith-card-marker-accent: light-dark(#1a7a38, #58e07f);
 }
 
 /* ------------------------------------ */
