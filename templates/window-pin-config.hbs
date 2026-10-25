@@ -120,6 +120,13 @@
                         </label>
                         <span class="blacksmith-toggle-label">Allow Duplicates of this Pin on the Canvas</span>
                     </div>
+                    <div class="blacksmith-toggle-row" style="margin-top: 10px;" data-tooltip="Let this pin be turned with Shift and the mouse wheel while it is selected. Starts on for pins of a type that allows turning.">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-rotatable" {{#if pinRotatable}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label">Can be Rotated (Shift + Mouse Wheel)</span>
+                    </div>
                     {{/if}}
                 </div>
             </div>

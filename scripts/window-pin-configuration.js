@@ -157,7 +157,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
     _buildPinUpdateData({ sizeInput, imagePreview, shapeInput, strokeWidthInput,
         fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
         textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
-        imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml }) {
+        imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, rotatableInput, nativeHtml }) {
         const clampDim = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(8, Math.round(p)) : fb; };
         const clampSW  = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(0, Math.round(p)) : fb; };
         const clampTS  = (v, fb) => { const p = Number(v); return Number.isFinite(p) ? Math.max(6, Math.round(p)) : fb; };
@@ -204,6 +204,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             imageFit: imageFitSelect ? imageFitSelect.value : this.pinImageFit,
             imageZoom: (imageFitSelect?.value === 'zoom' && imageZoomInput) ? Number(imageZoomInput.value) / 100 : this.pinImageZoom,
             allowDuplicatePins: !!allowDuplicateInput?.checked,
+            // Only a changed toggle states anything: untouched, a pin keeps following its type (undefined is ignored by update)
+            rotatable: (rotatableInput && !!rotatableInput.checked !== this.rotatableShown) ? !!rotatableInput.checked : this.pinRotatable,
             eventAnimations: {
                 hover:       { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-hover-animation')?.value || null,       sound: nativeHtml.querySelector('.blacksmith-pin-config-event-hover-sound')?.value?.trim() || null },
                 click:       { animation: nativeHtml.querySelector('.blacksmith-pin-config-event-click-animation')?.value || null,       sound: nativeHtml.querySelector('.blacksmith-pin-config-event-click-sound')?.value?.trim() || null },
@@ -271,6 +273,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         if (checked.has('permissions')) {
             partial.ownership = fullUpdateData.ownership;
             if (fullUpdateData.config !== undefined) partial.config = fullUpdateData.config;
+            const rotatableToggle = nativeHtml.querySelector('.blacksmith-pin-config-rotatable');
+            if (rotatableToggle) partial.rotatable = !!rotatableToggle.checked;
         }
 
         const sectionNames = [...checked].join(', ');
@@ -479,6 +483,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const pinImageZoomPercent = Math.round(zoomNum * 100);
 
         this.allowDuplicatePins = pin.allowDuplicatePins === true;
+        this.pinRotatable = typeof pin.rotatable === 'boolean' ? pin.rotatable : undefined; // what the pin itself states
+        this.rotatableShown = PinManager.isRotatableKind(pin); // what the toggle starts as: its own answer, else its type's
         this.pinTags = normalizePinTags(pin.tags);
 
         // Event animations (hover, click, double-click, delete, add) with optional sound
@@ -649,6 +655,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             iconMode: this.iconMode,
             showUseAsDefault: true, // Always show toggle - modules can handle saving defaults themselves
             pinAllowDuplicatePins: this.allowDuplicatePins,
+            pinRotatable: this.rotatableShown,
             pinTagsCsv: this.pinTags.join(', '),
             pinSuggestedTags,
             pinOtherTags,
@@ -723,6 +730,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const tagsInput = nativeHtml.querySelector('.blacksmith-pin-config-tags');
         const defaultInput = nativeHtml.querySelector('.blacksmith-pin-config-default');
         const allowDuplicateInput = nativeHtml.querySelector('.blacksmith-pin-config-allow-duplicate');
+        const rotatableInput = nativeHtml.querySelector('.blacksmith-pin-config-rotatable');
         const accessSelect = nativeHtml.querySelector('.blacksmith-pin-config-access-default');
         const visibilitySelect = nativeHtml.querySelector('.blacksmith-pin-config-player-visibility');
         const sourceToggle = nativeHtml.querySelector('.blacksmith-pin-config-source-toggle-input');
@@ -1106,7 +1114,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             const pinUpdateData = this._buildPinUpdateData({ sizeInput, imagePreview, shapeInput,
                 strokeWidthInput, fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput,
                 textDisplayInput, textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput,
-                textScaleInput, imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, nativeHtml });
+                textScaleInput, imageInput, imageFitSelect, imageZoomInput, allowDuplicateInput, rotatableInput, nativeHtml });
 
             // GM-only: name, tags and ownership are per-pin, not part of bulk update
             if (game.user?.isGM) {
@@ -1189,6 +1197,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                             ...(has('classification') ? { tags: pinUpdateData.tags } : {}),
                             ...(has('permissions') ? {
                                 allowDuplicatePins: !!allowDuplicateInput?.checked,
+                                ...(rotatableInput ? { rotatable: !!rotatableInput.checked } : {}),
                                 ...(pinUpdateData.ownership ? { ownership: foundry.utils.deepClone(pinUpdateData.ownership) } : {}),
                                 ...(pinUpdateData.config ? { config: foundry.utils.deepClone(pinUpdateData.config) } : {})
                             } : {})

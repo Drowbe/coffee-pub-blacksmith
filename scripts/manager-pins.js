@@ -278,13 +278,25 @@ export class PinManager {
     }
 
     /**
-     * May the current user turn this pin: they can edit it, and its type declares `rotatable: true` in its taxonomy
-     * entry. Undeclared is not rotatable: a type opts in because only its owner knows a heading means anything.
+     * May the current user turn this pin: they can edit it, and it is rotatable. A pin that states `rotatable` itself
+     * is taken at its word; one that does not follows its type's taxonomy entry, where undeclared is not rotatable.
      * @param {PinData} pin
      * @returns {boolean}
      */
     static isRotatable(pin) {
         if (!pin || !this._canEdit(pin, game.user?.id || '')) return false;
+        return this.isRotatableKind(pin);
+    }
+
+    /**
+     * Is this pin rotatable, whoever is asking: its own `rotatable` if it states one, otherwise its type's. This is the
+     * answer the Configure Pin toggle starts from.
+     * @param {PinData} pin
+     * @returns {boolean}
+     */
+    static isRotatableKind(pin) {
+        if (!pin) return false;
+        if (typeof pin.rotatable === 'boolean') return pin.rotatable;
         return this.getPinTaxonomy(pin.moduleId, pin.type)?.rotatable === true;
     }
 
@@ -2440,6 +2452,8 @@ export class PinManager {
         if (typeof patch.imageZoom === 'number' && Number.isFinite(patch.imageZoom)) {
             merged.imageZoom = Math.max(1, Math.min(2, patch.imageZoom));
         }
+        if (typeof patch.rotatable === 'boolean') merged.rotatable = patch.rotatable;
+        else if (patch.rotatable === null) merged.rotatable = undefined; // back to following the type
         if (patch.rotation !== undefined) {
             // null clears it. A value that is not a number is ignored rather than stored.
             const rotation = patch.rotation === null ? 0 : normalizePinRotation(patch.rotation);

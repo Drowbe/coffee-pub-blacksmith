@@ -27,4 +27,7 @@ await pins.create({ id: foundry.utils.randomID(16), moduleId: 'zz-rotation-probe
 12. Trackpad. On a laptop trackpad, Shift + two-finger scroll. Expected: it turns in 15 degree steps and the page does not scroll sideways.
 13. Image pin. Repeat 1 and 2 with an image pin (circle shape and rectangle). Expected: the image turns inside the pin; on a rectangle the corners of the turning image are clipped by the pin and nothing spills out.
 14. Zoomed out. Zoom the map out until the pins become dots. Expected: nothing odd; zoom back in and the pin is still turned.
-15. Clean up the probe pins when done.
+15. The toggle. Open Configure Pin on the Not me pin, General tab. Expected: Can be Rotated (Shift + Mouse Wheel) sits under Allow Duplicates and is off. Turn it on and save, select the pin, Shift + scroll. Expected: it turns. Open Configure Pin on the Turner pin. Expected: the toggle is on. Turn it off and save. Expected: Shift + scroll no longer turns it.
+16. The toggle follows the type when untouched. Open Configure Pin on a rotatable-type pin that has never been touched and save without touching the toggle. Expected: it still turns, and `pins.get(id).rotatable` is `undefined`.
+17. Update All. On a Turner pin with another Turner pin on the scene, open Configure Pin, enable Update All and tick Permissions, turn the toggle off, save. Expected: after confirming, both pins stop turning.
+18. Clean up the probe pins when done.

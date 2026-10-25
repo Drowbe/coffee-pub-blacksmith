@@ -32,6 +32,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
+ * @property {boolean} [rotatable] - Whether this pin can be turned with Shift + wheel. Absent means follow the pin's type (its taxonomy `rotatable` flag); an explicit true or false overrides the type for this pin.
  * @property {number} [rotation] - How far the pin's icon or image is turned, in degrees clockwise, 0 facing down the screen like a Foundry tile. Normalised to [0, 360). Absent means 0; the text label never turns.
  * @property {string} [type] - Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {string[]} [tags] - User-facing classification tags. Supports registered and freeform values. Defaults to [].
@@ -442,6 +443,8 @@ export function applyDefaults(partial) {
         }
     }
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
+    // Stored only when stated: absent means follow the type, so false is a real answer and not the same as unset.
+    if (typeof partial.rotatable === 'boolean') base.rotatable = partial.rotatable;
     // Stored only when turned: a pin at 0 carries no key. Dropped here would mean dropped on every load.
     const rotation = normalizePinRotation(partial.rotation);
     if (rotation) base.rotation = rotation;

@@ -198,6 +198,48 @@ export default {
                 expect('explicit false switches it off', off.rotatable, false);
             }
         },
+        {
+            id: 'rotatable-per-pin',
+            label: 'A pin that states rotatable is taken at its word; one that does not follows its type; null goes back to following',
+            tier: 'headless',
+            group: 'Rotation',
+            note: 'The Configure Pin toggle writes this field. Unset and false are different answers.',
+            run: async ({ api, expect }) => {
+                requireApi('pins.create', 'pins.update', 'pins.get', 'pins.registerPinTaxonomy');
+                requireGM();
+                const PM = await manager();
+                const open = probeType('open');
+                const closed = probeType('closed');
+                api.pins.registerPinTaxonomy(PROBE_MODULE, open, { label: 'Open', tags: [], rotatable: true });
+                api.pins.registerPinTaxonomy(PROBE_MODULE, closed, { label: 'Closed', tags: [] });
+                const made = [];
+                try {
+                    const inClosed = await makePin(api, { type: closed });
+                    const inOpen = await makePin(api, { type: open });
+                    made.push(inClosed.id, inOpen.id);
+
+                    expect('a pin of a closed type is not rotatable', PM.isRotatable(api.pins.get(inClosed.id)), false);
+                    expect('a pin of an open type is', PM.isRotatable(api.pins.get(inOpen.id)), true);
+                    expect('nothing is stated on either', [api.pins.get(inClosed.id).rotatable, api.pins.get(inOpen.id).rotatable], [undefined, undefined]);
+
+                    await api.pins.update(inClosed.id, { rotatable: true });
+                    expect('a pin can opt in over its type', PM.isRotatable(api.pins.get(inClosed.id)), true);
+                    await api.pins.update(inOpen.id, { rotatable: false });
+                    expect('and opt out', PM.isRotatable(api.pins.get(inOpen.id)), false);
+                    expect('false is stored, not dropped', api.pins.get(inOpen.id).rotatable, false);
+
+                    await api.pins.update(inClosed.id, { rotatable: null });
+                    await api.pins.update(inOpen.id, { rotatable: null });
+                    expect('null goes back to the type: closed', PM.isRotatable(api.pins.get(inClosed.id)), false);
+                    expect('null goes back to the type: open', PM.isRotatable(api.pins.get(inOpen.id)), true);
+
+                    await api.pins.update(inClosed.id, { rotatable: 'yes' });
+                    expect('a non-boolean is ignored', api.pins.get(inClosed.id).rotatable, undefined);
+                } finally {
+                    await cleanup(api, { pins: made });
+                }
+            }
+        },
         // ---------------------------------------------------------------- declarations
         {
             id: 'declarations-default-off',
