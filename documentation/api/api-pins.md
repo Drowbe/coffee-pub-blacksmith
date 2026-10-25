@@ -261,6 +261,8 @@ A category may also declare `"target"`, the `config` key (or an ordered list of 
 
 Do not declare `target` if your module wants to receive double-clicks on a dangling pin of its own.
 
+A category may also declare `"rotatable": true` (boolean, default `false`; accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`). It lets a user turn a pin of that type with Shift + wheel (see [Rotation](#rotation)). Undeclared is not rotatable, so a quest or journal pin is never turned by accident: only the owner of a type knows a heading means anything for it. Declare it beside `copyable`.
+
 A category may also declare `"relinkable": true` (boolean, default `false`; accepted by `registerPinTaxonomy` and returned by `getPinTaxonomy` and `getModuleTaxonomy`), which lets the GM point a **broken** pin of that type at another document. It only means something alongside `target`. Add `"relinkScope": "world"` (default `"any"`) if the pin can only point at a document in this world, as a pin for a record your module keeps in the world's documents does: the search then never offers a compendium document and `pins.relink` refuses one. **Leave it off unless you can repair what else your module keeps about the old document**, because a relink rewrites only the one config key that held the dead UUID: a snapshot of the old document, a flag on it that points back at the pin, a category or a label are all yours. Blacksmith announces the change so you can:
 
 - **`relinked`** is a lifecycle event for `pins.on('relinked', handler, { moduleId })` and the Hook `blacksmith.pins.relinked`. The payload is `{ pinId, sceneId, moduleId, pinType, key, oldUuid, newUuid, interactive, renameToMatch, pin }`, where `key` is the config key that was rewritten and `interactive` is false during a batch repair. The ordinary `updated` event fires for the config write too. Both run on the client that relinked, which is a GM's.
@@ -369,6 +371,7 @@ interface StoredPinData {
   allowDuplicatePins?: boolean; // If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing). Configurable in Configure Pin > Permissions.
   imageFit?: 'fill' | 'contain' | 'cover' | 'none' | 'scale-down' | 'zoom'; // Controls how image URLs are sized inside the pin element (default: 'cover'). 'cover' fills the pin dimensions, cropping if needed. 'contain' letterboxes to preserve aspect ratio. 'none' renders at natural size. 'zoom' uses imageZoom to scale beyond cover. Ignored for Font Awesome icons.
   imageZoom?: number; // Scale multiplier when imageFit is 'zoom' (default: 1, clamped 1–2). 1 = same as cover, 1.5 = 50% zoom in. Ignored for other imageFit values.
+  rotation?: number; // How far the icon or image is turned, degrees clockwise, 0 facing down the screen (Foundry's convention for tiles and tokens). Normalised to [0, 360). Always a number on a returned pin (0 when never turned). The text label does not turn. See Rotation.
   config?: {
     /** Pin editing: who may change this pin record. `'gm'` | `'private'` (owner + GM) | `'public'`. Legacy access keys normalized on read. */
     blacksmithAccess?: 'gm' | 'private' | 'public';
@@ -831,7 +834,26 @@ await pinsAPI.update(pin.id, { style: { iconColor: '#ffd700' } });
 
 **Icon/Image Type Changes**: When updating the `image` property to change from an icon to an image (or vice versa), the renderer automatically detects the type change and rebuilds the icon element. No manual refresh or reload is needed.
 
-### `pins.delete(pinId, options?)`
+### Rotation
+
+A pin can face a direction. `rotation` is the angle in degrees, clockwise, with 0 facing down the screen, normalised to [0, 360). It turns the pin's icon or image and nothing else: the pin's shape, border and fill stay put, and the text label never turns.
+
+```javascript
+const pins = game.modules.get('coffee-pub-blacksmith')?.api?.pins;
+
+pins.registerPinTaxonomy('my-module', 'group-anchor', { label: 'Group Anchor', tags: [], rotatable: true });
+
+const pin = await pins.create({ id: foundry.utils.randomID(16), moduleId: 'my-module', type: 'group-anchor', x: 1200, y: 800, rotation: 90 });
+await pins.update(pin.id, { rotation: 135 });
+pins.get(pin.id).rotation;                 // 135
+await pins.update(pin.id, { rotation: 0 }); // 0 or null clears it
+```
+
+- **Read and write.** `pins.create` and `pins.update` accept `rotation`; `pins.get`, `pins.list` and every event payload return it as a number, 0 for a pin that was never turned. A value outside [0, 360) wraps (`-10` is `350`, `725` is `5`) and is kept to two decimals. A value that is not a number is ignored, not stored. `0` or `null` clears it.
+- **Turning by hand.** With a pin of a `rotatable` type selected (single-click) and a user who can edit it, Shift + mouse wheel with the pointer over the board turns it by 15 degrees per notch, the way Foundry turns a selected object. A trackpad scroll adds up to the same notch. Scrolling down turns clockwise. The pin turns on screen at once and is saved once, a moment after the wheel stops, so one gesture is one `updated` event and one scene-flag write however many notches it took. Shift + wheel on any other pin, or with nothing selected, is left to Foundry.
+- **Who sees it.** Rotation is stored with the pin, so every client draws it, and a player who may edit the pin saves through the same GM relay as any other update.
+- **Events.** A turn is an ordinary update: `updated` fires with `patch: { rotation }`, on the client that performs the write.
+
 Delete a pin (placed or unplaced). When `sceneId` is omitted, the API searches the unplaced store first, then all scenes. Works for both unplaced and placed pins.
 
 **Returns**: `Promise<void>`

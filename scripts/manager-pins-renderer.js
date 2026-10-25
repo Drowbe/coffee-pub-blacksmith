@@ -13,7 +13,7 @@ import {
     PIN_VISIBILITY_ICONS,
     pinIconTag
 } from './manager-pins-permission-icons.js';
-import { normalizeBlacksmithAccess, normalizeBlacksmithVisibility } from './manager-pins-schema.js';
+import { normalizeBlacksmithAccess, normalizeBlacksmithVisibility, normalizePinRotation } from './manager-pins-schema.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
@@ -74,6 +74,12 @@ class PinDOMElement {
     static _reusableDragPoint = null; // Reusable PIXI.Point for drag operations
     static _selectedPinId = null; // The one selected pin (single-click); keyboard commands act on it
     static _selectedCanEdit = false; // Whether this user may edit/delete the selected pin (the test behind the menu's Configure and Delete)
+    static _selectedCanRotate = false; // Whether Shift + wheel turns the selected pin: editable, and its type declares `rotatable`
+    static _rotation = null; // { pinId, start, value, accumulated, timer, committing }: a turn in progress, shown at once and saved once
+    static _wheelListener = null; // Document capture listener: Shift + wheel turns the selected pin
+    static ROTATE_STEP_DEGREES = 15; // One wheel notch: Foundry's own rotation snap
+    static ROTATE_WHEEL_UNIT = 100; // Wheel delta that makes one notch: a mouse notch is 100, a trackpad adds up to it
+    static ROTATE_COMMIT_MS = 400; // Quiet time after the last notch before the turn is saved
     static _lastDeleted = null; // { pin, sceneId, time } -- the last pin a GM deleted, for Ctrl+Z
     static UNDO_DELETE_MS = 60000;
     static _clipboard = null; // { pin } -- the copied pin's data, for Ctrl+V; per session, lost on reload
@@ -177,6 +183,8 @@ class PinDOMElement {
         this._keyDownListener = (e) => this._onDocumentKeyDown(e);
         document.addEventListener('pointerdown', this._pointerDownListener, true);
         document.addEventListener('keydown', this._keyDownListener, true);
+        this._wheelListener = (e) => this._onDocumentWheel(e);
+        document.addEventListener('wheel', this._wheelListener, { capture: true, passive: false });
         this._pointerMoveListener = (e) => {
             const pointer = this._pointer;
             pointer.x = e.clientX;
@@ -422,6 +430,8 @@ class PinDOMElement {
         // Update pin shape
         const shape = pinData.shape || 'circle';
         pinElement.dataset.shape = shape;
+        pinElement.dataset.pinType = pinData.type || 'default';
+        this._showRotation(pinId, pinElement, pinData.rotation);
         if (pinData.moduleId) {
             pinElement.dataset.moduleId = pinData.moduleId;
         } else {
@@ -869,7 +879,7 @@ class PinDOMElement {
                 // Left press selects at once (a drag of an unselected pin selects it too)
                 const currentPinData = PinManager.get(pinData.id) || freshPinData;
                 const canEdit = PinManager._canEdit(currentPinData, userId);
-                this.select(currentPinData.id, { canEdit });
+                this.select(currentPinData.id, { canEdit, canRotate: PinManager.isRotatable(currentPinData) });
 
                 const live = this._live.get(currentPinData.id);
                 if (canEdit && (!live || live.draggable)) {
@@ -1939,6 +1949,7 @@ class PinDOMElement {
      * @param {string} pinId
      */
     static removePin(pinId) {
+        this._discardRotation(pinId);
         if (this._selectedPinId === pinId) this._selectedPinId = null;
         const pinElement = this._pins.get(pinId);
         if (pinElement) {
@@ -2218,8 +2229,9 @@ class PinDOMElement {
      * @param {string} pinId
      * @param {Object} [options]
      * @param {boolean} [options.canEdit=false] - Whether the user may edit and delete it (the same test that gates the menu's Configure Pin and Delete Pin); decided at select time because the key handler must answer synchronously
+     * @param {boolean} [options.canRotate=false] - Whether Shift + wheel may turn it: editable and of a type that declares `rotatable`; decided here for the same reason
      */
-    static select(pinId, { canEdit = false } = {}) {
+    static select(pinId, { canEdit = false, canRotate = false } = {}) {
         if (this._selectedPinId !== pinId) {
             this.deselect();
             const pinElement = this._pins.get(pinId);
@@ -2228,17 +2240,20 @@ class PinDOMElement {
             pinElement.dataset.selected = 'true';
         }
         this._selectedCanEdit = canEdit;
+        this._selectedCanRotate = canEdit && canRotate;
     }
 
     /**
      * Clear the selection.
      */
     static deselect() {
+        this._flushRotation();
         const pinElement = this._selectedPinId ? this._pins.get(this._selectedPinId) : null;
         if (pinElement) delete pinElement.dataset.selected;
         if (this._selectedPinId) this._scheduleUpdate(); // the selected pin is never clustered; now it may be
         this._selectedPinId = null;
         this._selectedCanEdit = false;
+        this._selectedCanRotate = false;
     }
 
     /**
@@ -2252,6 +2267,112 @@ class PinDOMElement {
         const target = event.target;
         if (target?.closest?.('.blacksmith-pin, #blacksmith-pin-context-menu')) return;
         this.deselect();
+    }
+
+    // ===== ROTATION =====
+
+    /**
+     * Draw a pin's icon or image turned. The text label is a separate element and never turns.
+     * While a turn is in progress its value wins, so a redraw triggered by something else does not snap it back.
+     * @param {string} pinId
+     * @param {HTMLElement} pinElement
+     * @param {number} [stored] - The saved rotation, in degrees
+     * @private
+     */
+    static _showRotation(pinId, pinElement, stored) {
+        const turning = this._rotation?.pinId === pinId ? this._rotation.value : null;
+        const value = turning ?? normalizePinRotation(stored) ?? 0;
+        pinElement.dataset.rotation = String(value);
+        if (value) pinElement.style.setProperty('--pin-rotation', `${value}deg`);
+        else pinElement.style.removeProperty('--pin-rotation');
+    }
+
+    /**
+     * Shift + wheel turns the selected pin by one step per notch, the way Foundry turns a selected object.
+     * Only a pin this user may edit and whose type declares rotatable, and only with the pointer over the
+     * board, so scrolling a sidebar list or zooming over a pin that cannot turn is left alone. The new angle
+     * is drawn at once and saved once, after the wheel goes quiet: every save is a scene-flag update that
+     * every client receives.
+     * @param {WheelEvent} event
+     * @private
+     */
+    static _onDocumentWheel(event) {
+        if (!event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) return;
+        const pinId = this._selectedPinId;
+        if (!pinId || !this._selectedCanRotate || !this._pointer.overBoard) return;
+        if (this._container?.dataset.hidden === 'true') return;
+        const pinElement = this._pins.get(pinId);
+        if (!pinElement) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        // Shift turns a vertical wheel into a horizontal one in some browsers, so read whichever moved
+        const unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? 800 : 1;
+        const delta = (event.deltaY || event.deltaX) * unit;
+        if (!delta) return;
+
+        let state = this._rotation;
+        if (!state || state.pinId !== pinId || state.committing) {
+            this._flushRotation();
+            const start = Number(pinElement.dataset.rotation) || 0;
+            state = { pinId, start, value: start, accumulated: 0, timer: null, committing: false };
+            this._rotation = state;
+        }
+
+        state.accumulated += delta;
+        const notches = Math.trunc(state.accumulated / this.ROTATE_WHEEL_UNIT);
+        if (!notches) return;
+        state.accumulated -= notches * this.ROTATE_WHEEL_UNIT;
+
+        // Scrolling down turns clockwise
+        state.value = normalizePinRotation(state.value + notches * this.ROTATE_STEP_DEGREES) ?? 0;
+        this._showRotation(pinId, pinElement, state.value);
+
+        clearTimeout(state.timer);
+        state.timer = setTimeout(() => this._commitRotation(state), this.ROTATE_COMMIT_MS);
+    }
+
+    /**
+     * Save a finished turn. A turn that ended where it began saves nothing. If the save fails the pin is
+     * redrawn from what is stored, so what is shown is never what was not kept.
+     * @param {{pinId: string, start: number, value: number, timer: number|null, committing: boolean}} state
+     * @returns {Promise<void>}
+     * @private
+     */
+    static async _commitRotation(state) {
+        clearTimeout(state.timer);
+        state.timer = null;
+        if (state.committing) return;
+        state.committing = true;
+        try {
+            if (state.value !== state.start) {
+                const { PinManager } = await import('./manager-pins.js');
+                await PinManager.update(state.pinId, { rotation: state.value });
+            }
+        } catch (error) {
+            postConsoleAndNotification(MODULE.NAME, 'BLACKSMITH | PINS Error saving pin rotation', error?.message || error, false, true);
+            if (this._rotation === state) this._rotation = null;
+            const { PinManager } = await import('./manager-pins.js');
+            const stored = PinManager.get(state.pinId);
+            const pinElement = this._pins.get(state.pinId);
+            if (stored && pinElement) this._showRotation(state.pinId, pinElement, stored.rotation);
+        } finally {
+            if (this._rotation === state) this._rotation = null;
+        }
+    }
+
+    /** Save a turn that is waiting for the wheel to go quiet, now. */
+    static _flushRotation() {
+        const state = this._rotation;
+        if (state && state.timer !== null && !state.committing) this._commitRotation(state);
+    }
+
+    /** Drop a turn on a pin that is going away. */
+    static _discardRotation(pinId) {
+        if (this._rotation?.pinId !== pinId) return;
+        clearTimeout(this._rotation.timer);
+        this._rotation = null;
     }
 
     /**
@@ -2413,7 +2534,7 @@ class PinDOMElement {
             await new Promise((resolve) => setTimeout(resolve, 50));
         }
         const pin = PinManager.get(pinId);
-        if (pin) this.select(pinId, { canEdit: PinManager._canEdit(pin, game.user?.id || '') });
+        if (pin) this.select(pinId, { canEdit: PinManager._canEdit(pin, game.user?.id || ''), canRotate: PinManager.isRotatable(pin) });
     }
 
     /**
@@ -2632,6 +2753,10 @@ class PinDOMElement {
         if (this._keyDownListener) {
             document.removeEventListener('keydown', this._keyDownListener, true);
             this._keyDownListener = null;
+        }
+        if (this._wheelListener) {
+            document.removeEventListener('wheel', this._wheelListener, { capture: true });
+            this._wheelListener = null;
         }
         if (this._pointerMoveListener) {
             document.removeEventListener('pointermove', this._pointerMoveListener, true);

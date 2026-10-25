@@ -32,6 +32,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
  * @property {number} [textMaxWidth] - Max characters per line before wrap (default: 0 = single line); break at word boundary
  * @property {boolean} [textScaleWithPin] - Whether text scales with pin size based on zoom (default: true). If false, text stays fixed size.
+ * @property {number} [rotation] - How far the pin's icon or image is turned, in degrees clockwise, 0 facing down the screen like a Foundry tile. Normalised to [0, 360). Absent means 0; the text label never turns.
  * @property {string} [type] - Pin category key (e.g., 'note', 'quest', 'location', 'npc'). Defaults to 'default' if not specified. Used for filtering and organization.
  * @property {string[]} [tags] - User-facing classification tags. Supports registered and freeform values. Defaults to [].
  * @property {boolean} [allowDuplicatePins] - If true, the same source (e.g. one journal page) may have multiple pins on the map; if false (default), one pin per source (creating replaces existing).
@@ -146,6 +147,18 @@ export function normalizePinTags(value) {
 // ------------------------------------------------------------------
 
 /** Current pin data schema version. Bump when format changes and add migration. */
+/**
+ * Normalise a rotation to degrees in [0, 360), rounded to two decimals so repeated steps do not drift.
+ * @param {unknown} value
+ * @returns {number | null} null when the value is not a finite number
+ */
+export function normalizePinRotation(value) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    const turned = ((value % 360) + 360) % 360;
+    const rounded = Math.round(turned * 100) / 100;
+    return rounded >= 360 ? 0 : rounded;
+}
+
 export const PIN_SCHEMA_VERSION = 7;
 
 /** Canonical pin-editing tokens in `config.blacksmithAccess`. */
@@ -429,6 +442,9 @@ export function applyDefaults(partial) {
         }
     }
     if (typeof partial.textScaleWithPin === 'boolean') base.textScaleWithPin = partial.textScaleWithPin;
+    // Stored only when turned: a pin at 0 carries no key. Dropped here would mean dropped on every load.
+    const rotation = normalizePinRotation(partial.rotation);
+    if (rotation) base.rotation = rotation;
     if (partial.type != null) {
         base.type = String(partial.type).trim() || PIN_DEFAULTS.type;
     } else {

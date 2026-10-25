@@ -127,6 +127,77 @@ export default {
                 }
             }
         },
+        // ---------------------------------------------------------------- rotation
+        {
+            id: 'rotation-contract',
+            label: 'A pin carries a rotation in [0, 360): normalised, readable as a number, cleared by 0 or null, never stored from junk',
+            tier: 'headless',
+            group: 'Rotation',
+            note: 'Unplaced pins, so no canvas. The turning itself (Shift + wheel, the icon turning, the text staying put) is a canvas check in testing/pin-rotation.md.',
+            run: async ({ api, expect }) => {
+                requireApi('pins.create', 'pins.update', 'pins.get');
+                requireGM();
+                const made = [];
+                try {
+                    const plain = await makePin(api, { type: probeType('rot') });
+                    made.push(plain.id);
+                    expect('a pin never turned reads 0', plain.rotation, 0);
+
+                    const turned = await api.pins.create({ id: foundry.utils.randomID(16), moduleId: PROBE_MODULE, type: probeType('rot'), text: 'Turned', rotation: 365 });
+                    made.push(turned.id);
+                    expect('create normalises 365 to 5', turned.rotation, 5);
+                    expect('and get reads the same', api.pins.get(turned.id).rotation, 5);
+
+                    expect('update to a negative angle wraps', (await api.pins.update(turned.id, { rotation: -10 })).rotation, 350);
+                    expect('update to a large angle wraps', (await api.pins.update(turned.id, { rotation: 725 })).rotation, 5);
+                    expect('a fraction survives to two places', (await api.pins.update(turned.id, { rotation: 12.3456 })).rotation, 12.35);
+
+                    await api.pins.update(turned.id, { rotation: 'sideways' });
+                    expect('a non-number is ignored, not stored', api.pins.get(turned.id).rotation, 12.35);
+                    await api.pins.update(turned.id, { text: 'Renamed' });
+                    expect('an update that does not mention it leaves it alone', api.pins.get(turned.id).rotation, 12.35);
+
+                    expect('0 clears it', (await api.pins.update(turned.id, { rotation: 0 })).rotation, 0);
+                    await api.pins.update(turned.id, { rotation: 90 });
+                    expect('null clears it too', (await api.pins.update(turned.id, { rotation: null })).rotation, 0);
+                } finally {
+                    await cleanup(api, { pins: made });
+                }
+            }
+        },
+        {
+            id: 'rotatable-declaration',
+            label: 'rotatable defaults to false, reads back when declared, and an omitting layer does not undo it',
+            tier: 'headless',
+            group: 'Rotation',
+            note: 'Same shape as copyable and relinkable: undeclared is not rotatable.',
+            run: async ({ api, expect }) => {
+                requireApi('pins.registerPinTaxonomy', 'pins.getPinTaxonomy');
+                const PM = await manager();
+                const plain = probeType('plain');
+                const yes = probeType('yes');
+                const junk = probeType('junk');
+                api.pins.registerPinTaxonomy(PROBE_MODULE, plain, { label: 'Plain', tags: [] });
+                api.pins.registerPinTaxonomy(PROBE_MODULE, yes, { label: 'Yes', tags: [], rotatable: true });
+                api.pins.registerPinTaxonomy(PROBE_MODULE, junk, { label: 'Junk', tags: [], rotatable: 'yes' });
+
+                expect('undeclared is not rotatable', api.pins.getPinTaxonomy(PROBE_MODULE, plain).rotatable, false);
+                expect('declared true reads back', api.pins.getPinTaxonomy(PROBE_MODULE, yes).rotatable, true);
+                expect('a non-boolean is ignored', api.pins.getPinTaxonomy(PROBE_MODULE, junk).rotatable, false);
+                expect('and it shows in the module listing', api.pins.getModuleTaxonomy(PROBE_MODULE)[yes]?.rotatable, true);
+
+                const kept = PM._mergeTaxonomyEntries(
+                    PM._normalizeTaxonomyEntry(PROBE_MODULE, 't', { label: 'A', tags: [], rotatable: true }),
+                    PM._normalizeTaxonomyEntry(PROBE_MODULE, 't', { label: 'B', tags: [] })
+                );
+                expect('omission keeps rotatable', kept.rotatable, true);
+                const off = PM._mergeTaxonomyEntries(
+                    PM._normalizeTaxonomyEntry(PROBE_MODULE, 't', { label: 'A', tags: [], rotatable: true }),
+                    PM._normalizeTaxonomyEntry(PROBE_MODULE, 't', { label: 'B', tags: [], rotatable: false })
+                );
+                expect('explicit false switches it off', off.rotatable, false);
+            }
+        },
         // ---------------------------------------------------------------- declarations
         {
             id: 'declarations-default-off',

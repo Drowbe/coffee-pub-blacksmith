@@ -208,6 +208,9 @@
     position: relative; /* For proper layering with text */
     overflow: hidden; /* Clip to pin shape */
     border-radius: inherit; /* Inherit pin's border-radius for clipping */
+    /* Turns the icon or image and nothing else: the pin's shape and its text label stay put. Set per pin by
+       the renderer from the pin's rotation; unset means not turned. */
+    transform: rotate(var(--pin-rotation, 0deg));
 }
 
 /* Font Awesome icon (symbol) - centered, sized by ratio; never uses cover/fill */

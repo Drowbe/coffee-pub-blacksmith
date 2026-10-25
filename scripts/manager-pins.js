@@ -18,7 +18,8 @@ import {
     normalizePinImageForStorage,
     normalizeTextLayout,
     normalizePinGroup,
-    normalizePinTags
+    normalizePinTags,
+    normalizePinRotation
 } from './manager-pins-schema.js';
 // normalizePinGroup is still used for tag normalization (tags use the same key-normalization function)
 
@@ -212,6 +213,9 @@ export class PinManager {
             // Whether a pin of this type may be pointed at a different document. Opt-in, for the same reason as
             // copyable: only the owner of a type knows what else is bound to the document it points at.
             relinkable: typeof taxonomy.relinkable === 'boolean' ? taxonomy.relinkable : undefined,
+            // Whether pins of this type can be turned (Shift + wheel on the selected pin). Opt-in per type, so a quest
+            // or journal pin is never turned by accident; undefined when not stated, for the same merge reason as copyable.
+            rotatable: typeof taxonomy.rotatable === 'boolean' ? taxonomy.rotatable : undefined,
             // 'world' restricts a relink to documents in this world; anything else, or nothing, allows compendiums too.
             relinkScope: ['world', 'any'].includes(taxonomy.relinkScope) ? taxonomy.relinkScope : undefined,
             // The config keys that may hold the UUID this pin points at, first present wins. Undefined when not
@@ -257,6 +261,7 @@ export class PinManager {
             tags: [],
             copyable: false,
             relinkable: false,
+            rotatable: false,
             relinkScope: 'any',
             target: []
         };
@@ -264,11 +269,23 @@ export class PinManager {
             if (entry.label) merged.label = entry.label;
             if (typeof entry.copyable === 'boolean') merged.copyable = entry.copyable;
             if (typeof entry.relinkable === 'boolean') merged.relinkable = entry.relinkable;
+            if (typeof entry.rotatable === 'boolean') merged.rotatable = entry.rotatable;
             if (entry.relinkScope) merged.relinkScope = entry.relinkScope;
             if (Array.isArray(entry.target)) merged.target = entry.target;
             merged.tags = Array.from(new Set([...(merged.tags || []), ...(entry.tags || [])].filter(Boolean)));
         }
         return merged;
+    }
+
+    /**
+     * May the current user turn this pin: they can edit it, and its type declares `rotatable: true` in its taxonomy
+     * entry. Undeclared is not rotatable: a type opts in because only its owner knows a heading means anything.
+     * @param {PinData} pin
+     * @returns {boolean}
+     */
+    static isRotatable(pin) {
+        if (!pin || !this._canEdit(pin, game.user?.id || '')) return false;
+        return this.getPinTaxonomy(pin.moduleId, pin.type)?.rotatable === true;
     }
 
     static getPinTaxonomy(moduleId, type) {
@@ -285,9 +302,9 @@ export class PinManager {
     /**
      * Get all registered taxonomy entries for a module — every type that has been registered
      * via the built-in JSON, an override JSON, or registerPinTaxonomy().
-     * Returns a plain object keyed by type, each value being { label, tags, copyable, relinkable, relinkScope, target }.
+     * Returns a plain object keyed by type, each value being { label, tags, copyable, relinkable, rotatable, relinkScope, target }.
      * @param {string} moduleId
-     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, relinkable: boolean, relinkScope: string, target: string[] }>}
+     * @returns {Record<string, { label: string, tags: string[], copyable: boolean, relinkable: boolean, rotatable: boolean, relinkScope: string, target: string[] }>}
      */
     static getModuleTaxonomy(moduleId) {
         if (!moduleId) return {};
@@ -299,7 +316,7 @@ export class PinManager {
         const result = {};
         for (const type of types) {
             const entry = this.getPinTaxonomy(moduleId, type);
-            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable, relinkable: entry.relinkable, relinkScope: entry.relinkScope, target: entry.target };
+            if (entry) result[type] = { label: entry.label, tags: entry.tags, copyable: entry.copyable, relinkable: entry.relinkable, rotatable: entry.rotatable, relinkScope: entry.relinkScope, target: entry.target };
         }
         return result;
     }
@@ -1768,6 +1785,8 @@ export class PinManager {
         const clone = foundry.utils.deepClone(pin);
         if (sceneId != null && sceneId !== '') clone.sceneId = sceneId;
         else delete clone.sceneId;
+        // A pin that was never turned is stored without the key; a consumer always gets a number.
+        clone.rotation = Number.isFinite(clone.rotation) ? clone.rotation : 0;
         return clone;
     }
 
@@ -2420,6 +2439,11 @@ export class PinManager {
         }
         if (typeof patch.imageZoom === 'number' && Number.isFinite(patch.imageZoom)) {
             merged.imageZoom = Math.max(1, Math.min(2, patch.imageZoom));
+        }
+        if (patch.rotation !== undefined) {
+            // null clears it. A value that is not a number is ignored rather than stored.
+            const rotation = patch.rotation === null ? 0 : normalizePinRotation(patch.rotation);
+            if (rotation !== null) merged.rotation = rotation || undefined;
         }
         if (patch.iconText !== undefined) {
             merged.iconText = patch.iconText ? String(patch.iconText).trim() : undefined;

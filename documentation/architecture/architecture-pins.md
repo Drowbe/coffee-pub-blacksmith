@@ -274,7 +274,7 @@ client. It exists so a module can move a marker every frame without writing the 
 
 ### Selection
 
-State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanEdit`, `_lastDeleted`); the selected node carries `data-selected="true"`, styled in `pins.css`. One pin at a time. Nothing outside the renderer reads it, and it is not part of the public API.
+State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanEdit`, `_selectedCanRotate`, `_lastDeleted`); the selected node carries `data-selected="true"`, styled in `pins.css`. One pin at a time. Nothing outside the renderer reads it, and it is not part of the public API.
 
 - **Select**: `PinDOMElement.select(pinId, { canDelete })` on left press. `canEdit` is the same `_canEdit` test that gates the menu's Configure Pin and Delete Pin, resolved at press time because the key handler must answer synchronously.
 - **Deselect**: `Escape`; a `pointerdown` anywhere outside `.blacksmith-pin` and the pin context menu; `removePin`; `clear` (scene change); overlay hidden.
@@ -285,6 +285,18 @@ State lives on `PinDOMElement` (`_selectedPinId`, `_selectedCanEdit`, `_lastDele
 
 - **Ctrl/Cmd+C** copies the selected pin into `PinDOMElement._clipboard` (data only, per session, lost on reload). A pin is copyable only if its type's taxonomy entry says `copyable: true` (default false, so undeclared means refused). The owner of a type is the only one who knows whether a second pin is safe: a note stores its pin's id, and a gather spot is reconciled against a target count. Blacksmith declares it for `journal-pin` and nothing else. Only an explicit boolean takes part in the taxonomy merge, so a user override that omits it does not undo the module's declaration. Anything refused warns "This pin cannot be copied." and empties the clipboard. A Ctrl+C with no pin selected also empties it, so the last copy wins and a stale pin cannot hijack Foundry's own paste of a token.
 - **Ctrl/Cmd+V** creates a new pin (fresh id, everything else copied) under the mouse and selects it. Claimed only while the clipboard is filled and the pointer was last over the board or a pin. The position comes from a passive `pointermove` listener on `document` that records `clientX`/`clientY`, converted by `_clientToScene`; `canvas.mousePosition` is not used because the canvas gets no pointer events while the mouse is over a pin's DOM node. A user who may not create pins gets a warning.
+
+### Rotation
+
+`rotation` is an optional field on the pin, degrees clockwise, 0 facing down the screen, normalised to [0, 360) by `normalizePinRotation` in `manager-pins-schema.js` (two decimals, so repeated steps do not drift). It is stored only when non-zero. `applyDefaults` has to copy it: every pin is rebuilt through `applyDefaults` on every load, so a field it does not name is dropped from the scene flag the next time the scene opens. `PinManager._applyPatch` takes a `rotation` patch (null or 0 clears, a non-number is ignored), and `_clonePinForApi` always returns a number.
+
+It draws as a CSS custom property, `--pin-rotation`, set on the pin element by `_showRotation` and read by one rule on `.blacksmith-pin-icon` in `pins.css`. Only the icon element carries the transform, which is why the shape and the separate `.blacksmith-pin-text` element do not turn, and why no `transform` is fought over: the event animations run on the pin element, not the icon.
+
+Turning by hand is a document-level capture `wheel` listener beside the key listener, installed in `initialize` and removed in `cleanup`, registered `passive: false` because it has to cancel the canvas zoom. It claims the event only when Shift is the sole modifier, a pin is selected, the pin was marked `canRotate` at select time, the pointer is over the board, and the overlay is not hidden. `canRotate` is `PinManager.isRotatable` (the user can edit it and its type's taxonomy entry says `rotatable: true`), decided at select time for the same reason as `canEdit`: the handler must answer synchronously, and the renderer cannot reach `PinManager` synchronously.
+
+A turn is a small state object (`_rotation`). Each notch moves its value and redraws at once. The save is debounced: `PinManager.update(pinId, { rotation })` runs 400 ms after the last notch, because every update is a scene-flag write that every client receives. A turn that ends where it began writes nothing. Deselecting or starting a turn on another pin saves the waiting one first; removing the pin drops it. While a turn is held, `_showRotation` prefers its value over the stored one, so a redraw triggered by something else does not snap the pin back. A failed save redraws from what is stored.
+
+The wheel unit is 100 (one mouse notch). Browsers turn Shift + vertical wheel into a horizontal one, so the handler reads `deltaY` and falls back to `deltaX`, and normalises line and page delta modes.
 
 ### Pins made under a module that no longer owns them
 
