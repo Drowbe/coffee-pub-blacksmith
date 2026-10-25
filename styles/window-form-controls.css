@@ -39,8 +39,8 @@
 .blacksmith-toggle-slider {
     position: absolute;
     inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--blacksmith-tool-surface-sunken, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--blacksmith-tool-field-border, rgba(255, 255, 255, 0.2));
     border-radius: 999px;
     cursor: pointer;
     transition: background 0.2s ease, border-color 0.2s ease;
@@ -53,14 +53,14 @@
     left: 2px;
     width: 18px;
     height: 18px;
-    background: rgba(216, 202, 164, 0.9);
+    background: var(--blacksmith-tool-text-muted, rgba(216, 202, 164, 0.9));
     border-radius: 50%;
     transition: transform 0.2s ease;
 }
 
 .blacksmith-toggle-input:checked + .blacksmith-toggle-slider {
-    background: rgba(128, 118, 96, 0.5);
-    border-color: var(--blacksmith-window-accent-color, #ac9f81);
+    background: var(--blacksmith-tool-surface-selected, rgba(128, 118, 96, 0.5));
+    border-color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
 }
 
 .blacksmith-toggle-input:checked + .blacksmith-toggle-slider::before {
@@ -81,7 +81,7 @@
 
 .blacksmith-toggle-label {
     font-size: 0.85em;
-    color: rgba(224, 224, 224, 0.9);
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.9));
     text-transform: uppercase;
     letter-spacing: 0.03em;
     cursor: pointer;
@@ -102,19 +102,19 @@
     align-items: center;
     gap: 4px;
     padding: 3px 8px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--blacksmith-tool-surface-sunken, rgba(255, 255, 255, 0.06));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.1));
     border-radius: var(--blacksmith-radius-pill, 16px);
     font-size: 0.76em;
-    color: rgba(224, 224, 224, 0.9);
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.9));
     white-space: nowrap;
     line-height: 1;
 }
 
 .blacksmith-badge-accent {
-    background: rgba(172, 159, 129, 0.15);
-    border-color: rgba(172, 159, 129, 0.35);
-    color: var(--blacksmith-window-accent-color, #ac9f81);
+    background: var(--blacksmith-tool-surface-selected, rgba(172, 159, 129, 0.15));
+    border-color: var(--blacksmith-tool-accent, rgba(172, 159, 129, 0.35));
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
     font-weight: 600;
 }
 
@@ -134,6 +134,21 @@
     background: rgba(115, 86, 35, 0.2);
     border-color: rgba(168, 130, 63, 0.35);
     color: rgba(220, 190, 130, 0.95);
+}
+
+/* The status colours above are light tints, readable on a dark window and pale on pale on the Light Tool
+   theme. Inside a Tool window the hue is kept and pulled toward the theme's text colour: darker on Light,
+   close to the old tint on Glass. Fills and borders are translucent and work on both. */
+.application.blacksmith-window-tool .blacksmith-badge-success {
+    color: color-mix(in srgb, rgb(60, 160, 70) 60%, var(--blacksmith-tool-text, rgb(224, 224, 224)));
+}
+
+.application.blacksmith-window-tool .blacksmith-badge-danger {
+    color: color-mix(in srgb, rgb(210, 70, 70) 60%, var(--blacksmith-tool-text, rgb(224, 224, 224)));
+}
+
+.application.blacksmith-window-tool .blacksmith-badge-warning {
+    color: color-mix(in srgb, rgb(200, 150, 40) 60%, var(--blacksmith-tool-text, rgb(224, 224, 224)));
 }
 
 

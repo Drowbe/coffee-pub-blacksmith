@@ -150,13 +150,19 @@ Defined in `styles/window-form-controls.css`.
 
 **Toggle switch** -- `.blacksmith-toggle` with `-input`, `-slider`, `-row`, `-label` (`:23, 32, 39, 76,
 82`). 46x24px, 22px thumb travel (`:26-27, 67`), accent-colored border when checked (`:63`). This is the
-current toggle for new windows; it lives in the shared stylesheet and consumes tokens.
+current toggle for new windows; it lives in the shared stylesheet and consumes tokens. Inside a Tool window the
+track, thumb, border, checked state and label follow the window's theme through `--blacksmith-tool-surface-sunken`,
+`-surface-selected`, `-field-border`, `-text-muted`, `-accent` and `-text`, each with the dark-window value as its
+fallback, so a toggle is readable on Light, Glass and the dark theme without the consumer styling it.
 
 **Range slider** -- `.blacksmith-slider` wrapping an optional icon and value span, with webkit and moz
 thumb pseudo-elements (`:153-230`).
 
 **Badge / tag pill** -- base plus four variants (`:100, 114, 121, 127, 133`). The base uses
-`var(--blacksmith-radius-pill, 16px)` (`:107`).
+`var(--blacksmith-radius-pill, 16px)` (`:107`). The base and `-accent` read the `--blacksmith-tool-*` surface, divider,
+text and accent variables with the dark-window values as fallbacks. The `-success`, `-danger` and `-warning` text colours
+are light tints for a dark ground, so inside a Tool window (`.application.blacksmith-window-tool`) they keep their hue
+and are mixed toward `--blacksmith-tool-text` with `color-mix`, which darkens them on Light.
 
 ### Legacy toggle (skill-check windows)
 
