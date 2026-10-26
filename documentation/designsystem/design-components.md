@@ -229,6 +229,11 @@ is the selected tint with orange text, `.is-danger` turns red on hover, `:disabl
 square 24px button for one icon and should carry a `data-tooltip`. State uses the brand orange rather than
 `--blacksmith-tool-accent`, which is near-black under Light and cream under Glass and so cannot mean "on".
 
+**Outside a Tool window** the button, the button group and the segmented control still read in a plain dialog:
+without the `--blacksmith-tool-*` variables they fall back to Foundry's own theme-aware text colours
+(`--color-text-primary`, `--color-text-secondary`) and neutral grey borders and fills, so a dialog on Foundry's light
+theme is not pale on pale.
+
 **Segmented control** -- `.blacksmith-tool-segmented` holding two to four `.blacksmith-tool-segment` labels, each a
 native radio plus an optional icon and a label. One rounded bordered container; the selected segment is filled
 brand orange with inverse text, the others are transparent with muted text and a hover fill. Because it is
@@ -239,8 +244,8 @@ each on or off on their own read better as one control than as a column of toggl
 radios and `role="group"` instead of `radiogroup`; each segment fills orange when on. The arrow keys do not move
 between them, they are separate checkboxes reached with Tab.
 
-**Toggle in a Tool window** -- `.blacksmith-toggle` is a compact 30x16 track with the label in normal case inside a
-Tool window; elsewhere it stays 46x24 with an uppercase label. Keep it for a single on or off option. The order in a
+**Toggle in a Tool window** -- `.blacksmith-toggle` is a compact 30x16 track, filled brand orange when on, with the
+label in normal case inside a Tool window; elsewhere it stays 46x24 with an uppercase label. Keep it for a single on or off option. The order in a
 `.blacksmith-toggle-row` is the markup's: switch first and label after is as supported as label first. The class
 `.blacksmith-toggle-label` is a style, not an element, so it can be a real `<label for="id">` that flips the switch when
 clicked, which is better than the span the examples show.

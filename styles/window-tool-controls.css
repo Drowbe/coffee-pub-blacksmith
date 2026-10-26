@@ -28,10 +28,10 @@
     height: 24px;
     margin: 0;
     padding: 0 8px;
-    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(128, 128, 128, 0.4));
     border-radius: var(--blacksmith-radius-md, 4px);
     background: transparent;
-    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+    color: var(--blacksmith-tool-text, var(--color-text-primary, rgba(224, 224, 224, 0.92)));
     font-family: inherit;
     font-size: 0.85em;
     line-height: 1;
@@ -41,7 +41,7 @@
 }
 
 .blacksmith-tool-btn:hover:not(:disabled) {
-    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+    background: var(--blacksmith-tool-surface-hover, rgba(128, 128, 128, 0.18));
 }
 
 .blacksmith-tool-btn:focus-visible {
@@ -105,9 +105,9 @@
     align-items: stretch;
     gap: 2px;
     padding: 2px;
-    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(128, 128, 128, 0.4));
     border-radius: var(--blacksmith-radius-lg, 5px);
-    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.25));
+    background: var(--blacksmith-tool-surface-sunken, rgba(128, 128, 128, 0.15));
 }
 
 .blacksmith-tool-segment {
@@ -119,7 +119,7 @@
     min-height: 24px;
     padding: 0 12px;
     border-radius: var(--blacksmith-radius-md, 4px);
-    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    color: var(--blacksmith-tool-text-muted, var(--color-text-secondary, rgba(224, 224, 224, 0.5)));
     font-size: 0.85em;
     font-weight: 600;
     white-space: nowrap;
@@ -139,8 +139,8 @@
 }
 
 .blacksmith-tool-segment:hover:not(:has(input:checked)):not(:has(input:disabled)) {
-    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
-    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+    background: var(--blacksmith-tool-surface-hover, rgba(128, 128, 128, 0.18));
+    color: var(--blacksmith-tool-text, var(--color-text-primary, rgba(224, 224, 224, 0.92)));
 }
 
 .blacksmith-tool-segment:has(input:checked) {
@@ -727,7 +727,7 @@ textarea.blacksmith-tool-editable-field {
     display: inline-flex;
     align-items: stretch;
     overflow: hidden;
-    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(128, 128, 128, 0.4));
     border-radius: var(--blacksmith-radius-md, 4px);
 }
 
@@ -737,7 +737,7 @@ textarea.blacksmith-tool-editable-field {
 }
 
 .blacksmith-tool-btn-group > .blacksmith-tool-btn + .blacksmith-tool-btn {
-    border-left: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-left: 1px solid var(--blacksmith-tool-divider, rgba(128, 128, 128, 0.4));
 }
 
 /* ===== TABS: UNDERLINE ================================================= */
@@ -900,4 +900,15 @@ textarea.blacksmith-tool-editable-field {
 
 .blacksmith-tool-dropzone-hint {
     font-style: italic;
+}
+
+/* The ON state of a toggle in a Tool window is filled brand orange, not a tint with the tool accent border: that
+   accent is near-black on Light and cream on Glass, so a tinted track with that edge does not read as on. */
+.application.blacksmith-window-tool .blacksmith-toggle-input:checked + .blacksmith-toggle-slider {
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+}
+
+.application.blacksmith-window-tool .blacksmith-toggle-input:checked + .blacksmith-toggle-slider::before {
+    background: var(--blacksmith-text-inverse, #ffffff);
 }

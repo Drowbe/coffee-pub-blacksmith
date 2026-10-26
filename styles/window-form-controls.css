@@ -59,8 +59,8 @@
 }
 
 .blacksmith-toggle-input:checked + .blacksmith-toggle-slider {
-    background: var(--blacksmith-tool-surface-selected, rgba(128, 118, 96, 0.5));
-    border-color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
+    background: rgba(128, 118, 96, 0.5);
+    border-color: var(--blacksmith-window-accent-color, #ac9f81);
 }
 
 .blacksmith-toggle-input:checked + .blacksmith-toggle-slider::before {
