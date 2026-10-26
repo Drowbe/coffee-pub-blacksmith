@@ -32,8 +32,8 @@ quick way to talk to the people on one scene.
 - One view of who is where.
 - Moving a person between scenes in one step, not through the scenes tab.
 - Talking to the people on one scene without leaving the panel.
-- Any memory of the arrangement: a pulled view is not a saved state, so I expect a reload puts a player back on
-  the active scene. Unverified.
+- Any memory of the arrangement: a pulled view is not a saved state, and a player who reloads lands on the
+  active scene (the author's experience).
 
 ## The idea
 
@@ -50,13 +50,21 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
 
 ## Open questions, in the order they block the work
 
-1. **Scene visibility.** Does a player client hold the scene data for a scene that is not active and not in the
-   navigation bar? `#pullToScene` does nothing if `game.scenes.get(id)` is empty. If players lack the data, the
-   manager has to grant a minimum permission or set the navigation flag, which is a visible side effect.
-2. **Does a view survive a reload.** If not, the stored map and a re-pull on `userConnected` are required, not
-   optional.
-3. **Combat.** Combats belong to a scene. Two groups on two scenes may both want a combat. What does the tracker
-   and Blacksmith's combat tooling do then?
+1. **Scene visibility. Answered 2026-10-26, yes, in the author's world.** A player client held the data for a
+   scene that was neither active nor in the navigation bar, and in fact held every scene in the world (about
+   sixty). So a pull is not blocked by missing data here. That is one world and one player: whether it comes from
+   this world's default scene permission, or from Foundry sending players the whole scene library, is not known,
+   and a world with a stricter default would need the manager to grant a minimum permission. A side effect worth
+   knowing: a player can read every scene's name from the console, including ones not yet revealed.
+2. **Does a view survive a reload. Answered 2026-10-26 from the author's own experience: no.** A player pulled to
+   a scene who reloads lands on the active scene. So the stored player-to-scene map and a re-pull when the
+   player connects are required, not optional.
+3. **Combat. Answered 2026-10-26 from the author's experience: they run side by side.** Each scene can have its
+   own combat running at once, and one scene can hold two. So the panel should show each stage's combat state
+   (none, one, several). The consequence to audit is Blacksmith's own combat tooling: anything that reads
+   `game.combat` sees the combat of the scene the GM is viewing, so with a split party the combat on the other
+   stage is invisible to timers, statistics, the combat bar and the defeated handling unless they are written to
+   cope. That audit is a separate piece of work and is not part of the first slice.
 4. **What stays global.** Audio playlists, chat, the world clock and pause are not per scene. The panel should say
    so rather than imply otherwise.
 5. **Where it lives.** It is coordination across the whole table, like the time modes (`manager-time-modes.js`), so
