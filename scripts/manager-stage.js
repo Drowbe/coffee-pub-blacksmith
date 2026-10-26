@@ -155,6 +155,16 @@ export class StageManager {
         if (players.length) active.pullUsers(players);
     }
 
+    /**
+     * Make a stage the active scene. Foundry then moves everyone to it, as it does from the scene navigation; a
+     * player held on another scene stays held and returns there the next time they load.
+     */
+    static async activateStage(sceneId) {
+        this._requireGM();
+        const scene = game.scenes.get(sceneId);
+        if (scene && !scene.active) await scene.activate();
+    }
+
     /** The GM looks at a stage. Moves only their own view. */
     static viewStage(sceneId) {
         this._requireGM();
@@ -175,6 +185,40 @@ export class StageManager {
         const state = this.getState();
         state.extras = state.extras.filter((id) => id !== sceneId);
         await this._save(state);
+    }
+
+    /**
+     * Work out which players a drop means. Accepts what the panel's own chips carry (a user id) and what Foundry
+     * puts on a drag from its sidebar: a User, an Actor (the player or players who own it), or a Token (its actor's
+     * owners). A character assigned to a player wins over plain ownership, so a GM-owned NPC never matches a
+     * player just because the GM shares it. Returns real, non-GM users; an empty list means nothing matched.
+     * @param {string} raw - The drop's text/plain payload
+     * @returns {User[]}
+     */
+    static usersFromDrop(raw) {
+        if (!raw || typeof raw !== 'string') return [];
+        const direct = game.users.get(raw);
+        if (direct) return direct.isGM ? [] : [direct];
+
+        let data;
+        try {
+            data = JSON.parse(raw);
+        } catch (_error) {
+            return [];
+        }
+        if (data?.type === 'User') {
+            const user = game.users.get(data.id ?? String(data.uuid ?? '').split('.').pop());
+            return user && !user.isGM ? [user] : [];
+        }
+        let actor = null;
+        if (data?.type === 'Actor') actor = fromUuidSync(data.uuid ?? '', { strict: false });
+        else if (data?.type === 'Token') actor = fromUuidSync(data.uuid ?? '', { strict: false })?.actor ?? null;
+        if (!actor) return [];
+
+        const players = game.users.filter((u) => !u.isGM);
+        const assigned = players.filter((u) => u.character?.id === actor.id);
+        if (assigned.length) return assigned;
+        return players.filter((u) => actor.testUserPermission(u, 'OWNER'));
     }
 
     // ==============================================================
@@ -207,6 +251,8 @@ export class StageManager {
                 isGM: user.isGM,
                 active: user.active,
                 isSelf: user.id === game.user.id,
+                // The character's portrait when they have one, else the user's own avatar; null when neither.
+                portrait: user.character?.img || user.avatar || null,
                 assigned: state.assignments[user.id] === sceneId
             });
         }
@@ -219,6 +265,7 @@ export class StageManager {
             stages.push({
                 id,
                 name: scene.navName || scene.name,
+                thumb: scene.thumb || null,
                 isActive: id === activeId,
                 isGMView: id === gmViewId,
                 isExtra: state.extras.includes(id),

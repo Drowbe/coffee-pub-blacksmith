@@ -19,6 +19,18 @@ import { MenuBar } from './api-menubar.js';
 import { StageManager } from './manager-stage.js';
 
 const APP_ID = 'blacksmith-stage-window';
+
+/**
+ * A scene's thumbnail as a URL a stylesheet can use. A `url()` inside a CSS custom property is resolved against
+ * the stylesheet that USES the variable, not against the page, so a bare Foundry path such as
+ * `worlds/my-world/thumb.webp` lands under this module's styles folder and 404s. Rooting it with `getRoute`
+ * makes it absolute from the server root (and adds a route prefix if the server has one). Anything that is
+ * already absolute is left alone.
+ */
+function thumbnailUrl(path) {
+    if (!path) return null;
+    return /^(https?:|data:|\/)/.test(path) ? path : foundry.utils.getRoute(path);
+}
 const TOOL_ID = 'stage-manager';
 
 export class StageWindow extends BlacksmithToolWindowBaseV2 {
@@ -39,6 +51,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     static ACTION_HANDLERS = {
         'stage-view': (_event, target, win) => win?._view(target?.dataset?.sceneId),
+        'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
         'stage-add': (_event, _target, win) => win?._add(),
         'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
@@ -62,18 +75,21 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         const cards = stages.map((stage) => {
             const badges = [
                 stage.isActive ? '<span class="blacksmith-badge blacksmith-badge-accent">Active</span>' : '',
-                stage.isGMView ? '<span class="blacksmith-badge">You</span>' : '',
                 stage.combats ? `<span class="blacksmith-badge blacksmith-badge-warning"><i class="fa-solid fa-shield-halved"></i> ${stage.combats}</span>` : ''
             ].join('');
 
             const chips = stage.people.map((p) => {
                 const draggable = !p.isGM && !p.isSelf;
-                const icon = p.isGM ? 'fa-crown' : (p.assigned ? 'fa-thumbtack' : 'fa-user');
+                const mark = p.isGM ? 'fa-crown' : 'fa-user';
+                const face = p.portrait
+                    ? `<img class="blacksmith-stage-portrait" src="${esc(p.portrait)}" alt="">`
+                    : `<i class="fa-solid ${mark}"></i>`;
+                const held = p.assigned ? '<i class="fa-solid fa-thumbtack blacksmith-stage-held"></i>' : '';
                 const release = p.assigned
                     ? `<button type="button" class="blacksmith-tool-chip-remove" data-action="stage-release" data-user-id="${esc(p.id)}" data-tooltip="Stop holding ${esc(p.name)} here"><i class="fa-solid fa-xmark"></i></button>`
                     : '';
                 return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-away'}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
-                    data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene' : ''}"><i class="fa-solid ${icon}"></i> ${esc(p.name)}${release}</span>`;
+                    data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene' : ''}">${face}${esc(p.name)}${held}${release}</span>`;
             }).join('');
 
             const remove = stage.isExtra && !stage.isActive && !stage.people.length
@@ -88,11 +104,12 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
                         <span class="blacksmith-tool-card-actions">
+                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isActive ? ' is-active' : ''}" data-action="stage-activate" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isActive ? 'This is the active scene' : 'Make this the active scene'}"${stage.isActive ? ' disabled' : ''}><i class="fa-solid fa-bullseye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isGMView ? ' is-active' : ''}" data-action="stage-view" data-scene-id="${esc(stage.id)}" data-tooltip="Look at this scene yourself"><i class="fa-solid fa-eye"></i></button>
                             ${remove}
                         </span>
                     </div>
-                    <div class="blacksmith-tool-card-body">
+                    <div class="blacksmith-tool-card-body blacksmith-stage-content"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                         <div class="blacksmith-tool-dropzone blacksmith-stage-drop" data-stage-drop="${esc(stage.id)}">
                             ${chips
                                 ? `<div class="blacksmith-tool-chips">${chips}</div>`
@@ -202,10 +219,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 event.preventDefault();
                 zone.classList.remove('is-over');
                 this._dragging = false;
-                const userId = event.dataTransfer.getData('text/plain');
-                if (!userId) return;
+                const users = StageManager.usersFromDrop(event.dataTransfer.getData('text/plain'));
+                if (!users.length) {
+                    ui.notifications?.warn('Drop a player chip here, or a player or a character from the sidebar.');
+                    return;
+                }
                 try {
-                    await StageManager.moveUser(userId, zone.dataset.stageDrop);
+                    for (const user of users) await StageManager.moveUser(user.id, zone.dataset.stageDrop);
                 } catch (error) {
                     ui.notifications?.warn(error.message);
                 }
@@ -220,6 +240,16 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     _view(sceneId) {
         if (sceneId) StageManager.viewStage(sceneId);
+    }
+
+    async _activate(sceneId) {
+        if (!sceneId) return;
+        try {
+            await StageManager.activateStage(sceneId);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
     }
 
     async _add() {

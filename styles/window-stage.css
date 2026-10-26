@@ -23,6 +23,52 @@
     align-self: center;
 }
 
+/* EACH STAGE IS THREE PARTS: the title row, the content area, and the drop zone inside the content area. The
+   scene's thumbnail is the CONTENT AREA'S background, so it is the picture you see around the people. The
+   wash over it is the window THEME's own scrim colour (cream on Light, near-black on Dark and Glass) at a
+   light 40%, so the text colours the theme already chose stay readable on all three and the picture is still
+   plainly there. The padding is generous on purpose: it is the visible margin of picture around the drop zone. */
+.blacksmith-stage-tool-window .blacksmith-stage-content {
+    padding: 16px;
+    background:
+        linear-gradient(
+            color-mix(in srgb, var(--blacksmith-tool-scrim) 40%, transparent),
+            color-mix(in srgb, var(--blacksmith-tool-scrim) 40%, transparent)
+        ),
+        var(--stage-thumb, none) center / cover no-repeat,
+        var(--blacksmith-tool-surface-sunken);
+}
+
+/* The drop zone is nearly transparent so the picture shows through it. Just enough of the scrim colour behind it
+   to keep the dashed edge and the hint legible. */
+.blacksmith-stage-tool-window .blacksmith-stage-drop {
+    background: color-mix(in srgb, var(--blacksmith-tool-scrim) 22%, transparent);
+}
+
+/* A person is a solid themed pill (the theme's raised surface), so the name reads over any part of the map. */
+.blacksmith-stage-tool-window .blacksmith-tool-chip {
+    background: var(--blacksmith-tool-surface-raised);
+}
+
+/* A player's portrait, round and sized to sit inside the chip. */
+.blacksmith-stage-tool-window .blacksmith-tool-chip {
+    height: 26px;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-portrait {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin-left: -5px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-held {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
 /* A draggable person reads as one. */
 .blacksmith-stage-tool-window .blacksmith-tool-chip[draggable="true"] {
     cursor: grab;
