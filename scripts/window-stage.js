@@ -89,7 +89,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     ? `<button type="button" class="blacksmith-tool-chip-remove" data-action="stage-release" data-user-id="${esc(p.id)}" data-tooltip="Stop holding ${esc(p.name)} here"><i class="fa-solid fa-xmark"></i></button>`
                     : '';
                 return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-away'}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
-                    data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene' : ''}">${face}${esc(p.name)}${held}${release}</span>`;
+                    data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene: comes back here when they reload' : ''}">${face}${esc(p.name)}${held}${release}</span>`;
             }).join('');
 
             const remove = stage.isExtra && !stage.isActive && !stage.people.length
@@ -110,7 +110,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                         </span>
                     </div>
                     <div class="blacksmith-tool-card-body blacksmith-stage-content">
-                        <div class="blacksmith-tool-dropzone blacksmith-stage-drop" data-stage-drop="${esc(stage.id)}">
+                        <div class="blacksmith-tool-dropzone blacksmith-stage-drop${chips ? '' : ' is-empty'}" data-stage-drop="${esc(stage.id)}">
                             ${chips
                                 ? `<div class="blacksmith-tool-chips">${chips}</div>`
                                 : '<span class="blacksmith-tool-dropzone-hint">Nobody here. Drop a player to send them.</span>'}
@@ -184,6 +184,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     _onClose(options) {
         clearTimeout(this._refreshTimer);
+        if (this._hideDragHint) document.removeEventListener('dragend', this._hideDragHint);
+        this._dragBound = false;
         HookManager.disposeByContext(this._hookContext);
         this._following = false;
         if (StageWindow._ref === this) StageWindow._ref = null;
@@ -195,6 +197,28 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
 
     _bindDrag(root) {
+        // While anything is being dragged over the window, the drop zones show themselves; otherwise they are
+        // just the margin around the people. Covers the panel's own chips and drags out of Foundry's sidebar,
+        // so it listens on the window, once, not on the chips. The listeners live on the window element, which
+        // survives a re-render, so they are added only the first time.
+        if (!this._dragBound) {
+            this._dragBound = true;
+            const win = this.element;
+            const show = () => win.classList.add('is-dragging');
+            const hide = () => {
+                win.classList.remove('is-dragging');
+                for (const zone of win.querySelectorAll('.blacksmith-stage-drop.is-over')) zone.classList.remove('is-over');
+            };
+            win.addEventListener('dragenter', show);
+            win.addEventListener('dragleave', (event) => {
+                if (!win.contains(event.relatedTarget)) hide();
+            });
+            win.addEventListener('drop', hide);
+            win.addEventListener('dragend', hide);
+            document.addEventListener('dragend', hide);
+            this._hideDragHint = hide;
+        }
+
         for (const chip of root.querySelectorAll('[data-user-chip]')) {
             chip.addEventListener('dragstart', (event) => {
                 this._dragging = true;

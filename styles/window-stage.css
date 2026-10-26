@@ -46,32 +46,75 @@
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-content {
-    padding: 16px;
+    padding: 8px;
 }
 
-/* The drop zone is nearly transparent so the picture shows through it. Just enough of the scrim colour behind it
-   to keep the dashed edge and the hint legible. */
+/* THE DROP ZONE IS THE MARGIN AROUND THE PEOPLE, and only shows itself while something is being dragged over the
+   window (the window gets `is-dragging`). At rest it has no border, no wash and no padding, so the people get the
+   room; its border is transparent rather than absent, and its height stable, so nothing shifts when it appears.
+   An empty stage keeps a short row so the picture still shows and there is somewhere to drop. */
 .blacksmith-stage-tool-window .blacksmith-stage-drop {
-    background: color-mix(in srgb, var(--blacksmith-tool-scrim) 22%, transparent);
+    align-items: flex-start;
+    min-height: 44px;
+    padding: 0;
+    border-color: transparent;
+    background: none;
+    text-align: left;
 }
 
-/* A person is a solid themed pill (the theme's raised surface), so the name reads over any part of the map. */
+.blacksmith-stage-tool-window .blacksmith-stage-drop.is-empty .blacksmith-tool-dropzone-hint {
+    visibility: hidden;
+    align-self: center;
+}
+
+.blacksmith-stage-tool-window.is-dragging .blacksmith-stage-drop {
+    border-color: var(--blacksmith-tool-divider);
+    border-style: dashed;
+    background: color-mix(in srgb, var(--blacksmith-tool-scrim) 30%, transparent);
+}
+
+.blacksmith-stage-tool-window.is-dragging .blacksmith-stage-drop.is-empty .blacksmith-tool-dropzone-hint {
+    visibility: visible;
+}
+
+.blacksmith-stage-tool-window.is-dragging .blacksmith-stage-drop.is-over {
+    border-style: solid;
+    border-color: var(--blacksmith-color-brand-accent);
+    background: var(--blacksmith-tool-surface-selected);
+}
+
+/* A person is a solid themed pill (the theme's raised surface) with a large round portrait, so a face and a name
+   read over any part of the map. */
 .blacksmith-stage-tool-window .blacksmith-tool-chip {
+    height: auto;
+    min-height: 44px;
+    /* The shared chip is a 22px pill (radius-pill, 16px). At 44px tall that same radius reads as a large capsule, so
+       these use the standard container radius instead. The portrait stays a circle. */
+    border-radius: var(--blacksmith-radius-lg, 5px);
+    gap: 8px;
+    padding: 4px 12px 4px 4px;
     background: var(--blacksmith-tool-surface-raised);
-}
-
-/* A player's portrait, round and sized to sit inside the chip. */
-.blacksmith-stage-tool-window .blacksmith-tool-chip {
-    height: 26px;
+    font-size: 0.9em;
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-portrait {
     flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
-    margin-left: -5px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+/* A person with no portrait gets an icon in the same round slot, so the names line up. */
+.blacksmith-stage-tool-window .blacksmith-tool-chip > i:first-child {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--blacksmith-tool-surface-hover);
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-held {
