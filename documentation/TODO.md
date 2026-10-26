@@ -1073,6 +1073,15 @@ decision: drop it where the live handler fully applies the change.
 
 ## Cross-cutting surfaces
 
+### Stage Manager: see and move a split party from one place
+
+Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the
+scenes tab for every move, and Foundry shows nowhere who is on which scene. A Tool window of stage cards with
+player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and later
+a say-to-this-stage box and Away or Do Not Disturb statuses. Five questions settle before code, the first being
+whether a player client holds the data for a scene that is not active. **Verify:** each open question answered
+in a running world, and the first slice walked with two clients on two scenes.
+
 ### One participation list, owned by Blacksmith
 
 Plan: **`documentation/plans/plan-participation-list.md`**. A camera, stream or bot account is not a person,
