@@ -97,7 +97,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 : '';
 
             return `
-                <div class="blacksmith-tool-card is-static" data-stage-id="${esc(stage.id)}">
+                <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}</span>
@@ -109,7 +109,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                             ${remove}
                         </span>
                     </div>
-                    <div class="blacksmith-tool-card-body blacksmith-stage-content"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
+                    <div class="blacksmith-tool-card-body blacksmith-stage-content">
                         <div class="blacksmith-tool-dropzone blacksmith-stage-drop" data-stage-drop="${esc(stage.id)}">
                             ${chips
                                 ? `<div class="blacksmith-tool-chips">${chips}</div>`

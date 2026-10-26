@@ -24,12 +24,12 @@
 }
 
 /* EACH STAGE IS THREE PARTS: the title row, the content area, and the drop zone inside the content area. The
-   scene's thumbnail is the CONTENT AREA'S background, so it is the picture you see around the people. The
-   wash over it is the window THEME's own scrim colour (cream on Light, near-black on Dark and Glass) at a
-   light 40%, so the text colours the theme already chose stay readable on all three and the picture is still
-   plainly there. The padding is generous on purpose: it is the visible margin of picture around the drop zone. */
-.blacksmith-stage-tool-window .blacksmith-stage-content {
-    padding: 16px;
+   scene's thumbnail is the background of the WHOLE CARD, so the picture runs behind the title row and the content
+   area alike. The wash over it is the window THEME's own scrim colour (cream on Light, near-black on Dark and
+   Glass) at a light 40%, so the text colours the theme already chose stay readable on all three and the picture
+   is still plainly there. The content area's padding is generous on purpose: it is the margin of picture around
+   the drop zone. */
+.blacksmith-stage-tool-window .blacksmith-stage-card {
     background:
         linear-gradient(
             color-mix(in srgb, var(--blacksmith-tool-scrim) 40%, transparent),
@@ -37,6 +37,16 @@
         ),
         var(--stage-thumb, none) center / cover no-repeat,
         var(--blacksmith-tool-surface-sunken);
+}
+
+/* The title row sits on the picture with a little more of the scrim behind it, so the name stays readable
+   against a busy part of the map. */
+.blacksmith-stage-tool-window .blacksmith-stage-card .blacksmith-tool-card-head {
+    background: color-mix(in srgb, var(--blacksmith-tool-scrim) 30%, transparent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-content {
+    padding: 16px;
 }
 
 /* The drop zone is nearly transparent so the picture shows through it. Just enough of the scrim colour behind it
