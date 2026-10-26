@@ -412,6 +412,22 @@ reachability first, then replace with `foundry.utils.saveDataToFile`.
 
 ## Combat
 
+### Combat tooling assumes one combat at a time
+
+Found 2026-10-26 auditing for the Stage Manager (`plans/plan-stage-manager.md`). Combats run side by side on
+different scenes, and `game.combat` is only the active combat of the scene being viewed (or the one picked in the
+tracker), but the statistics, both timers and the movement-mode switch each hold one global instance and several
+hooks ignore which combat fired them. With two combats going: starting one wipes the other's in-memory stats and
+its numbers are written to the viewed combat's flag (`stats-combat.js`, `stats-sources.js`); one shared turn
+timer is restarted, stopped or advanced by either combat (`timer-combat.js`, `timer-planning.js`);
+`timer-round.js` throws when no combat is viewed and otherwise rewrites the viewed combat's totals; and the second
+`createCombat` overwrites the saved pre-combat movement mode so the table is left in combat movement
+(`token-movement.js`). The turn ring, tracker close and planning timer degrade; the combat bar, defeated handling
+and XP at combat end are already safe. Fixes: key stats by `combat.id`, give each timer a tracked combat id and
+ignore other combats' updates and deletes, count open combats before restoring movement mode, and read the hook's
+`combat` in `timer-round.js`. **Verify:** two combats on two scenes, one started while the other runs, then
+each ended in turn; stats, timers and movement mode stay correct for the one still running.
+
 ### Two drag-to-reorder implementations, and they do not agree (opened 2026-08-27)
 
 The combat bar uses a pointer trio with injected dropzones (`manager-combatbar.js:4856-5010`); the tracker
