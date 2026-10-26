@@ -66,8 +66,8 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
    `game.combat` sees the combat of the scene the GM is viewing, so with a split party the combat on the other
    stage is invisible to timers, statistics, the combat bar and the defeated handling unless they are written to
    cope. That audit is a separate piece of work and is not part of the first slice.
-4. **What stays global.** Audio playlists, chat, the world clock and pause are not per scene. The panel should say
-   so rather than imply otherwise.
+4. **What stays global. Decided 2026-10-26: no on-screen note.** Audio playlists, chat, the world clock and pause are
+   not per scene. The author did not want an information line in the panel, so the architecture document states it.
 5. **Where it lives. Decided 2026-10-26: Blacksmith.** The author called it core: it is coordination across the
    whole table, like the time modes (`manager-time-modes.js`), and a satellite cannot see everyone's location.
 6. **First version. Decided 2026-10-26.** The panel, drag to move, and the stored player-to-scene map with a

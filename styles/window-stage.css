@@ -141,3 +141,36 @@
     flex: 1 1 auto;
     min-width: 0;
 }
+
+/* The grip a card is dragged by to reorder. Only the grip drags, so the buttons and the name stay clickable. */
+.blacksmith-stage-tool-window .blacksmith-stage-grip {
+    flex: 0 0 auto;
+    padding: 0 2px;
+    cursor: grab;
+    opacity: 0.55;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-grip:hover {
+    opacity: 1;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-reordering {
+    opacity: 0.45;
+}
+
+/* Where the dragged card will land: a bar in the brand orange above or below the card under the pointer. */
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-drop-before {
+    box-shadow: 0 -3px 0 0 var(--blacksmith-color-brand-accent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-drop-after {
+    box-shadow: 0 3px 0 0 var(--blacksmith-color-brand-accent);
+}
+
+/* Add a stage, at the bottom of the list. */
+.blacksmith-stage-tool-window .blacksmith-stage-add {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+}

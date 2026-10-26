@@ -1103,7 +1103,7 @@ stage, Away and Do Not Disturb, the hold scene) is not started. Decided 2026-10-
 slice is the panel, drag to move, and the stored player-to-scene map with a re-apply when a player loads.
 Answered from the author's world: a player client does hold a scene that is not active, a pulled view does not
 survive a reload (so the map and the re-pull are required), and combats run side by side across scenes, even two
-in one scene. Still open: what the panel says about global state (audio, chat, the clock, pause). The combat
+in one scene. The panel carries no note about what stays global (audio, chat, the clock, pause); the architecture document states it. The combat
 tooling that reads `game.combat` needs its own audit, tracked separately. **Verify:** each open question answered
 in a running world, and the first slice walked with two clients on two scenes.
 

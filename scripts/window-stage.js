@@ -20,6 +20,9 @@ import { StageManager } from './manager-stage.js';
 
 const APP_ID = 'blacksmith-stage-window';
 
+/** The drag type a card's grip carries, so a reorder is never mistaken for moving a person. */
+const STAGE_MIME = 'application/x-blacksmith-stage';
+
 /**
  * A scene's thumbnail as a URL a stylesheet can use. A `url()` inside a CSS custom property is resolved against
  * the stylesheet that USES the variable, not against the page, so a bare Foundry path such as
@@ -61,6 +64,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     /** True while a chip is being dragged, so a redraw triggered by someone else does not drop it. */
     _dragging = false;
 
+    /** True while a card is being dragged to a new place, for the same reason. */
+    _reordering = false;
+
     _hookContext = `stage-window:${APP_ID}`;
 
     // ==============================================================
@@ -79,7 +85,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             ].join('');
 
             const chips = stage.people.map((p) => {
-                const draggable = !p.isGM && !p.isSelf;
+                // A player, and the GM's own chip: dropping that one moves the GM's own view, like the eye.
+                const draggable = !p.isGM || p.isSelf;
                 const mark = p.isGM ? 'fa-crown' : 'fa-user';
                 const face = p.portrait
                     ? `<img class="blacksmith-stage-portrait" src="${esc(p.portrait)}" alt="">`
@@ -100,6 +107,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
+                            <span class="blacksmith-stage-grip" draggable="true" data-stage-grip="${esc(stage.id)}" data-tooltip="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}</span>
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
@@ -129,12 +137,10 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
                 ${cards || '<div class="blacksmith-tool-empty">No scenes in use.</div>'}
-                <div class="blacksmith-tool-hint"><i class="fa-solid fa-circle-info"></i> Audio, chat, the clock and pause are shared by everyone, whichever scene they are on.</div>
+                ${options
+                    ? `<div class="blacksmith-stage-add"><select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select><button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button></div>`
+                    : ''}
             </div>`,
-            toolBarLeft: options
-                ? `<select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select>
-                   <button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button>`
-                : '',
             toolFooterRight: '<button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>'
         };
     }
@@ -153,7 +159,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         this._following = true;
         const refresh = () => {
             // A redraw mid-drag would drop the chip the GM is holding; the drop re-renders anyway.
-            if (this._dragging || !this.rendered) return;
+            if (this._dragging || this._reordering || !this.rendered) return;
             clearTimeout(this._refreshTimer);
             this._refreshTimer = setTimeout(() => this.render(), 120);
         };
@@ -204,7 +210,10 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         if (!this._dragBound) {
             this._dragBound = true;
             const win = this.element;
-            const show = () => win.classList.add('is-dragging');
+            // A card being reordered is not a drop onto a person's zone, so the zones stay hidden for it.
+            const show = () => {
+                if (!this._reordering) win.classList.add('is-dragging');
+            };
             const hide = () => {
                 win.classList.remove('is-dragging');
                 for (const zone of win.querySelectorAll('.blacksmith-stage-drop.is-over')) zone.classList.remove('is-over');
@@ -230,8 +239,53 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 for (const zone of root.querySelectorAll('.blacksmith-stage-drop.is-over')) zone.classList.remove('is-over');
             });
         }
+        // Reordering: drag a card by its grip, and drop it above or below another card.
+        for (const grip of root.querySelectorAll('[data-stage-grip]')) {
+            grip.addEventListener('dragstart', (event) => {
+                this._reordering = true;
+                event.dataTransfer.setData(STAGE_MIME, grip.dataset.stageGrip);
+                event.dataTransfer.effectAllowed = 'move';
+                const card = grip.closest('[data-stage-id]');
+                if (card) {
+                    event.dataTransfer.setDragImage(card, 24, 16);
+                    card.classList.add('is-reordering');
+                }
+            });
+            grip.addEventListener('dragend', () => {
+                this._reordering = false;
+                for (const card of root.querySelectorAll('[data-stage-id]')) {
+                    card.classList.remove('is-reordering', 'is-drop-before', 'is-drop-after');
+                }
+            });
+        }
+        for (const card of root.querySelectorAll('[data-stage-id]')) {
+            card.addEventListener('dragover', (event) => {
+                if (!event.dataTransfer.types.includes(STAGE_MIME)) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'move';
+                const box = card.getBoundingClientRect();
+                const after = event.clientY > box.top + box.height / 2;
+                card.classList.toggle('is-drop-after', after);
+                card.classList.toggle('is-drop-before', !after);
+            });
+            card.addEventListener('dragleave', (event) => {
+                if (!card.contains(event.relatedTarget)) card.classList.remove('is-drop-before', 'is-drop-after');
+            });
+            card.addEventListener('drop', async (event) => {
+                if (!event.dataTransfer.types.includes(STAGE_MIME)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const draggedId = event.dataTransfer.getData(STAGE_MIME);
+                const after = card.classList.contains('is-drop-after');
+                card.classList.remove('is-drop-before', 'is-drop-after');
+                this._reordering = false;
+                await this._reorder(root, draggedId, card.dataset.stageId, after);
+            });
+        }
+
         for (const zone of root.querySelectorAll('[data-stage-drop]')) {
             zone.addEventListener('dragover', (event) => {
+                if (this._reordering) return;
                 event.preventDefault();
                 event.dataTransfer.dropEffect = 'move';
                 zone.classList.add('is-over');
@@ -240,6 +294,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 if (!zone.contains(event.relatedTarget)) zone.classList.remove('is-over');
             });
             zone.addEventListener('drop', async (event) => {
+                if (event.dataTransfer.types.includes(STAGE_MIME)) return;
                 event.preventDefault();
                 zone.classList.remove('is-over');
                 this._dragging = false;
@@ -261,6 +316,21 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
     // ===== ACTIONS ================================================
     // ==============================================================
+
+    /** Put the dragged card before or after the target, and save the new order of every card on screen. */
+    async _reorder(root, draggedId, targetId, after) {
+        if (!draggedId || draggedId === targetId) return;
+        const ids = [...root.querySelectorAll('[data-stage-id]')].map((card) => card.dataset.stageId).filter((id) => id !== draggedId);
+        const at = ids.indexOf(targetId);
+        if (at < 0) return;
+        ids.splice(after ? at + 1 : at, 0, draggedId);
+        try {
+            await StageManager.setOrder(ids);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
 
     _view(sceneId) {
         if (sceneId) StageManager.viewStage(sceneId);

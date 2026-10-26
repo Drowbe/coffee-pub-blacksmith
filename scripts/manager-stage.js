@@ -18,8 +18,9 @@
 //     draw and views its assigned scene. That needs no GM connected, has no timing race with the player's canvas
 //     loading, and is the only client that knows when it is ready. `Scene#view` has no permission check.
 //
-// The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId] }.
-// `extras` are scenes the GM added to the panel by hand, for a stage nobody is on yet.
+// The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId], order: [sceneId] }.
+// `extras` are scenes the GM added to the panel by hand, for a stage nobody is on yet. `order` is the order the GM
+// arranged the cards in; a stage that is not in it goes after the ones that are.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
@@ -71,7 +72,7 @@ export class StageManager {
         return this.normalizeState(raw);
     }
 
-    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[]}} */
+    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[]}} */
     static normalizeState(raw) {
         const assignments = {};
         if (raw?.assignments && typeof raw.assignments === 'object') {
@@ -82,7 +83,10 @@ export class StageManager {
         const extras = Array.isArray(raw?.extras)
             ? [...new Set(raw.extras.filter((id) => typeof id === 'string' && id))]
             : [];
-        return { assignments, extras };
+        const order = Array.isArray(raw?.order)
+            ? [...new Set(raw.order.filter((id) => typeof id === 'string' && id))]
+            : [];
+        return { assignments, extras, order };
     }
 
     static async _save(state) {
@@ -121,8 +125,9 @@ export class StageManager {
     }
 
     /**
-     * Put a player on a stage: store it, and pull them there now if they are connected. A GM user cannot be
-     * assigned; a GM moves themselves with `viewStage`.
+     * Put a player on a stage: store it, and pull them there now if they are connected. A GM cannot be held
+     * anywhere, so dropping the GM's own chip only moves the GM's own view, exactly as `viewStage` does, and
+     * another GM is left alone.
      * @param {string} userId
      * @param {string} sceneId
      */
@@ -131,7 +136,11 @@ export class StageManager {
         const user = game.users.get(userId);
         const scene = game.scenes.get(sceneId);
         if (!user || !scene) throw new Error('Stage manager: unknown player or scene.');
-        if (user.isGM) return false;
+        if (user.isGM) {
+            if (user.id !== game.user.id) return false;
+            scene.view();
+            return true;
+        }
         await this.setAssignment(user.id, scene.id);
         if (user.active) scene.pullUsers([user]);
         return true;
@@ -180,6 +189,14 @@ export class StageManager {
         await this._save(state);
     }
 
+    /** Save the order the GM arranged the cards in. Stages left out of the list go after the ones in it. */
+    static async setOrder(sceneIds) {
+        this._requireGM();
+        const state = this.getState();
+        state.order = Array.isArray(sceneIds) ? sceneIds : [];
+        await this._save(state);
+    }
+
     static async removeStage(sceneId) {
         this._requireGM();
         const state = this.getState();
@@ -191,14 +208,15 @@ export class StageManager {
      * Work out which players a drop means. Accepts what the panel's own chips carry (a user id) and what Foundry
      * puts on a drag from its sidebar: a User, an Actor (the player or players who own it), or a Token (its actor's
      * owners). A character assigned to a player wins over plain ownership, so a GM-owned NPC never matches a
-     * player just because the GM shares it. Returns real, non-GM users; an empty list means nothing matched.
+     * player just because the GM shares it. Returns players, plus the GM themselves when their own chip is dropped;
+     * another GM never matches. An empty list means nothing matched.
      * @param {string} raw - The drop's text/plain payload
      * @returns {User[]}
      */
     static usersFromDrop(raw) {
         if (!raw || typeof raw !== 'string') return [];
         const direct = game.users.get(raw);
-        if (direct) return direct.isGM ? [] : [direct];
+        if (direct) return direct.isGM && direct.id !== game.user.id ? [] : [direct];
 
         let data;
         try {
@@ -273,6 +291,14 @@ export class StageManager {
                 people: (people.get(id) ?? []).sort((a, b) => Number(b.isGM) - Number(a.isGM) || a.name.localeCompare(b.name))
             });
         }
-        return stages.sort((a, b) => Number(b.isActive) - Number(a.isActive) || a.name.localeCompare(b.name));
+        // The GM's own order first. A stage they have not placed yet goes after the placed ones: the active scene
+        // first, then by name. (`Infinity - Infinity` is NaN, which is falsy, so ties fall through to those.)
+        const rank = (id) => {
+            const index = state.order.indexOf(id);
+            return index < 0 ? Infinity : index;
+        };
+        return stages.sort((a, b) => rank(a.id) - rank(b.id)
+            || Number(b.isActive) - Number(a.isActive)
+            || a.name.localeCompare(b.name));
     }
 }

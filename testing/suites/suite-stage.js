@@ -45,11 +45,12 @@ export default {
             note: 'Pure function, writes nothing.',
             run: async ({ expect }) => {
                 const StageManager = await manager();
-                expect('nothing stored', StageManager.normalizeState(undefined), { assignments: {}, extras: [] });
+                expect('nothing stored', StageManager.normalizeState(undefined), { assignments: {}, extras: [], order: [] });
                 expect('junk assignments are dropped', StageManager.normalizeState({ assignments: { a: 'x', b: 7, c: '' }, extras: 'no' }),
-                    { assignments: { a: 'x' }, extras: [] });
+                    { assignments: { a: 'x' }, extras: [], order: [] });
                 expect('extras are de-duplicated and filtered', StageManager.normalizeState({ extras: ['s1', 's1', '', 3, 's2'] }),
-                    { assignments: {}, extras: ['s1', 's2'] });
+                    { assignments: {}, extras: ['s1', 's2'], order: [] });
+                expect('order is de-duplicated and filtered', StageManager.normalizeState({ order: ['b', 'a', 'b', '', 9] }).order, ['b', 'a']);
             }
         },
         {
@@ -64,7 +65,7 @@ export default {
                 const other = game.scenes.contents.find((s) => s.id !== active?.id);
                 if (!active || !other) throw new Error('Needs an active scene and at least one other scene.');
                 await withState(StageManager, async () => {
-                    await game.settings.set(MODULE_ID, 'stageState', { assignments: {}, extras: [] });
+                    await game.settings.set(MODULE_ID, 'stageState', { assignments: {}, extras: [], order: [] });
                     await StageManager.setAssignment('zz-probe-user', other.id);
                     expect('stored for another scene', StageManager.getState().assignments['zz-probe-user'], other.id);
                     await StageManager.setAssignment('zz-probe-user', active.id);
@@ -88,7 +89,7 @@ export default {
                 if (!active || spare.length < 2) throw new Error('Needs an active scene and two others the GM is not viewing.');
                 const [added, held] = spare;
                 await withState(StageManager, async () => {
-                    await game.settings.set(MODULE_ID, 'stageState', { assignments: {}, extras: [] });
+                    await game.settings.set(MODULE_ID, 'stageState', { assignments: {}, extras: [], order: [] });
                     expect('the active scene is a stage', StageManager.stages().some((s) => s.id === active.id), true);
                     expect('and comes first', StageManager.stages()[0].id, active.id);
                     expect('a scene nobody uses is not listed', StageManager.stages().some((s) => s.id === added.id), false);
@@ -103,6 +104,14 @@ export default {
 
                     await StageManager.removeStage(added.id);
                     expect('a removed stage goes', StageManager.stages().some((s) => s.id === added.id), false);
+
+                    // The GM's own order wins, and a stage they have not placed goes after the placed ones.
+                    await StageManager.addStage(added.id);
+                    await StageManager.setOrder([added.id, active.id]);
+                    const ids = StageManager.stages().map((s) => s.id);
+                    expect('a placed stage comes first', ids[0], added.id);
+                    expect('the next placed stage follows', ids[1], active.id);
+                    expect('an unplaced stage goes last', ids.indexOf(held.id) > ids.indexOf(active.id), true);
                 });
             }
         }
