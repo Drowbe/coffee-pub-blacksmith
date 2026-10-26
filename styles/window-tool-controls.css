@@ -1,0 +1,859 @@
+/* ------------------------------------ */
+/* --- TOOL WINDOW CONTROLS ----------- */
+/* ------------------------------------ */
+/* The shared controls for Tool windows -- scripts/window-tool-base.js. A satellite uses these instead of
+   writing its own, so every Tool window in the suite looks like the same family.
+
+   Every colour is a --blacksmith-tool-* variable with the dark-window value as its fallback, so a control
+   follows Light, Dark and Glass without knowing the theme exists, and still reads in a standard window.
+   See documentation/designsystem/design-components.md, "Tool window controls".
+
+   WHY THE ORANGE AND NOT --blacksmith-tool-accent FOR STATE. That accent resolves to a different colour per
+   theme -- near-black under Light, cream under Glass -- so it cannot mean "selected" or "on". The brand
+   orange reads on all three without a per-theme value, which is also why the menubar uses it. */
+
+/* ===== BUTTON ========================================================== */
+/*
+  <button type="button" class="blacksmith-tool-btn"><i class="fa-solid fa-plus"></i> Add</button>
+  <button type="button" class="blacksmith-tool-btn is-active">On</button>
+  <button type="button" class="blacksmith-tool-btn is-danger">Delete</button>
+  <button type="button" class="blacksmith-tool-btn is-icon" data-tooltip="Close"><i class="fa-solid fa-xmark"></i></button>
+*/
+.blacksmith-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 26px;
+    height: 24px;
+    margin: 0;
+    padding: 0 8px;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-radius: var(--blacksmith-radius-md, 4px);
+    background: transparent;
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+    font-family: inherit;
+    font-size: 0.85em;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.blacksmith-tool-btn:hover:not(:disabled) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+}
+
+.blacksmith-tool-btn:focus-visible {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+/* On and selected. A tint and the orange text, so it reads without a second glance at the border. */
+.blacksmith-tool-btn.is-active {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    color: var(--blacksmith-color-brand-accent, #c15701);
+}
+
+.blacksmith-tool-btn.is-danger:hover:not(:disabled) {
+    color: var(--blacksmith-status-danger, #8b0000);
+}
+
+.blacksmith-tool-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+/* A square button holding one icon. Name it with data-tooltip: there is no label to read. */
+.blacksmith-tool-btn.is-icon {
+    width: 24px;
+    min-width: 24px;
+    padding: 0;
+}
+
+/* ===== SEGMENTED CONTROL =============================================== */
+/*
+  One choice from two to four, always visible. Built on native radios, so one is selected, the arrow keys
+  move it, it submits with a form, and a consumer listens for `change` -- no script of ours is involved.
+
+  <div class="blacksmith-tool-segmented" role="radiogroup" aria-label="View">
+      <label class="blacksmith-tool-segment">
+          <input type="radio" name="view" value="list" checked>
+          <i class="fa-solid fa-list"></i><span>List</span>
+      </label>
+      <label class="blacksmith-tool-segment">
+          <input type="radio" name="view" value="board">
+          <i class="fa-solid fa-table-columns"></i><span>Board</span>
+      </label>
+  </div>
+
+  Use it for a choice that changes what is shown or done. For a choice that switches whole panes, use the
+  tabs; for a single on/off switch, the toggle.
+
+  MULTI-SELECT. Several related options that are each on or off independently read better as one control than
+  as a column of toggles. Use checkboxes in place of the radios and `role="group"` in place of `radiogroup`;
+  each segment fills orange when it is on. Arrow keys do not move between them (they are separate checkboxes,
+  reached with Tab); a consumer listens for `change` on each input.
+
+  <div class="blacksmith-tool-segmented" role="group" aria-label="Options">
+      <label class="blacksmith-tool-segment"><input type="checkbox" name="linked" checked><span>Linked</span></label>
+      <label class="blacksmith-tool-segment"><input type="checkbox" name="riders"><span>Riders</span></label>
+  </div>
+*/
+.blacksmith-tool-segmented {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-radius: var(--blacksmith-radius-lg, 5px);
+    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.25));
+}
+
+.blacksmith-tool-segment {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 0 12px;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    font-size: 0.85em;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+/* Present for the keyboard and for form submission, invisible to the eye. Not display:none, which would
+   take it out of the tab order and silence the arrow keys. It also covers the segment so a click lands on it. */
+.blacksmith-tool-segment > input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.blacksmith-tool-segment:hover:not(:has(input:checked)):not(:has(input:disabled)) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.blacksmith-tool-segment:has(input:checked) {
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+.blacksmith-tool-segment:has(input:focus-visible) {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+.blacksmith-tool-segment:has(input:disabled) {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.blacksmith-tool-segment:has(input:disabled) > input {
+    cursor: default;
+}
+
+/* The segments share the row evenly when the control is given the width: the rest window's two choices. */
+.blacksmith-tool-segmented.is-fill {
+    display: flex;
+}
+
+.blacksmith-tool-segmented.is-fill > .blacksmith-tool-segment {
+    flex: 1 1 0;
+}
+
+/* ===== ACTION BAR BUTTONS IN A TOOL WINDOW ============================= */
+/* The primary, secondary and critical buttons are built for Blacksmith's dark standard windows and hard-code
+   their faces, so on the Light theme they render as dark and green slabs on parchment. Inside a Tool window
+   they take the theme instead, and are compact to suit the 30px footer. Outside a Tool window nothing here
+   applies and they are unchanged. */
+.application.blacksmith-window-tool .blacksmith-window-btn-primary,
+.application.blacksmith-window-tool .blacksmith-window-btn-secondary,
+.application.blacksmith-window-tool .blacksmith-window-btn-critical {
+    min-height: 24px;
+    padding: 2px 10px;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    font-size: 0.85em;
+    line-height: 1.2;
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-primary {
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-secondary {
+    background: var(--blacksmith-tool-surface-raised, #313030);
+    border-color: var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-critical {
+    background: var(--blacksmith-status-danger, #8b0000);
+    border-color: var(--blacksmith-status-danger, #8b0000);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-primary:hover:not(:disabled),
+.application.blacksmith-window-tool .blacksmith-window-btn-critical:hover:not(:disabled) {
+    filter: brightness(1.12);
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-secondary:hover:not(:disabled) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+    border-color: var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.application.blacksmith-window-tool .blacksmith-window-btn-primary:focus-visible,
+.application.blacksmith-window-tool .blacksmith-window-btn-secondary:focus-visible,
+.application.blacksmith-window-tool .blacksmith-window-btn-critical:focus-visible {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+/* ===== SECTION ========================================================= */
+/*
+  A rule and a caption, rather than a panel: a Tool window body is already a surface, and boxing inside it
+  stacks two frames for one form. A section after another section gets the rule above it.
+
+  <section class="blacksmith-tool-section">
+      <header class="blacksmith-tool-section-head">
+          <span class="blacksmith-tool-section-title"><i class="fa-solid fa-users"></i> Who</span>
+          <span class="blacksmith-tool-section-actions">
+              <button type="button" class="blacksmith-tool-btn">All</button>
+          </span>
+      </header>
+      ...content...
+  </section>
+
+  The head's right-hand actions are optional. Add `is-ruleless` to drop the rule, `has-rule` to put one above
+  a section that is not preceded by another.
+*/
+/* A column with a gap, so the head, a row of buttons, a second row and a list never touch. A satellite
+   writes the content and gets the spacing; it does not need to wrap it in a stack. */
+.blacksmith-tool-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.blacksmith-tool-section + .blacksmith-tool-section,
+.blacksmith-tool-section.has-rule {
+    padding-top: 10px;
+    border-top: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+}
+
+.blacksmith-tool-section.is-ruleless {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.blacksmith-tool-section-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.blacksmith-tool-section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 0.8em;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
+}
+
+.blacksmith-tool-section-title i {
+    font-size: 0.9em;
+}
+
+.blacksmith-tool-section-actions {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+}
+
+/* ===== CARD ============================================================ */
+/*
+  A one-line header (name, badges, a few actions) that opens into a body. The open state is a native
+  checkbox inside the header's label, so it toggles by click and by keyboard with no script, a consumer
+  reads `checked`, and the actions sit OUTSIDE the label: pressing one never opens or closes the card.
+
+  <div class="blacksmith-tool-card">
+      <div class="blacksmith-tool-card-head">
+          <label class="blacksmith-tool-card-summary">
+              <input type="checkbox" class="blacksmith-tool-card-toggle" checked>
+              <i class="blacksmith-tool-card-caret fa-solid fa-chevron-right"></i>
+              <span class="blacksmith-tool-card-title">Name</span>
+              <span class="blacksmith-tool-card-badges"><span class="blacksmith-badge">3</span></span>
+          </label>
+          <span class="blacksmith-tool-card-actions">
+              <button type="button" class="blacksmith-tool-btn is-icon" data-tooltip="Edit"><i class="fa-solid fa-pen"></i></button>
+          </span>
+      </div>
+      <div class="blacksmith-tool-card-body">...</div>
+  </div>
+
+  A card that does not collapse: leave out the label's checkbox and caret, use a plain span for the
+  title, and add `is-static`.
+
+  An editable title: put a text field (or a contenteditable) inside `.blacksmith-tool-card-title`. It sits
+  above the invisible toggle, so it takes the click and the typing, and using it never opens or closes the card.
+
+  A notice that must show while the card is closed (a lost pin, a mode that is armed): put a
+  `.blacksmith-tool-card-notice` between the head and the body. `is-warning` and `is-danger` colour its edge.
+
+  <div class="blacksmith-tool-card-notice is-warning"><i class="fa-solid fa-triangle-exclamation"></i> A pin is missing.</div>
+
+  The open state is the checkbox and lives only in the page. A window that redraws must set `checked` again
+  from whatever it remembers, by listening for `change` on `.blacksmith-tool-card-toggle`.
+*/
+.blacksmith-tool-card {
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-radius: var(--blacksmith-radius-md, 4px);
+    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.25));
+}
+
+.blacksmith-tool-card + .blacksmith-tool-card {
+    margin-top: 6px;
+}
+
+.blacksmith-tool-card-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 2px 6px;
+}
+
+.blacksmith-tool-card-summary {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    gap: 8px;
+    min-width: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.blacksmith-tool-card-summary > input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.blacksmith-tool-card-summary:has(input:focus-visible) {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+.blacksmith-tool-card-caret {
+    flex: 0 0 auto;
+    width: 10px;
+    font-size: 0.75em;
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    transition: transform 0.15s ease;
+}
+
+.blacksmith-tool-card:has(> .blacksmith-tool-card-head input.blacksmith-tool-card-toggle:checked) .blacksmith-tool-card-caret {
+    transform: rotate(90deg);
+}
+
+.blacksmith-tool-card-title {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+/* An editable title. Above the toggle's overlay (z-index 1), and no longer clipped, so the field and its focus
+   ring show whole. */
+.blacksmith-tool-card-title:has(input, [contenteditable]) {
+    flex: 1 1 auto;
+    overflow: visible;
+}
+
+.blacksmith-tool-card-title input,
+.blacksmith-tool-card-title [contenteditable] {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+}
+
+.blacksmith-tool-card-badges {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+}
+
+.blacksmith-tool-card-actions {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    margin-left: auto;
+}
+
+/* Visible whether the card is open or closed: it sits between the head and the body, outside the body. */
+.blacksmith-tool-card-notice {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-top: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-left: 3px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    font-size: 0.85em;
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.blacksmith-tool-card-notice i {
+    flex: 0 0 auto;
+}
+
+.blacksmith-tool-card-notice.is-warning {
+    border-left-color: var(--blacksmith-status-warning, #aa6000);
+}
+
+.blacksmith-tool-card-notice.is-warning i {
+    color: var(--blacksmith-status-warning, #aa6000);
+}
+
+.blacksmith-tool-card-notice.is-danger {
+    border-left-color: var(--blacksmith-status-danger, #8b0000);
+}
+
+.blacksmith-tool-card-notice.is-danger i {
+    color: var(--blacksmith-status-danger, #8b0000);
+}
+
+.blacksmith-tool-card-body {
+    display: none;
+    padding: 8px;
+    border-top: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+}
+
+.blacksmith-tool-card:has(> .blacksmith-tool-card-head input.blacksmith-tool-card-toggle:checked) > .blacksmith-tool-card-body,
+.blacksmith-tool-card.is-static > .blacksmith-tool-card-body {
+    display: block;
+}
+
+/* ===== CHIP ============================================================ */
+/*
+  A small pill for a value: a tag, a filter, a choice. Plain, selectable or removable.
+
+  <div class="blacksmith-tool-chips">
+      <span class="blacksmith-tool-chip">Plain</span>
+      <label class="blacksmith-tool-chip is-selectable"><input type="checkbox" checked><span>Selectable</span></label>
+      <span class="blacksmith-tool-chip">Removable
+          <button type="button" class="blacksmith-tool-chip-remove" data-tooltip="Remove"><i class="fa-solid fa-xmark"></i></button>
+      </span>
+  </div>
+
+  A selectable chip is a native checkbox, so it toggles by click and by keyboard and a consumer reads
+  `checked`. A badge is a status label; a chip is a value the user can act on.
+*/
+.blacksmith-tool-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.blacksmith-tool-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 8px;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-radius: var(--blacksmith-radius-pill, 16px);
+    background: transparent;
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.blacksmith-tool-chip.is-selectable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.blacksmith-tool-chip.is-selectable > input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.blacksmith-tool-chip.is-selectable:hover:not(:has(input:checked)) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+}
+
+.blacksmith-tool-chip.is-selectable:has(input:checked),
+.blacksmith-tool-chip.is-active {
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    color: var(--blacksmith-color-brand-accent, #c15701);
+}
+
+.blacksmith-tool-chip:has(input:focus-visible) {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+.blacksmith-tool-chip:has(input:disabled) {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.blacksmith-tool-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin: 0 -4px 0 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    font-size: 0.9em;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.blacksmith-tool-chip-remove:hover:not(:disabled) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.blacksmith-tool-chip-remove:focus-visible {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: 1px;
+}
+
+/* ===== HINT AND EMPTY STATE ============================================ */
+/*
+  A pair. A hint is one muted line that explains the controls above it; an empty state says there is
+  nothing here yet. Neither is a heading, and neither carries state.
+
+  <div class="blacksmith-tool-hint"><i class="fa-solid fa-circle-info"></i> Applies to this rest only.</div>
+  <div class="blacksmith-tool-empty">No player characters were found.</div>
+*/
+.blacksmith-tool-hint,
+.blacksmith-tool-empty {
+    padding: 2px 4px;
+    font-size: 0.85em;
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+}
+
+.blacksmith-tool-hint i,
+.blacksmith-tool-empty i {
+    margin-right: 6px;
+}
+
+.blacksmith-tool-empty {
+    font-style: italic;
+}
+
+/* ===== STACK =========================================================== */
+/*
+  Toggle rows are inline-flex, so several in a row run together on one line. Put them in a stack when they
+  should read as a list. Any controls work in it, not only toggles.
+
+  <div class="blacksmith-tool-stack">
+      <div class="blacksmith-toggle-row">...</div>
+      <div class="blacksmith-toggle-row">...</div>
+  </div>
+*/
+.blacksmith-tool-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+/* ===== EDITABLE TEXT =================================================== */
+/*
+  A name or description that is plain text until the user presses its pencil, then a field, then text again
+  on Enter, blur or Escape. The behaviour is scripts/utility-tool-editable.js, installed once by Blacksmith;
+  this is the look. A consumer writes the markup and listens for `change` on the root, whose `detail` carries
+  `{ value, previous }`.
+
+  <span class="blacksmith-tool-editable" data-value="Group A">
+      <span class="blacksmith-tool-editable-text">Group A</span>
+      <button type="button" class="blacksmith-tool-btn is-icon blacksmith-tool-editable-edit" data-tooltip="Rename">
+          <i class="fa-solid fa-pen"></i>
+      </button>
+  </span>
+
+  Options on the root: data-multiline="true" for a description (Enter makes a new line, Ctrl or Cmd + Enter
+  accepts), data-placeholder, data-maxlength, data-required="true" (an empty value is refused).
+
+  A window that redraws must skip the redraw while one is open: the root carries `is-editing`, and
+  `api.toolEditable.isEditing(scope)` answers it.
+*/
+.blacksmith-tool-editable {
+    /* Above the card header's invisible toggle, so the pencil and the field take their own clicks. */
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.blacksmith-tool-editable-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.blacksmith-tool-editable-text.is-empty {
+    font-style: italic;
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+}
+
+.blacksmith-tool-editable[data-multiline="true"] {
+    display: flex;
+    align-items: flex-start;
+}
+
+.blacksmith-tool-editable[data-multiline="true"] .blacksmith-tool-editable-text {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: pre-wrap;
+}
+
+/* The pencil is quiet until the text or the pencil is hovered or focused, so a column of names is not a
+   column of buttons. */
+.blacksmith-tool-editable-edit {
+    flex: 0 0 auto;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0;
+    border-color: transparent;
+    font-size: 0.8em;
+    opacity: 0.55;
+}
+
+.blacksmith-tool-editable:hover .blacksmith-tool-editable-edit,
+.blacksmith-tool-editable-edit:focus-visible {
+    opacity: 1;
+}
+
+.blacksmith-tool-editable.is-editing {
+    display: flex;
+    flex: 1 1 auto;
+    width: 100%;
+}
+
+.blacksmith-tool-editable.is-editing > .blacksmith-tool-editable-text,
+.blacksmith-tool-editable.is-editing > .blacksmith-tool-editable-edit {
+    display: none;
+}
+
+.blacksmith-tool-editable-field {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+}
+
+textarea.blacksmith-tool-editable-field {
+    resize: vertical;
+}
+
+/* ===== TOGGLE IN A TOOL WINDOW ========================================= */
+/* The standard toggle is a 46x24 switch with an uppercase label, sized for a dark settings window. Beside the
+   24px buttons and the segmented control of a Tool window it reads as heavy, so inside one it is a compact
+   30x16 track with the label in normal case. Elsewhere it is unchanged. */
+.application.blacksmith-window-tool .blacksmith-toggle {
+    width: 30px;
+    height: 16px;
+}
+
+.application.blacksmith-window-tool .blacksmith-toggle-slider::before {
+    top: 2px;
+    left: 2px;
+    width: 10px;
+    height: 10px;
+}
+
+.application.blacksmith-window-tool .blacksmith-toggle-input:checked + .blacksmith-toggle-slider::before {
+    transform: translateX(14px);
+}
+
+.application.blacksmith-window-tool .blacksmith-toggle-label {
+    font-size: 0.9em;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+/* ===== JOINED BUTTON GROUP ============================================= */
+/*
+  Several related ACTIONS (not choices) as one row, so four separate buttons do not read as four separate
+  things. A choice is the segmented control.
+
+  <div class="blacksmith-tool-btn-group">
+      <button type="button" class="blacksmith-tool-btn">Tiles 1</button>
+      <button type="button" class="blacksmith-tool-btn">Lights 2</button>
+  </div>
+*/
+.blacksmith-tool-btn-group {
+    display: inline-flex;
+    align-items: stretch;
+    overflow: hidden;
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    border-radius: var(--blacksmith-radius-md, 4px);
+}
+
+.blacksmith-tool-btn-group > .blacksmith-tool-btn {
+    border: 0;
+    border-radius: 0;
+}
+
+.blacksmith-tool-btn-group > .blacksmith-tool-btn + .blacksmith-tool-btn {
+    border-left: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+}
+
+/* ===== TABS: UNDERLINE ================================================= */
+/*
+  The tab bar for a Tool window: an underline under the open tab, normal-case labels, and an optional count.
+  `blacksmith-tabs` is the boxed-chip tab bar for standard windows; this is its Tool window counterpart.
+
+  <nav class="blacksmith-tool-tabs" role="tablist">
+      <button type="button" class="blacksmith-tool-tab is-active" role="tab" aria-selected="true" data-action="selectTab" data-value="library">
+          <i class="fa-solid fa-book"></i><span>Library</span><span class="blacksmith-tool-tab-count">3</span>
+      </button>
+      <button type="button" class="blacksmith-tool-tab" role="tab" aria-selected="false" data-action="selectTab" data-value="scene">
+          <span>Scene Groups</span>
+      </button>
+  </nav>
+
+  `is-fill` shares the width evenly. The window's own state drives which tab has `is-active`.
+*/
+.blacksmith-tool-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+}
+
+.blacksmith-tool-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 30px;
+    margin: 0 0 -1px;
+    padding: 0 10px;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    font-family: inherit;
+    font-size: 0.85em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.blacksmith-tool-tab:hover:not(:disabled):not(.is-active) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.08));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.blacksmith-tool-tab.is-active {
+    border-bottom-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+    font-weight: 700;
+}
+
+.blacksmith-tool-tab:focus-visible {
+    outline: 2px solid var(--blacksmith-tool-field-focus-border, var(--blacksmith-color-brand-accent, #c15701));
+    outline-offset: -2px;
+}
+
+.blacksmith-tool-tab:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.blacksmith-tool-tabs.is-fill > .blacksmith-tool-tab {
+    flex: 1 1 0;
+}
+
+/* The count sits in the tab's own type size and a tab-height pill, so it lines up with the label. */
+.blacksmith-tool-tab-count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--blacksmith-tool-surface-raised, rgba(255, 255, 255, 0.08));
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    font-size: 0.85em;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+    text-align: center;
+}
+
+.blacksmith-tool-tab.is-active .blacksmith-tool-tab-count {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    color: var(--blacksmith-color-brand-accent, #c15701);
+}
+
+/* ===== THE BOXED TABS IN A TOOL WINDOW ================================= */
+/* `blacksmith-tab` is painted for a dark window: its resting text is faint on a pale fill on Light, so an
+   inactive tab reads as disabled. Inside a Tool window it takes the theme, and gets a count that fits it. */
+.application.blacksmith-window-tool .blacksmith-tab {
+    background: transparent;
+    border-color: var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.08));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.application.blacksmith-window-tool .blacksmith-tab:hover:not(.is-active) {
+    background: var(--blacksmith-tool-surface-hover, rgba(255, 255, 255, 0.1));
+    border-color: var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.16));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.application.blacksmith-window-tool .blacksmith-tab.is-active {
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-color-brand-accent, #c15701);
+}
+
+.blacksmith-tab-count {
+    min-width: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--blacksmith-tool-surface-raised, rgba(255, 255, 255, 0.08));
+    color: inherit;
+    font-size: 0.9em;
+    font-variant-numeric: tabular-nums;
+    line-height: 14px;
+    text-align: center;
+}

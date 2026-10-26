@@ -232,7 +232,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <span class="blacksmith-rest-member-hp${hurt ? ' is-hurt' : ''}">${max > 0 ? `${value} / ${max}` : ''}</span>
                     </label>`;
             }).join('')
-            : '<div class="blacksmith-rest-empty">No player characters were found to rest.</div>';
+            : '<div class="blacksmith-tool-empty">No player characters were found to rest.</div>';
 
         // ORDER: what kind of rest, who is taking it, then the options that modify it.
         // The two decisions come first because everything below them is conditional on
@@ -244,39 +244,41 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         // read as one changing section rather than two appearing and disappearing.
         const bodyContent = `
             <div class="blacksmith-rest-form">
-                <div class="blacksmith-rest-group">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-campground"></i>
                         <span>Rest</span>
                     </div>
-                    <div class="blacksmith-rest-types" role="group" aria-label="Kind of rest">
-                        <button type="button" class="blacksmith-rest-type${isLong ? ' is-active' : ''}"
-                            data-action="rest-type" data-rest-type="long" aria-pressed="${isLong}">
-                            <i class="fa-solid fa-campground"></i> Long Rest
-                        </button>
-                        <button type="button" class="blacksmith-rest-type${isLong ? '' : ' is-active'}"
-                            data-action="rest-type" data-rest-type="short" aria-pressed="${!isLong}">
-                            <i class="fa-solid fa-utensils"></i> Short Rest
-                        </button>
+                    <div class="blacksmith-tool-segmented is-fill" role="radiogroup" aria-label="Kind of rest">
+                        <label class="blacksmith-tool-segment">
+                            <input type="radio" name="blacksmith-rest-type" value="long"
+                                data-action="rest-type" data-rest-type="long"${isLong ? ' checked' : ''}>
+                            <i class="fa-solid fa-campground"></i><span>Long Rest</span>
+                        </label>
+                        <label class="blacksmith-tool-segment">
+                            <input type="radio" name="blacksmith-rest-type" value="short"
+                                data-action="rest-type" data-rest-type="short"${isLong ? '' : ' checked'}>
+                            <i class="fa-solid fa-utensils"></i><span>Short Rest</span>
+                        </label>
                     </div>
                 </div>
 
-                <div class="blacksmith-rest-group">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-users"></i>
                         <span>Who is resting</span>
-                        <span class="blacksmith-rest-roster-tools">
-                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-all"
+                        <span class="blacksmith-tool-section-actions">
+                            <button type="button" class="blacksmith-tool-btn" data-action="rest-select-all"
                                 data-tooltip="Select everyone">All</button>
-                            <button type="button" class="blacksmith-rest-roster-tool" data-action="rest-select-none"
+                            <button type="button" class="blacksmith-tool-btn" data-action="rest-select-none"
                                 data-tooltip="Select nobody">None</button>
                         </span>
                     </div>
                     ${roster}
                 </div>
 
-                <div class="blacksmith-rest-group blacksmith-rest-new-day">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section blacksmith-rest-new-day">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-clock"></i>
                         <span>Time Automation</span>
                     </div>
@@ -287,8 +289,8 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                     </label>
                 </div>
 
-                <div class="blacksmith-rest-group blacksmith-rest-provisions">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section blacksmith-rest-provisions">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-drumstick-bite"></i>
                         <span>Provisions</span>
                     </div>
@@ -312,12 +314,12 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <i class="fa-solid fa-face-tired"></i>
                         <span>Going without causes exhaustion</span>
                     </label>
-                    <div class="blacksmith-rest-note">Applies to this rest only. Without foraging there is no check
+                    <div class="blacksmith-tool-hint">Applies to this rest only. Without foraging there is no check
                         at all -- the card just shows what each character could not consume.</div>
                 </div>
 
-                <div class="blacksmith-rest-group blacksmith-rest-hitpoints">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section blacksmith-rest-hitpoints">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-heart"></i>
                         <span>Hit Points</span>
                     </div>
@@ -331,11 +333,11 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <i class="fa-solid fa-heart-circle-plus"></i>
                         <span>Recover Max HP</span>
                     </label>
-                    <div class="blacksmith-rest-note">Remove any adjustments to a character's maximum Hit Points.</div>
+                    <div class="blacksmith-tool-hint">Remove any adjustments to a character's maximum Hit Points.</div>
                 </div>
 
-                <div class="blacksmith-rest-group blacksmith-rest-shortrest">
-                    <div class="blacksmith-rest-group-title">
+                <div class="blacksmith-tool-section blacksmith-rest-shortrest">
+                    <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-heart-pulse"></i>
                         <span>Hit Dice</span>
                     </div>
@@ -344,7 +346,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
                         <i class="fa-solid fa-dice-d6"></i>
                         <span>Auto Spend HD</span>
                     </label>
-                    <div class="blacksmith-rest-note">Automatically spend hit dice until they run out or health is
+                    <div class="blacksmith-tool-hint">Automatically spend hit dice until they run out or health is
                         full. Leave it off and each character chooses their own dice, one at a time, from their card.</div>
                 </div>
             </div>`;
@@ -356,7 +358,7 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
         return {
             appId: APP_ID,
             bodyContent,
-            toolFooterLeft: '<button type="button" data-action="rest-cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>',
+            toolFooterLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="rest-cancel"><i class="fa-solid fa-xmark"></i> Cancel</button>',
             // `blacksmith-window-btn-primary` is the module's SHARED button vocabulary,
             // not the standard window's frame -- dialogs use it too, and it is defined
             // globally with its token on `:root`, so it carries into a tool window
@@ -409,10 +411,8 @@ export class RestWindow extends BlacksmithToolWindowBaseV2 {
             root.querySelector(selector)?.classList.toggle('is-hidden', isLong);
         }
 
-        for (const button of root.querySelectorAll('[data-action="rest-type"]')) {
-            const active = button.dataset.restType === this._restType;
-            button.classList.toggle('is-active', active);
-            button.setAttribute('aria-pressed', String(active));
+        for (const radio of root.querySelectorAll('[data-action="rest-type"]')) {
+            radio.checked = radio.dataset.restType === this._restType;
         }
     }
 

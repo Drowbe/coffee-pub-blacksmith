@@ -143,6 +143,7 @@ import { CampaignManager } from './manager-campaign.js';
 import { CampaignAPI } from './api-campaign.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { CanvasAPI } from './api-canvas.js';
+import { ToolEditable } from './utility-tool-editable.js';
 import { RollsAPI } from './api-rolls.js';
 import { EffectsAPI } from './api-effects.js';
 import { TokenInteractionsAPI } from './api-token-interactions.js';
@@ -1205,6 +1206,7 @@ Hooks.once('init', async function() {
     
     // Initialize UtilsManager
     UtilsManager.initialize();
+    ToolEditable.initialize();
     CampaignManager.initialize();
 
     // Expose module.api before any await in init — other modules' `ready` hooks may run while this
@@ -1326,6 +1328,7 @@ Hooks.once('init', async function() {
         campaign: CampaignAPI,
         compendiums: CompendiumsAPI,
         canvas: CanvasAPI,
+        toolEditable: ToolEditable,
         rolls: RollsAPI,
         effects: EffectsAPI,
         tokens: TokenInteractionsAPI,

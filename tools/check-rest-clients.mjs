@@ -1157,9 +1157,18 @@ check(
     !/^\.(?!blacksmith-rest-tool-window)[a-z-]+\s*[,{]/m.test(restCss),
     `An unscoped rule from a tool window leaks onto every other consumer of the shared shell.`
 );
+const controlsCss = fs.readFileSync(path.join(ROOT, 'styles/window-tool-controls.css'), 'utf8');
+check(
+    'The kind-of-rest switch is the shared segmented control, not a local one.',
+    /blacksmith-tool-segmented/.test(windowSrc)
+        && !/class="[^"]*blacksmith-rest-type/.test(windowSrc)
+        && !/\.blacksmith-rest-type\b/.test(restCss),
+    `A satellite hand-rolled the same switch seven times; the rest window is the first consumer of the shared one, ` +
+    `so a local copy here would be the gap it was written to close.`
+);
 check(
     'Interactive state uses the brand orange, not the per-theme tool accent.',
-    /is-active[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(restCss)
+    /has\(input:checked\)[\s\S]{0,200}?--blacksmith-color-brand-accent/.test(controlsCss)
         && /--checkbox-checked-color:\s*var\(--blacksmith-color-brand-accent\)/.test(restCss),
     `\`--blacksmith-tool-accent\` resolves per theme -- dark brown under Light, cream under Glass -- so it ` +
     `cannot carry "on". window-tool.css states this rule where it makes the same choice for its header controls.`
@@ -1307,7 +1316,7 @@ check(
 // `( [^"]*)?` rather than `([^"]*)` so the class must END or be followed by a space:
 // the greedy version also matched `blacksmith-rest-group-title`, which is a child of
 // every section and put a phantom entry after each one.
-const sectionOrder = [...windowSrc.matchAll(/<div class="blacksmith-rest-group( [^"]*)?"/g)]
+const sectionOrder = [...windowSrc.matchAll(/<div class="blacksmith-tool-section( [^"]*)?"/g)]
     .map((m) => (m[1] ?? '').trim().replace('blacksmith-rest-', '') || 'rest');
 
 check(

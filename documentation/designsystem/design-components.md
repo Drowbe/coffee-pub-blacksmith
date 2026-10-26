@@ -215,6 +215,87 @@ because children set `background: var(--blacksmith-window-background, #232323)` 
 background -- that background is load-bearing for anyone reimplementing the layout. Children set
 `overflow: hidden`.
 
+## Tool window controls
+
+Shared controls for Tool windows, all namespaced `blacksmith-tool-*` (`styles/window-tool-controls.css`). Every
+colour is a `--blacksmith-tool-*` variable with the dark-window value as its fallback, so each follows Light, Dark
+and Glass with no theme-aware code and still reads in a standard window. A satellite uses these rather than
+writing its own.
+
+**Button** -- `.blacksmith-tool-btn`: 24px high, transparent with a divider border, a hover surface. `.is-active`
+is the selected tint with orange text, `.is-danger` turns red on hover, `:disabled` is dimmed, `.is-icon` is a
+square 24px button for one icon and should carry a `data-tooltip`. State uses the brand orange rather than
+`--blacksmith-tool-accent`, which is near-black under Light and cream under Glass and so cannot mean "on".
+
+**Segmented control** -- `.blacksmith-tool-segmented` holding two to four `.blacksmith-tool-segment` labels, each a
+native radio plus an optional icon and a label. One rounded bordered container; the selected segment is filled
+brand orange with inverse text, the others are transparent with muted text and a hover fill. Because it is
+native radios, exactly one is selected, the arrow keys move it, it submits with a form, and a consumer listens
+for `change`. `.is-fill` shares the width evenly. Use it for a choice that changes what is shown or done; use
+tabs for whole panes and the toggle for a single on or off. **Multi-select:** several related options that are
+each on or off on their own read better as one control than as a column of toggles. Use checkboxes instead of
+radios and `role="group"` instead of `radiogroup`; each segment fills orange when on. The arrow keys do not move
+between them, they are separate checkboxes reached with Tab.
+
+**Toggle in a Tool window** -- `.blacksmith-toggle` is a compact 30x16 track with the label in normal case inside a
+Tool window; elsewhere it stays 46x24 with an uppercase label. Keep it for a single on or off option. The order in a
+`.blacksmith-toggle-row` is the markup's: switch first and label after is as supported as label first. The class
+`.blacksmith-toggle-label` is a style, not an element, so it can be a real `<label for="id">` that flips the switch when
+clicked, which is better than the span the examples show.
+
+**Joined button group** -- `.blacksmith-tool-btn-group` wraps several `.blacksmith-tool-btn` actions in one bordered row
+with dividers, so related actions do not read as separate things. For actions, not choices; a choice is the
+segmented control.
+
+**Tabs** -- `.blacksmith-tool-tabs` with `.blacksmith-tool-tab` is the Tool window tab bar: normal-case labels, a
+brand-orange underline under the open tab, and an optional `.blacksmith-tool-tab-count` pill sized to the tab's own
+type. `is-fill` shares the width. The boxed `.blacksmith-tab` is the standard-window bar; inside a Tool window it
+takes the theme so its inactive tabs read as inactive and not disabled, and `.blacksmith-tab-count` gives it a
+count that fits.
+
+**Section** -- `.blacksmith-tool-section` with `-head`, `-title` and `-actions`: a caption (small, uppercase, in the
+window accent) with an optional right-hand set of actions, and a rule above every section that follows another.
+It is a rule and a caption rather than a panel, because a Tool window body is already a surface. The section is a
+column with a 6px gap, so its head and whatever follows (a row of buttons, a second row, a list, a toggle) are spaced
+without the consumer wrapping the content in a stack. `is-ruleless`
+drops the rule; `has-rule` adds one above a section that is not preceded by another. Use this, not
+`.blacksmith-window-section`, which paints a dark panel and is wrong on the Light theme.
+
+**Card** -- `.blacksmith-tool-card` with `-head`, `-summary`, `-caret`, `-title`, `-badges`, `-actions` and `-body`. A
+one-line header (name, badges, a few actions) that opens into a body. The open state is a native checkbox
+(`.blacksmith-tool-card-toggle`) inside the header's label, so it opens by click and by keyboard with no script,
+a consumer reads `checked`, and the actions sit outside the label: pressing one never opens or closes the card.
+`is-static` is a card that does not collapse. A text field or contenteditable placed inside `-title` sits above the toggle, so
+a card can have an inline rename without opening or closing when it is used. `-notice` (with `is-warning` or
+`is-danger`) sits between the head and the body and shows whether the card is open or closed, for a warning or a
+mode the user must not miss. The open state lives only in the page: a window that redraws sets `checked` again
+from what it remembers, by listening for `change` on `.blacksmith-tool-card-toggle`.
+
+**Chip** -- `.blacksmith-tool-chip` in a `.blacksmith-tool-chips` row: a small pill for a value the user can act
+on. `is-selectable` is a native checkbox (the selected chip takes the orange tint); a `-chip-remove` button inside
+makes it removable. A badge is a status label; a chip is a value.
+
+**Hint and empty state** -- `.blacksmith-tool-hint` is one muted line that explains the controls above it,
+`.blacksmith-tool-empty` is the italic "nothing here yet". A pair, and neither carries state.
+
+**Editable text** -- `.blacksmith-tool-editable` with `-text` and a `.blacksmith-tool-btn.is-icon.blacksmith-tool-editable-edit`
+pencil: a name or description that is plain text until the pencil is pressed, then a field, then text again on
+Enter, blur or Escape. `data-multiline="true"` makes it a description (Enter makes a new line, Ctrl or Cmd plus Enter
+accepts); `data-placeholder`, `data-maxlength` and `data-required="true"` are the other options. The behaviour is
+`scripts/utility-tool-editable.js`, installed once by Blacksmith through one delegated listener, so a satellite writes
+the markup and listens for `change` on the root, whose `detail` is `{ value, previous }`. It fires only when the value
+changed. It works inside a card title and a list row title. A window that redraws must skip the redraw while one is
+open: the root carries `is-editing`, and `api.toolEditable.isEditing(scope)` answers it; `api.toolEditable.begin(root)`
+starts an edit from code, for a rename straight after creating something.
+
+**Stack** -- `.blacksmith-tool-stack` is a column with a gap. Toggle rows are inline, so several in a row run
+together; put them in a stack.
+
+**Action bar buttons in a Tool window** -- the `.blacksmith-window-btn-primary`, `-secondary` and `-critical`
+buttons keep their dark-window look everywhere else, but inside a Tool window they take the theme (brand
+orange, raised surface, danger) and are compact to suit the 30px footer. Left footer slot: secondary and other
+actions. Right: the primary action.
+
 ## Selectable entity list
 
 `.blacksmith-entity-list` containing `.blacksmith-entity` rows, each a `<label>` wrapping a native radio or

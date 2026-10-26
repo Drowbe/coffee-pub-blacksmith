@@ -37,30 +37,11 @@
     gap: 10px;
 }
 
-/* --- Grouping ---------------------------------------------------- */
-
-/* A rule and a caption, rather than a panel. The tool body is already a
-   surface; boxing inside it stacks two frames for one form. */
-.blacksmith-rest-tool-window .blacksmith-rest-group + .blacksmith-rest-group {
-    border-top: 1px solid var(--blacksmith-tool-divider);
-    padding-top: 10px;
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-group-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-    font-size: 0.8em;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--blacksmith-tool-accent);
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-group-title i {
-    font-size: 0.9em;
-}
+/* --- Grouping ----------------------------------------------------
+   A rule and a caption, rather than a panel: the shared
+   `blacksmith-tool-section`, so this window carries no rules of its own for
+   it. What stays here is which sections exist and what is shown with which
+   rest. */
 
 /* --- Checkboxes ---------------------------------------------------
    RECOLOURED, NOT REBUILT.
@@ -108,48 +89,10 @@
 }
 
 /* --- Which rest ---------------------------------------------------
-   Two exclusive buttons rather than a dropdown: there are exactly two
+   Two exclusive choices rather than a dropdown: there are exactly two
    answers, both worth reading at a glance, and a select hides one of
-   them behind a click. No segmented control exists in the shared
-   vocabulary -- `blacksmith-toggle` is a switch, which is a different
-   question -- so this is built from the shell's own tokens and stays
-   correct across all three tool themes. */
-
-.blacksmith-rest-tool-window .blacksmith-rest-types {
-    display: flex;
-    gap: 6px;
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-type {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 4px 8px;
-    line-height: 1.6;
-    border: 1px solid var(--blacksmith-tool-border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--blacksmith-tool-text-muted);
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-type:hover {
-    background: var(--blacksmith-tool-surface-hover);
-    color: var(--blacksmith-tool-text);
-}
-
-/* The chosen one carries the accent, so which rest is about to happen is
-   readable without comparing the two.
-
-   THE BRAND ORANGE, NOT `--blacksmith-tool-accent`. window-tool.css states
-   the rule where it makes the same choice: the tool accent resolves to a
-   different colour per theme -- dark brown under Light, cream under Glass --
-   so it cannot mean "interactive". Orange reads on all three without a
-   per-theme value, which is why the menubar uses it for the same job. */
-.blacksmith-rest-tool-window .blacksmith-rest-type.is-active {
-    background: var(--blacksmith-tool-surface-selected);
-    border-color: var(--blacksmith-color-brand-accent);
-    color: var(--blacksmith-tool-text);
-    font-weight: 700;
-}
+   them behind a click. It is the shared `blacksmith-tool-segmented`
+   control, so it carries no rules of its own here. */
 
 /* --- The roster -------------------------------------------------- */
 
@@ -206,36 +149,6 @@
     width: 14px;
     text-align: center;
     color: var(--blacksmith-tool-text-muted);
-}
-
-/* --- Notes and empty states -------------------------------------- */
-
-.blacksmith-rest-tool-window .blacksmith-rest-note,
-.blacksmith-rest-tool-window .blacksmith-rest-empty {
-    padding: 2px 4px;
-    font-size: 0.85em;
-    color: var(--blacksmith-tool-text-muted);
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-empty {
-    font-style: italic;
-}
-
-/* All / None sit in the group caption, pushed to its trailing edge.
-   Deliberately unstyled beyond size and colour: window-tool.css leaves
-   buttons alone on purpose, and repainting them here would be the same
-   mistake at one remove. */
-.blacksmith-rest-tool-window .blacksmith-rest-roster-tools {
-    margin-left: auto;
-    display: flex;
-    gap: 4px;
-}
-
-.blacksmith-rest-tool-window .blacksmith-rest-roster-tool {
-    padding: 0 6px;
-    font-size: 0.9em;
-    line-height: 1.5;
-    width: auto;
 }
 
 /* A short rest has no new day and no rations; a long one has no hit dice
