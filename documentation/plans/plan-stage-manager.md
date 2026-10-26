@@ -67,11 +67,11 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
    cope. That audit is a separate piece of work and is not part of the first slice.
 4. **What stays global.** Audio playlists, chat, the world clock and pause are not per scene. The panel should say
    so rather than imply otherwise.
-5. **Where it lives.** It is coordination across the whole table, like the time modes (`manager-time-modes.js`), so
-   Blacksmith is the likely home. The author's rule is that features are being pulled out of Blacksmith, so this
-   needs a deliberate yes.
-6. **First version.** The smallest useful slice is probably the panel plus drag to move plus the stored map. Chat
-   per stage, statuses and the hold scene follow.
+5. **Where it lives. Decided 2026-10-26: Blacksmith.** The author called it core: it is coordination across the
+   whole table, like the time modes (`manager-time-modes.js`), and a satellite cannot see everyone's location.
+6. **First version. Decided 2026-10-26.** The panel, drag to move, and the stored player-to-scene map with a
+   re-pull when a player connects. Chat per stage, Away and Do Not Disturb, and the hold scene follow in a second
+   slice. The combat audit above is separate and is not part of either slice.
 
 ## Not decided
 

@@ -1078,10 +1078,12 @@ decision: drop it where the live handler fully applies the change.
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the
 scenes tab for every move, and Foundry shows nowhere who is on which scene. A Tool window of stage cards with
 player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and later
-a say-to-this-stage box and Away or Do Not Disturb statuses. Three questions remain open. Answered 2026-10-26: a player
-client does hold a scene that is not active (in the author's world), a pulled view does not survive a reload
-so the stored map and a re-pull on connect are required, and combats run side by side across scenes, even two
-in one scene, which means the combat tooling that reads `game.combat` needs an audit. Next is where it lives. **Verify:** each open question answered
+a say-to-this-stage box and Away or Do Not Disturb statuses. Decided 2026-10-26: it lives in Blacksmith, and the first
+slice is the panel, drag to move, and the stored player-to-scene map with a re-pull when a player connects.
+Answered from the author's world: a player client does hold a scene that is not active, a pulled view does not
+survive a reload (so the map and the re-pull are required), and combats run side by side across scenes, even two
+in one scene. Still open: what the panel says about global state (audio, chat, the clock, pause). The combat
+tooling that reads `game.combat` needs its own audit, tracked separately. **Verify:** each open question answered
 in a running world, and the first slice walked with two clients on two scenes.
 
 ### One participation list, owned by Blacksmith
