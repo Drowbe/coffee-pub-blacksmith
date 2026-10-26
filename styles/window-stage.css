@@ -1,0 +1,44 @@
+/* ------------------------------------ */
+/* --- STAGE MANAGER ------------------ */
+/* ------------------------------------ */
+/* scripts/window-stage.js. Almost everything here is the shared Tool controls (cards, chips, drop zone, hint);
+   this file holds only the layout that is the Stage Manager's own. */
+
+.blacksmith-stage-tool-window .blacksmith-stage-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    color: var(--blacksmith-tool-text);
+}
+
+/* The drop zone holds the people, so left-align them and let the zone keep a stable height whether it holds
+   chips or the "nobody here" line. */
+.blacksmith-stage-tool-window .blacksmith-stage-drop {
+    align-items: flex-start;
+    min-height: 32px;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-drop .blacksmith-tool-dropzone-hint {
+    align-self: center;
+}
+
+/* A draggable person reads as one. */
+.blacksmith-stage-tool-window .blacksmith-tool-chip[draggable="true"] {
+    cursor: grab;
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* Someone who is not connected, held on a scene for when they are. */
+.blacksmith-stage-tool-window .blacksmith-tool-chip.is-away {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-add-select {
+    flex: 1 1 auto;
+    min-width: 0;
+}

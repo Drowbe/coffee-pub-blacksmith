@@ -75,6 +75,25 @@ shipped, and the row says what is left. **Blocked** - waiting on something named
 
 ## Critical bugs
 
+### Combat tooling assumes one combat at a time (CRITICAL, deferred by the author 2026-10-26)
+
+**Critical, and not being done the day it was found: the author chose to build the Stage Manager first.** A split party
+running two fights at once hits every item below, so this must land before the Stage Manager is used for that.
+
+Found 2026-10-26 auditing for the Stage Manager (`plans/plan-stage-manager.md`). Combats run side by side on
+different scenes, and `game.combat` is only the active combat of the scene being viewed (or the one picked in the
+tracker), but the statistics, both timers and the movement-mode switch each hold one global instance and several
+hooks ignore which combat fired them. With two combats going: starting one wipes the other's in-memory stats and
+its numbers are written to the viewed combat's flag (`stats-combat.js`, `stats-sources.js`); one shared turn
+timer is restarted, stopped or advanced by either combat (`timer-combat.js`, `timer-planning.js`);
+`timer-round.js` throws when no combat is viewed and otherwise rewrites the viewed combat's totals; and the second
+`createCombat` overwrites the saved pre-combat movement mode so the table is left in combat movement
+(`token-movement.js`). The turn ring, tracker close and planning timer degrade; the combat bar, defeated handling
+and XP at combat end are already safe. Fixes: key stats by `combat.id`, give each timer a tracked combat id and
+ignore other combats' updates and deletes, count open combats before restoring movement mode, and read the hook's
+`combat` in `timer-round.js`. **Verify:** two combats on two scenes, one started while the other runs, then
+each ended in turn; stats, timers and movement mode stay correct for the one still running.
+
 ### `T` over an enemy targeted nothing, on the player's own turn (opened 2026-08-27)
 
 Seen live 2026-08-26. A player on their turn moused over an enemy, pressed **T**, nothing was targeted, no
@@ -411,22 +430,6 @@ reachability first, then replace with `foundry.utils.saveDataToFile`.
 ---
 
 ## Combat
-
-### Combat tooling assumes one combat at a time
-
-Found 2026-10-26 auditing for the Stage Manager (`plans/plan-stage-manager.md`). Combats run side by side on
-different scenes, and `game.combat` is only the active combat of the scene being viewed (or the one picked in the
-tracker), but the statistics, both timers and the movement-mode switch each hold one global instance and several
-hooks ignore which combat fired them. With two combats going: starting one wipes the other's in-memory stats and
-its numbers are written to the viewed combat's flag (`stats-combat.js`, `stats-sources.js`); one shared turn
-timer is restarted, stopped or advanced by either combat (`timer-combat.js`, `timer-planning.js`);
-`timer-round.js` throws when no combat is viewed and otherwise rewrites the viewed combat's totals; and the second
-`createCombat` overwrites the saved pre-combat movement mode so the table is left in combat movement
-(`token-movement.js`). The turn ring, tracker close and planning timer degrade; the combat bar, defeated handling
-and XP at combat end are already safe. Fixes: key stats by `combat.id`, give each timer a tracked combat id and
-ignore other combats' updates and deletes, count open combats before restoring movement mode, and read the hook's
-`combat` in `timer-round.js`. **Verify:** two combats on two scenes, one started while the other runs, then
-each ended in turn; stats, timers and movement mode stay correct for the one still running.
 
 ### Two drag-to-reorder implementations, and they do not agree (opened 2026-08-27)
 
@@ -1094,8 +1097,10 @@ decision: drop it where the live handler fully applies the change.
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the
 scenes tab for every move, and Foundry shows nowhere who is on which scene. A Tool window of stage cards with
 player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and later
-a say-to-this-stage box and Away or Do Not Disturb statuses. Decided 2026-10-26: it lives in Blacksmith, and the first
-slice is the panel, drag to move, and the stored player-to-scene map with a re-pull when a player connects.
+a say-to-this-stage box and Away or Do Not Disturb statuses. **Slice 1 is built (2026-10-26) and not yet seen in a running world:** `scripts/manager-stage.js`, `scripts/window-stage.js`,
+architecture in `architecture/architecture-stage-manager.md`, verification in `testing/stage-manager.md`. Slice 2 (say to this
+stage, Away and Do Not Disturb, the hold scene) is not started. Decided 2026-10-26: it lives in Blacksmith, and the first
+slice is the panel, drag to move, and the stored player-to-scene map with a re-apply when a player loads.
 Answered from the author's world: a player client does hold a scene that is not active, a pulled view does not
 survive a reload (so the map and the re-pull are required), and combats run side by side across scenes, even two
 in one scene. Still open: what the panel says about global state (audio, chat, the clock, pause). The combat

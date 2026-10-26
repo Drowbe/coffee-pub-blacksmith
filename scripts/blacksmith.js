@@ -107,6 +107,8 @@ import { registerVoteWindow } from './window-vote-config.js';
 // file is on the static import graph. The toolbar's dynamic import resolves from cache.
 import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerRestWindow } from './window-rest.js';
+import { registerStageWindow } from './window-stage.js';
+import { StageManager } from './manager-stage.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
 import { NotesManager } from './manager-notes.js';
 import { NoteReminders } from './manager-note-reminders.js';
@@ -606,6 +608,7 @@ Hooks.once('ready', async () => {
         // the driver here rather than in `init` also means the ownership election has
         // a populated `game.users` to elect from.
         TimeModes.initialize();
+        StageManager.initialize();
         // After WorldClockAPI, whose schedule surface the events arm themselves through.
         CalendarEvents.initialize();
         if (mod?.api) mod.api.worldClock = WorldClockAPI;
@@ -775,6 +778,7 @@ Hooks.once('ready', async () => {
             registerCompendiumSearchWindow();
             registerStatusEffectsWindow();
             registerRestWindow();
+            registerStageWindow();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.
             await restoreToolWindows();

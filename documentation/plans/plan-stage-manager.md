@@ -1,8 +1,9 @@
 # Plan: the Stage Manager, one place to see and move a split party
 
-**Status: Planned -- nothing implemented.** Live scaffolding, opened 2026-10-26 from a conversation with the
-author about running a table where players are on different scenes. Nothing is decided beyond the problem and
-the building blocks; the open questions below settle before any code.
+**Status: In progress -- slice 1 built, not yet seen in a running world.** Live scaffolding, opened 2026-10-26 from
+a conversation with the author about running a table where players are on different scenes. Slice 1 (the panel,
+drag to move, the stored map and the re-apply on load) is in `scripts/manager-stage.js` and
+`scripts/window-stage.js`; slice 2 (say to this stage, Away and Do Not Disturb, the hold scene) is not started.
 
 **On completion:** the panel and its settings go to `documentation/architecture/architecture-stage-manager.md`,
 the public calls (if any) to `documentation/api/`, the work items become `TODO.md` entries, shipped history goes

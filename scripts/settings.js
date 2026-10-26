@@ -5728,6 +5728,17 @@ export const registerSettings = () => {
 	// == INTERNAL - NOT SHOWN IN THE SETTINGS SHEET
 	// ====================================================================================================================
 
+	// -- STAGE MANAGER STATE --
+	// Which scene each player is held on, and the scenes the GM added to the Stage Manager by hand.
+	// World scope so every client can read its own assignment at load; only a GM writes it. Not shown in the
+	// settings sheet: the Stage Manager window is the only place it is edited. See scripts/manager-stage.js.
+	game.settings.register(MODULE.ID, 'stageState', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: { assignments: {}, extras: [] }
+	});
+
 	// -- SETTINGS ADOPTION LEDGERS --
 	// Which sibling-module settings have already been adopted, so adoption never runs
 	// twice and cannot overwrite a value the user changed afterwards. One ledger per
