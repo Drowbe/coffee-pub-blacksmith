@@ -305,8 +305,8 @@
 /* ----- Shared section component (use inside bodyContent) ----- */
 .blacksmith-window-section {
     margin-bottom: 16px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.12));
     border-radius: 8px;
     padding: 12px;
 }
@@ -338,14 +338,14 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--blacksmith-window-accent-color);
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color));
     margin-bottom: 12px;
     padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.1));
 }
 
 .blacksmith-window-section-header i {
-    color: var(--blacksmith-window-accent-color);
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color));
     font-size: 0.9em;
 }
 
@@ -381,7 +381,7 @@
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    color: var(--blacksmith-window-accent-color);
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color));
     opacity: 0.75;
     cursor: pointer;
     transition: opacity 100ms ease;

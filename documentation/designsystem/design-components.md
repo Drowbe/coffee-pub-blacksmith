@@ -156,7 +156,9 @@ track, thumb, border, checked state and label follow the window's theme through 
 fallback, so a toggle is readable on Light, Glass and the dark theme without the consumer styling it.
 
 **Range slider** -- `.blacksmith-slider` wrapping an optional icon and value span, with webkit and moz
-thumb pseudo-elements (`:153-230`).
+thumb pseudo-elements (`:153-230`). Its track, thumb, icon and value readout read the `--blacksmith-tool-*`
+surface, field border, accent and text variables with the old values as fallbacks, so inside a Tool window the whole
+component, including the value, follows Light, Glass and dark.
 
 **Badge / tag pill** -- base plus four variants (`:100, 114, 121, 127, 133`). The base uses
 `var(--blacksmith-radius-pill, 16px)` (`:107`). The base and `-accent` read the `--blacksmith-tool-*` surface, divider,
@@ -290,6 +292,18 @@ starts an edit from code, for a rename straight after creating something.
 
 **Stack** -- `.blacksmith-tool-stack` is a column with a gap. Toggle rows are inline, so several in a row run
 together; put them in a stack.
+
+**Drop zone** -- `.blacksmith-tool-dropzone`: a dashed target for something dragged onto it (a document, a file, an
+image), with an optional icon and `.blacksmith-tool-dropzone-hint`. This is the look and the state; the drag
+handling is the consumer's, who toggles `is-over` (solid orange border and tint) while a drag is above it.
+`is-filled` calms a zone that already holds something to a solid divider.
+
+**The older components inside a Tool window** -- `.blacksmith-tag`, `.blacksmith-icon-action`,
+`.blacksmith-window-section` (with its header and header action) and `.blacksmith-panel-card` were painted for a dark
+window and rendered pale-on-pale or as dark slabs on the Light theme. Each now reads the `--blacksmith-tool-*`
+surface, divider, text and accent variables with its old value as the fallback, so it follows Light, Glass and
+dark inside a Tool window and is unchanged elsewhere. For new Tool window work use `.blacksmith-tool-section` and
+`.blacksmith-tool-card`, which are built for it.
 
 **Action bar buttons in a Tool window** -- the `.blacksmith-window-btn-primary`, `-secondary` and `-critical`
 buttons keep their dark-window look everywhere else, but inside a Tool window they take the theme (brand

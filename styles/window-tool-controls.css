@@ -857,3 +857,47 @@ textarea.blacksmith-tool-editable-field {
     line-height: 14px;
     text-align: center;
 }
+
+/* ===== DROP ZONE ======================================================= */
+/*
+  A dashed target that something is dragged onto: a document, a file, an image. This is the look and the
+  state; the drag handling is the consumer's, who toggles `is-over` while a drag is above it.
+
+  <div class="blacksmith-tool-dropzone" data-drop-target="pins">
+      <i class="fa-solid fa-arrow-down-to-bracket"></i>
+      <span class="blacksmith-tool-dropzone-hint">Drop a pin here</span>
+  </div>
+
+  `is-filled` for a zone that already holds something, so the dashed border calms to a solid divider. The
+  icon and hint are optional; any content works inside.
+*/
+.blacksmith-tool-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 10px;
+    border: 1px dashed var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.3));
+    border-radius: var(--blacksmith-radius-md, 4px);
+    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.28));
+    color: var(--blacksmith-tool-text-muted, rgba(224, 224, 224, 0.5));
+    font-size: 0.85em;
+    text-align: center;
+    transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.blacksmith-tool-dropzone.is-over {
+    border-style: solid;
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.92));
+}
+
+.blacksmith-tool-dropzone.is-filled {
+    border-style: solid;
+}
+
+.blacksmith-tool-dropzone-hint {
+    font-style: italic;
+}

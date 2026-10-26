@@ -1022,18 +1022,6 @@ Typography is partly tokenised; the `cpb-`/`blacksmith-` prefix split is resolve
 `.bh-` namespace is unused and its reservation is dropped. What remains is the token-adoption pass that
 makes the design system govern the CSS rather than describe it.
 
-### Tool window controls: the remaining phases
-
-Phases 1 and 2 shipped the button, the segmented control, the themed action bar buttons, the section, the
-card, the chip, and the hint and empty state (all `blacksmith-tool-*`, in `styles/window-tool-controls.css`),
-with the rest window as first consumer. Still to build, each as `blacksmith-tool-*` reading the
-`--blacksmith-tool-*` variables with the old values as fallbacks: drop zone. Then re-theme the four existing
-classes that are wrong on Light: `.blacksmith-tag`, `.blacksmith-panel-card`, `.blacksmith-window-section` and
-`.blacksmith-icon-action`. Blacksmith's own windows adopt each control first; the satellites that hand-rolled
-them (Cartographer, Merchant, Librarian, Artificer, Regent, Minstrel, Squire, Bibliosoph, Scribe, Puppeteer)
-move over after each ships. **Verify:** `testing/tool-controls.md` for phase 1, and a matching list for each
-control added.
-
 ### Application windows: give the standard window family its own namespace
 
 Windows are two kinds, and only one has a name for itself. Tool windows are `blacksmith-tool-*`; the

@@ -173,14 +173,14 @@
 }
 
 .blacksmith-slider i {
-    color: var(--blacksmith-window-accent-color, #ac9f81);
+    color: var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
     font-size: 0.8em;
     opacity: 0.8;
     flex-shrink: 0;
 }
 
 .blacksmith-slider span {
-    color: rgba(224, 224, 224, 0.9);
+    color: var(--blacksmith-tool-text, rgba(224, 224, 224, 0.9));
     font-size: 0.8em;
     min-width: 30px;
     text-align: left;
@@ -198,8 +198,8 @@
 }
 
 .blacksmith-slider input[type="range"]::-webkit-slider-runnable-track {
-    background: rgba(148, 140, 123, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: var(--blacksmith-tool-surface-sunken, rgba(148, 140, 123, 0.3));
+    border: 1px solid var(--blacksmith-tool-field-border, rgba(255, 255, 255, 0.18));
     border-radius: 8px;
     height: 10px;
 }
@@ -207,8 +207,8 @@
 .blacksmith-slider input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    background: rgba(18, 18, 18, 0.96);
-    border: 1px solid var(--blacksmith-window-accent-color, #ac9f81);
+    background: var(--blacksmith-tool-surface-raised, rgba(18, 18, 18, 0.96));
+    border: 1px solid var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
     border-radius: 50%;
     height: 14px;
     width: 14px;
@@ -223,15 +223,15 @@
 }
 
 .blacksmith-slider input[type="range"]::-moz-range-track {
-    background: rgba(148, 140, 123, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: var(--blacksmith-tool-surface-sunken, rgba(148, 140, 123, 0.3));
+    border: 1px solid var(--blacksmith-tool-field-border, rgba(255, 255, 255, 0.18));
     border-radius: 8px;
     height: 10px;
 }
 
 .blacksmith-slider input[type="range"]::-moz-range-thumb {
-    background: rgba(18, 18, 18, 0.96);
-    border: 1px solid var(--blacksmith-window-accent-color, #ac9f81);
+    background: var(--blacksmith-tool-surface-raised, rgba(18, 18, 18, 0.96));
+    border: 1px solid var(--blacksmith-tool-accent, var(--blacksmith-window-accent-color, #ac9f81));
     border-radius: 50%;
     height: 14px;
     width: 14px;
@@ -441,10 +441,10 @@
 .blacksmith-tag {
     display: inline-block;
     padding: 2px 6px;
-    background: rgba(0, 0, 0, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: var(--blacksmith-tool-surface-sunken, rgba(0, 0, 0, 0.45));
+    border: 1px solid var(--blacksmith-tool-divider, rgba(255, 255, 255, 0.18));
     border-radius: 3px;
-    color: rgba(210, 200, 170, 0.8);
+    color: var(--blacksmith-tool-text, rgba(210, 200, 170, 0.8));
     font-size: 0.78em;
     font-weight: 300;
     text-transform: uppercase;
@@ -503,7 +503,7 @@
     justify-content: center;
     min-width: 18px;
     min-height: 18px;
-    color: var(--blacksmith-window-accent-color, #ac9f81);
+    color: var(--blacksmith-tool-text, var(--blacksmith-window-accent-color, #ac9f81));
     opacity: 0.35;
     cursor: pointer;
     flex-shrink: 0;
