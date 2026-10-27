@@ -56,7 +56,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     static ACTION_HANDLERS = {
         'stage-view': (_event, target, win) => win?._view(target?.dataset?.sceneId),
         'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
-        'stage-deploy': (_event, target, win) => win?._deploy(target?.dataset?.sceneId),
+        'stage-edit': (_event, target, win) => win?._edit(target?.dataset?.sceneId),
+        'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
+        'stage-deploy-all': (_event, target, win) => win?._deployAll(target?.dataset?.sceneId),
         'stage-add': (_event, _target, win) => win?._add(),
         'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
@@ -105,13 +107,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             // missing one is dimmed with a plus, and pressing it runs Blacksmith's deploy action for what is missing.
             const tokenFace = (t) => (t.img ? `<img src="${esc(t.img)}" alt="">` : '<i class="fa-solid fa-user"></i>');
             const tokenButton = (t) => t.present
-                ? `<span class="blacksmith-stage-token" data-tooltip="${esc(t.name)}: on this scene">${tokenFace(t)}</span>`
-                : `<button type="button" class="blacksmith-stage-token is-missing" data-action="stage-deploy" data-scene-id="${esc(stage.id)}" data-tooltip="${esc(t.name)}: no token on this scene. Deploy what is missing."><span class="blacksmith-stage-token-face">${tokenFace(t)}</span><i class="fa-solid fa-plus blacksmith-stage-token-add"></i></button>`;
-            const group = (list, icon, label) => (list.length
-                ? `<div class="blacksmith-stage-token-group" data-tooltip="${label}"><i class="fa-solid ${icon}"></i>${list.map(tokenButton).join('')}</div>`
+                ? `<span class="blacksmith-stage-token" data-tooltip="${esc(t.name)}: has a token on this scene">${tokenFace(t)}</span>`
+                : `<button type="button" class="blacksmith-stage-token is-missing" data-action="stage-deploy-one" data-scene-id="${esc(stage.id)}" data-actor-id="${esc(t.id)}" data-tooltip="${esc(t.name)}: no token on this scene. Click to deploy."><span class="blacksmith-stage-token-face">${tokenFace(t)}</span></button>`;
+            const group = (list, icon) => (list.length
+                ? `<div class="blacksmith-stage-token-group"><button type="button" class="blacksmith-stage-token-icon" data-action="stage-deploy-all" data-scene-id="${esc(stage.id)}" data-tooltip="Deploy the party to this scene, choosing a formation"><i class="fa-solid ${icon}"></i></button>${list.map(tokenButton).join('')}</div>`
                 : '');
             const tokenRow = stage.tokens.show
-                ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield', 'Characters')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw', 'Player-owned NPCs')}</div>`
+                ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw')}</div>`
                 : '';
 
             const remove = stage.isExtra && !stage.isActive && !stage.people.length
@@ -129,6 +131,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                         <span class="blacksmith-tool-card-actions">
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isActive ? ' is-active' : ''}" data-action="stage-activate" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isActive ? 'This is the active scene' : 'Make this the active scene'}"${stage.isActive ? ' disabled' : ''}><i class="fa-solid fa-bullseye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isGMView ? ' is-active' : ''}" data-action="stage-view" data-scene-id="${esc(stage.id)}" data-tooltip="Look at this scene yourself"><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-edit" data-scene-id="${esc(stage.id)}" data-tooltip="Edit this scene's configuration"><i class="fa-solid fa-pen"></i></button>
                             ${remove}
                         </span>
                     </div>
@@ -153,10 +156,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
                 ${cards || '<div class="blacksmith-tool-empty">No scenes in use.</div>'}
-                ${options
-                    ? `<div class="blacksmith-stage-add"><select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select><button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button></div>`
-                    : ''}
             </div>`,
+            // Add a stage lives in the action bar, on the left, with Return Everyone on the right.
+            toolFooterLeft: options
+                ? `<select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select><button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button>`
+                : '',
             toolFooterRight: '<button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>'
         };
     }
@@ -179,7 +183,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             clearTimeout(this._refreshTimer);
             this._refreshTimer = setTimeout(() => this.render(), 120);
         };
-        for (const name of ['renderSceneNavigation', 'userConnected', 'updateScene', 'createScene', 'deleteScene', 'createCombat', 'updateCombat', 'deleteCombat']) {
+        for (const name of [
+            'renderSceneNavigation', 'userConnected', 'updateScene', 'createScene', 'deleteScene',
+            'createCombat', 'updateCombat', 'deleteCombat',
+            // The token row: a token added to or removed from a scene, and an actor whose portrait or owners change.
+            // Not updateToken: that fires on every step a token takes and changes nothing the row shows.
+            'createToken', 'deleteToken', 'createActor', 'updateActor', 'deleteActor'
+        ]) {
             HookManager.registerHook({
                 name,
                 description: `Stage manager window: refresh on ${name}`,
@@ -363,10 +373,25 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         this.render();
     }
 
-    async _deploy(sceneId) {
+    /** Open the scene's own configuration sheet. It does not change where anyone is looking. */
+    _edit(sceneId) {
+        game.scenes.get(sceneId)?.sheet?.render(true);
+    }
+
+    async _deployOne(sceneId, actorId) {
+        if (!sceneId || !actorId) return;
+        try {
+            await StageManager.deployActor(sceneId, actorId);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
+    async _deployAll(sceneId) {
         if (!sceneId) return;
         try {
-            await StageManager.deployMissing(sceneId);
+            await StageManager.deployPartyTo(sceneId);
         } catch (error) {
             ui.notifications?.warn(error.message);
         }

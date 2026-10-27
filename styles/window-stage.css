@@ -167,12 +167,10 @@
     box-shadow: 0 3px 0 0 var(--blacksmith-color-brand-accent);
 }
 
-/* Add a stage, at the bottom of the list. */
-.blacksmith-stage-tool-window .blacksmith-stage-add {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
+/* Add a stage, in the action bar. The left slot takes the free width, so the picker stretches and Return Everyone
+   stays at the right. */
+.blacksmith-stage-tool-window .blacksmith-window-tool-footer-left {
+    flex: 1 1 auto;
 }
 
 /* The token row: whose tokens are on this scene. Two groups, the characters of the people here and their owned NPCs,
@@ -225,19 +223,40 @@
     cursor: pointer;
 }
 
+/* Missing: the portrait is dimmed and the edge dashed. Nothing is drawn over the picture, so it stays easy to see. */
 .blacksmith-stage-tool-window .blacksmith-stage-token.is-missing .blacksmith-stage-token-face {
     display: inline-flex;
     width: 100%;
     height: 100%;
     opacity: 0.4;
-}
-
-.blacksmith-stage-tool-window .blacksmith-stage-token-add {
-    position: absolute;
-    font-size: 0.75em;
-    color: var(--blacksmith-tool-text);
+    transition: opacity 0.15s ease;
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-token.is-missing:hover {
     border-color: var(--blacksmith-color-brand-accent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token.is-missing:hover .blacksmith-stage-token-face {
+    opacity: 0.85;
+}
+
+/* The group icon is a button: it runs the full deploy for the stage. Plain until hovered. */
+.blacksmith-stage-tool-window .blacksmith-stage-token-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted);
+    cursor: pointer;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token-icon:hover {
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-color-brand-accent);
 }

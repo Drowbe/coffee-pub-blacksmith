@@ -176,20 +176,30 @@ export class StageManager {
     }
 
     /**
-     * Deploy the tokens a stage is missing, with Blacksmith's own deploy action. The scene has to be on the GM's
-     * canvas for the placement click, so the GM is taken there first. Only the actors this stage shows as missing
-     * are deployed, not everyone in the party.
+     * Deploy ONE actor's token to a stage, with Blacksmith's own deploy action. The scene has to be on the GM's canvas
+     * for the placement click, so the GM is taken there first. The formation picker is skipped (one token has no
+     * formation): it is placed with a single click.
      * @returns {Promise<Array>} the tokens created
      */
-    static async deployMissing(sceneId) {
+    static async deployActor(sceneId, actorId) {
         this._requireGM();
-        const stage = this.stages().find((s) => s.id === sceneId);
         const scene = game.scenes.get(sceneId);
-        if (!stage || !scene) return [];
-        const missing = [...stage.tokens.actors, ...stage.tokens.npcs].filter((t) => !t.present).map((t) => t.id);
-        if (!missing.length) return [];
+        if (!scene || !actorId) return [];
         if (canvas.scene?.id !== scene.id) await scene.view();
-        return deployParty({ only: missing });
+        return deployParty({ only: [actorId], pattern: 'sequential' });
+    }
+
+    /**
+     * The full deploy: Blacksmith's own party deploy for a stage, with its formation picker and its choice to include
+     * the player-owned NPCs. The GM is taken to the scene first, as for one actor.
+     * @returns {Promise<Array>} the tokens created
+     */
+    static async deployPartyTo(sceneId) {
+        this._requireGM();
+        const scene = game.scenes.get(sceneId);
+        if (!scene) return [];
+        if (canvas.scene?.id !== scene.id) await scene.view();
+        return deployParty();
     }
 
     /**
@@ -202,16 +212,9 @@ export class StageManager {
      */
     static _tokenStatus(scene, hasPlayers) {
         const onScene = getPartyActorIdsOnCanvas(scene);
-        // The picture is the token as it is on the scene when there is one, so the row matches the map; otherwise the
-        // actor's portrait. A prototype token's own image can be a wildcard path, which is not a picture.
-        const row = (actor) => {
-            const token = scene.tokens.find((t) => t.actorId === actor.id);
-            const prototype = actor.prototypeToken?.texture?.src;
-            const img = token?.texture?.src
-                || actor.img
-                || (prototype && !prototype.includes('*') ? prototype : null);
-            return { id: actor.id, name: actor.name, img: img || null, present: onScene.has(actor.id) };
-        };
+        // The actor's portrait, always: it is a real picture, where a token's own image can be a wildcard path or
+        // top-down art that does not read at this size. Whether the token is there is shown by the dimming.
+        const row = (actor) => ({ id: actor.id, name: actor.name, img: actor.img || null, present: onScene.has(actor.id) });
         const actors = getPartyMembers().map(row);
         const npcs = getOwnedNpcs().map(row);
         const anyPresent = [...actors, ...npcs].some((t) => t.present);
