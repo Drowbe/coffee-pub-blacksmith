@@ -1093,6 +1093,10 @@ decision: drop it where the live handler fully applies the change.
 
 ## Cross-cutting surfaces
 
+### Away: a player status for the whole table, replacing the Stage Manager marks
+
+Plan: **`documentation/plans/plan-away-status.md`**. A flag on the player's own user, a visible indicator, a party toast when they step away, an optional message, an "Are you back?" prompt on activity, and `api.away` so request-a-roll can tell the GM to roll for an away player. Replaces the Stage Manager's Away and Do Not Disturb marks. Blocked on five open questions in the plan. Verified by a two-client test: set, toast, indicator, back prompt, API.
+
 ### Stage Manager: see and move a split party from one place
 
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the

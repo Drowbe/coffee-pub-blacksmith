@@ -121,12 +121,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     ? ''
                     : `<button type="button" class="blacksmith-stage-status${p.status ? ' is-set' : ''}" data-action="stage-status" data-user-id="${esc(p.id)}" data-tooltip="${esc(statusTip(p.status))}"><i class="fa-solid ${p.status ? STATUS_LOOK[p.status].icon : 'fa-bell'}"></i></button>`;
                 const tip = [
+                    p.name,
                     p.active ? '' : 'Not connected.',
                     p.status ? `${STATUS_LOOK[p.status].label}.` : '',
                     p.assigned ? 'Held on this scene: comes back here when they reload' : ''
                 ].filter(Boolean).join(' ');
                 return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-offline'}${p.status ? ` has-status-${p.status}` : ''}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
-                    data-tooltip="${esc(tip)}">${face}${esc(p.name)}${held}${status}${release}</span>`;
+                    data-tooltip="${esc(tip)}">${face}${held}${status}${release}</span>`;
             }).join('');
 
             // The second row: do the characters and owned NPCs of the people here have tokens on this scene? A

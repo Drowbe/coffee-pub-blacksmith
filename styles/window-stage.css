@@ -83,37 +83,37 @@
     background: var(--blacksmith-tool-surface-selected);
 }
 
-/* A person is a solid themed pill (the theme's raised surface) with a large round portrait, so a face and a name
-   read over any part of the map. */
+/* A person is a solid themed tile (the theme's raised surface) holding a large square portrait, so a face reads over
+   any part of the map. The name is in the tooltip, not on the tile. */
 .blacksmith-stage-tool-window .blacksmith-tool-chip {
     height: auto;
-    min-height: 44px;
-    /* The shared chip is a 22px pill (radius-pill, 16px). At 44px tall that same radius reads as a large capsule, so
-       these use the standard container radius instead. The portrait stays a circle. */
+    min-height: 0;
+    /* The shared chip is a 22px pill (radius-pill, 16px). Around a square portrait that radius reads as a capsule, so
+       these use the standard container radius instead. */
     border-radius: var(--blacksmith-radius-lg, 5px);
-    gap: 8px;
-    padding: 4px 12px 4px 4px;
+    gap: 4px;
+    padding: 3px;
     background: var(--blacksmith-tool-surface-raised);
     font-size: 0.9em;
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-portrait {
     flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--blacksmith-radius-md, 4px);
     object-fit: cover;
 }
 
-/* A person with no portrait gets an icon in the same round slot, so the names line up. */
+/* A person with no portrait gets an icon in the same square slot. */
 .blacksmith-stage-tool-window .blacksmith-tool-chip > i:first-child {
     display: inline-flex;
     flex: 0 0 auto;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--blacksmith-radius-md, 4px);
     background: var(--blacksmith-tool-surface-hover);
 }
 
