@@ -62,6 +62,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     static ACTION_HANDLERS = {
         'stage-view': (_event, target, win) => win?._view(target?.dataset?.sceneId),
+        'stage-go': (_event, target, win) => win?._go(target?.dataset?.sceneId),
         'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
         'stage-menu': (event, target, win) => win?._openMenu(event, target),
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
@@ -85,6 +86,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     // ==============================================================
 
     async getData() {
+        if (!game.user?.isGM) return this._getPlayerData();
         const esc = foundry.utils.escapeHTML;
         const stages = StageManager.stages();
         const lobby = StageManager.lobbyOn();
@@ -107,7 +109,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 const release = p.assigned
                     ? `<button type="button" class="blacksmith-tool-chip-remove" data-action="stage-release" data-user-id="${esc(p.id)}" data-tooltip="Stop holding ${esc(p.name)} here"><i class="fa-solid fa-xmark"></i></button>`
                     : '';
-                // The clock marks a person away and back. It is the same Away the person sets from their own menubar.
+                // The clock sits in the corner of the portrait and marks a person away and back. It is the same Away the
+                // person sets from their own menubar.
                 const status = `<button type="button" class="blacksmith-stage-status${p.away ? ' is-set' : ''}" data-action="stage-away" data-user-id="${esc(p.id)}" data-tooltip="${esc(awayTip(p.away))}"><i class="fa-solid ${p.away ? 'fa-user-clock' : 'fa-clock'}"></i></button>`;
                 const tip = [
                     p.name,
@@ -116,7 +119,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     p.assigned ? 'Held on this scene: comes back here when they reload' : ''
                 ].filter(Boolean).join(' ');
                 return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-offline'}${p.away ? ' is-away' : ''}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
-                    data-tooltip="${esc(tip)}">${face}${held}${status}${release}</span>`;
+                    data-tooltip="${esc(tip)}"><span class="blacksmith-stage-face">${face}${status}</span>${held}${release}</span>`;
             }).join('');
 
             // The second row: do the characters and owned NPCs of the people here have tokens on this scene? A
@@ -174,12 +177,78 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         };
     }
 
+    /**
+     * What a player sees: the scenes they may use, as cards with the connected players on them, read only. They can
+     * look at a scene themselves (the eye, or a double-click on its card) and nothing else: no moving, no holds, no
+     * adding or removing, no lobby.
+     */
+    _getPlayerData() {
+        const esc = foundry.utils.escapeHTML;
+        const cards = StageManager.playerStages().map((stage) => {
+            const badges = stage.isActive ? '<span class="blacksmith-badge blacksmith-badge-accent">Active</span>' : '';
+            const chips = stage.people.map((p) => {
+                const face = p.portrait
+                    ? `<img class="blacksmith-stage-portrait" src="${esc(p.portrait)}" alt="">`
+                    : '<i class="fa-solid fa-user"></i>';
+                const status = p.away ? `<span class="blacksmith-stage-status is-set"><i class="fa-solid fa-user-clock"></i></span>` : '';
+                const tip = [p.name, p.away ? `Away${p.away.message ? `: ${p.away.message}` : ''}.` : ''].filter(Boolean).join(' ');
+                return `<span class="blacksmith-tool-chip${p.away ? ' is-away' : ''}" data-tooltip="${esc(tip)}"><span class="blacksmith-stage-face">${face}${status}</span></span>`;
+            }).join('');
+            return `
+                <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
+                    <div class="blacksmith-tool-card-head">
+                        <span class="blacksmith-tool-card-summary">
+                            <span class="blacksmith-tool-card-title">${esc(stage.name)}</span>
+                            <span class="blacksmith-tool-card-badges">${badges}</span>
+                        </span>
+                        <span class="blacksmith-tool-card-actions">
+                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isView ? ' is-active' : ''}" data-action="stage-go" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isView ? 'You are looking at this scene' : 'Go to this scene'}"${stage.isView ? ' disabled' : ''}><i class="fa-solid fa-eye"></i></button>
+                        </span>
+                    </div>
+                    <div class="blacksmith-tool-card-body blacksmith-stage-content">
+                        <div class="blacksmith-tool-dropzone blacksmith-stage-drop${chips ? '' : ' is-empty'}">
+                            ${chips ? `<div class="blacksmith-tool-chips">${chips}</div>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+        }).join('');
+        return {
+            appId: APP_ID,
+            bodyContent: `<div class="blacksmith-stage-body">
+                ${cards || '<div class="blacksmith-tool-empty">There are no scenes you can go to yet.</div>'}
+            </div>`,
+            toolFooterLeft: '<span class="blacksmith-stage-add-hint"><i class="fa-solid fa-eye"></i> Double-click a scene to go there</span>'
+        };
+    }
+
     async _onRender(context, options) {
         await super._onRender?.(context, options);
         const root = this._getRoot();
         if (!root) return;
-        this._bindDrag(root);
+        if (game.user?.isGM) this._bindDrag(root);
+        else this._bindPlayer(root);
         this._followChanges();
+    }
+
+    /** A player's card: double-click it to go to that scene. A button or a person is theirs and does nothing here. */
+    _bindPlayer(root) {
+        for (const card of root.querySelectorAll('[data-stage-id]')) {
+            card.addEventListener('dblclick', (event) => {
+                if (event.target.closest('button, [data-action], .blacksmith-tool-chip')) return;
+                this._go(card.dataset.stageId);
+            });
+        }
+    }
+
+    /** Go to a scene, as a player: only one they may use. Looking at it moves nobody else. */
+    async _go(sceneId) {
+        if (!sceneId || canvas.scene?.id === sceneId) return;
+        try {
+            await StageManager.viewPermitted(sceneId);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
     }
 
     /** Re-render when anything that changes who is where changes. Registered once per window, disposed on close. */
@@ -554,8 +623,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     /** Open the window, reusing the instance if it is already up. */
     static open() {
-        if (!game.user?.isGM) {
-            ui.notifications?.warn('Only a GM can manage stages.');
+        if (!game.user?.isGM && !StageManager.playerScenes().length) {
+            ui.notifications?.warn('There are no scenes you can go to yet.');
             return null;
         }
         StageWindow._ref ??= new StageWindow();
@@ -580,16 +649,36 @@ export function registerStageWindow() {
         icon: 'fa-solid fa-masks-theater',
         name: TOOL_ID,
         title: null,
-        tooltip: 'Stage Manager: who is on which scene',
+        tooltip: () => (game.user.isGM ? 'Stage Manager: who is on which scene' : 'Scenes you can go to'),
         onClick: () => StageWindow.open(),
         zone: 'left',
         group: 'general',
         order: 210,
         moduleId: MODULE.ID,
-        gmOnly: true,
+        gmOnly: false,
         leaderOnly: false,
-        visible: true
+        // A player gets it only when there is a scene they may use. A GM always does.
+        visible: () => game.user.isGM || StageManager.playerScenes().length > 0
     });
+
+    // A player's permissions on a scene are a change nothing else redraws the menubar for, so the icon follows them.
+    if (!game.user.isGM) {
+        let timer = null;
+        for (const name of ['createScene', 'updateScene', 'deleteScene']) {
+            HookManager.registerHook({
+                name,
+                description: `Stage manager: show or hide the player's icon when scene permissions change (${name})`,
+                context: 'stage-manager-icon',
+                priority: 5,
+                callback: () => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    clearTimeout(timer);
+                    timer = setTimeout(() => MenuBar.renderMenubar(true), 300);
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+        }
+    }
 }
 
 export { APP_ID as STAGE_WINDOW_ID };

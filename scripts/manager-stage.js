@@ -255,6 +255,61 @@ export class StageManager {
         if (scene) scene.view();
     }
 
+    // ==============================================================
+    // ===== WHAT A PLAYER SEES =====================================
+    // ==============================================================
+
+    /**
+     * The scenes a non-GM may use: the active scene, and any scene their Permissions let them see, which is the same
+     * test Foundry's own scene navigation applies (`visible`, Limited or better).
+     */
+    static playerScenes() {
+        return game.scenes.filter((scene) => scene.active || scene.visible);
+    }
+
+    /**
+     * The player's read-only panel: each scene they may use, under the name the navigation shows (the navigation name,
+     * else the scene name), with the connected players on it. Nobody who is not connected is listed, and no holds,
+     * tokens or permissions are, since those are the GM's.
+     */
+    static playerStages() {
+        const order = this.getState().order;
+        const rank = (id) => {
+            const index = order.indexOf(id);
+            return index < 0 ? Infinity : index;
+        };
+        const people = new Map();
+        for (const user of game.users) {
+            if (user.isGM || !user.active || !user.viewedScene) continue;
+            if (!people.has(user.viewedScene)) people.set(user.viewedScene, []);
+            people.get(user.viewedScene).push({
+                id: user.id,
+                name: user.name,
+                isSelf: user.id === game.user.id,
+                portrait: user.character?.img || user.avatar || null,
+                away: AwayManager.get(user.id)
+            });
+        }
+        const viewId = canvas?.scene?.id ?? null;
+        return this.playerScenes().map((scene) => ({
+            id: scene.id,
+            name: scene.navName || scene.name,
+            thumb: scene.thumb || null,
+            isActive: scene.active,
+            isView: scene.id === viewId,
+            people: (people.get(scene.id) ?? []).sort((a, b) => a.name.localeCompare(b.name))
+        })).sort((a, b) => rank(a.id) - rank(b.id)
+            || Number(b.isActive) - Number(a.isActive)
+            || a.name.localeCompare(b.name));
+    }
+
+    /** Look at a scene yourself. A player may only look at one they may use; moving anyone else stays the GM's. */
+    static viewPermitted(sceneId) {
+        const scene = game.scenes.get(sceneId);
+        if (!scene || !(game.user.isGM || scene.active || scene.visible)) throw new Error('You cannot use that scene.');
+        return scene.view();
+    }
+
     static async addStage(sceneId) {
         this._requireGM();
         if (!game.scenes.get(sceneId)) return;

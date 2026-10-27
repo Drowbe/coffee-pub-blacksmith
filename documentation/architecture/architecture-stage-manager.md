@@ -2,7 +2,7 @@
 
 **Audience:** Contributors to the Blacksmith codebase. There is no public API yet; the panel and the setting are the whole surface.
 
-The Stage Manager is a GM Tool window that lists the scenes in use as cards, each holding the people on it as chips. Dragging a chip onto another card sends that player there, and the arrangement is remembered. `scripts/manager-stage.js` is the data and the actions, `scripts/window-stage.js` is the panel, `styles/window-stage.css` holds the little layout that is its own, and the controls are the shared `blacksmith-tool-*` set.
+The Stage Manager is a Tool window, the GM's and, read only, the player's (see What a player sees), that lists the scenes in use as cards, each holding the people on it as chips. Dragging a chip onto another card sends that player there, and the arrangement is remembered. `scripts/manager-stage.js` is the data and the actions, `scripts/window-stage.js` is the panel, `styles/window-stage.css` holds the little layout that is its own, and the controls are the shared `blacksmith-tool-*` set.
 
 ## Three facts from Foundry that shape it
 
@@ -45,6 +45,10 @@ The lower right corner of each card carries a small disc showing the scene's own
 Each card has three controls: the bullseye makes the scene active (disabled and lit on the one that already is), the eye looks at it yourself (lit on the one you are viewing), and a vertical "..." opens Blacksmith's own context menu (`MenuBar.showMenubarContextMenu`) with what is done to a scene: edit its configuration without moving anyone's view, mark it as the lobby scene or clear that, send a toast to the players there, and, only for a scene added by hand that is empty and not active, take it off the list. The menu is built when it is opened, from `stages()`, so what it says is current. The first two buttons mirror the scene navigation. A card shows the pointer cursor because double-clicking it does what the bullseye does; a double-click on a button, a person, the grip or the token row is theirs and is ignored, as is one on the scene that is already active.
 
 The window re-renders when Foundry does something that changes who is where: `renderSceneNavigation` (which core fires when anyone changes scene), `userConnected`, scene and combat create, update and delete, a token created or deleted and an actor created, updated or deleted (for the token row), and a change to `stageState`. Movement (`updateToken`) is deliberately not watched. All of them are registered through `HookManager`. A redraw is skipped while a chip is being dragged, since it would drop the chip the GM is holding. Hooks are registered through `HookManager` under one context and disposed on close.
+
+## What a player sees
+
+A player gets a read-only version of the same window, and the menubar icon only when there is a scene they may use (`visible` on the tool is a function; a hook on scene create, update and delete redraws the menubar when their permissions change). `StageManager.playerScenes` is the active scene plus every scene Foundry itself would list for them (`scene.visible`, Limited or better), and `playerStages` builds the cards: the navigation name, else the scene name; the connected non-GM players on each as portraits; the Active badge; and one eye to go there. `viewPermitted` is the only action and refuses a scene they may not use. A player sees no holds, offline people, tokens, permissions, lobby, menu or drag handles, and nothing in `_bindDrag` runs for them; double-clicking a card goes to that scene. An away person shows the same orange outline and clock, not pressable. The GM-only actions still call `_requireGM`, so a console call from a player throws. The window is not reopened on load for a player.
 
 ## Reopening
 
