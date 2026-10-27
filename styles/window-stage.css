@@ -137,8 +137,10 @@
     border-style: dashed;
 }
 
+/* A modest picker, not the width of the bar: it only has to show a scene name. */
 .blacksmith-stage-tool-window .blacksmith-stage-add-select {
-    flex: 1 1 auto;
+    flex: 0 1 200px;
+    width: 200px;
     min-width: 0;
 }
 
@@ -165,12 +167,6 @@
 
 .blacksmith-stage-tool-window .blacksmith-stage-card.is-drop-after {
     box-shadow: 0 3px 0 0 var(--blacksmith-color-brand-accent);
-}
-
-/* Add a stage, in the action bar. The left slot takes the free width, so the picker stretches and Return Everyone
-   stays at the right. */
-.blacksmith-stage-tool-window .blacksmith-window-tool-footer-left {
-    flex: 1 1 auto;
 }
 
 /* The token row: whose tokens are on this scene. Two groups, the characters of the people here and their owned NPCs,
@@ -259,4 +255,26 @@
 .blacksmith-stage-tool-window .blacksmith-stage-token-icon:hover {
     background: var(--blacksmith-tool-surface-hover);
     color: var(--blacksmith-color-brand-accent);
+}
+
+/* The scene's permission, in the lower right corner of the card: GM only, or all players. A small themed disc so it
+   reads over any picture. */
+.blacksmith-stage-tool-window .blacksmith-stage-card {
+    position: relative;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-permission {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 50%;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text-muted);
+    font-size: 0.75em;
 }

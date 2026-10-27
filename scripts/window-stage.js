@@ -105,6 +105,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
             // The second row: do the characters and owned NPCs of the people here have tokens on this scene? A
             // missing one is dimmed with a plus, and pressing it runs Blacksmith's deploy action for what is missing.
+            const access = stage.access === 'all'
+                ? { icon: 'fa-users', label: 'Scene permission: all players can see this scene' }
+                : { icon: 'fa-user-lock', label: 'Scene permission: GM only' };
             const tokenFace = (t) => (t.img ? `<img src="${esc(t.img)}" alt="">` : '<i class="fa-solid fa-user"></i>');
             const tokenButton = (t) => t.present
                 ? `<span class="blacksmith-stage-token" data-tooltip="${esc(t.name)}: has a token on this scene">${tokenFace(t)}</span>`
@@ -143,6 +146,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                         </div>
                         ${tokenRow}
                     </div>
+                    <span class="blacksmith-stage-permission" data-tooltip="${access.label}"><i class="fa-solid ${access.icon}"></i></span>
                 </div>`;
         }).join('');
 

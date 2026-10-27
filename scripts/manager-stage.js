@@ -204,21 +204,18 @@ export class StageManager {
 
     /**
      * The party's characters and the player-owned NPCs, and whether each has a token on the scene. "Has a token" is
-     * the same test the deploy action uses, so what this shows is what deploying would add. The row is shown when a
-     * player is on the stage (so the GM can see what is missing for them) or when any of these already has a token
-     * there (so the GM can see who is on the map); a stage with neither stays plain.
+     * the same test the deploy action uses, so what this shows is what deploying would add. Every stage gets the
+     * row: a character either has a token on that scene or does not, whoever is looking at it.
      * @param {Scene} scene
-     * @param {boolean} hasPlayers - Whether a player is on this stage
      */
-    static _tokenStatus(scene, hasPlayers) {
+    static _tokenStatus(scene) {
         const onScene = getPartyActorIdsOnCanvas(scene);
         // The actor's portrait, always: it is a real picture, where a token's own image can be a wildcard path or
         // top-down art that does not read at this size. Whether the token is there is shown by the dimming.
         const row = (actor) => ({ id: actor.id, name: actor.name, img: actor.img || null, present: onScene.has(actor.id) });
         const actors = getPartyMembers().map(row);
         const npcs = getOwnedNpcs().map(row);
-        const anyPresent = [...actors, ...npcs].some((t) => t.present);
-        return { actors, npcs, show: (hasPlayers || anyPresent) && (actors.length > 0 || npcs.length > 0) };
+        return { actors, npcs, show: actors.length > 0 || npcs.length > 0 };
     }
 
     /** The GM looks at a stage. Moves only their own view. */
@@ -331,11 +328,13 @@ export class StageManager {
                 id,
                 name: scene.navName || scene.name,
                 thumb: scene.thumb || null,
+                // The scene's own Permissions setting (Scene Configuration, Basics): GM only, or All Players.
+                access: (scene.ownership?.default ?? 0) >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER ? 'all' : 'gm',
                 isActive: id === activeId,
                 isGMView: id === gmViewId,
                 isExtra: state.extras.includes(id),
                 combats,
-                tokens: this._tokenStatus(scene, (people.get(id) ?? []).some((p) => !p.isGM)),
+                tokens: this._tokenStatus(scene),
                 people: (people.get(id) ?? []).sort((a, b) => Number(b.isGM) - Number(a.isGM) || a.name.localeCompare(b.name))
             });
         }
