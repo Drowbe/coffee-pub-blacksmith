@@ -11,7 +11,7 @@ import { postConsoleAndNotification } from './api-core.js';
 
 /** Placeable document names the pick can return, in the order they are reported. */
 export const PICKABLE_TYPES = Object.freeze([
-    'Tile', 'Drawing', 'AmbientLight', 'AmbientSound', 'Wall', 'Note', 'Token'
+    'Tile', 'Drawing', 'AmbientLight', 'AmbientSound', 'Wall', 'Note', 'Token', 'Region'
 ]);
 
 export const PICK_CONTAINMENT = Object.freeze(['centre', 'inside', 'intersects']);

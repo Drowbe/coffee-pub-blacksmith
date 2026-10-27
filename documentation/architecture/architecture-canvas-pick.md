@@ -26,7 +26,7 @@ The two corners are stored in scene coordinates and converted back to the screen
 
 `collectDocuments` walks the requested types, takes each layer by `canvas.getLayerByEmbeddedName(type)`, and tests `layer.placeables`. It reads placeables and never activates or draws a layer, which is what makes it layer-independent. Geometry comes from Foundry: `placeable.bounds` and `placeable.center`, with walls tested from `document.c` because a wall is a segment and its bounds are not a fair stand-in. `placeableMatches` is exported so the rules can be exercised without a canvas.
 
-Level handling reads the document, not the placeable. A document whose schema has `levels` is kept when the set is empty or contains `canvas.level.id`; one whose schema has `level` (a token) is kept when it equals it. If there is no `canvas.level` (Foundry v13, or a blank canvas) everything is kept.
+Level handling reads the document, not the placeable. A document whose schema has `levels` (regions included) is kept when the set is empty or contains `canvas.level.id`; one whose schema has `level` (a token) is kept when it equals it. If there is no `canvas.level` (Foundry v13, or a blank canvas) everything is kept.
 
 Only documents where `isOwner` is true are returned. A GM owns everything; a player gets their own tokens. This is a permission decision, not a visibility one: a GM-hidden object is returned to the GM because the GM can act on it.
 

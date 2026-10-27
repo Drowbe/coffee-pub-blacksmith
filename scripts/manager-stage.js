@@ -18,9 +18,13 @@
 //     draw and views its assigned scene. That needs no GM connected, has no timing race with the player's canvas
 //     loading, and is the only client that knows when it is ready. `Scene#view` has no permission check.
 //
-// The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId], order: [sceneId] }.
+// The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId], order: [sceneId],
+// statuses: { userId: 'away' | 'dnd' }, hold: sceneId | null, lobby: boolean }.
 // `extras` are scenes the GM added to the panel by hand, for a stage nobody is on yet. `order` is the order the GM
-// arranged the cards in; a stage that is not in it goes after the ones that are.
+// arranged the cards in; a stage that is not in it goes after the ones that are. `statuses` is what the GM marked a
+// player as: Away is only a mark, Do Not Disturb keeps this manager from moving or messaging that player. `hold` is
+// the scene the GM parks everyone on while preparing. `lobby` is a mode: while it is on, anyone who loads in goes to
+// the hold scene.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
@@ -32,8 +36,17 @@ const SETTING = 'stageState';
 /** Wait before a player's client applies its assignment, so the first draw has settled. */
 const APPLY_DELAY_MS = 400;
 
+/** If no scene has been drawn by now (no active scene, so no `canvasReady`), the load-time move runs anyway. */
+const FALLBACK_APPLY_MS = 5000;
+
+/** The statuses a player can be marked with, in the order the chip cycles through them. No status means available. */
+export const STAGE_STATUSES = ['away', 'dnd'];
+
 export class StageManager {
     static _initialized = false;
+
+    /** True once this client has run its one load-time move, so the two triggers (canvasReady, the fallback) cannot both. */
+    static _applied = false;
 
     static initialize() {
         if (this._initialized) return;
@@ -54,6 +67,9 @@ export class StageManager {
                     // --- END - HOOKMANAGER CALLBACK ---
                 }
             });
+            // With no active scene nothing is drawn and `canvasReady` never fires, which would leave the lobby (or a hold)
+            // unapplied for exactly the table that is parked with no scene running.
+            setTimeout(() => this.applyOwnAssignment(), FALLBACK_APPLY_MS);
         }
         postConsoleAndNotification(MODULE.NAME, 'Stage manager: initialized', '', true, false);
     }
@@ -73,7 +89,7 @@ export class StageManager {
         return this.normalizeState(raw);
     }
 
-    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[]}} */
+    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[], statuses: Record<string,string>, hold: string|null, lobby: boolean}} */
     static normalizeState(raw) {
         const assignments = {};
         if (raw?.assignments && typeof raw.assignments === 'object') {
@@ -87,7 +103,14 @@ export class StageManager {
         const order = Array.isArray(raw?.order)
             ? [...new Set(raw.order.filter((id) => typeof id === 'string' && id))]
             : [];
-        return { assignments, extras, order };
+        const statuses = {};
+        if (raw?.statuses && typeof raw.statuses === 'object') {
+            for (const [userId, status] of Object.entries(raw.statuses)) {
+                if (typeof userId === 'string' && STAGE_STATUSES.includes(status)) statuses[userId] = status;
+            }
+        }
+        const hold = typeof raw?.hold === 'string' && raw.hold ? raw.hold : null;
+        return { assignments, extras, order, statuses, hold, lobby: raw?.lobby === true };
     }
 
     static async _save(state) {
@@ -100,18 +123,32 @@ export class StageManager {
      */
     static async setAssignment(userId, sceneId) {
         const state = this.getState();
+        this._assign(state, userId, sceneId);
+        await this._save(state);
+    }
+
+    /** The assignment rule, on a state object that is about to be saved: the active scene (or none) clears the hold. */
+    static _assign(state, userId, sceneId) {
         if (!sceneId || sceneId === game.scenes?.active?.id) delete state.assignments[userId];
         else state.assignments[userId] = sceneId;
-        await this._save(state);
     }
 
     // ==============================================================
     // ===== THE PLAYER'S OWN CLIENT ================================
     // ==============================================================
 
-    /** Go to the scene assigned to this user, if there is one and it is not where they already are. */
+    /**
+     * Go to the scene this user belongs on, if it is not where they already are. Once per load. Lobby mode wins over a
+     * stored hold: it is a mode the GM turned on for the whole table, and turning it off is how they leave it.
+     */
     static applyOwnAssignment() {
-        const sceneId = this.getState().assignments[game.user?.id];
+        if (this._applied) return;
+        this._applied = true;
+        if (game.user?.isGM) return;
+        const state = this.getState();
+        // Do Not Disturb: the GM asked that this player not be moved, and that includes being put back on load.
+        if (state.statuses[game.user?.id] === 'dnd') return;
+        const sceneId = (state.lobby ? this.holdScene()?.id : null) ?? state.assignments[game.user?.id];
         const scene = sceneId ? game.scenes.get(sceneId) : null;
         if (!scene || scene.id === canvas.scene?.id) return;
         scene.view();
@@ -128,7 +165,7 @@ export class StageManager {
     /**
      * Put a player on a stage: store it, and pull them there now if they are connected. A GM cannot be held
      * anywhere, so dropping the GM's own chip only moves the GM's own view, exactly as `viewStage` does, and
-     * another GM is left alone.
+     * another GM is left alone. A player on Do Not Disturb is not moved and nothing is stored for them (false).
      * @param {string} userId
      * @param {string} sceneId
      */
@@ -142,6 +179,7 @@ export class StageManager {
             scene.view();
             return true;
         }
+        if (this.statusOf(user.id) === 'dnd') return false;
         await this.setAssignment(user.id, scene.id);
         if (user.active) scene.pullUsers([user]);
         return true;
@@ -153,16 +191,22 @@ export class StageManager {
         await this.setAssignment(userId, null);
     }
 
-    /** Clear every assignment and send every connected player back to the active scene. */
+    /**
+     * Clear every assignment and send every connected player back to the active scene. A player on Do Not Disturb is
+     * not pulled.
+     * @returns {Promise<{moved: string[], skipped: string[]}>} the names pulled, and the names left alone
+     */
     static async returnEveryone() {
         this._requireGM();
         const state = this.getState();
         state.assignments = {};
         await this._save(state);
+        const live = game.users.filter((u) => u.active && !u.isGM);
+        const skipped = live.filter((u) => state.statuses[u.id] === 'dnd');
+        const moving = live.filter((u) => state.statuses[u.id] !== 'dnd');
         const active = game.scenes.active;
-        if (!active) return;
-        const players = game.users.filter((u) => u.active && !u.isGM);
-        if (players.length) active.pullUsers(players);
+        if (active && moving.length) active.pullUsers(moving);
+        return { moved: moving.map((u) => u.name), skipped: skipped.map((u) => u.name) };
     }
 
     /**
@@ -284,6 +328,105 @@ export class StageManager {
     }
 
     // ==============================================================
+    // ===== STATUS, HOLD AND SPEAKING ==============================
+    // ==============================================================
+
+    /** A player's status: 'away', 'dnd', or null for available. */
+    static statusOf(userId) {
+        return this.getState().statuses[userId] ?? null;
+    }
+
+    /** The status after this one in the cycle the chip runs: available, away, do not disturb, available. */
+    static nextStatus(current) {
+        const at = STAGE_STATUSES.indexOf(current);
+        return at < 0 ? STAGE_STATUSES[0] : (STAGE_STATUSES[at + 1] ?? null);
+    }
+
+    /**
+     * Mark a player Away or Do Not Disturb, or clear it with null. A GM takes no status.
+     * @returns {Promise<boolean>} whether it was stored
+     */
+    static async setStatus(userId, status) {
+        this._requireGM();
+        const user = game.users.get(userId);
+        if (!user || user.isGM) return false;
+        const state = this.getState();
+        if (STAGE_STATUSES.includes(status)) state.statuses[userId] = status;
+        else delete state.statuses[userId];
+        await this._save(state);
+        return true;
+    }
+
+    /** The hold scene, or null when none is marked or the marked one no longer exists. */
+    static holdScene() {
+        const id = this.getState().hold;
+        return id ? game.scenes.get(id) ?? null : null;
+    }
+
+    /** Mark a scene as the hold scene, or clear it with null. */
+    static async setHold(sceneId) {
+        this._requireGM();
+        const state = this.getState();
+        state.hold = sceneId && game.scenes.get(sceneId) ? sceneId : null;
+        // Lobby mode is about the hold scene, so it cannot outlive it.
+        if (!state.hold) state.lobby = false;
+        await this._save(state);
+    }
+
+    /** Whether lobby mode is on: the switch is set and there is a hold scene for it to send people to. */
+    static lobbyOn() {
+        return this.getState().lobby && !!this.holdScene();
+    }
+
+    /**
+     * Turn lobby mode on or off. While it is on, anyone who loads in goes to the hold scene. It moves nobody who is
+     * already connected (Hold Everyone does that), and turning it off moves nobody.
+     */
+    static async setLobby(on) {
+        this._requireGM();
+        if (on && !this.holdScene()) throw new Error('Stage manager: mark a hold scene first.');
+        const state = this.getState();
+        state.lobby = !!on;
+        await this._save(state);
+    }
+
+    /**
+     * Park every player on the hold scene: store the assignment for all of them, so a player who reloads comes back to
+     * it, and pull the connected ones. A player on Do Not Disturb is left alone. Return Everyone is the way back.
+     * @returns {Promise<{moved: string[], skipped: string[]}>} the names held, and the names left alone
+     */
+    static async holdEveryone() {
+        this._requireGM();
+        const scene = this.holdScene();
+        if (!scene) throw new Error('Stage manager: mark a hold scene first.');
+        const state = this.getState();
+        const players = game.users.filter((u) => !u.isGM);
+        const skipped = players.filter((u) => state.statuses[u.id] === 'dnd');
+        const moving = players.filter((u) => state.statuses[u.id] !== 'dnd');
+        for (const user of moving) this._assign(state, user.id, scene.id);
+        await this._save(state);
+        const live = moving.filter((u) => u.active);
+        if (live.length) scene.pullUsers(live);
+        return { moved: moving.map((u) => u.name), skipped: skipped.map((u) => u.name) };
+    }
+
+    /**
+     * Who a toast from a stage should go to: the connected players looking at that scene, less anyone on Do Not
+     * Disturb. The Send Toast window takes it from there, so the look and the delivery are the toast system's and the
+     * GM can still tick anyone else.
+     * @returns {{recipients: string[], skipped: string[]}} user ids, and the names left out
+     */
+    static talkRecipients(sceneId) {
+        this._requireGM();
+        const state = this.getState();
+        const here = game.users.filter((u) => !u.isGM && u.active && u.viewedScene === sceneId);
+        return {
+            recipients: here.filter((u) => state.statuses[u.id] !== 'dnd').map((u) => u.id),
+            skipped: here.filter((u) => state.statuses[u.id] === 'dnd').map((u) => u.name)
+        };
+    }
+
+    // ==============================================================
     // ===== THE VIEW MODEL =========================================
     // ==============================================================
 
@@ -297,7 +440,8 @@ export class StageManager {
         const state = this.getState();
         const activeId = game.scenes.active?.id ?? null;
         const gmViewId = canvas?.scene?.id ?? null;
-        const ids = new Set([activeId, gmViewId, ...state.extras, ...Object.values(state.assignments)].filter(Boolean));
+        const holdId = this.holdScene()?.id ?? null;
+        const ids = new Set([activeId, gmViewId, holdId, ...state.extras, ...Object.values(state.assignments)].filter(Boolean));
         const people = new Map();
 
         for (const user of game.users) {
@@ -315,7 +459,8 @@ export class StageManager {
                 isSelf: user.id === game.user.id,
                 // The character's portrait when they have one, else the user's own avatar; null when neither.
                 portrait: user.character?.img || user.avatar || null,
-                assigned: state.assignments[user.id] === sceneId
+                assigned: state.assignments[user.id] === sceneId,
+                status: user.isGM ? null : (state.statuses[user.id] ?? null)
             });
         }
 
@@ -333,6 +478,7 @@ export class StageManager {
                 isActive: id === activeId,
                 isGMView: id === gmViewId,
                 isExtra: state.extras.includes(id),
+                isHold: id === holdId,
                 combats,
                 tokens: this._tokenStatus(scene),
                 people: (people.get(id) ?? []).sort((a, b) => Number(b.isGM) - Number(a.isGM) || a.name.localeCompare(b.name))

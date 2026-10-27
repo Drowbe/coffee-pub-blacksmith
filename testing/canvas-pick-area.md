@@ -20,4 +20,5 @@ const canvasApi = game.modules.get('coffee-pub-blacksmith').api.canvas;
 8. Replacement. Run `const first = canvasApi.pickArea(); canvasApi.pickArea();` Expected: `first` resolves `null` and only one box and hint exist.
 9. Scene change. Start a pick and switch scenes. Expected: the pick ends, resolves `null`, and nothing is left on screen.
 10. Player client. As a player who owns one token, pick over a box containing that token and others. Expected: only the owned token comes back.
-11. Clean exit. After each case above, confirm the canvas cursor is back to normal and selecting a token still works by clicking it.
+11. Regions. On a scene with a region, run `await canvasApi.pickArea({ types: ['Region'] })` over it with each of `'centre'`, `'inside'` and `'intersects'`. Expected: `centre` returns it when the middle of its bounding box is in the box, `inside` only when its whole bounding box is, `intersects` on any overlap; a player client gets no regions back. On a multi-level scene a region on another level is left out by default and returned with `levels: 'all'`.
+12. Clean exit. After each case above, confirm the canvas cursor is back to normal and selecting a token still works by clicking it.

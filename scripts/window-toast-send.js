@@ -166,6 +166,10 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             ...game.users.filter(u => u.isGM && u.id !== game.user.id)
         ];
         const isExcluded = (u) => isToastExcludedUser(u);
+        // Recipients handed in by the caller (the Stage Manager's chat button). They replace the saved pick for this
+        // first draw only, so a redraw does not undo what the GM changes afterwards.
+        const preset = this._presetRecipients;
+        this._presetRecipients = null;
         this._recipientList = EntityListAPI.create({
             entities: recipientUsers.map(u => ({
                 id: u.id,
@@ -185,7 +189,9 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             // excluded account is always a fresh, deliberate choice. A GM is pre-checked only
             // if the saved preference names them, for the same reason the party box skips
             // them — they are not swept in by default.
-            selected: recipientUsers
+            selected: preset
+                ? recipientUsers.filter(u => u.active && preset.includes(u.id)).map(u => u.id)
+                : recipientUsers
                 .filter(u => u.active && !isExcluded(u)
                     && (u.isGM
                         ? (Array.isArray(prefs.recipients) && prefs.recipients.includes(u.id))
@@ -220,7 +226,7 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
                         <span>Recipients</span>
                     </div>
                     <label class="blacksmith-toast-send-recipient blacksmith-toast-send-party">
-                        <input type="checkbox" name="toast-party" ${prefs.party ? 'checked' : ''}>
+                        <input type="checkbox" name="toast-party" ${prefs.party && !preset ? 'checked' : ''}>
                         <i class="fa-solid fa-people-group"></i>
                         <span>Entire Party (all players online)</span>
                     </label>
@@ -384,6 +390,23 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             actionBarLeft: '<button type="button" class="blacksmith-window-btn-secondary" data-action="toast-cancel"><i class="fas fa-xmark"></i> Cancel</button>',
             actionBarRight: '<button type="button" class="blacksmith-window-btn-primary" data-action="toast-send"><i class="fas fa-bullhorn"></i> Send Toast</button>'
         };
+    }
+
+    /**
+     * Tick exactly these users in a window that is already open, and untick the party box so it does not override them.
+     * @param {string[]} userIds
+     */
+    setRecipients(userIds) {
+        const root = this._getRoot();
+        if (!root) return;
+        const party = root.querySelector('[name="toast-party"]');
+        if (party?.checked) {
+            party.checked = false;
+            party.dispatchEvent(new Event('change'));
+        }
+        for (const cb of root.querySelectorAll('[name="toast-recipient"]')) {
+            if (!cb.disabled) cb.checked = userIds.includes(cb.value);
+        }
     }
 
     _onClose(options) {
@@ -1033,14 +1056,19 @@ export const TOAST_SEND_WINDOW_ID = 'blacksmith-toast-send';
  * `foundry.applications.instances` -- that map is not written until the first render
  * completes, so it cannot see a window that is currently opening.
  *
+ * @param {Object} [options]
+ * @param {string[]} [options.recipients] - User ids to have ticked, in place of the saved pick (the Stage Manager's
+ *   chat button passes the players on one stage)
  * @returns {Promise<ToastSendWindow>}
  */
-export async function openToastSendWindow() {
+export async function openToastSendWindow({ recipients = null } = {}) {
     if (ToastSendWindow.activeWindow) {
         ToastSendWindow.activeWindow.bringToFront?.();
+        if (recipients) ToastSendWindow.activeWindow.setRecipients(recipients);
         return ToastSendWindow.activeWindow;
     }
     const win = new ToastSendWindow();
+    win._presetRecipients = recipients;
     ToastSendWindow.activeWindow = win;
     await win.render(true);
     return win;

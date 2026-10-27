@@ -132,7 +132,7 @@
 }
 
 /* Someone who is not connected, held on a scene for when they are. */
-.blacksmith-stage-tool-window .blacksmith-tool-chip.is-away {
+.blacksmith-stage-tool-window .blacksmith-tool-chip.is-offline {
     opacity: 0.55;
     border-style: dashed;
 }
@@ -277,4 +277,39 @@
     background: var(--blacksmith-tool-surface-raised);
     color: var(--blacksmith-tool-text-muted);
     font-size: 0.75em;
+}
+
+/* A person's status, on their chip: a small bell that cycles Available, Away and Do Not Disturb. Faint until the chip
+   is hovered or a status is set. A chip on Do Not Disturb is outlined in the brand orange, since that one changes
+   what the manager will do. */
+.blacksmith-stage-tool-window .blacksmith-stage-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    background: transparent;
+    color: var(--blacksmith-tool-text-muted);
+    font-size: 0.85em;
+    cursor: pointer;
+    opacity: 0.35;
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip:hover .blacksmith-stage-status,
+.blacksmith-stage-tool-window .blacksmith-stage-status.is-set,
+.blacksmith-stage-tool-window .blacksmith-stage-status:focus-visible {
+    opacity: 1;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-status:hover {
+    background: var(--blacksmith-tool-surface-hover);
+    color: var(--blacksmith-color-brand-accent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip.has-status-dnd {
+    border-color: var(--blacksmith-color-brand-accent);
 }

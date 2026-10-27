@@ -60,16 +60,17 @@ shipped, and the row says what is left. **Blocked** - waiting on something named
 
 | # | Item | Status | Next step | Area |
 |---|---|---|---|---|
-| 1 | The socket architecture doc is fiction -- 67 of 83 symbols phantom, and it invents a security model | Not started | Write the sockets harness suite first, so the rewrite has a regression net | [Documentation](#documentation) |
-| 2 | `T` over an enemy targeted nothing, on the player's own turn | Diagnosing | Two console lines at the table the next time it happens; three outcomes, three different owners | [Critical bugs](#critical-bugs) |
-| 3 | Protect the live campaign statistics | In progress -- backup done, version stamp not | Write the version stamp. It blocks the damage-semantics change | [Statistics](#statistics) |
-| 4 | The window framework does not own the frame | Not started -- plan written | Audit Minstrel and Artificer first, not last | [Windows](#windows-menubar-and-toolbars) |
-| 5 | Finish the importer re-founding | In progress -- steps 0-4 shipped and live | Step 5, guide and prompt derivation | [Importer](#importer) |
-| 6 | Statistics are midi-first in load-bearing places | Not started -- audited 2026-08-04 | Per-statistic fix; the audit is in the plan | [Statistics](#statistics) |
-| 7 | Save-based offense: caster damage fixed and VERIFIED, caster accuracy declined as unknowable without midi | Not started -- phase 2 closed 2026-09-07 | Re-scope phases 3-4 around what core dnd5e can answer, before either is begun | [Statistics](#statistics) |
-| 8 | The canvas surfaces have no contract | Not started -- plan written | Turn `getCanvasLayer()` into an API, with Herald's box as the second tenant | [Canvas](#canvas-pins-and-notes) |
-| 9 | Stylesheet cleanup -- retrofit the neutral overlay tokens | Not started | The token-adoption pass; verify no hex in `styles/` matches a `vars.css` value | [Design system](#design-system-and-css) |
-| 10 | Player frame rate | Not started, deliberately | Measure. Nothing is a confirmed defect yet and nothing should be optimised before it is | [Performance](#performance) |
+| 1 | Combat tooling assumes one combat at a time: two fights on two stages corrupt the statistics, the timers and the movement mode | Not started -- audited 2026-10-26, deferred by the author | The fix list in the entry; it gates running two fights on two stages | [Critical bugs](#critical-bugs) |
+| 2 | The socket architecture doc is fiction -- 67 of 83 symbols phantom, and it invents a security model | Not started | Write the sockets harness suite first, so the rewrite has a regression net | [Documentation](#documentation) |
+| 3 | `T` over an enemy targeted nothing, on the player's own turn | Diagnosing | Two console lines at the table the next time it happens; three outcomes, three different owners | [Critical bugs](#critical-bugs) |
+| 4 | Protect the live campaign statistics | In progress -- backup done, version stamp not | Write the version stamp. It blocks the damage-semantics change | [Statistics](#statistics) |
+| 5 | The window framework does not own the frame | Not started -- plan written | Audit Minstrel and Artificer first, not last | [Windows](#windows-menubar-and-toolbars) |
+| 6 | Finish the importer re-founding | In progress -- steps 0-4 shipped and live | Step 5, guide and prompt derivation | [Importer](#importer) |
+| 7 | Statistics are midi-first in load-bearing places | Not started -- audited 2026-08-04 | Per-statistic fix; the audit is in the plan | [Statistics](#statistics) |
+| 8 | Save-based offense: caster damage fixed and VERIFIED, caster accuracy declined as unknowable without midi | Not started -- phase 2 closed 2026-09-07 | Re-scope phases 3-4 around what core dnd5e can answer, before either is begun | [Statistics](#statistics) |
+| 9 | The canvas surfaces have no contract | Not started -- plan written | Turn `getCanvasLayer()` into an API, with Herald's box as the second tenant | [Canvas](#canvas-pins-and-notes) |
+| 10 | Stylesheet cleanup -- retrofit the neutral overlay tokens | Not started | The token-adoption pass; verify no hex in `styles/` matches a `vars.css` value | [Design system](#design-system-and-css) |
+| 11 | Player frame rate | Not started, deliberately | Measure. Nothing is a confirmed defect yet and nothing should be optimised before it is | [Performance](#performance) |
 
 ---
 
@@ -1096,16 +1097,16 @@ decision: drop it where the live handler fully applies the change.
 
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the
 scenes tab for every move, and Foundry shows nowhere who is on which scene. A Tool window of stage cards with
-player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and later
-a say-to-this-stage box and Away or Do Not Disturb statuses. **Slice 1 is built (2026-10-26) and not yet seen in a running world:** `scripts/manager-stage.js`, `scripts/window-stage.js`,
-architecture in `architecture/architecture-stage-manager.md`, verification in `testing/stage-manager.md`. Slice 2 (say to this
-stage, Away and Do Not Disturb, the hold scene) is not started. Decided 2026-10-26: it lives in Blacksmith, and the first
+player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and
+a chat button that toasts a stage, Away or Do Not Disturb statuses, a hold scene and a lobby mode. **Both slices are built (2026-10-26) and not yet seen in a running world:** `scripts/manager-stage.js`, `scripts/window-stage.js`,
+architecture in `architecture/architecture-stage-manager.md`, verification in `testing/stage-manager.md`. Slice 2 (say to this stage, Away and Do Not Disturb,
+the hold scene) is in the same files. Decided 2026-10-26: it lives in Blacksmith, and the first
 slice is the panel, drag to move, and the stored player-to-scene map with a re-apply when a player loads.
 Answered from the author's world: a player client does hold a scene that is not active, a pulled view does not
 survive a reload (so the map and the re-pull are required), and combats run side by side across scenes, even two
 in one scene. The panel carries no note about what stays global (audio, chat, the clock, pause); the architecture document states it. The combat
 tooling that reads `game.combat` needs its own audit, tracked separately. **Verify:** each open question answered
-in a running world, and the first slice walked with two clients on two scenes.
+in a running world, and both slices walked with two clients on two scenes.
 
 ### One participation list, owned by Blacksmith
 

@@ -1,9 +1,9 @@
 # Plan: the Stage Manager, one place to see and move a split party
 
-**Status: In progress -- slice 1 built, not yet seen in a running world.** Live scaffolding, opened 2026-10-26 from
+**Status: In progress -- slices 1 and 2 built, not yet seen in a running world.** Live scaffolding, opened 2026-10-26 from
 a conversation with the author about running a table where players are on different scenes. Slice 1 (the panel,
-drag to move, the stored map and the re-apply on load) is in `scripts/manager-stage.js` and
-`scripts/window-stage.js`; slice 2 (say to this stage, Away and Do Not Disturb, the hold scene) is not started.
+drag to move, the stored map and the re-apply on load) and slice 2 (say to this stage, Away and Do Not Disturb, the
+hold scene) are in `scripts/manager-stage.js` and `scripts/window-stage.js`.
 
 **On completion:** the panel and its settings go to `documentation/architecture/architecture-stage-manager.md`,
 the public calls (if any) to `documentation/api/`, the work items become `TODO.md` entries, shipped history goes
@@ -76,5 +76,8 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
 
 ## Not decided
 
-The window shape, whether stages are every scene or a chosen set, what Away does beyond showing a chip, and
-whether a player can request a move. Raise them when the open questions above are answered.
+Whether a player can request a move, and whether stages should be every scene rather than a chosen set. Decided
+with slice 2 (2026-10-26): Away is only a mark; Do Not Disturb keeps the manager from moving or messaging that
+player but cannot stop Foundry's own scene activation; the hold scene is one marked stage with a Hold Everyone
+button plus a Lobby Mode switch that sends anyone who loads in to the hold scene; talking to a stage is a chat
+button that opens Send Toast with the connected players on that scene ticked.

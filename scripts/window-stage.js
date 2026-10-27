@@ -18,6 +18,7 @@ import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { StageManager } from './manager-stage.js';
 import { setToolWindowState } from './manager-tool-windows.js';
+import { openToastSendWindow } from './window-toast-send.js';
 
 const APP_ID = 'blacksmith-stage-window';
 
@@ -37,6 +38,18 @@ function thumbnailUrl(path) {
 }
 const TOOL_ID = 'stage-manager';
 
+/** How each status looks on a chip. No status is the plain bell, shown faintly until the chip is hovered. */
+const STATUS_LOOK = {
+    away: { icon: 'fa-mug-hot', label: 'Away' },
+    dnd: { icon: 'fa-bell-slash', label: 'Do Not Disturb' }
+};
+
+/** The tooltip on a chip's status button: what it is now, and what pressing it sets. */
+function statusTip(current) {
+    const next = StageManager.nextStatus(current);
+    return `${current ? STATUS_LOOK[current].label : 'Available'}. Click to set ${next ? STATUS_LOOK[next].label : 'Available'}.`;
+}
+
 export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     static DEFAULT_OPTIONS = foundry.utils.mergeObject(
@@ -44,7 +57,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         {
             id: APP_ID,
             classes: ['blacksmith-window-tool', 'blacksmith-stage-tool-window'],
-            position: { width: 400, height: 'auto' },
+            position: { width: 500, height: 'auto' },
             window: { title: 'Stage Manager', icon: 'fa-solid fa-masks-theater', resizable: true },
             windowSizeConstraints: { minHeight: 220 }
         }
@@ -62,6 +75,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         'stage-add': (_event, _target, win) => win?._add(),
         'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
+        'stage-status': (_event, target, win) => win?._cycleStatus(target?.dataset?.userId),
+        'stage-hold-mark': (_event, target, win) => win?._markHold(target?.dataset?.sceneId),
+        'stage-hold-all': (_event, _target, win) => win?._holdAll(),
+        'stage-talk': (_event, target, win) => win?._talk(target?.dataset?.sceneId),
+        'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
         'stage-return-all': (_event, _target, win) => win?._returnAll()
     };
 
@@ -80,11 +98,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     async getData() {
         const esc = foundry.utils.escapeHTML;
         const stages = StageManager.stages();
+        const lobby = StageManager.lobbyOn();
         const shown = new Set(stages.map((s) => s.id));
 
         const cards = stages.map((stage) => {
             const badges = [
                 stage.isActive ? '<span class="blacksmith-badge blacksmith-badge-accent">Active</span>' : '',
+                stage.isHold && lobby ? '<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-door-open"></i> Lobby</span>' : '',
                 stage.combats ? `<span class="blacksmith-badge blacksmith-badge-warning"><i class="fa-solid fa-shield-halved"></i> ${stage.combats}</span>` : ''
             ].join('');
 
@@ -99,8 +119,17 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 const release = p.assigned
                     ? `<button type="button" class="blacksmith-tool-chip-remove" data-action="stage-release" data-user-id="${esc(p.id)}" data-tooltip="Stop holding ${esc(p.name)} here"><i class="fa-solid fa-xmark"></i></button>`
                     : '';
-                return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-away'}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
-                    data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene: comes back here when they reload' : ''}">${face}${esc(p.name)}${held}${release}</span>`;
+                // The bell sets Away or Do Not Disturb, cycling. A GM takes no status.
+                const status = p.isGM
+                    ? ''
+                    : `<button type="button" class="blacksmith-stage-status${p.status ? ' is-set' : ''}" data-action="stage-status" data-user-id="${esc(p.id)}" data-tooltip="${esc(statusTip(p.status))}"><i class="fa-solid ${p.status ? STATUS_LOOK[p.status].icon : 'fa-bell'}"></i></button>`;
+                const tip = [
+                    p.active ? '' : 'Not connected.',
+                    p.status ? `${STATUS_LOOK[p.status].label}.` : '',
+                    p.assigned ? 'Held on this scene: comes back here when they reload' : ''
+                ].filter(Boolean).join(' ');
+                return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-offline'}${p.status ? ` has-status-${p.status}` : ''}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
+                    data-tooltip="${esc(tip)}">${face}${esc(p.name)}${held}${status}${release}</span>`;
             }).join('');
 
             // The second row: do the characters and owned NPCs of the people here have tokens on this scene? A
@@ -119,6 +148,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw')}</div>`
                 : '';
 
+            // The chat button sends a toast to the players here, so it is only offered when someone is connected.
+            const hearers = stage.people.filter((p) => !p.isGM && p.active).length;
+
             const remove = stage.isExtra && !stage.isActive && !stage.people.length
                 ? `<button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-remove" data-scene-id="${esc(stage.id)}" data-tooltip="Take this stage off the list"><i class="fa-solid fa-xmark"></i></button>`
                 : '';
@@ -135,6 +167,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isActive ? ' is-active' : ''}" data-action="stage-activate" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isActive ? 'This is the active scene' : 'Make this the active scene'}"${stage.isActive ? ' disabled' : ''}><i class="fa-solid fa-bullseye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isGMView ? ' is-active' : ''}" data-action="stage-view" data-scene-id="${esc(stage.id)}" data-tooltip="Look at this scene yourself"><i class="fa-solid fa-eye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-edit" data-scene-id="${esc(stage.id)}" data-tooltip="Edit this scene's configuration"><i class="fa-solid fa-pen"></i></button>
+                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isHold ? ' is-active' : ''}" data-action="stage-hold-mark" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isHold ? 'This is the hold scene. Click to clear it' : 'Make this the hold scene, where Hold Everyone parks the players'}"><i class="fa-solid fa-hourglass-half"></i></button>
+                            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-talk" data-scene-id="${esc(stage.id)}" data-tooltip="${hearers ? 'Send a toast to the players here' : 'Nobody is connected on this scene'}"${hearers ? '' : ' disabled'}><i class="fa-solid fa-comment"></i></button>
                             ${remove}
                         </span>
                     </div>
@@ -156,6 +190,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             .map((scene) => `<option value="${esc(scene.id)}">${esc(scene.navName || scene.name)}</option>`)
             .join('');
 
+        const hold = StageManager.holdScene();
+
         return {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
@@ -165,7 +201,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             toolFooterLeft: options
                 ? `<select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select><button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button>`
                 : '',
-            toolFooterRight: '<button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>'
+            toolFooterRight: `<button type="button" class="blacksmith-tool-btn${lobby ? ' is-active' : ''}" data-action="stage-lobby"${hold || lobby ? '' : ' disabled'} data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the hold scene. Click to turn it off' : hold ? 'Turn on lobby mode: anyone who loads in lands on the hold scene' : 'Mark a stage as the hold scene first, with the hourglass on its card'}"><i class="fa-solid fa-door-open"></i> Lobby Mode</button><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-hold-all"${hold ? '' : ' disabled'} data-tooltip="${hold ? `Send every player to ${esc(hold.navName || hold.name)} and hold them there` : 'Mark a stage as the hold scene first, with the hourglass on its card'}"><i class="fa-solid fa-hourglass-half"></i> Hold Everyone</button><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
     }
 
@@ -335,7 +371,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     return;
                 }
                 try {
-                    for (const user of users) await StageManager.moveUser(user.id, zone.dataset.stageDrop);
+                    const left = [];
+                    for (const user of users) {
+                        if (!(await StageManager.moveUser(user.id, zone.dataset.stageDrop)) && StageManager.statusOf(user.id) === 'dnd') left.push(user.name);
+                    }
+                    this._noteLeftAlone(left);
                 } catch (error) {
                     ui.notifications?.warn(error.message);
                 }
@@ -427,7 +467,78 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             modal: true
         });
         if (!confirmed) return;
-        await StageManager.returnEveryone();
+        const { skipped } = await StageManager.returnEveryone();
+        this._noteLeftAlone(skipped);
+        this.render();
+    }
+
+    /** Tell the GM who a move or a message did not reach because they are on Do Not Disturb. */
+    _noteLeftAlone(names) {
+        if (names?.length) ui.notifications?.warn(`Left alone (Do Not Disturb): ${names.join(', ')}.`);
+    }
+
+    async _cycleStatus(userId) {
+        if (!userId) return;
+        try {
+            await StageManager.setStatus(userId, StageManager.nextStatus(StageManager.statusOf(userId)));
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
+    /** Mark this stage as the hold scene, or clear it when it already is. */
+    async _markHold(sceneId) {
+        if (!sceneId) return;
+        try {
+            await StageManager.setHold(StageManager.holdScene()?.id === sceneId ? null : sceneId);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
+    async _holdAll() {
+        const scene = StageManager.holdScene();
+        if (!scene) return;
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Hold Everyone' },
+            content: `<p>Send every player to ${foundry.utils.escapeHTML(scene.navName || scene.name)} and hold them there until you return them? A player on Do Not Disturb is left where they are.</p>`,
+            rejectClose: false,
+            modal: true
+        });
+        if (!confirmed) return;
+        try {
+            const { skipped } = await StageManager.holdEveryone();
+            this._noteLeftAlone(skipped);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
+    /**
+     * Open Send Toast with the connected players on this stage ticked. The toast system does the rest: the look, the
+     * sound, the size and the delivery. A player on Do Not Disturb is left unticked and named; the GM can still tick
+     * them in that window, which is a deliberate choice.
+     */
+    async _talk(sceneId) {
+        if (!sceneId) return;
+        const { recipients, skipped } = StageManager.talkRecipients(sceneId);
+        this._noteLeftAlone(skipped);
+        if (!recipients.length) {
+            ui.notifications?.warn('Nobody is connected on this scene to send a toast to.');
+            return;
+        }
+        await openToastSendWindow({ recipients });
+    }
+
+    async _toggleLobby() {
+        try {
+            await StageManager.setLobby(!StageManager.lobbyOn());
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
         this.render();
     }
 
