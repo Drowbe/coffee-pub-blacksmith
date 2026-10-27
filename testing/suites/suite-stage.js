@@ -45,18 +45,33 @@ export default {
             note: 'Pure function, writes nothing.',
             run: async ({ expect }) => {
                 const StageManager = await manager();
-                expect('nothing stored', StageManager.normalizeState(undefined), { assignments: {}, extras: [], order: [], statuses: {}, hold: null, lobby: false });
+                expect('nothing stored', StageManager.normalizeState(undefined), { assignments: {}, extras: [], order: [], statuses: {}, lobbyScene: null, lobby: false });
                 expect('junk assignments are dropped', StageManager.normalizeState({ assignments: { a: 'x', b: 7, c: '' }, extras: 'no' }),
-                    { assignments: { a: 'x' }, extras: [], order: [], statuses: {}, hold: null, lobby: false });
+                    { assignments: { a: 'x' }, extras: [], order: [], statuses: {}, lobbyScene: null, lobby: false });
                 expect('extras are de-duplicated and filtered', StageManager.normalizeState({ extras: ['s1', 's1', '', 3, 's2'] }),
-                    { assignments: {}, extras: ['s1', 's2'], order: [], statuses: {}, hold: null, lobby: false });
+                    { assignments: {}, extras: ['s1', 's2'], order: [], statuses: {}, lobbyScene: null, lobby: false });
                 expect('lobby is a real boolean', [StageManager.normalizeState({ lobby: true }).lobby, StageManager.normalizeState({ lobby: 'yes' }).lobby],
                     [true, false]);
                 expect('only the two known statuses survive', StageManager.normalizeState({ statuses: { a: 'away', b: 'dnd', c: 'busy', d: 4 } }).statuses,
                     { a: 'away', b: 'dnd' });
-                expect('a hold must be a non-empty string', [StageManager.normalizeState({ hold: 's1' }).hold, StageManager.normalizeState({ hold: '' }).hold, StageManager.normalizeState({ hold: 5 }).hold],
+                expect('a lobby scene must be a non-empty string', [StageManager.normalizeState({ lobbyScene: 's1' }).lobbyScene, StageManager.normalizeState({ lobbyScene: '' }).lobbyScene, StageManager.normalizeState({ lobbyScene: 5 }).lobbyScene],
                     ['s1', null, null]);
                 expect('order is de-duplicated and filtered', StageManager.normalizeState({ order: ['b', 'a', 'b', '', 9] }).order, ['b', 'a']);
+            }
+        },
+        {
+            id: 'scene-drop',
+            label: 'A dragged scene is understood: a world scene resolves, anything else does not',
+            tier: 'headless',
+            note: 'Pure reads, writes nothing.',
+            run: async ({ expect }) => {
+                const StageManager = await manager();
+                const scene = game.scenes.contents[0];
+                if (!scene) throw new Error('Needs at least one scene.');
+                expect('a world scene resolves', StageManager.sceneFromDrop(JSON.stringify({ type: 'Scene', uuid: scene.uuid }))?.id, scene.id);
+                expect('a compendium scene does not', StageManager.sceneFromDrop(JSON.stringify({ type: 'Scene', uuid: 'Compendium.a.b.Scene.x' })), null);
+                expect('an actor does not', StageManager.sceneFromDrop(JSON.stringify({ type: 'Actor', uuid: 'Actor.x' })), null);
+                expect('a user id and junk do not', [StageManager.sceneFromDrop(game.user.id), StageManager.sceneFromDrop('{'), StageManager.sceneFromDrop(null)], [null, null, null]);
             }
         },
         {
@@ -83,8 +98,8 @@ export default {
             }
         },
         {
-            id: 'status-and-hold',
-            label: 'Statuses cycle and clear, Do Not Disturb refuses a move, and the hold scene is a listed stage',
+            id: 'status-and-lobby',
+            label: 'Statuses cycle and clear, Do Not Disturb refuses a move, and the lobby scene is a listed stage',
             tier: 'headless',
             note: 'GM only. Saves and restores the stored state. Pulls nobody: a Do Not Disturb move is refused before any pull.',
             run: async ({ expect }) => {
@@ -106,23 +121,23 @@ export default {
                     expect('and nothing is held', StageManager.getState().assignments[player.id], undefined);
                     await StageManager.setStatus(player.id, null);
                     expect('null clears it', StageManager.statusOf(player.id), null);
-                    await StageManager.setHold(other.id);
-                    expect('the hold scene is stored', StageManager.holdScene()?.id, other.id);
-                    expect('and listed as a stage', StageManager.stages().find((s) => s.id === other.id)?.isHold, true);
-                    await StageManager.setHold(null);
-                    expect('and cleared', StageManager.holdScene(), null);
+                    await StageManager.setLobbyScene(other.id);
+                    expect('the lobby scene is stored', StageManager.lobbyScene()?.id, other.id);
+                    expect('and listed as a stage', StageManager.stages().find((s) => s.id === other.id)?.isLobby, true);
+                    await StageManager.setLobbyScene(null);
+                    expect('and cleared', StageManager.lobbyScene(), null);
                     let refused = false;
                     try {
                         await StageManager.setLobby(true);
                     } catch (_error) {
                         refused = true;
                     }
-                    expect('lobby mode needs a hold scene', refused, true);
-                    await StageManager.setHold(other.id);
+                    expect('lobby mode needs a lobby scene', refused, true);
+                    await StageManager.setLobbyScene(other.id);
                     await StageManager.setLobby(true);
                     expect('lobby mode turns on', StageManager.lobbyOn(), true);
-                    await StageManager.setHold(null);
-                    expect('and goes off with the hold scene', [StageManager.lobbyOn(), StageManager.getState().lobby], [false, false]);
+                    await StageManager.setLobbyScene(null);
+                    expect('and goes off with the lobby scene', [StageManager.lobbyOn(), StageManager.getState().lobby], [false, false]);
                 });
             }
         },

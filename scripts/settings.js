@@ -5736,7 +5736,7 @@ export const registerSettings = () => {
 		scope: 'world',
 		config: false,
 		type: Object,
-		default: { assignments: {}, extras: [], order: [], statuses: {}, hold: null, lobby: false }
+		default: { assignments: {}, extras: [], order: [], statuses: {}, lobbyScene: null, lobby: false }
 	});
 
 	// -- SETTINGS ADOPTION LEDGERS --

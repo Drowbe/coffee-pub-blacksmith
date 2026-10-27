@@ -72,12 +72,10 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         'stage-edit': (_event, target, win) => win?._edit(target?.dataset?.sceneId),
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
         'stage-deploy-all': (_event, target, win) => win?._deployAll(target?.dataset?.sceneId),
-        'stage-add': (_event, _target, win) => win?._add(),
         'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
         'stage-status': (_event, target, win) => win?._cycleStatus(target?.dataset?.userId),
-        'stage-hold-mark': (_event, target, win) => win?._markHold(target?.dataset?.sceneId),
-        'stage-hold-all': (_event, _target, win) => win?._holdAll(),
+        'stage-lobby-mark': (_event, target, win) => win?._markLobbyScene(target?.dataset?.sceneId),
         'stage-talk': (_event, target, win) => win?._talk(target?.dataset?.sceneId),
         'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
         'stage-return-all': (_event, _target, win) => win?._returnAll()
@@ -99,12 +97,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         const esc = foundry.utils.escapeHTML;
         const stages = StageManager.stages();
         const lobby = StageManager.lobbyOn();
-        const shown = new Set(stages.map((s) => s.id));
 
         const cards = stages.map((stage) => {
             const badges = [
                 stage.isActive ? '<span class="blacksmith-badge blacksmith-badge-accent">Active</span>' : '',
-                stage.isHold && lobby ? '<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-door-open"></i> Lobby</span>' : '',
+                stage.isLobby && lobby ? '<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-door-open"></i> Lobby</span>' : '',
                 stage.combats ? `<span class="blacksmith-badge blacksmith-badge-warning"><i class="fa-solid fa-shield-halved"></i> ${stage.combats}</span>` : ''
             ].join('');
 
@@ -160,14 +157,14 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-stage-grip" draggable="true" data-stage-grip="${esc(stage.id)}" data-tooltip="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
-                            <span class="blacksmith-tool-card-title">${esc(stage.name)}</span>
+                            <span class="blacksmith-tool-card-title">${esc(stage.name)}${stage.navName && stage.navName !== stage.name ? ` (${esc(stage.navName)})` : ''}</span>
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
                         <span class="blacksmith-tool-card-actions">
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isActive ? ' is-active' : ''}" data-action="stage-activate" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isActive ? 'This is the active scene' : 'Make this the active scene'}"${stage.isActive ? ' disabled' : ''}><i class="fa-solid fa-bullseye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isGMView ? ' is-active' : ''}" data-action="stage-view" data-scene-id="${esc(stage.id)}" data-tooltip="Look at this scene yourself"><i class="fa-solid fa-eye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-edit" data-scene-id="${esc(stage.id)}" data-tooltip="Edit this scene's configuration"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isHold ? ' is-active' : ''}" data-action="stage-hold-mark" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isHold ? 'This is the hold scene. Click to clear it' : 'Make this the hold scene, where Hold Everyone parks the players'}"><i class="fa-solid fa-hourglass-half"></i></button>
+                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isLobby ? ' is-active' : ''}" data-action="stage-lobby-mark" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isLobby ? 'This is the lobby scene. Click to clear it' : 'Make this the lobby scene, where players land when Lobby Mode is on'}"><i class="fa-solid fa-door-open"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-talk" data-scene-id="${esc(stage.id)}" data-tooltip="${hearers ? 'Send a toast to the players here' : 'Nobody is connected on this scene'}"${hearers ? '' : ' disabled'}><i class="fa-solid fa-comment"></i></button>
                             ${remove}
                         </span>
@@ -184,24 +181,16 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 </div>`;
         }).join('');
 
-        const options = game.scenes.contents
-            .filter((scene) => !shown.has(scene.id))
-            .sort((a, b) => (a.navName || a.name).localeCompare(b.navName || b.name))
-            .map((scene) => `<option value="${esc(scene.id)}">${esc(scene.navName || scene.name)}</option>`)
-            .join('');
-
-        const hold = StageManager.holdScene();
+        const lobbyScene = StageManager.lobbyScene();
 
         return {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
-                ${cards || '<div class="blacksmith-tool-empty">No scenes in use.</div>'}
+                ${cards || '<div class="blacksmith-tool-empty">No scenes in use. Drag a scene here to add it.</div>'}
             </div>`,
-            // Add a stage lives in the action bar, on the left, with Return Everyone on the right.
-            toolFooterLeft: options
-                ? `<select class="blacksmith-input blacksmith-stage-add-select" aria-label="Scene to add"><option value="">Add a stage...</option>${options}</select><button type="button" class="blacksmith-tool-btn" data-action="stage-add"><i class="fa-solid fa-plus"></i> Add</button>`
-                : '',
-            toolFooterRight: `<button type="button" class="blacksmith-tool-btn${lobby ? ' is-active' : ''}" data-action="stage-lobby"${hold || lobby ? '' : ' disabled'} data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the hold scene. Click to turn it off' : hold ? 'Turn on lobby mode: anyone who loads in lands on the hold scene' : 'Mark a stage as the hold scene first, with the hourglass on its card'}"><i class="fa-solid fa-door-open"></i> Lobby Mode</button><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-hold-all"${hold ? '' : ' disabled'} data-tooltip="${hold ? `Send every player to ${esc(hold.navName || hold.name)} and hold them there` : 'Mark a stage as the hold scene first, with the hourglass on its card'}"><i class="fa-solid fa-hourglass-half"></i> Hold Everyone</button><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
+            // Scenes are added by dragging them onto the window, so the left of the action bar is only a reminder.
+            toolFooterLeft: '<span class="blacksmith-stage-add-hint"><i class="fa-solid fa-arrow-down-to-line"></i> Drag a scene here to add it</span>',
+            toolFooterRight: `<button type="button" class="blacksmith-tool-btn${lobby ? ' is-active' : ''}" data-action="stage-lobby"${lobbyScene || lobby ? '' : ' disabled'} data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Click to turn it off' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><i class="fa-solid fa-door-open"></i> Lobby Mode</button><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
     }
 
@@ -290,6 +279,20 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 if (!win.contains(event.relatedTarget)) hide();
             });
             win.addEventListener('drop', hide);
+            // A scene dragged onto the window anywhere adds it. A drop zone that takes the payload (a person) has already
+            // handled it and prevented the default; a card being reordered carries its own type. The drag has to be
+            // accepted on the way over, and only its types can be read then, so anything but a reorder is accepted.
+            win.addEventListener('dragover', (event) => {
+                if (event.dataTransfer.types.includes(STAGE_MIME)) return;
+                event.preventDefault();
+            });
+            win.addEventListener('drop', (event) => {
+                if (event.defaultPrevented || event.dataTransfer.types.includes(STAGE_MIME)) return;
+                const scene = StageManager.sceneFromDrop(event.dataTransfer.getData('text/plain'));
+                if (!scene) return;
+                event.preventDefault();
+                void this._addScene(scene);
+            });
             win.addEventListener('dragend', hide);
             document.addEventListener('dragend', hide);
             this._hideDragHint = hide;
@@ -369,6 +372,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             });
             zone.addEventListener('drop', async (event) => {
                 if (event.dataTransfer.types.includes(STAGE_MIME)) return;
+                // A scene dropped on a card is not for this zone; the window adds it.
+                if (StageManager.sceneFromDrop(event.dataTransfer.getData('text/plain'))) {
+                    zone.classList.remove('is-over');
+                    return;
+                }
                 event.preventDefault();
                 zone.classList.remove('is-over');
                 this._dragging = false;
@@ -449,10 +457,18 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         this.render();
     }
 
-    async _add() {
-        const select = this._getRoot()?.querySelector('.blacksmith-stage-add-select');
-        if (!select?.value) return;
-        await StageManager.addStage(select.value);
+    /** Add a dropped scene to the panel. A scene that already has a card is left alone and said so. */
+    async _addScene(scene) {
+        const name = scene.name;
+        if (StageManager.stages().some((stage) => stage.id === scene.id)) {
+            ui.notifications?.info(`${name} is already on the panel.`);
+            return;
+        }
+        try {
+            await StageManager.addStage(scene.id);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
         this.render();
     }
 
@@ -494,30 +510,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         this.render();
     }
 
-    /** Mark this stage as the hold scene, or clear it when it already is. */
-    async _markHold(sceneId) {
+    /** Mark this stage as the lobby scene, or clear it when it already is. */
+    async _markLobbyScene(sceneId) {
         if (!sceneId) return;
         try {
-            await StageManager.setHold(StageManager.holdScene()?.id === sceneId ? null : sceneId);
-        } catch (error) {
-            ui.notifications?.warn(error.message);
-        }
-        this.render();
-    }
-
-    async _holdAll() {
-        const scene = StageManager.holdScene();
-        if (!scene) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Hold Everyone' },
-            content: `<p>Send every player to ${foundry.utils.escapeHTML(scene.navName || scene.name)} and hold them there until you return them? A player on Do Not Disturb is left where they are.</p>`,
-            rejectClose: false,
-            modal: true
-        });
-        if (!confirmed) return;
-        try {
-            const { skipped } = await StageManager.holdEveryone();
-            this._noteLeftAlone(skipped);
+            await StageManager.setLobbyScene(StageManager.lobbyScene()?.id === sceneId ? null : sceneId);
         } catch (error) {
             ui.notifications?.warn(error.message);
         }
@@ -543,6 +540,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     async _toggleLobby() {
         try {
             await StageManager.setLobby(!StageManager.lobbyOn());
+            const lobby = StageManager.lobbyScene();
+            // A player's client is only sent the scenes their Permissions allow, so a GM-only lobby scene cannot be reached.
+            if (StageManager.lobbyOn() && (lobby?.ownership?.default ?? 0) < CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER) {
+                ui.notifications?.warn(`${lobby.name} is GM only, so players cannot be sent there. Set its Permissions to All Players.`);
+            }
         } catch (error) {
             ui.notifications?.warn(error.message);
         }

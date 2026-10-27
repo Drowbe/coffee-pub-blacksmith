@@ -137,11 +137,10 @@
     border-style: dashed;
 }
 
-/* A modest picker, not the width of the bar: it only has to show a scene name. */
-.blacksmith-stage-tool-window .blacksmith-stage-add-select {
-    flex: 0 1 200px;
-    width: 200px;
-    min-width: 0;
+/* The reminder at the left of the action bar: scenes are added by dragging them onto the window. */
+.blacksmith-stage-tool-window .blacksmith-stage-add-hint {
+    color: var(--blacksmith-tool-text-muted);
+    font-size: 0.85em;
 }
 
 /* The grip a card is dragged by to reorder. Only the grip drags, so the buttons and the name stay clickable. */
