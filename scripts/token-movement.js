@@ -178,7 +178,7 @@ function extractMovementSubset(changes) {
  */
 function queuePlayerRequestMoveDialog(tokenDocument, changes, userId) {
     if (_playerRequestMoveDialogOpen) {
-        ui.notifications.info('Finish or cancel your pending move request before trying to move again.');
+        showMovementNotice('Move request pending', 'Finish or cancel your pending move request before trying to move again.', 'fa-solid fa-person-circle-question');
         return;
     }
     _playerRequestMoveDialogOpen = true;
@@ -219,7 +219,7 @@ async function _showPlayerRequestMoveDialog(tokenDocument, changes, userId) {
                 callback: async () => {
                     const socket = SocketManager.getSocket();
                     if (typeof socket?.executeAsGM !== 'function') {
-                        ui.notifications.warn('No GM is connected to approve this move right now.');
+                        showMovementNotice('No GM connected', 'No GM is connected to approve this move right now.', 'fa-solid fa-person-circle-xmark');
                         return;
                     }
                     try {
@@ -239,7 +239,7 @@ async function _showPlayerRequestMoveDialog(tokenDocument, changes, userId) {
                         });
                     } catch (e) {
                         postConsoleAndNotification(MODULE.NAME, 'Movement request to GM failed', e?.message ?? e, false, true);
-                        ui.notifications.error('No GM was available to approve this move.');
+                        showMovementNotice('No GM available', 'No GM was available to approve this move.', 'fa-solid fa-person-circle-xmark');
                     }
                 }
             }
@@ -262,7 +262,7 @@ export async function handleMovementRequestAskGM(data) {
     const scene = game.scenes.get(sceneId);
     const td = scene?.tokens.get(tokenId);
     if (!td) {
-        ui.notifications.warn('Move request referred to a token that is no longer on that scene.');
+        showMovementNotice('Move request dropped', 'The token is no longer on that scene.', 'fa-solid fa-person-circle-xmark');
         return;
     }
 
@@ -310,7 +310,7 @@ export async function handleMovementRequestAskGM(data) {
                         await td.update(updates);
                     } catch (e) {
                         postConsoleAndNotification(MODULE.NAME, 'Approved move update failed', e?.message ?? e, false, true);
-                        ui.notifications.error('Could not apply that move.');
+                        showMovementNotice('Move failed', 'Could not apply that move.', 'fa-solid fa-triangle-exclamation');
                     } finally {
                         _gmApplyingApprovedRequestMove = false;
                     }
@@ -327,7 +327,7 @@ export async function handleMovementRequestAskGM(data) {
 export function handleMovementRequestDenied(data) {
     if (data?.type !== 'movementRequestDenied') return;
     if (data.requesterId && data.requesterId === game.user?.id && data.message) {
-        ui.notifications.warn(String(data.message));
+        showMovementNotice('Move request declined', String(data.message), 'fa-solid fa-person-circle-xmark');
     }
 }
 
@@ -577,7 +577,7 @@ export async function setMovementType(movementId) {
     if (movementId === 'conga-movement' || movementId === 'follow-movement') {
         const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
         if (!leaderData?.actorId) {
-            ui.notifications.warn(`No party leader set for ${movementType.name}. Please set a party leader in the leader panel (crown icon).`);
+            showMovementNotice('No party leader', `Set a party leader in the leader panel (crown icon) to use ${movementType.name}.`, 'fa-solid fa-crown');
         } else {
             // Find the leader's token on the canvas
             const leaderToken = canvas.tokens.placeables.find(token => 
@@ -596,7 +596,7 @@ export async function setMovementType(movementId) {
                 // Calculate initial marching order and post it
                 await calculateMarchingOrder(leaderToken, true, movementId === 'conga-movement');
             } else {
-                ui.notifications.warn("Could not find a leader token on the canvas. Make sure the party leader has at least one token placed.");
+                showMovementNotice('Leader token not found', 'Make sure the party leader has at least one token placed.', 'fa-solid fa-crown');
             }
         }
     }
@@ -629,7 +629,7 @@ function checkPartyLeader() {
     const leaderData = game.settings.get(MODULE.ID, 'partyLeader');
     
     if (!leaderData?.actorId) {
-        ui.notifications.warn("No party leader set. Please set a party leader in settings.");
+        showMovementNotice('No party leader', 'Please set a party leader in settings.', 'fa-solid fa-crown');
         return null;
     }
     
@@ -639,7 +639,7 @@ function checkPartyLeader() {
     );
     
     if (!leaderToken) {
-        ui.notifications.warn("Could not find leader's token on the canvas.");
+        showMovementNotice('Leader token not found', "Could not find the leader's token on the canvas.", 'fa-solid fa-crown');
         return null;
     }
     
@@ -662,6 +662,24 @@ function showMovementBlocked(title, subtitle) {
         duration: 4,
         moduleId: 'blacksmith-core',
         stackKey: 'blacksmith-movement-blocked'
+    });
+}
+
+/**
+ * Any other thing the movement system has to say to someone: a request in flight, a missing party leader, a failure.
+ * Same reasoning as showMovementBlocked: a toast, never a Foundry notification.
+ * @param {string} title
+ * @param {string} [subtitle]
+ * @param {string} [icon] FontAwesome classes.
+ */
+function showMovementNotice(title, subtitle, icon = 'fa-solid fa-person-walking') {
+    ToastAPI.show({
+        title,
+        subtitle,
+        icon,
+        duration: 5,
+        moduleId: 'blacksmith-core',
+        stackKey: 'blacksmith-movement-notice'
     });
 }
 
@@ -1039,7 +1057,7 @@ async function processFollowMovement(sortedFollowers) {
             }
 
         } catch (error) {
-            ui.notifications.error(`Error moving ${token.name}: ${error.message}`);
+            showMovementNotice('Move failed', `Error moving ${token.name}: ${error.message}`, 'fa-solid fa-triangle-exclamation');
         }
 
         // Wait before processing next follower
@@ -1664,7 +1682,7 @@ const readyHookId = HookManager.registerHook({
                     if (movementLabel) movementLabel.textContent = movementType.name;
                     
                     // Show notification
-                    ui.notifications.info(`Movement mode restored to ${movementType.name} after client refresh`);
+                    showMovementNotice('Movement restored', `Movement mode restored to ${movementType.name} after client refresh.`);
                 }
             }
         } catch (err) {

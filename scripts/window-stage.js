@@ -326,6 +326,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             });
         }
         for (const card of root.querySelectorAll('[data-stage-id]')) {
+            // Double-click the card itself to make it the active scene. A double-click on a button, a person or the
+            // token row is theirs and does nothing here.
+            card.addEventListener('dblclick', (event) => {
+                if (event.target.closest('button, [data-action], .blacksmith-tool-chip, .blacksmith-stage-tokens, .blacksmith-stage-grip, select, input, a')) return;
+                if (game.scenes.get(card.dataset.stageId)?.active) return;
+                this._activate(card.dataset.stageId);
+            });
             card.addEventListener('dragover', (event) => {
                 if (!event.dataTransfer.types.includes(STAGE_MIME)) return;
                 event.preventDefault();
