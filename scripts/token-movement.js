@@ -648,6 +648,23 @@ function checkPartyLeader() {
     return leaderToken;
 }
 
+/**
+ * Tell the player, on their own screen, why their token did not move. A toast and not a Foundry notification, and
+ * one stack key so dragging again replaces the message instead of piling up copies.
+ * @param {string} title
+ * @param {string} [subtitle]
+ */
+function showMovementBlocked(title, subtitle) {
+    ToastAPI.show({
+        title,
+        subtitle,
+        icon: 'fa-solid fa-person-circle-xmark',
+        duration: 4,
+        moduleId: 'blacksmith-core',
+        stackKey: 'blacksmith-movement-blocked'
+    });
+}
+
 // Register preUpdateToken hook for movement restrictions
 const preUpdateTokenHookId = HookManager.registerHook({
     name: 'preUpdateToken',
@@ -694,7 +711,7 @@ const preUpdateTokenHookId = HookManager.registerHook({
             }
             
             // Non-leader tokens can't be moved manually in conga/follow mode
-            ui.notifications.warn(`In ${currentMovement === 'conga-movement' ? 'Conga' : 'Fastest Path'} mode, only the leader can move tokens freely. Other tokens will follow automatically.`);
+            showMovementBlocked(`${currentMovement === 'conga-movement' ? 'Conga' : 'Fastest Path'} mode`, 'Only the leader can move tokens freely. Other tokens will follow automatically.');
             return false;
         }
         
@@ -703,7 +720,7 @@ const preUpdateTokenHookId = HookManager.registerHook({
         
         // If no movement is allowed
         if (currentMovement === 'no-movement') {
-            ui.notifications.warn("Token movement is currently disabled.");
+            showMovementBlocked('Movement is locked', 'Token movement is currently disabled.');
             return false;
         }
         
@@ -711,13 +728,13 @@ const preUpdateTokenHookId = HookManager.registerHook({
         if (currentMovement === 'combat-movement') {
             const combat = game.combat;
             if (!combat?.started) {
-                ui.notifications.warn("Token movement is only allowed during combat.");
+                showMovementBlocked('Movement is locked', 'Token movement is only allowed during combat.');
                 return false;
             }
             
             const currentCombatant = combat.current.tokenId;
             if (tokenDocument.id !== currentCombatant) {
-                ui.notifications.warn("You can only move tokens during your turn in combat.");
+                showMovementBlocked('Not your turn', 'You can only move tokens during your turn in combat.');
                 return false;
             }
         }

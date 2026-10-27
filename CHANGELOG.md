@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A player blocked from moving is told with a toast, not a Foundry notification** (`scripts/token-movement.js`). The four refusals in the movement rules (Locked, Combat only, not your turn, and a non-leader in Conga or Fastest Path) called `ui.notifications.warn`. They now show a toast on the player's own screen, under one stack key so dragging again replaces the message instead of stacking copies.
+
 - **Toggles and badges are readable in Tool windows on the Light theme** (`styles/window-form-controls.css`). `.blacksmith-toggle` and `.blacksmith-badge` were painted for a dark window: near-white labels and badge text on cream, and a track and badge fill that disappeared. They now read the `--blacksmith-tool-*` variables (text, muted text, field border, surfaces, divider, accent) with the old dark values as fallbacks, the same treatment the tabs and list rows got, so a standard window looks as before. The status badges (`-success`, `-danger`, `-warning`) keep their hue inside a Tool window and are mixed toward the theme's text colour, which darkens them on Light. Reported by Puppeteer. Verify on the Light, Glass and dark Tool themes: see `testing/tool-theme-controls.md`.
 
 ## [14.4.1]
