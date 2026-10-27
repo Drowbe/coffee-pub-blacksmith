@@ -19,15 +19,17 @@
 //     loading, and is the only client that knows when it is ready. `Scene#view` has no permission check.
 //
 // The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId], order: [sceneId],
-// statuses: { userId: 'away' | 'dnd' }, lobbyScene: sceneId | null, lobby: boolean }.
+// lobbyScene: sceneId | null, lobby: boolean }.
 // `extras` are scenes the GM added to the panel by hand, for a stage nobody is on yet. `order` is the order the GM
-// arranged the cards in; a stage that is not in it goes after the ones that are. `statuses` is what the GM marked a
-// player as: Away is only a mark, Do Not Disturb keeps this manager from moving or messaging that player. `lobbyScene`
+// arranged the cards in; a stage that is not in it goes after the ones that are. Whether a player is away is not kept
+// here: it is the module's Away status (manager-away.js), shown on the chips and never changing what this manager does.
+// `lobbyScene`
 // is the scene the GM marked as the waiting room. `lobby` is a mode: while it is on, anyone who loads in goes to the
 // lobby scene.
 
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
+import { AwayManager } from './manager-away.js';
 import { deployParty, getPartyMembers, getOwnedNpcs, getPartyActorIdsOnCanvas } from './utility-party.js';
 
 const SETTING = 'stageState';
@@ -38,9 +40,6 @@ const APPLY_DELAY_MS = 400;
 /** If the canvas is still loading when the move is due, try again this often, this many times. */
 const RETRY_DELAY_MS = 1000;
 const MAX_ATTEMPTS = 15;
-
-/** The statuses a player can be marked with, in the order the chip cycles through them. No status means available. */
-export const STAGE_STATUSES = ['away', 'dnd'];
 
 export class StageManager {
     static _initialized = false;
@@ -78,7 +77,7 @@ export class StageManager {
         return this.normalizeState(raw);
     }
 
-    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[], statuses: Record<string,string>, lobbyScene: string|null, lobby: boolean}} */
+    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[], lobbyScene: string|null, lobby: boolean}} */
     static normalizeState(raw) {
         const assignments = {};
         if (raw?.assignments && typeof raw.assignments === 'object') {
@@ -92,14 +91,8 @@ export class StageManager {
         const order = Array.isArray(raw?.order)
             ? [...new Set(raw.order.filter((id) => typeof id === 'string' && id))]
             : [];
-        const statuses = {};
-        if (raw?.statuses && typeof raw.statuses === 'object') {
-            for (const [userId, status] of Object.entries(raw.statuses)) {
-                if (typeof userId === 'string' && STAGE_STATUSES.includes(status)) statuses[userId] = status;
-            }
-        }
         const lobbyScene = typeof raw?.lobbyScene === 'string' && raw.lobbyScene ? raw.lobbyScene : null;
-        return { assignments, extras, order, statuses, lobbyScene, lobby: raw?.lobby === true };
+        return { assignments, extras, order, lobbyScene, lobby: raw?.lobby === true };
     }
 
     static async _save(state) {
@@ -140,8 +133,6 @@ export class StageManager {
         }
         this._applied = true;
         const state = this.getState();
-        // Do Not Disturb: the GM asked that this player not be moved, and that includes being put back on load.
-        if (state.statuses[game.user?.id] === 'dnd') return;
         const lobbyId = state.lobby ? state.lobbyScene : null;
         const sceneId = lobbyId ?? state.assignments[game.user?.id];
         const scene = sceneId ? game.scenes.get(sceneId) : null;
@@ -164,7 +155,7 @@ export class StageManager {
     /**
      * Put a player on a stage: store it, and pull them there now if they are connected. A GM cannot be held
      * anywhere, so dropping the GM's own chip only moves the GM's own view, exactly as `viewStage` does, and
-     * another GM is left alone. A player on Do Not Disturb is not moved and nothing is stored for them (false).
+     * another GM is left alone (false).
      * @param {string} userId
      * @param {string} sceneId
      */
@@ -178,7 +169,6 @@ export class StageManager {
             scene.view();
             return true;
         }
-        if (this.statusOf(user.id) === 'dnd') return false;
         await this.setAssignment(user.id, scene.id);
         if (user.active) scene.pullUsers([user]);
         return true;
@@ -191,21 +181,18 @@ export class StageManager {
     }
 
     /**
-     * Clear every assignment and send every connected player back to the active scene. A player on Do Not Disturb is
-     * not pulled.
-     * @returns {Promise<{moved: string[], skipped: string[]}>} the names pulled, and the names left alone
+     * Clear every assignment and send every connected player back to the active scene.
+     * @returns {Promise<string[]>} the names pulled
      */
     static async returnEveryone() {
         this._requireGM();
         const state = this.getState();
         state.assignments = {};
         await this._save(state);
-        const live = game.users.filter((u) => u.active && !u.isGM);
-        const skipped = live.filter((u) => state.statuses[u.id] === 'dnd');
-        const moving = live.filter((u) => state.statuses[u.id] !== 'dnd');
+        const moving = game.users.filter((u) => u.active && !u.isGM);
         const active = game.scenes.active;
         if (active && moving.length) active.pullUsers(moving);
-        return { moved: moving.map((u) => u.name), skipped: skipped.map((u) => u.name) };
+        return moving.map((u) => u.name);
     }
 
     /**
@@ -345,34 +332,8 @@ export class StageManager {
     }
 
     // ==============================================================
-    // ===== STATUS, LOBBY AND SPEAKING =============================
+    // ===== LOBBY AND SPEAKING =====================================
     // ==============================================================
-
-    /** A player's status: 'away', 'dnd', or null for available. */
-    static statusOf(userId) {
-        return this.getState().statuses[userId] ?? null;
-    }
-
-    /** The status after this one in the cycle the chip runs: available, away, do not disturb, available. */
-    static nextStatus(current) {
-        const at = STAGE_STATUSES.indexOf(current);
-        return at < 0 ? STAGE_STATUSES[0] : (STAGE_STATUSES[at + 1] ?? null);
-    }
-
-    /**
-     * Mark a player Away or Do Not Disturb, or clear it with null. A GM takes no status.
-     * @returns {Promise<boolean>} whether it was stored
-     */
-    static async setStatus(userId, status) {
-        this._requireGM();
-        const user = game.users.get(userId);
-        if (!user || user.isGM) return false;
-        const state = this.getState();
-        if (STAGE_STATUSES.includes(status)) state.statuses[userId] = status;
-        else delete state.statuses[userId];
-        await this._save(state);
-        return true;
-    }
 
     /** The lobby scene, or null when none is marked or the marked one no longer exists. */
     static lobbyScene() {
@@ -408,19 +369,13 @@ export class StageManager {
     }
 
     /**
-     * Who a toast from a stage should go to: the connected players looking at that scene, less anyone on Do Not
-     * Disturb. The Send Toast window takes it from there, so the look and the delivery are the toast system's and the
-     * GM can still tick anyone else.
-     * @returns {{recipients: string[], skipped: string[]}} user ids, and the names left out
+     * Who a toast from a stage should go to: the connected players looking at that scene. The Send Toast window takes
+     * it from there, so the look and the delivery are the toast system's and the GM can still tick anyone else.
+     * @returns {string[]} user ids
      */
     static talkRecipients(sceneId) {
         this._requireGM();
-        const state = this.getState();
-        const here = game.users.filter((u) => !u.isGM && u.active && u.viewedScene === sceneId);
-        return {
-            recipients: here.filter((u) => state.statuses[u.id] !== 'dnd').map((u) => u.id),
-            skipped: here.filter((u) => state.statuses[u.id] === 'dnd').map((u) => u.name)
-        };
+        return game.users.filter((u) => !u.isGM && u.active && u.viewedScene === sceneId).map((u) => u.id);
     }
 
     // ==============================================================
@@ -457,7 +412,7 @@ export class StageManager {
                 // The character's portrait when they have one, else the user's own avatar; null when neither.
                 portrait: user.character?.img || user.avatar || null,
                 assigned: state.assignments[user.id] === sceneId,
-                status: user.isGM ? null : (state.statuses[user.id] ?? null)
+                away: AwayManager.get(user.id)
             });
         }
 

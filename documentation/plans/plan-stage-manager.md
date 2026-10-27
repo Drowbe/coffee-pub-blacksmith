@@ -2,7 +2,7 @@
 
 **Status: In progress -- slices 1 and 2 built, not yet seen in a running world.** Live scaffolding, opened 2026-10-26 from
 a conversation with the author about running a table where players are on different scenes. Slice 1 (the panel,
-drag to move, the stored map and the re-apply on load) and slice 2 (say to this stage, Away and Do Not Disturb, the
+drag to move, the stored map and the re-apply on load) and slice 2 (say to this stage, the
 lobby scene) are in `scripts/manager-stage.js` and `scripts/window-stage.js`.
 
 **On completion:** the panel and its settings go to `documentation/architecture/architecture-stage-manager.md`,
@@ -44,8 +44,8 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
   and a "say to this stage" box that whispers to exactly those players.
 - Dragging a player chip to another stage pulls them there. Clicking a stage moves the GM's own view.
 - A stored map of player to scene, re-applied when a player connects or reloads.
-- A **status** per player, Away or Do Not Disturb, shown on their chip. Do Not Disturb stops pulls and pop-ups for
-  that player and tells the GM why.
+- A **status** per player, Away, shown on their chip. It became the module-wide Away status
+  (`plan-away-status.md`) and changes nothing the Stage Manager does.
 - The earlier "hold scene" idea is one stage: park everyone on a lobby scene while the GM prepares, with a button
   to send everyone back to the active scene.
 
@@ -71,13 +71,12 @@ A **Stage Manager**: a Tool window (and a menubar entry) that lists the scenes i
 5. **Where it lives. Decided 2026-10-26: Blacksmith.** The author called it core: it is coordination across the
    whole table, like the time modes (`manager-time-modes.js`), and a satellite cannot see everyone's location.
 6. **First version. Decided 2026-10-26.** The panel, drag to move, and the stored player-to-scene map with a
-   re-pull when a player connects. Chat per stage, Away and Do Not Disturb, and the hold scene follow in a second
+   re-pull when a player connects. Chat per stage, Away, and the hold scene follow in a second
    slice. The combat audit above is separate and is not part of either slice.
 
 ## Not decided
 
 Whether a player can request a move, and whether stages should be every scene rather than a chosen set. Decided
-with slice 2 (2026-10-26): Away is only a mark; Do Not Disturb keeps the manager from moving or messaging that
-player but cannot stop Foundry's own scene activation; the lobby scene is one marked stage with a Lobby Mode
+with slice 2 (2026-10-26): Away is only a mark and is now the module-wide status in `plan-away-status.md`; the lobby scene is one marked stage with a Lobby Mode
 switch that sends anyone who loads in to it (a Hold Everyone button was built and removed as redundant); scenes are added by dragging them onto the window; talking to a stage is a chat
 button that opens Send Toast with the connected players on that scene ticked.

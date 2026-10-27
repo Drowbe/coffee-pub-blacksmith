@@ -17,6 +17,7 @@ import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { StageManager } from './manager-stage.js';
+import { AwayManager } from './manager-away.js';
 import { setToolWindowState } from './manager-tool-windows.js';
 import { openToastSendWindow } from './window-toast-send.js';
 
@@ -38,16 +39,9 @@ function thumbnailUrl(path) {
 }
 const TOOL_ID = 'stage-manager';
 
-/** How each status looks on a chip. No status is the plain bell, shown faintly until the chip is hovered. */
-const STATUS_LOOK = {
-    away: { icon: 'fa-mug-hot', label: 'Away' },
-    dnd: { icon: 'fa-bell-slash', label: 'Do Not Disturb' }
-};
-
-/** The tooltip on a chip's status button: what it is now, and what pressing it sets. */
-function statusTip(current) {
-    const next = StageManager.nextStatus(current);
-    return `${current ? STATUS_LOOK[current].label : 'Available'}. Click to set ${next ? STATUS_LOOK[next].label : 'Available'}.`;
+/** The tooltip on a chip's away button: what it is now, and what pressing it does. */
+function awayTip(away) {
+    return away ? `Away${away.message ? `: ${away.message}` : ''}. Click to mark them back.` : 'Available. Click to mark them away.';
 }
 
 export class StageWindow extends BlacksmithToolWindowBaseV2 {
@@ -69,14 +63,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     static ACTION_HANDLERS = {
         'stage-view': (_event, target, win) => win?._view(target?.dataset?.sceneId),
         'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
-        'stage-edit': (_event, target, win) => win?._edit(target?.dataset?.sceneId),
+        'stage-menu': (event, target, win) => win?._openMenu(event, target),
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
         'stage-deploy-all': (_event, target, win) => win?._deployAll(target?.dataset?.sceneId),
-        'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
-        'stage-status': (_event, target, win) => win?._cycleStatus(target?.dataset?.userId),
-        'stage-lobby-mark': (_event, target, win) => win?._markLobbyScene(target?.dataset?.sceneId),
-        'stage-talk': (_event, target, win) => win?._talk(target?.dataset?.sceneId),
+        'stage-away': (_event, target, win) => win?._toggleAway(target?.dataset?.userId),
         'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
         'stage-return-all': (_event, _target, win) => win?._returnAll()
     };
@@ -116,17 +107,15 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 const release = p.assigned
                     ? `<button type="button" class="blacksmith-tool-chip-remove" data-action="stage-release" data-user-id="${esc(p.id)}" data-tooltip="Stop holding ${esc(p.name)} here"><i class="fa-solid fa-xmark"></i></button>`
                     : '';
-                // The bell sets Away or Do Not Disturb, cycling. A GM takes no status.
-                const status = p.isGM
-                    ? ''
-                    : `<button type="button" class="blacksmith-stage-status${p.status ? ' is-set' : ''}" data-action="stage-status" data-user-id="${esc(p.id)}" data-tooltip="${esc(statusTip(p.status))}"><i class="fa-solid ${p.status ? STATUS_LOOK[p.status].icon : 'fa-bell'}"></i></button>`;
+                // The clock marks a person away and back. It is the same Away the person sets from their own menubar.
+                const status = `<button type="button" class="blacksmith-stage-status${p.away ? ' is-set' : ''}" data-action="stage-away" data-user-id="${esc(p.id)}" data-tooltip="${esc(awayTip(p.away))}"><i class="fa-solid ${p.away ? 'fa-user-clock' : 'fa-clock'}"></i></button>`;
                 const tip = [
                     p.name,
                     p.active ? '' : 'Not connected.',
-                    p.status ? `${STATUS_LOOK[p.status].label}.` : '',
+                    p.away ? `Away${p.away.message ? `: ${p.away.message}` : ''}.` : '',
                     p.assigned ? 'Held on this scene: comes back here when they reload' : ''
                 ].filter(Boolean).join(' ');
-                return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-offline'}${p.status ? ` has-status-${p.status}` : ''}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
+                return `<span class="blacksmith-tool-chip${p.active ? '' : ' is-offline'}${p.away ? ' is-away' : ''}" ${draggable ? `draggable="true" data-user-chip data-user-id="${esc(p.id)}"` : ''}
                     data-tooltip="${esc(tip)}">${face}${held}${status}${release}</span>`;
             }).join('');
 
@@ -146,13 +135,6 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw')}</div>`
                 : '';
 
-            // The chat button sends a toast to the players here, so it is only offered when someone is connected.
-            const hearers = stage.people.filter((p) => !p.isGM && p.active).length;
-
-            const remove = stage.isExtra && !stage.isActive && !stage.people.length
-                ? `<button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-remove" data-scene-id="${esc(stage.id)}" data-tooltip="Take this stage off the list"><i class="fa-solid fa-xmark"></i></button>`
-                : '';
-
             return `
                 <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                     <div class="blacksmith-tool-card-head">
@@ -164,10 +146,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                         <span class="blacksmith-tool-card-actions">
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isActive ? ' is-active' : ''}" data-action="stage-activate" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isActive ? 'This is the active scene' : 'Make this the active scene'}"${stage.isActive ? ' disabled' : ''}><i class="fa-solid fa-bullseye"></i></button>
                             <button type="button" class="blacksmith-tool-btn is-icon${stage.isGMView ? ' is-active' : ''}" data-action="stage-view" data-scene-id="${esc(stage.id)}" data-tooltip="Look at this scene yourself"><i class="fa-solid fa-eye"></i></button>
-                            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-edit" data-scene-id="${esc(stage.id)}" data-tooltip="Edit this scene's configuration"><i class="fa-solid fa-pen"></i></button>
-                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isLobby ? ' is-active' : ''}" data-action="stage-lobby-mark" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isLobby ? 'This is the lobby scene. Click to clear it' : 'Make this the lobby scene, where players land when Lobby Mode is on'}"><i class="fa-solid fa-door-open"></i></button>
-                            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-talk" data-scene-id="${esc(stage.id)}" data-tooltip="${hearers ? 'Send a toast to the players here' : 'Nobody is connected on this scene'}"${hearers ? '' : ' disabled'}><i class="fa-solid fa-comment"></i></button>
-                            ${remove}
+                            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-menu" data-scene-id="${esc(stage.id)}" data-tooltip="More"><i class="fa-solid fa-ellipsis-vertical"></i></button>
                         </span>
                     </div>
                     <div class="blacksmith-tool-card-body blacksmith-stage-content">
@@ -216,6 +195,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         for (const name of [
             'renderSceneNavigation', 'userConnected', 'updateScene', 'createScene', 'deleteScene',
             'createCombat', 'updateCombat', 'deleteCombat',
+            // Someone went away or came back.
+            'updateUser',
             // The token row: a token added to or removed from a scene, and an actor whose portrait or owners change.
             // Not updateToken: that fires on every step a token takes and changes nothing the row shows.
             'createToken', 'deleteToken', 'createActor', 'updateActor', 'deleteActor'
@@ -387,11 +368,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     return;
                 }
                 try {
-                    const left = [];
-                    for (const user of users) {
-                        if (!(await StageManager.moveUser(user.id, zone.dataset.stageDrop)) && StageManager.statusOf(user.id) === 'dnd') left.push(user.name);
-                    }
-                    this._noteLeftAlone(left);
+                    for (const user of users) await StageManager.moveUser(user.id, zone.dataset.stageDrop);
                 } catch (error) {
                     ui.notifications?.warn(error.message);
                 }
@@ -491,24 +468,49 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             modal: true
         });
         if (!confirmed) return;
-        const { skipped } = await StageManager.returnEveryone();
-        this._noteLeftAlone(skipped);
+        await StageManager.returnEveryone();
         this.render();
     }
 
-    /** Tell the GM who a move or a message did not reach because they are on Do Not Disturb. */
-    _noteLeftAlone(names) {
-        if (names?.length) ui.notifications?.warn(`Left alone (Do Not Disturb): ${names.join(', ')}.`);
-    }
-
-    async _cycleStatus(userId) {
+    /** Mark a person away, or back when they already are. A GM may do it for anyone. */
+    async _toggleAway(userId) {
         if (!userId) return;
         try {
-            await StageManager.setStatus(userId, StageManager.nextStatus(StageManager.statusOf(userId)));
+            if (AwayManager.isAway(userId)) await AwayManager.clear(userId);
+            else await AwayManager.set(userId);
         } catch (error) {
             ui.notifications?.warn(error.message);
         }
         this.render();
+    }
+
+    /** The "..." on a card: what is done to a scene, in the shared context menu, to keep the card's own buttons few. */
+    _openMenu(event, target) {
+        const stage = StageManager.stages().find((s) => s.id === target?.dataset?.sceneId);
+        if (!stage) return;
+        const hearers = stage.people.filter((p) => !p.isGM && p.active).length;
+        const items = [
+            { name: 'Edit scene configuration', icon: 'fa-solid fa-pen', onClick: () => this._edit(stage.id) },
+            {
+                name: stage.isLobby ? 'Clear the lobby scene' : 'Make this the lobby scene',
+                icon: 'fa-solid fa-door-open',
+                description: stage.isLobby ? '' : 'Where players land when Lobby Mode is on',
+                onClick: () => this._markLobbyScene(stage.id)
+            },
+            {
+                name: 'Send a toast to the players here',
+                icon: 'fa-solid fa-comment',
+                description: hearers ? '' : 'Nobody is connected on this scene',
+                disabled: !hearers,
+                onClick: () => this._talk(stage.id)
+            }
+        ];
+        // Only a scene added by hand that is empty and not active can be taken off the list.
+        if (stage.isExtra && !stage.isActive && !stage.people.length) {
+            items.push({ separator: true }, { name: 'Take off the list', icon: 'fa-solid fa-xmark', onClick: () => this._remove(stage.id) });
+        }
+        const rect = target?.getBoundingClientRect?.();
+        MenuBar.showMenubarContextMenu(items, rect ? rect.right : event.clientX, rect ? rect.bottom + 4 : event.clientY);
     }
 
     /** Mark this stage as the lobby scene, or clear it when it already is. */
@@ -524,13 +526,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
 
     /**
      * Open Send Toast with the connected players on this stage ticked. The toast system does the rest: the look, the
-     * sound, the size and the delivery. A player on Do Not Disturb is left unticked and named; the GM can still tick
-     * them in that window, which is a deliberate choice.
+     * sound, the size and the delivery.
      */
     async _talk(sceneId) {
         if (!sceneId) return;
-        const { recipients, skipped } = StageManager.talkRecipients(sceneId);
-        this._noteLeftAlone(skipped);
+        const recipients = StageManager.talkRecipients(sceneId);
         if (!recipients.length) {
             ui.notifications?.warn('Nobody is connected on this scene to send a toast to.');
             return;

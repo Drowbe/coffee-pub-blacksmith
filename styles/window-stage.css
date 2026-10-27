@@ -30,6 +30,8 @@
    is still plainly there. The content area's padding is generous on purpose: it is the margin of picture around
    the drop zone. */
 .blacksmith-stage-tool-window .blacksmith-stage-card {
+    /* A card can be clicked: double-click makes its scene active. */
+    cursor: pointer;
     background:
         linear-gradient(
             color-mix(in srgb, var(--blacksmith-tool-scrim) 40%, transparent),
@@ -278,7 +280,7 @@
     font-size: 0.75em;
 }
 
-/* A person's status, on their chip: a small bell that cycles Available, Away and Do Not Disturb. Faint until the chip
+/* A person's away mark, on their chip: a small clock that toggles Away. Faint until the chip
    is hovered or a status is set. A chip on Do Not Disturb is outlined in the brand orange, since that one changes
    what the manager will do. */
 .blacksmith-stage-tool-window .blacksmith-stage-status {
@@ -309,6 +311,6 @@
     color: var(--blacksmith-color-brand-accent);
 }
 
-.blacksmith-stage-tool-window .blacksmith-tool-chip.has-status-dnd {
+.blacksmith-stage-tool-window .blacksmith-tool-chip.is-away {
     border-color: var(--blacksmith-color-brand-accent);
 }

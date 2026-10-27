@@ -1095,16 +1095,15 @@ decision: drop it where the live handler fully applies the change.
 
 ### Away: a player status for the whole table, replacing the Stage Manager marks
 
-Plan: **`documentation/plans/plan-away-status.md`**. A flag on the player's own user, a visible indicator, a party toast when they step away, an optional message, an "Are you back?" prompt on activity, and `api.away` so request-a-roll can tell the GM to roll for an away player. Replaces the Stage Manager's Away and Do Not Disturb marks. Blocked on five open questions in the plan. Verified by a two-client test: set, toast, indicator, back prompt, API.
+Plan: **`documentation/plans/plan-away-status.md`**. A flag on the player's own user, a visible indicator, a party toast when they step away, an optional message, an "Are you back?" prompt on activity, and `api.away` so request-a-roll can tell the GM to roll for an away player. Replaces the Stage Manager's Away and Do Not Disturb marks. **Phase 1 is built (2026-10-27) and not yet seen in a running world:** `scripts/manager-away.js`, architecture in `architecture/architecture-away.md`, the public calls in `api/api-away.md`, verification in `testing/away.md`. Phases 2 to 4 remain (the "Are you back?" prompt, request-a-roll and other consumers, detection); see the plan.
 
 ### Stage Manager: see and move a split party from one place
 
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the
 scenes tab for every move, and Foundry shows nowhere who is on which scene. A Tool window of stage cards with
 player chips, drag to move (`Scene#pullUsers`), a stored player-to-scene map re-applied on connect, and
-a chat button that toasts a stage, Away or Do Not Disturb statuses and a lobby mode. **Both slices are built (2026-10-26) and not yet seen in a running world:** `scripts/manager-stage.js`, `scripts/window-stage.js`,
-architecture in `architecture/architecture-stage-manager.md`, verification in `testing/stage-manager.md`. Slice 2 (say to this stage, Away and Do Not Disturb,
-the lobby scene) is in the same files. Decided 2026-10-26: it lives in Blacksmith, and the first
+a chat button that toasts a stage, a lobby mode (Away is its own status, above). **Both slices are built (2026-10-26) and not yet seen in a running world:** `scripts/manager-stage.js`, `scripts/window-stage.js`,
+architecture in `architecture/architecture-stage-manager.md`, verification in `testing/stage-manager.md`. Slice 2 (say to this stage, the lobby scene) is in the same files. Decided 2026-10-26: it lives in Blacksmith, and the first
 slice is the panel, drag to move, and the stored player-to-scene map with a re-apply when a player loads.
 Answered from the author's world: a player client does hold a scene that is not active, a pulled view does not
 survive a reload (so the map and the re-pull are required), and combats run side by side across scenes, even two

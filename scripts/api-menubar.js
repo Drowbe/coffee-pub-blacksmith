@@ -820,6 +820,9 @@ class MenuBar {
                 icon: toolData.icon,
                 name: toolData.name,
                 title: toolData.title !== undefined ? toolData.title : (toolData.name || ''),
+                // The hover text for an icon-only tool, whose `title` is null because it would render as a label. It
+                // was read when the menubar was built but never copied here, so every tool that passed one lost it.
+                tooltip: toolData.tooltip !== undefined ? toolData.tooltip : null,
                 onClick: toolData.onClick,
                 zone: toolData.zone || 'left',
                 group: group,

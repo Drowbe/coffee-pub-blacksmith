@@ -109,6 +109,7 @@ import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerRestWindow } from './window-rest.js';
 import { registerStageWindow } from './window-stage.js';
 import { StageManager } from './manager-stage.js';
+import { AwayManager, AwayAPI } from './manager-away.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
 import { NotesManager } from './manager-notes.js';
 import { NoteReminders } from './manager-note-reminders.js';
@@ -609,6 +610,7 @@ Hooks.once('ready', async () => {
         // a populated `game.users` to elect from.
         TimeModes.initialize();
         StageManager.initialize();
+        AwayManager.initialize();
         // After WorldClockAPI, whose schedule surface the events arm themselves through.
         CalendarEvents.initialize();
         if (mod?.api) mod.api.worldClock = WorldClockAPI;
@@ -779,6 +781,7 @@ Hooks.once('ready', async () => {
             registerStatusEffectsWindow();
             registerRestWindow();
             registerStageWindow();
+            AwayManager.registerMenubarTool();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.
             await restoreToolWindows();
@@ -1326,6 +1329,7 @@ Hooks.once('init', async function() {
         notes: NotesAPI,
         chatCards: ChatCardsAPI,
         toast: ToastAPI,
+        away: AwayAPI,
         dialog: DialogAPI,
         entityList: EntityListAPI,
         quantitySplit: QuantitySplitAPI,

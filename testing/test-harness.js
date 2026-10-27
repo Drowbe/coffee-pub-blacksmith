@@ -50,6 +50,7 @@ const ROOT = '/modules/coffee-pub-blacksmith/testing';
 const BASE = `${ROOT}/suites`;
 
 const SUITES = [
+    `${BASE}/suite-away.js`,
     `${BASE}/suite-chat-cards.js`,
     `${BASE}/suite-compendiums.js`,
     `${BASE}/suite-dialog.js`,
