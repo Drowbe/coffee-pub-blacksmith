@@ -2,7 +2,7 @@
 // ===== MANAGER-TOOL-WINDOWS - remember which tool windows were open
 // ==================================================================
 //
-// The dice tray, macros, and health windows reopen themselves on load if the
+// The dice tray, macros, health and stage manager windows reopen themselves on load if the
 // user left them open. Squire did this from its tray rebuild, reading a
 // `windowStates` user flag; the tray is not part of what moved, so the same
 // behaviour is kept here as a small pass of its own.
@@ -23,7 +23,7 @@ const ADOPTED_FLAG_KEY = 'windowStatesAdopted';
 
 /**
  * Whether a tool window was open when the user last left.
- * @param {'diceTray'|'macros'|'health'} toolKey
+ * @param {'diceTray'|'macros'|'health'|'stage'} toolKey
  * @returns {boolean}
  */
 export function getToolWindowState(toolKey) {
@@ -37,7 +37,7 @@ export function getToolWindowState(toolKey) {
 /**
  * Record whether a tool window is open. Failures are logged and swallowed --
  * losing the reopen state is not worth interrupting a window open or close.
- * @param {'diceTray'|'macros'|'health'} toolKey
+ * @param {'diceTray'|'macros'|'health'|'stage'} toolKey
  * @param {boolean} isOpen
  */
 export async function setToolWindowState(toolKey, isOpen) {
@@ -94,7 +94,11 @@ export async function restoreToolWindows() {
     const openers = [
         ['diceTray', async () => (await import('./window-dicetray.js')).openDiceTray()],
         ['macros', async () => (await import('./window-macros.js')).openMacrosWindow()],
-        ['health', async () => (await import('./window-health.js')).openHealthWindow()]
+        ['health', async () => (await import('./window-health.js')).openHealthWindow()],
+        // GM only: the window refuses anyone else, and only a GM ever records it as open.
+        ['stage', async () => {
+            if (game.user?.isGM) (await import('./window-stage.js')).StageWindow.open();
+        }]
     ];
 
     for (const [toolKey, open] of openers) {

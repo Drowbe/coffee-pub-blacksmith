@@ -49,10 +49,25 @@
     outline-offset: 1px;
 }
 
-/* On and selected. A tint and the orange text, so it reads without a second glance at the border. */
+/* ON, SELECTED, CURRENT: ONE LOOK ACROSS THE SET. Solid brand orange with light text, the same fill the selected
+   segment, the toggle that is on, the chosen chip, the open tab's count and the accent badge use. Whether a thing is
+   lit never depends on which control it is. */
 .blacksmith-tool-btn.is-active {
-    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
-    color: var(--blacksmith-color-brand-accent, #c15701);
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+.blacksmith-tool-btn.is-active:hover:not(:disabled) {
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    filter: brightness(1.1);
+}
+
+/* A button that is lit and disabled at once (the scene that is already active cannot be activated again) stays at
+   full strength: dimming it would read as off, which is the opposite of what it says. */
+.blacksmith-tool-btn.is-active:disabled {
+    opacity: 1;
+    cursor: default;
 }
 
 .blacksmith-tool-btn.is-danger:hover:not(:disabled) {
@@ -512,8 +527,8 @@
 .blacksmith-tool-chip.is-selectable:has(input:checked),
 .blacksmith-tool-chip.is-active {
     border-color: var(--blacksmith-color-brand-accent, #c15701);
-    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
-    color: var(--blacksmith-color-brand-accent, #c15701);
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
 }
 
 .blacksmith-tool-chip:has(input:focus-visible) {
@@ -821,8 +836,15 @@ textarea.blacksmith-tool-editable-field {
 }
 
 .blacksmith-tool-tab.is-active .blacksmith-tool-tab-count {
-    background: var(--blacksmith-tool-surface-selected, rgba(193, 87, 1, 0.28));
-    color: var(--blacksmith-color-brand-accent, #c15701);
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+/* The accent badge, inside a Tool window, is the same lit look: it labels the thing that is current ("Active"). */
+.application.blacksmith-window-tool .blacksmith-badge-accent {
+    background: var(--blacksmith-color-brand-accent, #c15701);
+    border-color: var(--blacksmith-color-brand-accent, #c15701);
+    color: var(--blacksmith-text-inverse, #ffffff);
 }
 
 /* ===== THE BOXED TABS IN A TOOL WINDOW ================================= */

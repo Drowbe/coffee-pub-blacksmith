@@ -150,6 +150,14 @@ that matters: a user logging in from a second machine starts with an empty favou
 Window-open state is adopted separately in `scripts/manager-tool-windows.js`, because it is a user flag
 rather than a setting and the shape does not fit the table.
 
+That file also owns the reopen-on-load mechanism, and it is internal, not part of the public API: a per-user flag
+`windowStates` keyed by a fixed list (`diceTray`, `macros`, `health`, `stage`), `setToolWindowState(key, isOpen)`
+called when a window opens and closes, and `restoreToolWindows()`, run from `ready` after the tools are
+registered, which reopens each one the user left open, each in its own try so one failure does not stop the rest.
+A reload does not close windows, so the flag still reads open afterwards, which is the whole trick. A window opts
+in by calling `setToolWindowState` and adding an opener to the list; a satellite's own window cannot, because the
+list is closed.
+
 ## Menubar supersession
 
 `registerMenubarTool` accepts `supersedes: [toolId, ...]`. A listed id already registered is dropped; a

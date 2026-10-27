@@ -174,3 +174,70 @@
     gap: 6px;
     margin-top: 4px;
 }
+
+/* The token row: whose tokens are on this scene. Two groups, the characters of the people here and their owned NPCs,
+   with a divider between. A missing token is dimmed with a plus and is a button, because pressing it deploys. */
+.blacksmith-stage-tool-window .blacksmith-stage-tokens {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    color: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85em;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token-divider {
+    align-self: stretch;
+    width: 1px;
+    background: var(--blacksmith-tool-divider);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--blacksmith-tool-divider);
+    border-radius: 50%;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    overflow: hidden;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token.is-missing {
+    border-style: dashed;
+    cursor: pointer;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token.is-missing .blacksmith-stage-token-face {
+    display: inline-flex;
+    width: 100%;
+    height: 100%;
+    opacity: 0.4;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token-add {
+    position: absolute;
+    font-size: 0.75em;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-token.is-missing:hover {
+    border-color: var(--blacksmith-color-brand-accent);
+}

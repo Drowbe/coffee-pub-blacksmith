@@ -17,6 +17,7 @@ import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
 import { StageManager } from './manager-stage.js';
+import { setToolWindowState } from './manager-tool-windows.js';
 
 const APP_ID = 'blacksmith-stage-window';
 
@@ -55,6 +56,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     static ACTION_HANDLERS = {
         'stage-view': (_event, target, win) => win?._view(target?.dataset?.sceneId),
         'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
+        'stage-deploy': (_event, target, win) => win?._deploy(target?.dataset?.sceneId),
         'stage-add': (_event, _target, win) => win?._add(),
         'stage-remove': (_event, target, win) => win?._remove(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
@@ -99,6 +101,19 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     data-tooltip="${p.active ? '' : 'Not connected. '}${p.assigned ? 'Held on this scene: comes back here when they reload' : ''}">${face}${esc(p.name)}${held}${release}</span>`;
             }).join('');
 
+            // The second row: do the characters and owned NPCs of the people here have tokens on this scene? A
+            // missing one is dimmed with a plus, and pressing it runs Blacksmith's deploy action for what is missing.
+            const tokenFace = (t) => (t.img ? `<img src="${esc(t.img)}" alt="">` : '<i class="fa-solid fa-user"></i>');
+            const tokenButton = (t) => t.present
+                ? `<span class="blacksmith-stage-token" data-tooltip="${esc(t.name)}: on this scene">${tokenFace(t)}</span>`
+                : `<button type="button" class="blacksmith-stage-token is-missing" data-action="stage-deploy" data-scene-id="${esc(stage.id)}" data-tooltip="${esc(t.name)}: no token on this scene. Deploy what is missing."><span class="blacksmith-stage-token-face">${tokenFace(t)}</span><i class="fa-solid fa-plus blacksmith-stage-token-add"></i></button>`;
+            const group = (list, icon, label) => (list.length
+                ? `<div class="blacksmith-stage-token-group" data-tooltip="${label}"><i class="fa-solid ${icon}"></i>${list.map(tokenButton).join('')}</div>`
+                : '');
+            const tokenRow = stage.tokens.show
+                ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield', 'Characters')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw', 'Player-owned NPCs')}</div>`
+                : '';
+
             const remove = stage.isExtra && !stage.isActive && !stage.people.length
                 ? `<button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-remove" data-scene-id="${esc(stage.id)}" data-tooltip="Take this stage off the list"><i class="fa-solid fa-xmark"></i></button>`
                 : '';
@@ -123,6 +138,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                                 ? `<div class="blacksmith-tool-chips">${chips}</div>`
                                 : '<span class="blacksmith-tool-dropzone-hint">Nobody here. Drop a player to send them.</span>'}
                         </div>
+                        ${tokenRow}
                     </div>
                 </div>`;
         }).join('');
@@ -195,6 +211,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         HookManager.disposeByContext(this._hookContext);
         this._following = false;
         if (StageWindow._ref === this) StageWindow._ref = null;
+        void setToolWindowState('stage', false);
         return super._onClose?.(options);
     }
 
@@ -346,6 +363,16 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         this.render();
     }
 
+    async _deploy(sceneId) {
+        if (!sceneId) return;
+        try {
+            await StageManager.deployMissing(sceneId);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
     async _add() {
         const select = this._getRoot()?.querySelector('.blacksmith-stage-add-select');
         if (!select?.value) return;
@@ -383,6 +410,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         }
         StageWindow._ref ??= new StageWindow();
         StageWindow._ref.render(true);
+        // Remembered per user, so a reload reopens it (see manager-tool-windows.js).
+        void setToolWindowState('stage', true);
         return StageWindow._ref;
     }
 }

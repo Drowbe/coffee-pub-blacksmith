@@ -25,6 +25,7 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { deployParty, getPartyMembers, getOwnedNpcs, getPartyActorIdsOnCanvas } from './utility-party.js';
 
 const SETTING = 'stageState';
 
@@ -174,6 +175,49 @@ export class StageManager {
         if (scene && !scene.active) await scene.activate();
     }
 
+    /**
+     * Deploy the tokens a stage is missing, with Blacksmith's own deploy action. The scene has to be on the GM's
+     * canvas for the placement click, so the GM is taken there first. Only the actors this stage shows as missing
+     * are deployed, not everyone in the party.
+     * @returns {Promise<Array>} the tokens created
+     */
+    static async deployMissing(sceneId) {
+        this._requireGM();
+        const stage = this.stages().find((s) => s.id === sceneId);
+        const scene = game.scenes.get(sceneId);
+        if (!stage || !scene) return [];
+        const missing = [...stage.tokens.actors, ...stage.tokens.npcs].filter((t) => !t.present).map((t) => t.id);
+        if (!missing.length) return [];
+        if (canvas.scene?.id !== scene.id) await scene.view();
+        return deployParty({ only: missing });
+    }
+
+    /**
+     * The party's characters and the player-owned NPCs, and whether each has a token on the scene. "Has a token" is
+     * the same test the deploy action uses, so what this shows is what deploying would add. The row is shown when a
+     * player is on the stage (so the GM can see what is missing for them) or when any of these already has a token
+     * there (so the GM can see who is on the map); a stage with neither stays plain.
+     * @param {Scene} scene
+     * @param {boolean} hasPlayers - Whether a player is on this stage
+     */
+    static _tokenStatus(scene, hasPlayers) {
+        const onScene = getPartyActorIdsOnCanvas(scene);
+        // The picture is the token as it is on the scene when there is one, so the row matches the map; otherwise the
+        // actor's portrait. A prototype token's own image can be a wildcard path, which is not a picture.
+        const row = (actor) => {
+            const token = scene.tokens.find((t) => t.actorId === actor.id);
+            const prototype = actor.prototypeToken?.texture?.src;
+            const img = token?.texture?.src
+                || actor.img
+                || (prototype && !prototype.includes('*') ? prototype : null);
+            return { id: actor.id, name: actor.name, img: img || null, present: onScene.has(actor.id) };
+        };
+        const actors = getPartyMembers().map(row);
+        const npcs = getOwnedNpcs().map(row);
+        const anyPresent = [...actors, ...npcs].some((t) => t.present);
+        return { actors, npcs, show: (hasPlayers || anyPresent) && (actors.length > 0 || npcs.length > 0) };
+    }
+
     /** The GM looks at a stage. Moves only their own view. */
     static viewStage(sceneId) {
         this._requireGM();
@@ -288,6 +332,7 @@ export class StageManager {
                 isGMView: id === gmViewId,
                 isExtra: state.extras.includes(id),
                 combats,
+                tokens: this._tokenStatus(scene, (people.get(id) ?? []).some((p) => !p.isGM)),
                 people: (people.get(id) ?? []).sort((a, b) => Number(b.isGM) - Number(a.isGM) || a.name.localeCompare(b.name))
             });
         }

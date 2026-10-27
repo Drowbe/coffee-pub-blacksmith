@@ -170,9 +170,12 @@ async function promptDeploymentPattern({ npcCount = 0 } = {}) {
  *   silently without asking.
  * @param {boolean} [options.includeOwnedNpcs] Also deploy player-owned NPCs
  *   (familiars, summons, companions). Defaults to the remembered answer.
+ * @param {Array<Actor|string>} [options.only] Deploy just these actors (or actor ids), characters and owned NPCs
+ *   alike, skipping any already on the scene. Naming them is the decision, so the NPC checkbox is not offered
+ *   and `includeOwnedNpcs` is ignored. The Stage Manager uses it to deploy the people missing from one stage.
  * @returns {Promise<Array>} Array of created token documents
  */
-export async function deployParty({ pattern = null, prompt = true, includeOwnedNpcs = null } = {}) {
+export async function deployParty({ pattern = null, prompt = true, includeOwnedNpcs = null, only = null } = {}) {
     // Check if user has permission
     if (!game.user.isGM) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Only GMs can deploy party members", "", false, false);
@@ -199,12 +202,13 @@ export async function deployParty({ pattern = null, prompt = true, includeOwnedN
     // over the top of itself produced duplicate tokens, and the GM's only recourse
     // was to clear everyone and start again.
     const onCanvas = getPartyActorIdsOnCanvas();
-    const pending = partyMembers.filter(actor => !onCanvas.has(actor.id));
+    const restrict = Array.isArray(only) ? new Set(only.map((a) => (typeof a === 'string' ? a : a.id))) : null;
+    const pending = partyMembers.filter(actor => !onCanvas.has(actor.id) && (!restrict || restrict.has(actor.id)));
 
     // Owned NPCs get the same already-placed treatment, so ticking the box twice
     // in a row cannot duplicate a familiar either.
     const ownedNpcs = getOwnedNpcs();
-    const pendingNpcs = ownedNpcs.filter(actor => !onCanvas.has(actor.id));
+    const pendingNpcs = ownedNpcs.filter(actor => !onCanvas.has(actor.id) && (!restrict || restrict.has(actor.id)));
 
     if (pending.length === 0 && pendingNpcs.length === 0) {
         postConsoleAndNotification(MODULE.NAME, "Party Tools: Everyone is already on the canvas", "", true, false);
@@ -222,10 +226,10 @@ export async function deployParty({ pattern = null, prompt = true, includeOwnedN
     // An explicit pattern wins; otherwise ask, unless the caller opted out. The
     // checkbox is only offered when there is something for it to include.
     let deploymentPattern = pattern;
-    let withNpcs = includeOwnedNpcs ?? !!game.settings.get(MODULE.ID, 'partyDeployIncludeOwnedNpcs');
+    let withNpcs = restrict ? true : (includeOwnedNpcs ?? !!game.settings.get(MODULE.ID, 'partyDeployIncludeOwnedNpcs'));
 
     if (!deploymentPattern && prompt) {
-        const answer = await promptDeploymentPattern({ npcCount: pendingNpcs.length });
+        const answer = await promptDeploymentPattern({ npcCount: restrict ? 0 : pendingNpcs.length });
         if (!answer) {
             postConsoleAndNotification(MODULE.NAME, 'Party Tools: deployment cancelled at the pattern picker', '', true, false);
             return [];
@@ -233,7 +237,7 @@ export async function deployParty({ pattern = null, prompt = true, includeOwnedN
         deploymentPattern = answer.pattern;
         // An explicit argument still wins over what the dialog reported, so a
         // caller passing includeOwnedNpcs gets what it asked for either way.
-        if (includeOwnedNpcs === null) withNpcs = answer.includeNpcs;
+        if (!restrict && includeOwnedNpcs === null) withNpcs = answer.includeNpcs;
     }
     if (!deploymentPattern) {
         deploymentPattern = game.settings.get(MODULE.ID, 'encounterToolbarDeploymentPattern') || 'grid';
@@ -256,9 +260,9 @@ export async function deployParty({ pattern = null, prompt = true, includeOwnedN
 
     // Counted against the roster actually being deployed, so declining the NPCs
     // does not report them as "already placed".
-    const considered = withNpcs
-        ? partyMembers.length + ownedNpcs.length
-        : partyMembers.length;
+    const considered = restrict
+        ? roster.length
+        : (withNpcs ? partyMembers.length + ownedNpcs.length : partyMembers.length);
     const alreadyPlaced = considered - roster.length;
 
     const partyUUIDs = roster.map(actor => actor.uuid);
