@@ -30,6 +30,8 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { AwayManager } from './manager-away.js';
+import { HookManager } from './manager-hooks.js';
+import { ToastAPI } from './api-toast.js';
 import { deployParty, getPartyMembers, getOwnedNpcs, getPartyActorIdsOnCanvas } from './utility-party.js';
 
 const SETTING = 'stageState';
@@ -59,6 +61,25 @@ export class StageManager {
         // hook registered now would miss that draw and fire on a later one) and a table with no active scene is covered
         // by the same path. Once, not on every draw, so a GM who pulls a player somewhere with core's own tools is not undone.
         if (!game.user?.isGM) setTimeout(() => this.applyOwnAssignment(), APPLY_DELAY_MS);
+
+        // A player is told when the GM turns lobby mode on while they are connected. Each client reads the stored switch
+        // itself, so it needs no socket; the GM, who flipped it, is not toasted.
+        if (!game.user?.isGM) {
+            this._lobbyWas = this.lobbyOn();
+            HookManager.registerSettingChangeCallback({
+                description: 'Stage manager: toast a player when lobby mode is turned on',
+                context: 'stage-manager-lobby',
+                priority: 4,
+                callback: (moduleId, settingKey) => {
+                    // --- BEGIN - HOOKMANAGER CALLBACK ---
+                    if (moduleId !== MODULE.ID || settingKey !== 'stageState') return;
+                    const on = this.lobbyOn();
+                    if (on && !this._lobbyWas) this._toastLobby('The GM has sent everyone to');
+                    this._lobbyWas = on;
+                    // --- END - HOOKMANAGER CALLBACK ---
+                }
+            });
+        }
         postConsoleAndNotification(MODULE.NAME, 'Stage manager: initialized', '', true, false);
     }
 
@@ -140,8 +161,22 @@ export class StageManager {
             lobby: state.lobby, lobbyScene: state.lobbyScene, assigned: state.assignments[game.user?.id] ?? null,
             target: sceneId ?? null, visibleToThisPlayer: !!scene, viewing: canvas.scene?.id ?? null
         }, true, false);
+        if (lobbyId && scene) this._toastLobby('Lobby mode is on. You are waiting in');
         if (!scene || scene.id === canvas.scene?.id) return;
         scene.view();
+    }
+
+    /** Tell this player they are in the lobby. The scene is named by what a player sees for it (navigation name, else name). */
+    static _toastLobby(lead) {
+        const scene = this.lobbyScene();
+        ToastAPI.show({
+            title: 'Lobby',
+            subtitle: scene ? `${lead} ${scene.navName || scene.name}.` : `${lead} the lobby.`,
+            icon: 'fa-solid fa-door-open',
+            duration: 8,
+            moduleId: MODULE.ID,
+            stackKey: 'blacksmith-lobby'
+        });
     }
 
     // ==============================================================
@@ -420,8 +455,8 @@ export class StageManager {
     }
 
     /**
-     * Turn lobby mode on or off. While it is on, anyone who loads in goes to the lobby scene. It moves nobody who is
-     * already connected, and turning it off moves nobody.
+     * Turn lobby mode on or off. While it is on, anyone who loads in goes to the lobby scene, and turning it on
+     * sends the players connected now there too. Turning it off moves nobody.
      */
     static async setLobby(on) {
         this._requireGM();
@@ -429,6 +464,10 @@ export class StageManager {
         const state = this.getState();
         state.lobby = !!on;
         await this._save(state);
+        // Switching it on also sends the connected players there now; people who load in later are caught by
+        // applyOwnAssignment. Nothing is held, so switching it off leaves them where they are.
+        const moving = on ? game.users.filter((u) => u.active && !u.isGM) : [];
+        if (moving.length) this.lobbyScene().pullUsers(moving);
     }
 
     /**
