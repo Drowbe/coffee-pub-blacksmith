@@ -1097,6 +1097,10 @@ decision: drop it where the live handler fully applies the change.
 
 Plan: **`documentation/plans/plan-away-status.md`**. A flag on the player's own user, a visible indicator, a party toast when they step away, an optional message, an "Are you back?" prompt on activity, and `api.away` so request-a-roll can tell the GM to roll for an away player. Replaces the Stage Manager's Away and Do Not Disturb marks. **Phase 1 is built (2026-10-27) and not yet seen in a running world:** `scripts/manager-away.js`, architecture in `architecture/architecture-away.md`, the public calls in `api/api-away.md`, verification in `testing/away.md`. Phases 2 to 4 remain (the "Are you back?" prompt, request-a-roll and other consumers, detection); see the plan.
 
+### Stage Manager: save and recall scene sets (opened 2026-10-27)
+
+The Stage Manager's list of cards (which scenes are on the panel, in what order, and which one is the lobby) is a single world setting, so the GM rebuilds it by hand for each part of a campaign. Let the GM save the current set under a name and recall one later: a dungeon's floors, a city's districts, a travel chain. Open questions to settle before building: whether a set also remembers the lobby scene and the active scene, whether recalling replaces the list or merges into it, whether a set stores held players (probably not, since a hold is a decision about a moment), and where it lives (`stageState` grows a `sets` map, or a setting of its own). When built it is documented in `architecture/architecture-stage-manager.md`.
+
 ### Stage Manager: see and move a split party from one place
 
 Plan: **`documentation/plans/plan-stage-manager.md`**. When the party splits the GM flips between chat and the

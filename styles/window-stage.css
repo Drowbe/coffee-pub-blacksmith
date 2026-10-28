@@ -191,27 +191,14 @@
     box-shadow: 0 3px 0 0 var(--blacksmith-color-brand-accent);
 }
 
-/* The token row: whose tokens are on this scene. Two groups, the characters of the people here and their owned NPCs,
-   with a divider between. A missing token is dimmed with a plus and is a button, because pressing it deploys. */
+/* The token row: whose tokens are on this scene, the characters of the people here and then their owned NPCs. A missing
+   token is dimmed with a plus and is a button, because pressing it deploys. */
 .blacksmith-stage-tool-window .blacksmith-stage-tokens {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
     margin-top: 8px;
     color: var(--blacksmith-tool-text-muted);
-}
-
-.blacksmith-stage-tool-window .blacksmith-stage-token-group {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 0.85em;
-}
-
-.blacksmith-stage-tool-window .blacksmith-stage-token-divider {
-    align-self: stretch;
-    width: 1px;
-    background: var(--blacksmith-tool-divider);
 }
 
 .blacksmith-stage-tool-window .blacksmith-stage-token {
@@ -256,27 +243,6 @@
 
 .blacksmith-stage-tool-window .blacksmith-stage-token.is-missing:hover .blacksmith-stage-token-face {
     opacity: 0.85;
-}
-
-/* The group icon is a button: it runs the full deploy for the stage. Plain until hovered. */
-.blacksmith-stage-tool-window .blacksmith-stage-token-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    border-radius: var(--blacksmith-radius-md, 4px);
-    background: transparent;
-    color: var(--blacksmith-tool-text-muted);
-    cursor: pointer;
-}
-
-.blacksmith-stage-tool-window .blacksmith-stage-token-icon:hover {
-    background: var(--blacksmith-tool-surface-hover);
-    color: var(--blacksmith-color-brand-accent);
 }
 
 /* The scene's permission, in the lower right corner of the card: GM only, or all players. A small themed disc so it

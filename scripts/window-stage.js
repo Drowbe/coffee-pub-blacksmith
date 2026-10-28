@@ -66,7 +66,6 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         'stage-activate': (_event, target, win) => win?._activate(target?.dataset?.sceneId),
         'stage-menu': (event, target, win) => win?._openMenu(event, target),
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
-        'stage-deploy-all': (_event, target, win) => win?._deployAll(target?.dataset?.sceneId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
         'stage-away': (_event, target, win) => win?._toggleAway(target?.dataset?.userId),
         'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
@@ -131,11 +130,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             const tokenButton = (t) => t.present
                 ? `<span class="blacksmith-stage-token" data-tooltip="${esc(t.name)}: has a token on this scene">${tokenFace(t)}</span>`
                 : `<button type="button" class="blacksmith-stage-token is-missing" data-action="stage-deploy-one" data-scene-id="${esc(stage.id)}" data-actor-id="${esc(t.id)}" data-tooltip="${esc(t.name)}: no token on this scene. Click to deploy."><span class="blacksmith-stage-token-face">${tokenFace(t)}</span></button>`;
-            const group = (list, icon) => (list.length
-                ? `<div class="blacksmith-stage-token-group"><button type="button" class="blacksmith-stage-token-icon" data-action="stage-deploy-all" data-scene-id="${esc(stage.id)}" data-tooltip="Deploy the party to this scene, choosing a formation"><i class="fa-solid ${icon}"></i></button>${list.map(tokenButton).join('')}</div>`
-                : '');
             const tokenRow = stage.tokens.show
-                ? `<div class="blacksmith-stage-tokens">${group(stage.tokens.actors, 'fa-user-shield')}${stage.tokens.actors.length && stage.tokens.npcs.length ? '<span class="blacksmith-stage-token-divider"></span>' : ''}${group(stage.tokens.npcs, 'fa-paw')}</div>`
+                ? `<div class="blacksmith-stage-tokens">${[...stage.tokens.actors, ...stage.tokens.npcs].map(tokenButton).join('')}</div>`
                 : '';
 
             return `
@@ -491,7 +487,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     return;
                 }
                 if (choice !== 'off') return;
-                await StageManager.setLobby(false);
+                await StageManager.setLobby(false, { release: false });
             }
             await StageManager.activateStage(sceneId);
         } catch (error) {
@@ -586,6 +582,13 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 icon: 'fa-solid fa-door-open',
                 description: stage.isLobby ? '' : 'Where players land when Lobby Mode is on',
                 onClick: () => this._markLobbyScene(stage.id)
+            },
+            {
+                name: 'Deploy Party',
+                icon: 'fa-solid fa-user-shield',
+                description: stage.tokens.show ? 'Place the party on this scene, choosing a formation' : 'There is no party to deploy',
+                disabled: !stage.tokens.show,
+                onClick: () => this._deployAll(stage.id)
             },
             {
                 name: 'Send a toast to the players here',

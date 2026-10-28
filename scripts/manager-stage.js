@@ -456,18 +456,33 @@ export class StageManager {
 
     /**
      * Turn lobby mode on or off. While it is on, anyone who loads in goes to the lobby scene, and turning it on
-     * sends the players connected now there too. Turning it off moves nobody.
+     * sends the players connected now there too. Turning it off lets them out: each connected player goes to the
+     * scene they are held on, else to the active scene. `release: false` skips that, for a caller about to activate a
+     * scene, which pulls everyone itself.
      */
-    static async setLobby(on) {
+    static async setLobby(on, { release = true } = {}) {
         this._requireGM();
         if (on && !this.lobbyScene()) throw new Error('Stage manager: mark a lobby scene first.');
         const state = this.getState();
         state.lobby = !!on;
         await this._save(state);
         // Switching it on also sends the connected players there now; people who load in later are caught by
-        // applyOwnAssignment. Nothing is held, so switching it off leaves them where they are.
-        const moving = on ? game.users.filter((u) => u.active && !u.isGM) : [];
-        if (moving.length) this.lobbyScene().pullUsers(moving);
+        // applyOwnAssignment. Nothing is held by it, so switching it off sends each player where they would have gone
+        // without it: their own hold, else the active scene.
+        const players = game.users.filter((u) => u.active && !u.isGM);
+        if (on) {
+            if (players.length) this.lobbyScene().pullUsers(players);
+        } else if (release) {
+            const byScene = new Map();
+            for (const user of players) {
+                const held = game.scenes.get(state.assignments[user.id]);
+                const scene = held ?? game.scenes.active;
+                if (!scene) continue;
+                if (!byScene.has(scene)) byScene.set(scene, []);
+                byScene.get(scene).push(user);
+            }
+            for (const [scene, users] of byScene) scene.pullUsers(users);
+        }
     }
 
     /**
