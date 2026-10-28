@@ -146,10 +146,24 @@
     border-style: dashed;
 }
 
-/* The reminder at the left of the action bar: scenes are added by dragging them onto the window. */
+/* The reminder that scenes are added by dragging them onto the window (the whole window takes the drop): a slim strip
+   under the last card, and the player's hint at the left of the action bar. Neither wraps. */
 .blacksmith-stage-tool-window .blacksmith-stage-add-hint {
     color: var(--blacksmith-tool-text-muted);
     font-size: 0.85em;
+    white-space: nowrap;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-add-slot {
+    flex-direction: row;
+    padding: 4px 10px;
+    border-style: dotted;
+    background: transparent;
+    white-space: nowrap;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-add-slot .blacksmith-tool-dropzone-hint {
+    font-style: normal;
 }
 
 /* The grip a card is dragged by to reorder. Only the grip drags, so the buttons and the name stay clickable. */

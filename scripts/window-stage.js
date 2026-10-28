@@ -169,10 +169,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         return {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
-                ${cards || '<div class="blacksmith-tool-empty">No scenes in use. Drag a scene here to add it.</div>'}
+                ${cards || '<div class="blacksmith-tool-empty">No scenes in use.</div>'}
+                <div class="blacksmith-tool-dropzone blacksmith-stage-add-slot"><i class="fa-solid fa-arrow-down-to-line"></i> <span class="blacksmith-tool-dropzone-hint">Drag a scene here to add it</span></div>
             </div>`,
-            // Scenes are added by dragging them onto the window, so the left of the action bar is only a reminder.
-            toolFooterLeft: '<span class="blacksmith-stage-add-hint"><i class="fa-solid fa-arrow-down-to-line"></i> Drag a scene here to add it</span>',
             toolFooterRight: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div><button type="button" class="blacksmith-window-btn-primary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
     }
@@ -472,6 +471,28 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     async _activate(sceneId) {
         if (!sceneId) return;
         try {
+            // Activating a scene while lobby mode is on pulls everyone out of the lobby and leaves the mode on, so a player
+            // who reloads goes straight back to it. The GM decides which they meant. The lobby scene itself conflicts with
+            // nothing, so it is activated without asking.
+            if (StageManager.lobbyOn() && StageManager.lobbyScene()?.id !== sceneId && !game.scenes.get(sceneId)?.active) {
+                const choice = await foundry.applications.api.DialogV2.wait({
+                    window: { title: 'Lobby Mode' },
+                    content: '<p>Lobby Mode is on. What do you want to do?</p>',
+                    buttons: [
+                        { action: 'off', label: 'Turn off lobby mode and activate', icon: 'fa-solid fa-toggle-off' },
+                        { action: 'view', label: 'Leave on lobby mode and view', icon: 'fa-solid fa-eye' },
+                        { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark', default: true }
+                    ],
+                    rejectClose: false,
+                    modal: true
+                });
+                if (choice === 'view') {
+                    StageManager.viewStage(sceneId);
+                    return;
+                }
+                if (choice !== 'off') return;
+                await StageManager.setLobby(false);
+            }
             await StageManager.activateStage(sceneId);
         } catch (error) {
             ui.notifications?.warn(error.message);
