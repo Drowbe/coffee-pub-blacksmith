@@ -2265,14 +2265,32 @@ function _onRenderJournalDoubleClick(app, html, data) {
                 '.editor button[data-action="editPage"]'
             ];
             
-            for (const selector of selectors) {
-                editButton = nativeHtml.querySelector(selector);
-                if (editButton) {
-                    selectorUsed = selector;
-                    break;
+            // The edit button lives in the page article's .edit-container, which may be a sibling of
+            // (not a descendant of) the element the hook handed us (e.g. the page's inner view div in v14).
+            // Search outward: the element itself, its page/window ancestors, then the app element.
+            let appElement = app?.element;
+            if (appElement && !(appElement instanceof Element)) {
+                appElement = appElement[0] || appElement.get?.(0) || null;
+            }
+            const searchRoots = [
+                event.target.closest?.('.journal-entry-page'),
+                nativeHtml,
+                nativeHtml.closest?.('.journal-entry-page'),
+                nativeHtml.closest?.('.journal-entry-pages'),
+                nativeHtml.closest?.('.application, .window-app'),
+                appElement
+            ].filter((root, idx, arr) => root && arr.indexOf(root) === idx);
+
+            outer: for (const root of searchRoots) {
+                for (const selector of selectors) {
+                    editButton = root.querySelector(selector);
+                    if (editButton) {
+                        selectorUsed = selector;
+                        break outer;
+                    }
                 }
             }
-            
+
             if (editButton) {
                 postConsoleAndNotification(MODULE.NAME, "Journal Double-Click: Edit button found", 
                     `Selector: ${selectorUsed}, Button: ${editButton.className}`, true, false);
