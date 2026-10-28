@@ -14,7 +14,7 @@ Internal only. Do not add to the `PUBLISH` list in `tools/wiki-sync.mjs`.
 ## The idea
 
 "Away" means a player has stepped away from the table in real life. It is a fact about a person, so it is not tied to
-scenes, and it is not Do Not Disturb. Do Not Disturb is retired as a name and as a behavior (see Open questions, 2).
+scenes, and it is not Do Not Disturb. Do Not Disturb is retired as a name and as a behavior (see Decided, below).
 
 What it is for:
 
