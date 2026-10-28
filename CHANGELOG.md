@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.5.1]
+
+### Fixed
+
+- **The Journal Double-Click edit button finder now works with the v14 journal page rewrite** (`scripts/blacksmith.js`). The page was split into an inner view and a page article, and the edit button moved from the page article to the inner view. The finder now searches the inner view for the button, and the page article for the selector.
+
 ## [14.5.0]
 
 ### Added
