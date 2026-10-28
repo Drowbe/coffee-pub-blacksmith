@@ -269,8 +269,10 @@ export class StageManager {
 
     /**
      * The player's read-only panel: each scene they may use, under the name the navigation shows (the navigation name,
-     * else the scene name), with the connected players on it. Nobody who is not connected is listed, and no holds,
-     * tokens or permissions are, since those are the GM's.
+     * else the scene name), with the connected players on it. Everyone may see where the other connected players are,
+     * so a scene a player is on that this player cannot use is listed too (`canGo` false): under its name if this
+     * client holds the scene, else as "Another scene", since Foundry sends a player only the scenes their Permissions
+     * show. Nobody who is not connected is listed, and no holds, tokens or permissions are, since those are the GM's.
      */
     static playerStages() {
         const order = this.getState().order;
@@ -291,14 +293,20 @@ export class StageManager {
             });
         }
         const viewId = canvas?.scene?.id ?? null;
-        return this.playerScenes().map((scene) => ({
-            id: scene.id,
-            name: scene.navName || scene.name,
-            thumb: scene.thumb || null,
-            isActive: scene.active,
-            isView: scene.id === viewId,
-            people: (people.get(scene.id) ?? []).sort((a, b) => a.name.localeCompare(b.name))
-        })).sort((a, b) => rank(a.id) - rank(b.id)
+        const usable = new Set(this.playerScenes().map((scene) => scene.id));
+        const ids = new Set([...usable, ...people.keys()]);
+        return [...ids].map((id) => {
+            const scene = game.scenes.get(id);
+            return {
+                id,
+                name: scene ? (scene.navName || scene.name) : 'Another scene',
+                thumb: scene?.thumb || null,
+                isActive: !!scene?.active,
+                isView: id === viewId,
+                canGo: usable.has(id),
+                people: (people.get(id) ?? []).sort((a, b) => a.name.localeCompare(b.name))
+            };
+        }).sort((a, b) => rank(a.id) - rank(b.id)
             || Number(b.isActive) - Number(a.isActive)
             || a.name.localeCompare(b.name));
     }

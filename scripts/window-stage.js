@@ -173,7 +173,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             </div>`,
             // Scenes are added by dragging them onto the window, so the left of the action bar is only a reminder.
             toolFooterLeft: '<span class="blacksmith-stage-add-hint"><i class="fa-solid fa-arrow-down-to-line"></i> Drag a scene here to add it</span>',
-            toolFooterRight: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div><button type="button" class="blacksmith-window-btn-secondary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
+            toolFooterRight: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div><button type="button" class="blacksmith-window-btn-primary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
     }
 
@@ -202,7 +202,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
                         <span class="blacksmith-tool-card-actions">
-                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isView ? ' is-active' : ''}" data-action="stage-go" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isView ? 'You are looking at this scene' : 'Go to this scene'}"${stage.isView ? ' disabled' : ''}><i class="fa-solid fa-eye"></i></button>
+                            <button type="button" class="blacksmith-tool-btn is-icon${stage.isView ? ' is-active' : ''}" data-action="stage-go" data-scene-id="${esc(stage.id)}" data-tooltip="${stage.isView ? 'You are looking at this scene' : stage.canGo ? 'Go to this scene' : 'You cannot go to this scene'}"${stage.isView || !stage.canGo ? ' disabled' : ''}><i class="fa-solid fa-eye"></i></button>
                         </span>
                     </div>
                     <div class="blacksmith-tool-card-body blacksmith-stage-content">
