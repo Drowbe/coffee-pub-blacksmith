@@ -136,7 +136,7 @@ class CombatTimer {
 					priority: 3,
 					callback: (token, changes, options, userId) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!getSettingSafely(MODULE.ID, 'combatTimerActivityStart', false)) return;
 						if (!game.combat?.started) return;
 						
 						// Check if token belongs to current combatant
@@ -162,7 +162,7 @@ class CombatTimer {
 					priority: 3,
 					callback: (item, roll) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!getSettingSafely(MODULE.ID, 'combatTimerActivityStart', false)) return;
 						if (!game.combat?.started) return;
 						
 						const currentActor = game.combat.combatant?.actor;
@@ -187,7 +187,7 @@ class CombatTimer {
 					priority: 3,
 					callback: (item, roll) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!getSettingSafely(MODULE.ID, 'combatTimerActivityStart', false)) return;
 						if (!game.combat?.started) return;
 						
 						const currentActor = game.combat.combatant?.actor;
@@ -212,7 +212,7 @@ class CombatTimer {
 					priority: 3,
 					callback: (user, token, targeted) => {
 						// --- BEGIN - HOOKMANAGER CALLBACK ---
-						if (!game.settings.get(MODULE.ID, 'combatTimerActivityStart')) return;
+						if (!getSettingSafely(MODULE.ID, 'combatTimerActivityStart', false)) return;
 						if (!game.combat?.started) return;
 						
 						// Only process if a token is being targeted (not untargeted)
