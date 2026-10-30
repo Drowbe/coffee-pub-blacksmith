@@ -24,7 +24,7 @@ A cell that differs from the remembered arrangement carries a small orange dot (
 
 ## Where it opens from
 
-The Party Leader menubar menu (`MenuBar.showLeaderMenu`) has a **Character Delegation** item, in the GM's part of the menu only: the elected leader's own menu is still just Start a Vote. It imports the window lazily. The window is also registered with `registerWindow` as `blacksmith-delegation-window`, like the other tool windows. It is not a menubar tool of its own and is not reopened on load.
+The Party Leader menubar menu (`MenuBar.showLeaderMenu`) has a **Character Delegation** item, in the GM's part of the menu only: the elected leader's own menu is still just Start a Vote. The GM's menu is Start a Vote, Vote for Leader, Character Delegation and **Set Leader**, a flyout (`submenu`) holding None and one line per character, so the long character list does not push the other items down. It imports the window lazily. The window is also registered with `registerWindow` as `blacksmith-delegation-window`, like the other tool windows. It is not a menubar tool of its own and is not reopened on load.
 
 ## What it does not do
 

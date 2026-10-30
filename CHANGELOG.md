@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The Party Leader menu keeps "None" and the list of characters in a Set Leader flyout** (`scripts/api-menubar.js`). The GM's menu listed every character as its own line under Vote for Leader and Character Delegation. They now sit behind one Set Leader item that opens a flyout, so the menu is Start a Vote, Vote for Leader, Character Delegation and Set Leader.
 
+- **The Stage Manager's new-set button is in the pencil menu, the Lobby Mode switch is on the left of the footer, and the Lobby badge is blue** (`scripts/window-stage.js`, `styles/window-tool-controls.css`, `styles/window-form-controls.css`). The pencil beside the set dropdown is always available and its menu now starts with **New Set**, so the separate New button is gone; Rename and Delete follow when a set is shown. Lobby Mode moved to the footer's left zone, leaving Return Everyone alone at the right. The Lobby badge lost its door icon and uses the new `blacksmith-badge-info` (blue), so it no longer looks like the orange Active badge. Badges in every Tool window now have softly rounded corners instead of the capsule shape.
+
 ### Fixed
 
 - **A `targetToken` hook could throw "combatTimerActivityStart is not a registered game setting" while the world was loading** (`scripts/timer-combat.js`). Settings register in `ready`, and another user's targeting activity can arrive first. The four Combat Timer activity hooks (`updateToken`, `dnd5e.rollAttack`, `dnd5e.rollDamage`, `targetToken`) now read the setting with `getSettingSafely` and do nothing until it exists.

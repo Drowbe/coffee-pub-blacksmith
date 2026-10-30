@@ -96,6 +96,7 @@
     <span class="blacksmith-badge blacksmith-badge-accent">12</span>
     <span class="blacksmith-badge blacksmith-badge-success">Active</span>
     <span class="blacksmith-badge blacksmith-badge-danger">Error</span>
+    <span class="blacksmith-badge blacksmith-badge-info">Lobby</span>
 */
 
 .blacksmith-badge {
@@ -129,6 +130,12 @@
     background: rgba(120, 30, 30, 0.2);
     border-color: rgba(200, 60, 60, 0.3);
     color: rgba(220, 140, 140, 0.95);
+}
+
+.blacksmith-badge-info {
+    background: rgba(60, 102, 133, 0.25);
+    border-color: rgba(90, 150, 195, 0.4);
+    color: rgba(150, 195, 230, 0.95);
 }
 
 .blacksmith-badge-warning {

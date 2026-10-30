@@ -219,7 +219,7 @@ background -- that background is load-bearing for anyone reimplementing the layo
 
 ## Tool window controls
 
-**One look for on, selected and current.** Anything that is lit in a Tool window is solid brand orange with light text or icon: the selected segment, the toggle that is on, a button with `is-active`, a chosen chip, the count on the open tab, and the accent badge inside a Tool window (`.blacksmith-badge-accent`, used for a label such as "Active"). It never depends on which control it is. A lit button that is also disabled stays at full strength. State uses the brand orange and not `--blacksmith-tool-accent`, which is near-black on Light and cream on Glass. Unlit is the plain themed look.
+**One look for on, selected and current.** Anything that is lit in a Tool window is solid brand orange with light text or icon: the selected segment, the toggle that is on, a button with `is-active`, a chosen chip, the count on the open tab, and the accent badge inside a Tool window (`.blacksmith-badge-accent`, used for a label such as "Active"). It never depends on which control it is. A label that names a role and is not the current state ("Lobby") takes `.blacksmith-badge-info`, solid blue, so the two are never confused. Badges in a Tool window have `--blacksmith-radius-md` corners, not the capsule of the shared badge. A lit button that is also disabled stays at full strength. State uses the brand orange and not `--blacksmith-tool-accent`, which is near-black on Light and cream on Glass. Unlit is the plain themed look.
 
 Shared controls for Tool windows, all namespaced `blacksmith-tool-*` (`styles/window-tool-controls.css`). Every
 colour is a `--blacksmith-tool-*` variable with the dark-window value as its fallback, so each follows Light, Dark

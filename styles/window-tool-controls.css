@@ -847,6 +847,19 @@ textarea.blacksmith-tool-editable-field {
     color: var(--blacksmith-text-inverse, #ffffff);
 }
 
+/* The info badge is the blue counterpart, for a label that names a role and is not the current state ("Lobby"). It is
+   solid like the accent so the two read as one family, and it is not orange so they are never confused. */
+.application.blacksmith-window-tool .blacksmith-badge-info {
+    background: var(--blacksmith-status-info, #3c6685);
+    border-color: var(--blacksmith-status-info, #3c6685);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+/* A badge in a Tool window has softly rounded corners, like its buttons and cards, not the capsule of the shared one. */
+.application.blacksmith-window-tool .blacksmith-badge {
+    border-radius: var(--blacksmith-radius-md, 4px);
+}
+
 /* ===== THE BOXED TABS IN A TOOL WINDOW ================================= */
 /* `blacksmith-tab` is painted for a dark window: its resting text is faint on a pale fill on Light, so an
    inactive tab reads as disabled. Inside a Tool window it takes the theme, and gets a count that fits it. */

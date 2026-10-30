@@ -69,7 +69,6 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
         'stage-away': (_event, target, win) => win?._toggleAway(target?.dataset?.userId),
-        'stage-set-new': (_event, _target, win) => win?._newSet(),
         'stage-set-menu': (event, target, win) => win?._openSetMenu(event, target),
         'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
         'stage-return-all': (_event, _target, win) => win?._returnAll()
@@ -102,7 +101,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         const cards = stages.map((stage) => {
             const badges = [
                 stage.isActive ? '<span class="blacksmith-badge blacksmith-badge-accent">Active</span>' : '',
-                stage.isLobby && lobby ? '<span class="blacksmith-badge blacksmith-badge-accent"><i class="fa-solid fa-door-open"></i> Lobby</span>' : '',
+                stage.isLobby && lobby ? '<span class="blacksmith-badge blacksmith-badge-info">Lobby</span>' : '',
                 stage.combats ? `<span class="blacksmith-badge blacksmith-badge-warning"><i class="fa-solid fa-shield-halved"></i> ${stage.combats}</span>` : ''
             ].join('');
 
@@ -179,7 +178,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 ${cards || `<div class="blacksmith-tool-empty">${this._setFilter ? 'Nothing in this set yet. Drag a scene onto its name above to add it.' : 'No scenes in use.'}</div>`}
                 <div class="blacksmith-tool-dropzone blacksmith-stage-add-slot"><i class="fa-solid fa-arrow-down-to-line"></i> <span class="blacksmith-tool-dropzone-hint">Drag a scene here to add it</span></div>
             </div>`,
-            toolFooterRight: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div><button type="button" class="blacksmith-window-btn-primary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
+            toolFooterLeft: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div>`,
+            toolFooterRight: `<button type="button" class="blacksmith-window-btn-primary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
     }
 
@@ -197,8 +197,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         ].join('');
         return `<div class="blacksmith-stage-sets">
             <select class="blacksmith-stage-set-select" data-stage-set-select data-tooltip="Show a set of scenes">${options}</select>
-            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-set-menu" data-tooltip="${this._setFilter ? 'Rename or delete this set' : 'Pick a set to rename or delete it'}"${this._setFilter ? '' : ' disabled'}><i class="fa-solid fa-pen"></i></button>
-            <button type="button" class="blacksmith-tool-btn" data-action="stage-set-new" data-tooltip="Make a new set"><i class="fa-solid fa-plus"></i> New</button>
+            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-set-menu" data-tooltip="Make a new set${this._setFilter ? ', or rename or delete this one' : ''}"><i class="fa-solid fa-pen"></i></button>
         </div>`;
     }
 
@@ -519,12 +518,15 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     /** The "..." beside the dropdown: rename or delete the set being shown. */
     _openSetMenu(event, target) {
         const set = StageManager.sets().find((s) => s.id === this._setFilter);
-        if (!set) return;
-        const items = [
-            { name: 'Rename set', icon: 'fa-solid fa-pen', onClick: () => this._renameSet(set) },
-            { separator: true },
-            { name: 'Delete set', icon: 'fa-solid fa-trash', description: 'The scenes themselves are not deleted', onClick: () => this._deleteSet(set) }
-        ];
+        const items = [{ name: 'New Set', icon: 'fa-solid fa-plus', onClick: () => this._newSet() }];
+        // Rename and delete act on the set being shown, so they are only there when one is.
+        if (set) {
+            items.push(
+                { separator: true },
+                { name: 'Rename set', icon: 'fa-solid fa-pen', onClick: () => this._renameSet(set) },
+                { name: 'Delete set', icon: 'fa-solid fa-trash', description: 'The scenes themselves are not deleted', onClick: () => this._deleteSet(set) }
+            );
+        }
         const rect = target?.getBoundingClientRect?.();
         MenuBar.showMenubarContextMenu(items, rect ? rect.left : event.clientX, rect ? rect.bottom + 4 : event.clientY);
     }
