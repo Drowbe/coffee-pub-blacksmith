@@ -39,6 +39,9 @@ function thumbnailUrl(path) {
 }
 const TOOL_ID = 'stage-manager';
 
+/** The dropdown's last option: not a set, the way to make one. */
+const NEW_SET = '__new__';
+
 /** The tooltip on a chip's away button: what it is now, and what pressing it does. */
 function awayTip(away) {
     return away ? `Away${away.message ? `: ${away.message}` : ''}. Click to mark them back.` : 'Available. Click to mark them away.';
@@ -68,6 +71,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         'stage-deploy-one': (_event, target, win) => win?._deployOne(target?.dataset?.sceneId, target?.dataset?.actorId),
         'stage-release': (_event, target, win) => win?._release(target?.dataset?.userId),
         'stage-away': (_event, target, win) => win?._toggleAway(target?.dataset?.userId),
+        'stage-set-pick': (_event, target, win) => win?._pickSet(target?.dataset?.setId),
+        'stage-set-menu': (event, target, win) => win?._openSetMenu(event, target),
         'stage-lobby': (_event, _target, win) => win?._toggleLobby(),
         'stage-return-all': (_event, _target, win) => win?._returnAll()
     };
@@ -78,6 +83,9 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     /** True while a card is being dragged to a new place, for the same reason. */
     _reordering = false;
 
+    /** The set the panel is filtered to, or null for every scene. Per window: it is a way of looking, not state to keep. */
+    _setFilter = null;
+
     _hookContext = `stage-window:${APP_ID}`;
 
     // ==============================================================
@@ -87,7 +95,10 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     async getData() {
         if (!game.user?.isGM) return this._getPlayerData();
         const esc = foundry.utils.escapeHTML;
-        const stages = StageManager.stages();
+        const sets = StageManager.sets();
+        // A set that was deleted (here or by another GM) drops the filter rather than showing an empty panel.
+        if (this._setFilter && !sets.some((set) => set.id === this._setFilter)) this._setFilter = null;
+        const stages = StageManager.stages({ setId: this._setFilter });
         const lobby = StageManager.lobbyOn();
 
         const cards = stages.map((stage) => {
@@ -139,6 +150,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-stage-grip" draggable="true" data-stage-grip="${esc(stage.id)}" data-tooltip="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
+                            ${stage.isFavorite ? '<i class="fa-solid fa-star blacksmith-stage-favorite" data-tooltip="Favorite: always listed first"></i>' : ''}
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}${stage.navName && stage.navName !== stage.name ? ` (${esc(stage.navName)})` : ''}</span>
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
@@ -165,11 +177,31 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         return {
             appId: APP_ID,
             bodyContent: `<div class="blacksmith-stage-body">
-                ${cards || '<div class="blacksmith-tool-empty">No scenes in use.</div>'}
+                ${this._setsBar(sets)}
+                ${cards || `<div class="blacksmith-tool-empty">${this._setFilter ? 'Nothing in this set yet. Drag a scene onto its name above to add it.' : 'No scenes in use.'}</div>`}
                 <div class="blacksmith-tool-dropzone blacksmith-stage-add-slot"><i class="fa-solid fa-arrow-down-to-line"></i> <span class="blacksmith-tool-dropzone-hint">Drag a scene here to add it</span></div>
             </div>`,
             toolFooterRight: `<div class="blacksmith-toggle-row blacksmith-stage-lobby-switch${lobbyScene || lobby ? '' : ' is-disabled'}" data-tooltip="${lobby ? 'Lobby mode is on: anyone who loads in lands on the lobby scene. Switch it off to stop' : lobbyScene ? 'Turn on lobby mode: anyone who loads in lands on the lobby scene' : 'Mark a stage as the lobby scene first, with the door icon on its card'}"><span class="blacksmith-toggle-label">Lobby Mode</span><label class="blacksmith-toggle"><input type="checkbox" class="blacksmith-toggle-input" data-action="stage-lobby"${lobby ? ' checked' : ''}${lobbyScene || lobby ? '' : ' disabled'}><span class="blacksmith-toggle-slider"></span></label></div><button type="button" class="blacksmith-window-btn-primary" data-action="stage-return-all" data-tooltip="Clear every hold and send every connected player to the active scene"><i class="fa-solid fa-arrow-rotate-left"></i> Return Everyone</button>`
         };
+    }
+
+    /**
+     * The row above the cards: a dropdown that picks which set the panel shows (with New Set at the end), and a chip
+     * for each set. A chip is a quick way to pick its set and the place a scene is dragged onto to join it.
+     */
+    _setsBar(sets) {
+        const esc = foundry.utils.escapeHTML;
+        const options = [
+            `<option value=""${this._setFilter ? '' : ' selected'}>All scenes</option>`,
+            ...sets.map((set) => `<option value="${esc(set.id)}"${this._setFilter === set.id ? ' selected' : ''}>${esc(set.name)} (${set.scenes.length})</option>`),
+            `<option value="${NEW_SET}">New Set...</option>`
+        ].join('');
+        const chips = sets.map((set) => `<button type="button" class="blacksmith-tool-chip blacksmith-stage-set${this._setFilter === set.id ? ' is-active' : ''}" data-action="stage-set-pick" data-set-id="${esc(set.id)}" data-stage-set-drop="${esc(set.id)}" data-tooltip="${esc(`${set.name}: click to show only this set. Drag a scene here to add it.`)}">${esc(set.name)}</button>`).join('');
+        return `<div class="blacksmith-stage-sets">
+            <select class="blacksmith-stage-set-select" data-stage-set-select data-tooltip="Show a set of scenes">${options}</select>
+            <button type="button" class="blacksmith-tool-btn is-icon" data-action="stage-set-menu" data-tooltip="Rename or delete this set"${this._setFilter ? '' : ' disabled'}><i class="fa-solid fa-ellipsis-vertical"></i></button>
+            <span class="blacksmith-tool-chips blacksmith-stage-set-chips">${chips}</span>
+        </div>`;
     }
 
     /**
@@ -220,8 +252,10 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         await super._onRender?.(context, options);
         const root = this._getRoot();
         if (!root) return;
-        if (game.user?.isGM) this._bindDrag(root);
-        else this._bindPlayer(root);
+        if (game.user?.isGM) {
+            this._bindDrag(root);
+            this._bindSets(root);
+        } else this._bindPlayer(root);
         this._followChanges();
     }
 
@@ -441,9 +475,142 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         }
     }
 
+    /**
+     * The set controls: the dropdown, and the set chips as places a scene is dropped to join the set. What is dropped
+     * is a card (its grip carries its own type) or a scene dragged out of Foundry's sidebar, so a scene not yet on
+     * the panel joins the set and the panel together.
+     */
+    _bindSets(root) {
+        root.querySelector('[data-stage-set-select]')?.addEventListener('change', (event) => {
+            const value = event.currentTarget.value;
+            if (value === NEW_SET) void this._newSet();
+            else this._pickSet(value);
+        });
+        for (const chip of root.querySelectorAll('[data-stage-set-drop]')) {
+            chip.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = 'copy';
+                chip.classList.add('is-over');
+            });
+            chip.addEventListener('dragleave', (event) => {
+                if (!chip.contains(event.relatedTarget)) chip.classList.remove('is-over');
+            });
+            chip.addEventListener('drop', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                chip.classList.remove('is-over');
+                this._reordering = false;
+                this._dragging = false;
+                const sceneId = event.dataTransfer.types.includes(STAGE_MIME)
+                    ? event.dataTransfer.getData(STAGE_MIME)
+                    : StageManager.sceneFromDrop(event.dataTransfer.getData('text/plain'))?.id;
+                if (!sceneId) {
+                    ui.notifications?.warn('Drop a scene card, or a scene from the sidebar, to add it to a set.');
+                    return;
+                }
+                try {
+                    await StageManager.setInSet(chip.dataset.stageSetDrop, sceneId, true);
+                } catch (error) {
+                    ui.notifications?.warn(error.message);
+                }
+                this.render();
+            });
+        }
+    }
+
     // ==============================================================
     // ===== ACTIONS ================================================
     // ==============================================================
+
+    /** Show one set, or every scene (a falsy id). Pressing the chip of the set already shown goes back to every scene. */
+    _pickSet(setId) {
+        this._setFilter = setId && setId !== this._setFilter ? setId : null;
+        this.render();
+    }
+
+    /** Ask for a name, make the set and show it. Cancelling leaves the dropdown where it was. */
+    async _newSet() {
+        const name = await this._askSetName('New Set', '');
+        if (name) {
+            try {
+                this._setFilter = await StageManager.createSet(name);
+            } catch (error) {
+                ui.notifications?.warn(error.message);
+            }
+        }
+        this.render();
+    }
+
+    /** A one-field dialog for a set's name. Resolves to the trimmed name, or null when cancelled or left empty. */
+    async _askSetName(title, current) {
+        const esc = foundry.utils.escapeHTML;
+        const name = await foundry.applications.api.DialogV2.prompt({
+            window: { title },
+            content: `<input type="text" name="set-name" placeholder="Set name" value="${esc(current)}" autofocus maxlength="40">`,
+            ok: {
+                label: 'Save',
+                callback: (_event, button) => button.form.elements['set-name']?.value?.trim()
+            },
+            rejectClose: false
+        }).catch(() => null);
+        return name || null;
+    }
+
+    /** The "..." beside the dropdown: rename or delete the set being shown. */
+    _openSetMenu(event, target) {
+        const set = StageManager.sets().find((s) => s.id === this._setFilter);
+        if (!set) return;
+        const items = [
+            { name: 'Rename set', icon: 'fa-solid fa-pen', onClick: () => this._renameSet(set) },
+            { separator: true },
+            { name: 'Delete set', icon: 'fa-solid fa-trash', description: 'The scenes themselves are not deleted', onClick: () => this._deleteSet(set) }
+        ];
+        const rect = target?.getBoundingClientRect?.();
+        MenuBar.showMenubarContextMenu(items, rect ? rect.left : event.clientX, rect ? rect.bottom + 4 : event.clientY);
+    }
+
+    async _renameSet(set) {
+        const name = await this._askSetName('Rename Set', set.name);
+        if (name && name !== set.name) {
+            try {
+                await StageManager.renameSet(set.id, name);
+            } catch (error) {
+                ui.notifications?.warn(error.message);
+            }
+        }
+        this.render();
+    }
+
+    async _deleteSet(set) {
+        const confirmed = await foundry.applications.api.DialogV2.confirm({
+            window: { title: 'Delete Set' },
+            content: `<p>Delete the set "${foundry.utils.escapeHTML(set.name)}"? The scenes in it are not deleted.</p>`,
+            rejectClose: false,
+            modal: true
+        });
+        if (!confirmed) return;
+        await StageManager.deleteSet(set.id);
+        this._setFilter = null;
+        this.render();
+    }
+
+    async _toggleFavorite(sceneId, favorite) {
+        try {
+            await StageManager.setFavorite(sceneId, favorite);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
+
+    async _toggleInSet(setId, sceneId, member) {
+        try {
+            await StageManager.setInSet(setId, sceneId, member);
+        } catch (error) {
+            ui.notifications?.warn(error.message);
+        }
+        this.render();
+    }
 
     /** Put the dragged card before or after the target, and save the new order of every card on screen. */
     async _reorder(root, draggedId, targetId, after) {
@@ -575,8 +742,15 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
         const stage = StageManager.stages().find((s) => s.id === target?.dataset?.sceneId);
         if (!stage) return;
         const hearers = stage.people.filter((p) => !p.isGM && p.active).length;
+        const sets = StageManager.sets();
         const items = [
             { name: 'Edit scene configuration', icon: 'fa-solid fa-pen', onClick: () => this._edit(stage.id) },
+            {
+                name: stage.isFavorite ? 'Remove from favorites' : 'Favorite',
+                icon: stage.isFavorite ? 'fa-regular fa-star' : 'fa-solid fa-star',
+                description: stage.isFavorite ? '' : 'Always listed first',
+                onClick: () => this._toggleFavorite(stage.id, !stage.isFavorite)
+            },
             {
                 name: stage.isLobby ? 'Clear the lobby scene' : 'Make this the lobby scene',
                 icon: 'fa-solid fa-door-open',
@@ -598,9 +772,22 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 onClick: () => this._talk(stage.id)
             }
         ];
-        // Only a scene added by hand that is empty and not active can be taken off the list.
-        if (stage.isExtra && !stage.isActive && !stage.people.length) {
-            items.push({ separator: true }, { name: 'Take off the list', icon: 'fa-solid fa-xmark', onClick: () => this._remove(stage.id) });
+        // Sets: one line each, ticked when the scene is in it. Pressing it joins or leaves.
+        if (sets.length) {
+            items.push({ separator: true });
+            for (const set of sets) {
+                const inSet = stage.sets.includes(set.id);
+                items.push({
+                    name: inSet ? `In ${set.name}` : `Add to ${set.name}`,
+                    icon: inSet ? 'fa-solid fa-square-check' : 'fa-regular fa-square',
+                    description: inSet ? 'Press to take it out of this set' : '',
+                    onClick: () => this._toggleInSet(set.id, stage.id, !inSet)
+                });
+            }
+        }
+        // Only a scene the GM put on the panel (by hand, or into a set) that is empty and not active can be taken off it.
+        if ((stage.isExtra || stage.sets.length) && !stage.isActive && !stage.people.length) {
+            items.push({ separator: true }, { name: 'Remove', icon: 'fa-solid fa-xmark', onClick: () => this._remove(stage.id) });
         }
         const rect = target?.getBoundingClientRect?.();
         MenuBar.showMenubarContextMenu(items, rect ? rect.right : event.clientX, rect ? rect.bottom + 4 : event.clientY);

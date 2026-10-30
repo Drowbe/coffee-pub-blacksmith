@@ -325,3 +325,47 @@
 .blacksmith-stage-tool-window .blacksmith-stage-lobby-switch.is-disabled .blacksmith-toggle-label {
     cursor: not-allowed;
 }
+
+/* SETS. A row above the cards: the dropdown that picks which set is shown, its "..." menu, and a chip per set. A set
+   chip is a drop target for a scene (the card's grip, or a scene from Foundry's sidebar), so it is a plain pill: the
+   person-chip tile look above does not apply to it. */
+.blacksmith-stage-tool-window .blacksmith-stage-sets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-set-select {
+    flex: 0 1 180px;
+    min-width: 120px;
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-set-chips {
+    flex: 1 1 auto;
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip.blacksmith-stage-set {
+    height: 22px;
+    padding: 0 8px;
+    border-radius: var(--blacksmith-radius-pill, 16px);
+    background: transparent;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip.blacksmith-stage-set:hover:not(.is-active) {
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-stage-tool-window .blacksmith-tool-chip.blacksmith-stage-set.is-over {
+    border-style: solid;
+    border-color: var(--blacksmith-color-brand-accent);
+    background: var(--blacksmith-tool-surface-selected);
+}
+
+/* The star on a favorite's title. */
+.blacksmith-stage-tool-window .blacksmith-stage-favorite {
+    flex: 0 0 auto;
+    color: var(--blacksmith-color-brand-accent);
+}

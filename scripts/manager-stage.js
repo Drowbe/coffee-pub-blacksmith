@@ -19,9 +19,11 @@
 //     loading, and is the only client that knows when it is ready. `Scene#view` has no permission check.
 //
 // The state is one world setting, `stageState`: { assignments: { userId: sceneId }, extras: [sceneId], order: [sceneId],
-// lobbyScene: sceneId | null, lobby: boolean }.
+// favorites: [sceneId], sets: [{ id, name, scenes: [sceneId] }], lobbyScene: sceneId | null, lobby: boolean }.
 // `extras` are scenes the GM added to the panel by hand, for a stage nobody is on yet. `order` is the order the GM
-// arranged the cards in; a stage that is not in it goes after the ones that are. Whether a player is away is not kept
+// arranged the cards in; a stage that is not in it goes after the ones that are. `favorites` always sort above the
+// rest. A set is a named group of scenes the panel can be filtered to; a scene may be in any number of them, and being
+// in one puts it on the panel like `extras` does. Whether a player is away is not kept
 // here: it is the module's Away status (manager-away.js), shown on the chips and never changing what this manager does.
 // `lobbyScene`
 // is the scene the GM marked as the waiting room. `lobby` is a mode: while it is on, anyone who loads in goes to the
@@ -35,6 +37,9 @@ import { ToastAPI } from './api-toast.js';
 import { deployParty, getPartyMembers, getOwnedNpcs, getPartyActorIdsOnCanvas } from './utility-party.js';
 
 const SETTING = 'stageState';
+
+/** The longest name a set may have. */
+const SET_NAME_MAX = 40;
 
 /** Wait before a player's client applies its assignment, so the rest of `ready` has settled. */
 const APPLY_DELAY_MS = 400;
@@ -98,7 +103,7 @@ export class StageManager {
         return this.normalizeState(raw);
     }
 
-    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[], lobbyScene: string|null, lobby: boolean}} */
+    /** @param {*} raw @returns {{assignments: Record<string,string>, extras: string[], order: string[], favorites: string[], sets: {id: string, name: string, scenes: string[]}[], lobbyScene: string|null, lobby: boolean}} */
     static normalizeState(raw) {
         const assignments = {};
         if (raw?.assignments && typeof raw.assignments === 'object') {
@@ -112,8 +117,19 @@ export class StageManager {
         const order = Array.isArray(raw?.order)
             ? [...new Set(raw.order.filter((id) => typeof id === 'string' && id))]
             : [];
+        const favorites = Array.isArray(raw?.favorites)
+            ? [...new Set(raw.favorites.filter((id) => typeof id === 'string' && id))]
+            : [];
+        const sets = [];
+        for (const entry of Array.isArray(raw?.sets) ? raw.sets : []) {
+            const id = typeof entry?.id === 'string' ? entry.id : '';
+            const name = typeof entry?.name === 'string' ? entry.name.trim().slice(0, SET_NAME_MAX) : '';
+            if (!id || !name || sets.some((set) => set.id === id)) continue;
+            const scenes = Array.isArray(entry.scenes) ? [...new Set(entry.scenes.filter((sceneId) => typeof sceneId === 'string' && sceneId))] : [];
+            sets.push({ id, name, scenes });
+        }
         const lobbyScene = typeof raw?.lobbyScene === 'string' && raw.lobbyScene ? raw.lobbyScene : null;
-        return { assignments, extras, order, lobbyScene, lobby: raw?.lobby === true };
+        return { assignments, extras, order, favorites, sets, lobbyScene, lobby: raw?.lobby === true };
     }
 
     static async _save(state) {
@@ -361,19 +377,102 @@ export class StageManager {
         await this._save(state);
     }
 
-    /** Save the order the GM arranged the cards in. Stages left out of the list go after the ones in it. */
+    /**
+     * Save the order the GM arranged the cards in. Stages left out of the list go after the ones in it. A panel
+     * filtered to a set shows only some of the cards, so the shown ones are written into the places the shown ones
+     * already held and every hidden card keeps its place.
+     */
     static async setOrder(sceneIds) {
         this._requireGM();
         const state = this.getState();
-        state.order = Array.isArray(sceneIds) ? sceneIds : [];
+        const shown = Array.isArray(sceneIds) ? sceneIds : [];
+        const visible = new Set(shown);
+        const queue = [...shown];
+        const merged = [];
+        for (const id of state.order) merged.push(visible.has(id) ? queue.shift() : id);
+        merged.push(...queue);
+        state.order = merged;
         await this._save(state);
     }
 
+    /** Take a scene off the panel: out of the hand-added list, the favorites and every set. */
     static async removeStage(sceneId) {
         this._requireGM();
         const state = this.getState();
         state.extras = state.extras.filter((id) => id !== sceneId);
+        state.favorites = state.favorites.filter((id) => id !== sceneId);
+        for (const set of state.sets) set.scenes = set.scenes.filter((id) => id !== sceneId);
         await this._save(state);
+    }
+
+    /** Pin a scene above the rest of the cards, or let it go back to its place. */
+    static async setFavorite(sceneId, favorite) {
+        this._requireGM();
+        const state = this.getState();
+        state.favorites = state.favorites.filter((id) => id !== sceneId);
+        if (favorite && game.scenes.get(sceneId)) state.favorites.push(sceneId);
+        await this._save(state);
+    }
+
+    // ==============================================================
+    // ===== SETS ===================================================
+    // ==============================================================
+
+    /** The sets, in the order they were made. */
+    static sets() {
+        return this.getState().sets;
+    }
+
+    /**
+     * Make a set. A name that is empty or already used (ignoring case) is refused.
+     * @returns {Promise<string>} the new set's id
+     */
+    static async createSet(name) {
+        this._requireGM();
+        const state = this.getState();
+        const clean = this._cleanSetName(state, name);
+        const id = foundry.utils.randomID();
+        state.sets.push({ id, name: clean, scenes: [] });
+        await this._save(state);
+        return id;
+    }
+
+    static async renameSet(setId, name) {
+        this._requireGM();
+        const state = this.getState();
+        const set = state.sets.find((s) => s.id === setId);
+        if (!set) return;
+        set.name = this._cleanSetName(state, name, setId);
+        await this._save(state);
+    }
+
+    /** Delete a set. A scene that was on the panel only because it was in it goes off the panel. */
+    static async deleteSet(setId) {
+        this._requireGM();
+        const state = this.getState();
+        state.sets = state.sets.filter((s) => s.id !== setId);
+        await this._save(state);
+    }
+
+    /** Put a scene in a set, or take it out. A scene may be in any number of sets. */
+    static async setInSet(setId, sceneId, member) {
+        this._requireGM();
+        const state = this.getState();
+        const set = state.sets.find((s) => s.id === setId);
+        if (!set || !game.scenes.get(sceneId)) return;
+        set.scenes = set.scenes.filter((id) => id !== sceneId);
+        if (member) set.scenes.push(sceneId);
+        await this._save(state);
+    }
+
+    /** @throws {Error} when the name is empty or another set already has it */
+    static _cleanSetName(state, name, ownId = null) {
+        const clean = String(name ?? '').trim().slice(0, SET_NAME_MAX);
+        if (!clean) throw new Error('A set needs a name.');
+        if (state.sets.some((s) => s.id !== ownId && s.name.toLowerCase() === clean.toLowerCase())) {
+            throw new Error(`There is already a set called "${clean}".`);
+        }
+        return clean;
     }
 
     /**
@@ -501,16 +600,18 @@ export class StageManager {
 
     /**
      * The stages to show, each with the people on it. A scene is a stage when it is active, when the GM is looking
-     * at it, when someone is looking at it, when someone is assigned to it, or when the GM added it by hand.
+     * at it, when someone is looking at it, when someone is assigned to it, when the GM added it by hand, or when it
+     * is in a set. Favorites come first. With a `setId` only that set's scenes are shown, and any scene with people on it.
      * Where a connected person IS comes from Foundry (`viewedScene`); a person who is not connected is shown on
      * the scene they are assigned to, if any.
      */
-    static stages() {
+    static stages({ setId = null } = {}) {
         const state = this.getState();
+        const filter = setId ? state.sets.find((set) => set.id === setId) ?? null : null;
         const activeId = game.scenes.active?.id ?? null;
         const gmViewId = canvas?.scene?.id ?? null;
         const lobbyId = this.lobbyScene()?.id ?? null;
-        const ids = new Set([activeId, gmViewId, lobbyId, ...state.extras, ...Object.values(state.assignments)].filter(Boolean));
+        const ids = new Set([activeId, gmViewId, lobbyId, ...state.extras, ...state.sets.flatMap((set) => set.scenes), ...Object.values(state.assignments)].filter(Boolean));
         const people = new Map();
 
         for (const user of game.users) {
@@ -537,6 +638,8 @@ export class StageManager {
         for (const id of ids) {
             const scene = game.scenes.get(id);
             if (!scene) continue;
+            // Filtered to a set: that set's scenes, and any scene somebody is on so nobody drops out of sight.
+            if (filter && !filter.scenes.includes(id) && !people.get(id)?.length) continue;
             const combats = game.combats.filter((c) => c.scene?.id === id && c.started).length;
             stages.push({
                 id,
@@ -548,6 +651,8 @@ export class StageManager {
                 isActive: id === activeId,
                 isGMView: id === gmViewId,
                 isExtra: state.extras.includes(id),
+                isFavorite: state.favorites.includes(id),
+                sets: state.sets.filter((set) => set.scenes.includes(id)).map((set) => set.id),
                 isLobby: id === lobbyId,
                 combats,
                 tokens: this._tokenStatus(scene),
@@ -560,7 +665,8 @@ export class StageManager {
             const index = state.order.indexOf(id);
             return index < 0 ? Infinity : index;
         };
-        return stages.sort((a, b) => rank(a.id) - rank(b.id)
+        return stages.sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite)
+            || rank(a.id) - rank(b.id)
             || Number(b.isActive) - Number(a.isActive)
             || a.name.localeCompare(b.name));
     }

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **The Stage Manager has sets and favorites** (`scripts/manager-stage.js`, `scripts/window-stage.js`, `styles/window-stage.css`). A dropdown above the cards picks which set of scenes the panel shows, with New Set at the end; a chip per set sits beside it, and a scene is added to a set by dragging its card by the grip, or a scene from Foundry's sidebar, onto the set's chip. A scene can be in any number of sets, and the card's "..." menu lists each set with a tick to join or leave. A set's "..." beside the dropdown renames or deletes it. Showing a set filters the panel to its scenes and to any scene somebody is on, so nobody drops out of sight; All scenes shows everything. The menu also has Favorite, which pins a scene above the rest in every view and shows a star on its title. Removing a scene from the panel now also takes it out of every set and the favorites, and the Remove item shows for a scene in a set as well as one added by hand. Stored in `stageState` as `favorites` and `sets`.
+
+### Fixed
+
+- **A `targetToken` hook could throw "combatTimerActivityStart is not a registered game setting" while the world was loading** (`scripts/timer-combat.js`). Settings register in `ready`, and another user's targeting activity can arrive first. The four Combat Timer activity hooks (`updateToken`, `dnd5e.rollAttack`, `dnd5e.rollDamage`, `targetToken`) now read the setting with `getSettingSafely` and do nothing until it exists.
+
 ## [14.5.1]
 
 ### Fixed
