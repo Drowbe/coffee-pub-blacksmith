@@ -16,6 +16,7 @@ import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
 import { MenuBar } from './api-menubar.js';
+import { DialogAPI } from './api-dialog.js';
 import { StageManager } from './manager-stage.js';
 import { AwayManager } from './manager-away.js';
 import { setToolWindowState } from './manager-tool-windows.js';
@@ -503,16 +504,15 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     /** A one-field dialog for a set's name. Resolves to the trimmed name, or null when cancelled or left empty. */
     async _askSetName(title, current) {
         const esc = foundry.utils.escapeHTML;
-        const name = await foundry.applications.api.DialogV2.prompt({
-            window: { title },
-            content: `<input type="text" name="set-name" placeholder="Set name" value="${esc(current)}" autofocus maxlength="40">`,
-            ok: {
-                label: 'Save',
-                callback: (_event, button) => button.form.elements['set-name']?.value?.trim()
-            },
-            rejectClose: false
-        }).catch(() => null);
-        return name || null;
+        const { action, value } = await DialogAPI.prompt({
+            title,
+            content: ({ value: previous }) => `<input type="text" class="blacksmith-input" name="set-name" placeholder="Set name" value="${esc(previous ?? current)}" maxlength="40">`,
+            submitLabel: 'Save',
+            focusSelector: '[name="set-name"]',
+            getValue: (root) => root.elements['set-name']?.value?.trim() ?? '',
+            validate: (name) => name ? null : 'Enter a set name.'
+        });
+        return action === DialogAPI.ACTIONS.SUBMIT ? (value || null) : null;
     }
 
     /** The "..." beside the dropdown: rename or delete the set being shown. */
@@ -544,11 +544,12 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     async _deleteSet(set) {
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Set' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Set',
             content: `<p>Delete the set "${foundry.utils.escapeHTML(set.name)}"? The scenes in it are not deleted.</p>`,
-            rejectClose: false,
-            modal: true
+            confirmLabel: 'Delete',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
         });
         if (!confirmed) return;
         await StageManager.deleteSet(set.id);
@@ -600,17 +601,18 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             // who reloads goes straight back to it. The GM decides which they meant. The lobby scene itself conflicts with
             // nothing, so it is activated without asking.
             if (StageManager.lobbyOn() && StageManager.lobbyScene()?.id !== sceneId && !game.scenes.get(sceneId)?.active) {
-                const choice = await foundry.applications.api.DialogV2.wait({
-                    window: { title: 'Lobby Mode' },
+                // Escape and the title-bar close resolve `close`, and Cancel resolves `cancel`; only a pressed choice is a value.
+                const { action, value: choice } = await DialogAPI.wait({
+                    title: 'Lobby Mode',
                     content: '<p>Lobby Mode is on. What do you want to do?</p>',
                     buttons: [
                         { action: 'off', label: 'Turn off lobby mode and activate', icon: 'fa-solid fa-toggle-off' },
                         { action: 'view', label: 'Leave on lobby mode and view', icon: 'fa-solid fa-eye' },
                         { action: 'cancel', label: 'Cancel', icon: 'fa-solid fa-xmark', default: true }
                     ],
-                    rejectClose: false,
                     modal: true
                 });
+                if (action !== DialogAPI.ACTIONS.SUBMIT) return;
                 if (choice === 'view') {
                     StageManager.viewStage(sceneId);
                     return;
@@ -682,10 +684,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     async _returnAll() {
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Return Everyone' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Return Everyone',
             content: '<p>Clear every hold and send every connected player to the active scene?</p>',
-            rejectClose: false,
+            confirmLabel: 'Return Everyone',
+            confirmIcon: 'fa-solid fa-arrow-rotate-left',
             modal: true
         });
         if (!confirmed) return;

@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The menubar's left-zone icons have their own size variable** (`styles/menubar.css`). `--blacksmith-menubar-iconsize-left` sets the icon size in the left zone only and defaults to the shared `--blacksmith-menubar-iconsize`, so nothing changes until it is set; the middle and right zones are unaffected.
 
+- **The Stage Manager and Character Delegation dialogs go through `api.dialog`** (`scripts/window-stage.js`, `scripts/window-delegation.js`). The set name prompt, Delete Set, Return Everyone, the Lobby Mode choice and Reset to Default called Foundry's `DialogV2` directly, so they missed the shared button styling, Enter-to-default and the dismissal contract. They now use `DialogAPI.prompt`, `confirm` and `wait`. Delete Set is a critical-styled confirm, and an empty set name now stays in the dialog with a message instead of closing silently.
+
 ### Fixed
 
 - **A `targetToken` hook could throw "combatTimerActivityStart is not a registered game setting" while the world was loading** (`scripts/timer-combat.js`). Settings register in `ready`, and another user's targeting activity can arrive first. The four Combat Timer activity hooks (`updateToken`, `dnd5e.rollAttack`, `dnd5e.rollDamage`, `targetToken`) now read the setting with `getSettingSafely` and do nothing until it exists.

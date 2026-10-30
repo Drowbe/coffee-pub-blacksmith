@@ -11,6 +11,7 @@ import { MODULE } from './const.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
 import { registerWindow } from './api-windows.js';
+import { DialogAPI } from './api-dialog.js';
 import { DelegationManager } from './manager-delegation.js';
 
 const APP_ID = 'blacksmith-delegation-window';
@@ -174,10 +175,11 @@ export class DelegationWindow extends BlacksmithToolWindowBaseV2 {
     async _reset() {
         const planned = DelegationManager.resetPlan().length;
         if (!planned) return;
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Reset to Default' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Reset to Default',
             content: `<p>Change ${planned} assignment${planned === 1 ? '' : 's'} back to the default arrangement?</p>`,
-            rejectClose: false,
+            confirmLabel: 'Reset to Default',
+            confirmIcon: 'fa-solid fa-arrow-rotate-left',
             modal: true
         });
         if (!confirmed) return;
