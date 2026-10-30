@@ -147,8 +147,8 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-stage-grip" draggable="true" data-stage-grip="${esc(stage.id)}" data-tooltip="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
-                            ${stage.isFavorite ? '<i class="fa-solid fa-heart blacksmith-stage-favorite" data-tooltip="Favorite: always listed first"></i>' : ''}
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}${stage.navName && stage.navName !== stage.name ? ` (${esc(stage.navName)})` : ''}</span>
+                            ${stage.isFavorite ? '<i class="fa-solid fa-heart blacksmith-stage-favorite" data-tooltip="Favorite: always listed first"></i>' : ''}
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
                         <span class="blacksmith-tool-card-actions">

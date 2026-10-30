@@ -298,9 +298,12 @@
     opacity: 1;
 }
 
-.blacksmith-stage-tool-window .blacksmith-stage-status.is-set {
+/* Away is a light blue clock. Orange was lost on the warm portraits and on the active card's own orange frame; the tile
+   outline stays orange. */
+.blacksmith-stage-tool-window .blacksmith-stage-status.is-set,
+.blacksmith-stage-tool-window button.blacksmith-stage-status.is-set:hover {
     opacity: 1;
-    color: var(--blacksmith-color-brand-accent);
+    color: #5cc8ff;
 }
 
 /* On a player's own read-only card the mark is not a button. */

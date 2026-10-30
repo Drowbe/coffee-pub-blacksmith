@@ -1947,6 +1947,7 @@ The default secondary bar items use CSS classes that you can override in your mo
 - `--blacksmith-menubar-fontcolor` - Primary bar text color
 - `--blacksmith-menubar-fontsize` - Primary bar font size
 - `--blacksmith-menubar-iconsize` - Primary bar icon size
+- `--blacksmith-menubar-iconsize-left` - Icon size in the primary bar's left zone only; defaults to `--blacksmith-menubar-iconsize`
 - `--blacksmith-menubar-secondary-height` - Secondary bar height, and the factor every size inside the bar scales from
 - `--blacksmith-menubar-secondary-default-height` - The house default height a bar gets when it asks for no size
 - `--blacksmith-menubar-secondary-banner-allowance` - Extra height a bar with group banners occupies, added on top of its height

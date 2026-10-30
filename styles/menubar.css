@@ -44,9 +44,12 @@
     --blacksmith-menubar-gap-right: 8px;
 
 
-    --blacksmith-menubar-gap-middle: 4px;
+    --blacksmith-menubar-gap-middle: 6px;
     --blacksmith-menubar-fontsize: .9em;
-    --blacksmith-menubar-iconsize: .85em;
+    --blacksmith-menubar-iconsize: 0.9em;
+    /* The left zone's icons only. They are bare icons with no button around them, so they can run larger than the
+       shared size without the zone growing. Defaults to the shared size. */
+    --blacksmith-menubar-iconsize-left: 0.95em;
     --blacksmith-menubar-fontcolor: rgba(240, 240, 224, 0.8);
 
     /* Buttons */
@@ -272,6 +275,7 @@
 .blacksmith-menubar-left .tool-readonly i {
     border: 0px solid rgba(0, 0, 0, 0.1);
     margin: 0px 0px 0px 0px;
+    font-size: var(--blacksmith-menubar-iconsize-left);
 }
 .blacksmith-menubar-left .button-active span, 
 .blacksmith-menubar-left .tool-readonly span {
