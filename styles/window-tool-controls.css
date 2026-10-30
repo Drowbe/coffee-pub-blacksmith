@@ -847,12 +847,11 @@ textarea.blacksmith-tool-editable-field {
     color: var(--blacksmith-text-inverse, #ffffff);
 }
 
-/* The info badge is the blue counterpart, for a label that names a role and is not the current state ("Lobby"). It is
-   solid like the accent so the two read as one family, and it is not orange so they are never confused. */
+/* The info badge is a status badge like success, danger and warning: a translucent blue fill from the shared rule, with
+   the text pulled toward the theme's text colour so it reads on Light and Glass. Not orange, so it is never mistaken for
+   the accent badge. */
 .application.blacksmith-window-tool .blacksmith-badge-info {
-    background: var(--blacksmith-status-info, #3c6685);
-    border-color: var(--blacksmith-status-info, #3c6685);
-    color: var(--blacksmith-text-inverse, #ffffff);
+    color: color-mix(in srgb, rgb(70, 140, 195) 60%, var(--blacksmith-tool-text, rgb(224, 224, 224)));
 }
 
 /* A badge in a Tool window has softly rounded corners, like its buttons and cards, not the capsule of the shared one. */
