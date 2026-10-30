@@ -4817,33 +4817,40 @@ class MenuBar {
                     }
                 }
             },
-            { separator: true },
             {
-                name: 'None',
-                icon: currentActorId ? 'fa-regular fa-circle-xmark' : 'fa-solid fa-check',
-                disabled: !currentActorId,
-                callback: async () => {
-                    await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
-                    this.currentLeader = null;
-                    await this.updateLeader(null);
-                }
+                // Choosing a leader by hand is a list as long as the party, so it is a flyout rather than a
+                // dozen lines in the menu.
+                name: 'Set Leader',
+                description: 'Pick the party leader yourself.',
+                icon: 'fa-solid fa-crown',
+                submenu: [
+                    {
+                        name: 'None',
+                        icon: currentActorId ? 'fa-regular fa-circle-xmark' : 'fa-solid fa-check',
+                        disabled: !currentActorId,
+                        callback: async () => {
+                            await setSettingSafely(MODULE.ID, 'partyLeader', { userId: '', actorId: '' });
+                            this.currentLeader = null;
+                            await this.updateLeader(null);
+                        }
+                    },
+                    ...characterEntries.map((entry) => {
+                        const label = entry.labelUser
+                            ? `${entry.actor.name} (${entry.labelUser.name})`
+                            : entry.actor.name;
+                        const isCurrent = entry.actor.id === currentActorId;
+                        return {
+                            name: label,
+                            icon: isCurrent ? 'fa-solid fa-crown' : 'fa-solid fa-user',
+                            disabled: isCurrent,
+                            callback: async () => {
+                                await MenuBar.setNewLeader({ userId: entry.owner.id, actorId: entry.actor.id }, true);
+                            }
+                        };
+                    })
+                ]
             }
         );
-
-        for (const entry of characterEntries) {
-            const label = entry.labelUser
-                ? `${entry.actor.name} (${entry.labelUser.name})`
-                : entry.actor.name;
-            const isCurrent = entry.actor.id === currentActorId;
-            items.push({
-                name: label,
-                icon: isCurrent ? 'fa-solid fa-crown' : 'fa-solid fa-user',
-                disabled: isCurrent,
-                callback: async () => {
-                    await MenuBar.setNewLeader({ userId: entry.owner.id, actorId: entry.actor.id }, true);
-                }
-            });
-        }
 
         UIContextMenu.show({
             id: 'blacksmith-menubar-leader-menu',

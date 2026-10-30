@@ -19,8 +19,8 @@ const APP_ID = 'blacksmith-delegation-window';
 function levelInfo() {
     const levels = CONST.DOCUMENT_OWNERSHIP_LEVELS;
     return {
-        [levels.INHERIT]: { label: 'Default', icon: 'fa-solid fa-minus', key: 'default' },
-        [levels.OWNER]: { label: 'Owner', icon: 'fa-solid fa-hand', key: 'owner' },
+        [levels.INHERIT]: { label: 'Default', icon: 'fa-solid fa-users', key: 'default' },
+        [levels.OWNER]: { label: 'Owner', icon: 'fa-solid fa-user', key: 'owner' },
         [levels.OBSERVER]: { label: 'Observer', icon: 'fa-solid fa-eye', key: 'observer' },
         [levels.LIMITED]: { label: 'Limited', icon: 'fa-solid fa-eye-low-vision', key: 'limited' },
         [levels.NONE]: { label: 'None', icon: 'fa-solid fa-ban', key: 'none' }
@@ -45,6 +45,7 @@ export class DelegationWindow extends BlacksmithToolWindowBaseV2 {
 
     static ACTION_HANDLERS = {
         'delegation-cycle': (_event, target, win) => win?._cycle(target?.dataset?.actorId, target?.dataset?.userId),
+        'delegation-user': (_event, target, win) => win?._openUser(target?.dataset?.userId),
         'delegation-save': (_event, _target, win) => win?._save(),
         'delegation-reset': (_event, _target, win) => win?._reset()
     };
@@ -79,7 +80,7 @@ export class DelegationWindow extends BlacksmithToolWindowBaseV2 {
                         : '<i class="fa-solid fa-user"></i>';
                     return `<button type="button" class="blacksmith-delegation-cell is-${now.key}${cell.changed ? ' is-changed' : ''}" data-action="delegation-cycle" data-actor-id="${esc(actor.id)}" data-user-id="${esc(player.id)}" data-tooltip="${esc(tip)}">${portrait}<span class="blacksmith-delegation-level"><i class="${now.icon}"></i></span></button>`;
                 }).join('');
-                return `<span class="blacksmith-delegation-rowhead${player.active ? '' : ' is-offline'}" data-tooltip="${esc(player.name)}${player.active ? '' : ' (not connected)'}">${face}<span class="blacksmith-delegation-name">${esc(player.name)}</span></span>${cells}`;
+                return `<button type="button" class="blacksmith-delegation-rowhead${player.active ? '' : ' is-offline'}" data-action="delegation-user" data-user-id="${esc(player.id)}" data-tooltip="Open ${esc(player.name)}'s player configuration${player.active ? '' : ' (not connected)'}">${face}<span class="blacksmith-delegation-name">${esc(player.name)}</span></button>${cells}`;
             }).join('');
             body = `<div class="blacksmith-delegation-scroll"><div class="blacksmith-delegation-grid" style="--delegation-cols: ${actors.length}">${rows}</div></div>`;
         }
@@ -153,6 +154,11 @@ export class DelegationWindow extends BlacksmithToolWindowBaseV2 {
             ui.notifications?.warn(error.message);
         }
         this.render();
+    }
+
+    /** Open the player's own configuration (name, avatar, colour, pronouns, assigned character). */
+    _openUser(userId) {
+        game.users.get(userId)?.sheet?.render({ force: true });
     }
 
     async _save() {
