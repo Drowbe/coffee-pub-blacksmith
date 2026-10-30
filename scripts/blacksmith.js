@@ -108,6 +108,7 @@ import { registerVoteWindow } from './window-vote-config.js';
 import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerRestWindow } from './window-rest.js';
 import { registerStageWindow } from './window-stage.js';
+import { registerDelegationWindow } from './window-delegation.js';
 import { StageManager } from './manager-stage.js';
 import { AwayManager, AwayAPI } from './manager-away.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
@@ -781,6 +782,7 @@ Hooks.once('ready', async () => {
             registerStatusEffectsWindow();
             registerRestWindow();
             registerStageWindow();
+            registerDelegationWindow();
             AwayManager.registerMenubarTool();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.

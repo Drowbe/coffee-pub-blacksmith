@@ -601,7 +601,7 @@ export class StageManager {
     /**
      * The stages to show, each with the people on it. A scene is a stage when it is active, when the GM is looking
      * at it, when someone is looking at it, when someone is assigned to it, when the GM added it by hand, or when it
-     * is in a set. Favorites come first. With a `setId` only that set's scenes are shown, and any scene with people on it.
+     * is in a set. Favorites come first. With a `setId` only that set's scenes are shown, whoever is on the others.
      * Where a connected person IS comes from Foundry (`viewedScene`); a person who is not connected is shown on
      * the scene they are assigned to, if any.
      */
@@ -638,8 +638,8 @@ export class StageManager {
         for (const id of ids) {
             const scene = game.scenes.get(id);
             if (!scene) continue;
-            // Filtered to a set: that set's scenes, and any scene somebody is on so nobody drops out of sight.
-            if (filter && !filter.scenes.includes(id) && !people.get(id)?.length) continue;
+            // Filtered to a set: only that set's scenes. A scene outside it is hidden even with people on it.
+            if (filter && !filter.scenes.includes(id)) continue;
             const combats = game.combats.filter((c) => c.scene?.id === id && c.started).length;
             stages.push({
                 id,

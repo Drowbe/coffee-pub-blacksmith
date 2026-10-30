@@ -4803,6 +4803,20 @@ class MenuBar {
                     }
                 }
             },
+            {
+                name: 'Character Delegation',
+                description: 'Choose who runs which character, for a session when someone is away.',
+                icon: 'fa-solid fa-people-arrows',
+                callback: async () => {
+                    try {
+                        const { DelegationWindow } = await import('./window-delegation.js');
+                        DelegationWindow.open();
+                    } catch (error) {
+                        postConsoleAndNotification(MODULE.NAME, 'Menubar: Error opening Character Delegation:', error, false, false);
+                        ui.notifications.error('Error opening Character Delegation. Check the console for details.');
+                    }
+                }
+            },
             { separator: true },
             {
                 name: 'None',

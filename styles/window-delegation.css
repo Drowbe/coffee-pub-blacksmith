@@ -1,0 +1,144 @@
+/* ------------------------------------ */
+/* --- CHARACTER DELEGATION ----------- */
+/* ------------------------------------ */
+/* scripts/window-delegation.js. A grid: players down the side as cards, characters across. Each cell is the
+   character's portrait with a small icon in its lower right for the player's ownership level. Owner is lit; the other
+   levels step down to dim. One click moves to the next level. */
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-body {
+    padding: 8px;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-scroll {
+    overflow-x: auto;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-grid {
+    display: grid;
+    grid-template-columns: minmax(130px, max-content) repeat(var(--delegation-cols, 1), 52px);
+    gap: 6px;
+    align-items: center;
+    justify-content: start;
+}
+
+/* The player: a card as tall as a portrait cell, so each row reads as one line. Not clickable. */
+.blacksmith-delegation-tool-window .blacksmith-delegation-rowhead {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 52px;
+    box-sizing: border-box;
+    padding: 0 10px 0 5px;
+    border: 2px solid var(--blacksmith-tool-divider);
+    border-radius: var(--blacksmith-radius-lg, 5px);
+    background: var(--blacksmith-tool-surface-raised);
+    white-space: nowrap;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-rowhead.is-offline {
+    opacity: 0.55;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-avatar {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    border: 0;
+    border-radius: var(--blacksmith-radius-md, 4px);
+    object-fit: cover;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-avatar.is-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--blacksmith-tool-surface-hover);
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A cell. The portrait is dim and grey on Default and None, part way up on Limited and Observer, and full colour
+   with a brand-orange ring on Owner. */
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    padding: 0;
+    overflow: hidden;
+    border: 2px solid var(--blacksmith-tool-divider);
+    border-radius: var(--blacksmith-radius-lg, 5px);
+    background: var(--blacksmith-tool-surface-raised);
+    cursor: pointer;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1);
+    opacity: 0.35;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-limited > img {
+    filter: grayscale(0.7);
+    opacity: 0.5;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-observer > img {
+    filter: grayscale(0.4);
+    opacity: 0.7;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell:hover > img {
+    opacity: 0.85;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-owner {
+    border-color: var(--blacksmith-color-brand-accent);
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-owner > img {
+    filter: none;
+    opacity: 1;
+}
+
+/* The level icon, lower right, on a small disc so it reads over any portrait. Owner's is the brand orange. */
+.blacksmith-delegation-tool-window .blacksmith-delegation-level {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: var(--blacksmith-tool-surface-raised);
+    color: var(--blacksmith-tool-text);
+    font-size: 0.6em;
+    pointer-events: none;
+}
+
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-owner .blacksmith-delegation-level {
+    background: var(--blacksmith-color-brand-accent);
+    color: var(--blacksmith-text-inverse, #ffffff);
+}
+
+/* A cell that differs from the remembered default: a dot in the upper right, the sign a delegation is in force (or that
+   a player was taken off one). */
+.blacksmith-delegation-tool-window .blacksmith-delegation-cell.is-changed::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--blacksmith-color-brand-accent);
+    box-shadow: 0 0 0 2px var(--blacksmith-tool-surface-raised);
+}

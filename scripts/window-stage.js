@@ -189,9 +189,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
      */
     _setsBar(sets) {
         const esc = foundry.utils.escapeHTML;
+        // A set holding the active scene is marked with a dot, so the GM can tell where the table is from the list.
+        const activeId = game.scenes.active?.id;
         const options = [
             `<option value=""${this._setFilter ? '' : ' selected'}>All scenes</option>`,
-            ...sets.map((set) => `<option value="${esc(set.id)}"${this._setFilter === set.id ? ' selected' : ''}>${esc(set.name)} (${set.scenes.length})</option>`)
+            ...sets.map((set) => `<option value="${esc(set.id)}"${this._setFilter === set.id ? ' selected' : ''}>${esc(set.name)} (${set.scenes.length})${activeId && set.scenes.includes(activeId) ? ' \u25CF' : ''}</option>`)
         ].join('');
         return `<div class="blacksmith-stage-sets">
             <select class="blacksmith-stage-set-select" data-stage-set-select data-tooltip="Show a set of scenes">${options}</select>

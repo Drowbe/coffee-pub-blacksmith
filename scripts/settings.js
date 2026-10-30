@@ -5739,6 +5739,17 @@ export const registerSettings = () => {
 		default: { assignments: {}, extras: [], order: [], favorites: [], sets: [], lobbyScene: null, lobby: false }
 	});
 
+	// -- CHARACTER DELEGATION DEFAULTS --
+	// { actorId: [userId] }: who owned each character when the GM pressed Set as Default, for Reset to return to. World
+	// scope, only a GM writes it, and not shown in the settings sheet: the Character Delegation window is the only
+	// place it is edited. See scripts/manager-delegation.js.
+	game.settings.register(MODULE.ID, 'delegationDefaults', {
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// -- SETTINGS ADOPTION LEDGERS --
 	// Which sibling-module settings have already been adopted, so adoption never runs
 	// twice and cannot overwrite a value the user changed afterwards. One ledger per
