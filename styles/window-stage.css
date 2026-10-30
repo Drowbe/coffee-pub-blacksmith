@@ -344,8 +344,25 @@
     flex: 0 0 auto;
 }
 
-/* The star on a favorite's title. */
+/* The heart on a favorite's title: the same red heart favorites wear everywhere else in the module. */
 .blacksmith-stage-tool-window .blacksmith-stage-favorite {
     flex: 0 0 auto;
-    color: var(--blacksmith-color-brand-accent);
+    color: rgba(220, 53, 69, 0.95);
+}
+
+/* THE ACTIVE SCENE. The badge and the lit buttons were easy to miss on a busy picture, so the whole card is marked: a
+   brand-orange ring with a soft glow, and a brand-tinted title row. The ring is a box-shadow so nothing shifts, and it
+   steps aside for the reorder bar, which uses the same property. */
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-active-stage:not(.is-drop-before):not(.is-drop-after) {
+    box-shadow:
+        0 0 0 2px var(--blacksmith-color-brand-accent),
+        0 0 14px color-mix(in srgb, var(--blacksmith-color-brand-accent) 55%, transparent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-active-stage .blacksmith-tool-card-head {
+    background: color-mix(in srgb, var(--blacksmith-color-brand-accent) 38%, transparent);
+}
+
+.blacksmith-stage-tool-window .blacksmith-stage-card.is-active-stage .blacksmith-tool-card-title {
+    font-weight: 700;
 }

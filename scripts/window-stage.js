@@ -144,11 +144,11 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 : '';
 
             return `
-                <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
+                <div class="blacksmith-tool-card is-static blacksmith-stage-card${stage.isActive ? ' is-active-stage' : ''}" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-stage-grip" draggable="true" data-stage-grip="${esc(stage.id)}" data-tooltip="Drag to reorder"><i class="fa-solid fa-grip-vertical"></i></span>
-                            ${stage.isFavorite ? '<i class="fa-solid fa-star blacksmith-stage-favorite" data-tooltip="Favorite: always listed first"></i>' : ''}
+                            ${stage.isFavorite ? '<i class="fa-solid fa-heart blacksmith-stage-favorite" data-tooltip="Favorite: always listed first"></i>' : ''}
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}${stage.navName && stage.navName !== stage.name ? ` (${esc(stage.navName)})` : ''}</span>
                             <span class="blacksmith-tool-card-badges">${badges}</span>
                         </span>
@@ -218,7 +218,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
                 return `<span class="blacksmith-tool-chip${p.away ? ' is-away' : ''}" data-tooltip="${esc(tip)}"><span class="blacksmith-stage-face">${face}${status}</span></span>`;
             }).join('');
             return `
-                <div class="blacksmith-tool-card is-static blacksmith-stage-card" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
+                <div class="blacksmith-tool-card is-static blacksmith-stage-card${stage.isActive ? ' is-active-stage' : ''}" data-stage-id="${esc(stage.id)}"${stage.thumb ? ` style="--stage-thumb: url('${esc(encodeURI(thumbnailUrl(stage.thumb)).replace(/'/g, '%27'))}')"` : ''}>
                     <div class="blacksmith-tool-card-head">
                         <span class="blacksmith-tool-card-summary">
                             <span class="blacksmith-tool-card-title">${esc(stage.name)}</span>
@@ -711,7 +711,7 @@ export class StageWindow extends BlacksmithToolWindowBaseV2 {
             { name: 'Edit scene configuration', icon: 'fa-solid fa-pen', onClick: () => this._edit(stage.id) },
             {
                 name: stage.isFavorite ? 'Remove from favorites' : 'Favorite',
-                icon: stage.isFavorite ? 'fa-regular fa-star' : 'fa-solid fa-star',
+                icon: stage.isFavorite ? 'fa-regular fa-heart' : 'fa-solid fa-heart',
                 description: stage.isFavorite ? '' : 'Always listed first',
                 onClick: () => this._toggleFavorite(stage.id, !stage.isFavorite)
             },

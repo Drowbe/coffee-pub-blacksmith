@@ -30,7 +30,7 @@ Which set the panel shows is **not stored**: it is `StageWindow._setFilter`, a w
 
 The row above the cards (`_setsBar`) is one line: a dropdown that fills the width (All scenes, then each set with its count), a pencil that opens a small menu to rename or delete the shown set (disabled on All scenes), and a **New** button that asks for a name through `DialogV2.prompt` and shows the new set. A scene joins a set from its card's "..." menu, which lists each set ticked when the scene is in it, or by dragging a scene out of Foundry's sidebar onto the window while that set is shown: the window's drop handler (`_addScene`) then adds it to the shown set as well as the panel. A native `<select>` is not a drop target, so there is no drag-onto-a-set; an earlier build had a chip per set for that and it was removed as clutter.
 
-**Favorites** are `stageState.favorites`. A favorite sorts above every other card in every view, and the GM's drag order holds within the favorites and within the rest. The card's title carries a star, and the card's "..." menu toggles it. Favorites and sets are the GM's: the player's panel (`playerStages`) shows neither.
+**Favorites** are `stageState.favorites`. A favorite sorts above every other card in every view, and the GM's drag order holds within the favorites and within the rest. The card's title carries a heart (the favorite heart used elsewhere in the module), and the card's "..." menu toggles it. Favorites and sets are the GM's: the player's panel (`playerStages`) shows neither.
 
 ## Lobby and speaking
 
