@@ -556,13 +556,11 @@ export class JournalPagePins {
         if (!targetSceneId || sceneId === targetSceneId) return true;
         const sceneName = game.scenes.get(sceneId)?.name ?? 'another scene';
         const currentName = canvas.scene?.name ?? 'this scene';
-        return foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Move journal pin?' },
+        return DialogAPI.confirm({
+            title: 'Move journal pin?',
             content: `<p>This page already has a pin on <strong>${foundry.utils.escapeHTML(sceneName)}</strong>. Placing on <strong>${foundry.utils.escapeHTML(currentName)}</strong> will move that pin here.</p><p>Use the <strong>multiple pins</strong> toggle to add another pin without moving the existing one.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Move pin',
+            modal: true
         });
     }
 
@@ -574,13 +572,11 @@ export class JournalPagePins {
         if (!targetSceneId || sceneId === targetSceneId) return true;
         const sceneName = game.scenes.get(sceneId)?.name ?? 'another scene';
         const currentName = canvas.scene?.name ?? 'this scene';
-        return foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Move journal pin?' },
+        return DialogAPI.confirm({
+            title: 'Move journal pin?',
             content: `<p>This journal already has a pin on <strong>${foundry.utils.escapeHTML(sceneName)}</strong>. Placing on <strong>${foundry.utils.escapeHTML(currentName)}</strong> will move that pin here.</p><p>Use the <strong>multiple pins</strong> toggle to add another pin without moving the existing one.</p>`,
-            rejectClose: false,
-            modal: true,
-            yes: { default: false },
-            no: { default: true }
+            confirmLabel: 'Move pin',
+            modal: true
         });
     }
 

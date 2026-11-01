@@ -1,5 +1,6 @@
 // Import required modules
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { playSound, postConsoleAndNotification, getSettingSafely, getDiceIcon } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { skillDescriptions, abilityDescriptions, saveDescriptions, toolDescriptions } from '../resources/dictionary.js';
@@ -662,8 +663,8 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
             // ASKED, not assumed. Merging into a library somebody built and replacing
             // it are both reasonable things to want from the same file, and guessing
             // wrong in the replace direction destroys work with no way back.
-            const mode = await foundry.applications.api.DialogV2.wait({
-                window: { title: 'Import Quick Rolls' },
+            const { action: modeAction, value: modeValue } = await DialogAPI.wait({
+                title: 'Import Quick Rolls',
                 content: `<p>Found <strong>${rolls.length}</strong> roll${rolls.length === 1 ? '' : 's'}.</p>
                           <p>Merge them into this world's library, or replace it entirely?</p>`,
                 buttons: [
@@ -671,9 +672,9 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                     { action: 'replace', label: 'Replace All', icon: 'fas fa-triangle-exclamation' },
                     { action: 'cancel', label: 'Cancel', icon: 'fas fa-times' }
                 ],
-                modal: true,
-                rejectClose: false
+                modal: true
             });
+            const mode = modeAction === DialogAPI.ACTIONS.SUBMIT ? modeValue : null;
             if (mode !== 'merge' && mode !== 'replace') return;
 
             const result = await QuickRollsManager.importRolls(rolls, { replace: mode === 'replace' });
@@ -727,10 +728,12 @@ export class SkillCheckDialog extends BlacksmithWindowBaseV2 {
                 // Confirmed, because the row IS the fire button: a misjudged click on a
                 // 22px target next to it would otherwise delete a roll silently, and
                 // nothing on this screen can bring it back.
-                const ok = await foundry.applications.api.DialogV2.confirm({
-                    window: { title: 'Delete Roll' },
+                const ok = await DialogAPI.confirm({
+                    title: 'Delete Roll',
                     content: `<p>Delete <strong>${foundry.utils.escapeHTML(roll?.label ?? 'this roll')}</strong>?</p>`,
-                    modal: true
+                    confirmLabel: 'Delete',
+                    confirmIcon: 'fa-solid fa-trash',
+                    destructive: true
                 });
                 if (!ok) return;
                 await QuickRollsManager.remove(id);

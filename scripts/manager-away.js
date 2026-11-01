@@ -15,6 +15,7 @@
 // See documentation/plans/plan-away-status.md.
 
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { ToastAPI } from './api-toast.js';
@@ -189,18 +190,16 @@ export class AwayManager {
     }
 
     static async _promptAway() {
-        const message = await foundry.applications.api.DialogV2.prompt({
-            window: { title: 'Away', icon: ICON_AWAY },
-            content: '<div class="form-group"><label>Message</label><div class="form-fields"><input type="text" name="message" maxlength="200" placeholder="Back in ten minutes" autofocus></div></div>',
-            ok: {
-                label: 'Go away',
-                icon: ICON_AWAY,
-                callback: (_event, button) => button.form.elements.message.value
-            },
-            rejectClose: false,
+        const { action, value: message } = await DialogAPI.prompt({
+            title: 'Away',
+            content: '<div class="form-group"><label>Message</label><div class="form-fields"><input type="text" name="message" maxlength="200" placeholder="Back in ten minutes"></div></div>',
+            submitLabel: 'Go away',
+            submitIcon: ICON_AWAY,
+            focusSelector: '[name="message"]',
+            getValue: (root) => root.elements.message.value,
             modal: true
         });
-        if (typeof message !== 'string') return;
+        if (action !== DialogAPI.ACTIONS.SUBMIT || typeof message !== 'string') return;
         await this.set(game.user.id, { message });
     }
 

@@ -540,12 +540,14 @@ export class NoteEditorWindow extends BlacksmithToolWindowBaseV2 {
             // this can only be a player removing their own access.
             const input = event.target;
             if (input?.value === game.user.id && input.checked === false) {
-                const ok = await foundry.applications.api.DialogV2.confirm({
-                    window: { title: 'Remove your own access?' },
+                const { DialogAPI } = await import('./api-dialog.js');
+                const ok = await DialogAPI.confirm({
+                    title: 'Remove your own access?',
                     content: '<p>You will not be able to open this note again once you save. '
                         + 'Somebody it is shared with would have to share it back.</p>',
-                    modal: true
-                }).catch(() => false);
+                    confirmLabel: 'Remove access',
+                    destructive: true
+                });
                 if (!ok) {
                     input.checked = true;
                 }

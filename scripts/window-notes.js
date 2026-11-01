@@ -22,6 +22,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { BlacksmithToolWindowBaseV2 } from './window-tool-base.js';
 import { HookManager } from './manager-hooks.js';
@@ -408,11 +409,14 @@ export class NotesWindow extends BlacksmithToolWindowBaseV2 {
         if (!note) return;
         const attached = NotesManager.getByNote(note).length;
 
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Note' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Note',
             content: `<p>Delete <strong>${foundry.utils.escapeHTML(note.name)}</strong>?</p>` +
-                (attached ? `<p>It is attached to ${attached} thing(s). Those links go too.</p>` : '')
-        }).catch(() => false);
+                (attached ? `<p>It is attached to ${attached} thing(s). Those links go too.</p>` : ''),
+            confirmLabel: 'Delete',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
+        });
 
         if (confirmed) await NotesManager.deleteNote(note);
     }

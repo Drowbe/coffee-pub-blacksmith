@@ -1,4 +1,5 @@
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { getSettingSafely, postConsoleAndNotification, formatTime, playSound, getPortraitImage, isPlayerCharacter , fetchTemplateText} from './api-core.js';
 import { RoundTimer } from './timer-round.js';
 import { CombatTracker } from './ui-combat-tracker.js';
@@ -3980,8 +3981,8 @@ export class CombatBarManager {
         // The removals delete tokens from the scene and there is no undo, so
         // each asks first. Reveal does not — it is reversible and used mid-turn.
         const confirmThenRun = (label, question, fn) => async () => {
-            const ok = await foundry.applications.api.DialogV2.confirm({
-                window: { title: label },
+            const ok = await DialogAPI.confirm({
+                title: label,
                 content: `<p>${question}</p>`,
                 modal: true
             });

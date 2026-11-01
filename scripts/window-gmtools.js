@@ -1,4 +1,5 @@
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
@@ -97,13 +98,12 @@ export class CSSEditor extends BlacksmithWindowBaseV2 {
 
         el.querySelector('.clear-button')?.addEventListener('click', async () => {
             if (this._getEditorValue().trim() === '') return;
-            const confirmed = await foundry.applications.api.DialogV2.confirm({
-                window: { title: 'Clear CSS Editor' },
+            const confirmed = await DialogAPI.confirm({
+                title: 'Clear CSS Editor',
                 content: '<p>Are you sure you want to clear all CSS? This cannot be undone.</p>',
-                rejectClose: false,
-                modal: true,
-                yes: { default: false },
-                no: { default: true }
+                confirmLabel: 'Clear',
+                confirmIcon: 'fa-solid fa-trash',
+                destructive: true
             });
             if (!confirmed) return;
             if (this._cmEditor) {

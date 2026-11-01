@@ -9,6 +9,7 @@
 // ==================================================================
 
 import { MODULE, BLACKSMITH } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification, playSound } from './api-core.js';
 import { BlacksmithWindowBaseV2 } from './window-base.js';
 import { ToastManager, sendToastToUsers, broadcastToast, isToastExcludedUser } from './api-toast.js';
@@ -657,14 +658,15 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
 
         let name = selected;
         if (!updating) {
-            name = await foundry.applications.api.DialogV2.prompt({
-                window: { title: 'Save Toast Template' },
-                content: '<input type="text" name="template-name" placeholder="Template name" autofocus maxlength="40">',
-                ok: {
-                    label: 'Save',
-                    callback: (_event, button) => button.form.elements['template-name']?.value?.trim()
-                }
-            }).catch(() => null);
+            const outcome = await DialogAPI.prompt({
+                title: 'Save Toast Template',
+                content: ({ value }) => `<input type="text" class="blacksmith-input" name="template-name" placeholder="Template name" value="${foundry.utils.escapeHTML(value ?? '')}" maxlength="40">`,
+                submitLabel: 'Save',
+                focusSelector: '[name="template-name"]',
+                getValue: (root) => root.elements['template-name']?.value?.trim() ?? '',
+                validate: (value) => value ? null : 'Enter a template name.'
+            });
+            name = outcome.action === DialogAPI.ACTIONS.SUBMIT ? outcome.value : null;
             if (!name) return;
             if (BUILTIN_TEMPLATES[name] || name === CUSTOM_TEMPLATE) {
                 ui.notifications.warn(`"${name}" is a reserved template name — pick another.`);
@@ -703,10 +705,13 @@ export class ToastSendWindow extends BlacksmithWindowBaseV2 {
             ui.notifications.warn('Built-in templates cannot be deleted.');
             return;
         }
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Delete Toast Template' },
-            content: `<p>Delete the template <strong>${foundry.utils.escapeHTML(name)}</strong>?</p>`
-        }).catch(() => false);
+        const confirmed = await DialogAPI.confirm({
+            title: 'Delete Toast Template',
+            content: `<p>Delete the template <strong>${foundry.utils.escapeHTML(name)}</strong>?</p>`,
+            confirmLabel: 'Delete',
+            confirmIcon: 'fa-solid fa-trash',
+            destructive: true
+        });
         if (!confirmed) return;
         const saved = { ...(game.settings.get(MODULE.ID, TEMPLATES_SETTING) || {}) };
         delete saved[name];

@@ -23,6 +23,7 @@
 // knows the driver exists, which is what lets either move independently.
 
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification, getSettingSafely, fetchTemplateText } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
 import { UIContextMenu } from './ui-context-menu.js';
@@ -1158,22 +1159,15 @@ class WorldClockManager {
             <p class="notification info">Sets the time of day. The date does not change.</p>
         `;
 
-        let form;
-        try {
-            form = await foundry.applications.api.DialogV2.prompt({
-                window: { title: 'Set Time', icon: 'fa-solid fa-clock' },
-                content,
-                ok: {
-                    label: 'Set Time',
-                    callback: (_event, button) => new FormDataExtended(button.form).object
-                }
-            });
-        } catch {
-            // Cancelled. DialogV2 rejects rather than resolving, which is not an error.
-            return;
-        }
+        const { action, value: form } = await DialogAPI.prompt({
+            title: 'Set Time',
+            content,
+            submitLabel: 'Set Time',
+            submitIcon: 'fa-solid fa-clock',
+            getValue: (root) => new FormDataExtended(root).object
+        });
 
-        if (!form) return;
+        if (action !== DialogAPI.ACTIONS.SUBMIT || !form) return;
 
         const hour = Math.min(Math.max(Math.floor(Number(form.hour) || 0), 0), hoursPerDay - 1);
         const minute = Math.min(Math.max(Math.floor(Number(form.minute) || 0), 0), minutesPerHour - 1);

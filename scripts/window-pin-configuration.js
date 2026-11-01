@@ -6,6 +6,7 @@
 // ==================================================================
 
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification } from './api-core.js';
 import {
     normalizeTextLayout,
@@ -279,10 +280,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
 
         const sectionNames = [...checked].join(', ');
         const tagNote = tagFilter.size > 0 ? ` with tag${tagFilter.size !== 1 ? 's' : ''} <strong>${[...tagFilter].join(', ')}</strong>` : '';
-        const confirmed = await foundry.applications.api.DialogV2.confirm({
-            window: { title: 'Update All Matching Pins' },
+        const confirmed = await DialogAPI.confirm({
+            title: 'Update All Matching Pins',
             content: `<p>Apply <strong>${sectionNames}</strong> to <strong>${peers.length}</strong> other ${pin.type || 'default'} pin${peers.length !== 1 ? 's' : ''}${tagNote} on this scene?</p>`,
-            rejectClose: false,
+            confirmLabel: 'Update',
             modal: true
         });
         if (!confirmed) return;

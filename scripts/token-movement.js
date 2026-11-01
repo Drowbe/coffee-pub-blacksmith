@@ -3,6 +3,7 @@
 // ================================================================== 
 
 import { MODULE } from './const.js';
+import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification, playSound, playSoundLooping, stopSoundByPath, stopSoundByKey, getSettingSafely } from './api-core.js';
 import { SocketManager } from './manager-sockets.js';
 import { MenuBar } from "./api-menubar.js";
@@ -197,14 +198,12 @@ async function _showPlayerRequestMoveDialog(tokenDocument, changes, userId) {
         return;
     }
 
-    const DialogV2 = foundry.applications.api.DialogV2;
-    return DialogV2.wait({
-        window: { title: 'Request move' },
+    return DialogAPI.wait({
+        title: 'Request move',
         content:
             '<p class="blacksmith-request-move-prompt" style="display:flex;gap:0.65em;align-items:flex-start;margin:0 0 0.25em 0">' +
             '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
             '<span>Ask the GM to allow this move?</span></p>',
-        rejectClose: false,
         buttons: [
             {
                 action: 'cancel',
@@ -269,14 +268,12 @@ export async function handleMovementRequestAskGM(data) {
     const safeRequester = foundry.utils.escapeHTML(String(requesterName ?? 'A player'));
     const safeToken = foundry.utils.escapeHTML(String(tokenName ?? 'Token'));
 
-    const DialogV2 = foundry.applications.api.DialogV2;
-    void DialogV2.wait({
-        window: { title: 'Token move request' },
+    void DialogAPI.wait({
+        title: 'Token move request',
         content:
             '<p class="blacksmith-request-move-gm" style="display:flex;gap:0.65em;align-items:flex-start;margin:0">' +
             '<i class="fa-solid fa-person-circle-question fa-2x" aria-hidden="true"></i>' +
             `<span>${safeRequester} wants to move <strong>${safeToken}</strong>. Allow?</span></p>`,
-        rejectClose: false,
         buttons: [
             {
                 action: 'no',
