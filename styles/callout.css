@@ -10,7 +10,7 @@
 
    <div class="blacksmith-callout" data-side="top" style="--blacksmith-callout-tail: 40px">
        <div class="blacksmith-callout-head">
-           <img class="blacksmith-callout-image" src="" alt=""> | <span class="blacksmith-callout-icon"><i class="fa-solid fa-route"></i></span>
+           <span class="blacksmith-callout-image"><img src="" alt="" data-fit="cover"></span> | <span class="blacksmith-callout-icon"><i class="fa-solid fa-route"></i></span>
            <div class="blacksmith-callout-titles">
                <div class="blacksmith-callout-title">Phlan to Melvaunt</div>
                <div class="blacksmith-callout-subtitle">Road</div>
@@ -61,7 +61,7 @@
     padding: var(--blacksmith-space-lg, 12px);
     background: var(--blacksmith-callout-bg);
     border: var(--blacksmith-callout-line-width) solid var(--blacksmith-callout-line);
-    border-radius: var(--blacksmith-callout-radius, var(--blacksmith-radius-lg, 5px));
+    border-radius: var(--blacksmith-radius-lg, 5px);
     box-shadow: var(--blacksmith-callout-shadow, var(--blacksmith-shadow-lg, 0 4px 10px rgba(0, 0, 0, 0.6)));
     color: var(--blacksmith-callout-ink);
     font-size: var(--blacksmith-callout-text-size, var(--blacksmith-font-size-sm, 0.85em));
@@ -120,13 +120,27 @@
     flex: 0 0 auto;
     width: 40px;
     height: 40px;
-    border-radius: calc(var(--blacksmith-callout-radius, var(--blacksmith-radius-lg, 5px)) * 0.8);
+    border-radius: calc(var(--blacksmith-radius-lg, 5px) * 0.8);
 }
 
 .blacksmith-callout-image {
-    object-fit: cover;
+    overflow: hidden;
     border: 1px solid var(--blacksmith-tool-divider);
 }
+
+.blacksmith-callout-image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* The fits a pin image offers. zoom is cover, scaled about the middle; the tile clips it. */
+.blacksmith-callout-image img[data-fit="contain"] { object-fit: contain; }
+.blacksmith-callout-image img[data-fit="fill"] { object-fit: fill; }
+.blacksmith-callout-image img[data-fit="none"] { object-fit: none; }
+.blacksmith-callout-image img[data-fit="scale-down"] { object-fit: scale-down; }
+.blacksmith-callout-image img[data-fit="zoom"] { transform: scale(var(--blacksmith-callout-image-zoom, 1)); }
 
 .blacksmith-callout-icon {
     display: flex;

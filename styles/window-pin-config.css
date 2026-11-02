@@ -290,11 +290,14 @@ div.blacksmith-pin-config-window .window-content {
 }
 
 /* Image Fit Zoom row */
-.blacksmith-pin-config-image-zoom-row.is-hidden {
+.blacksmith-pin-config-image-zoom-row.is-hidden,
+.blacksmith-pin-config-callout-image-zoom-row.is-hidden,
+.blacksmith-pin-config-callout-image-custom.is-hidden {
     display: none !important;
 }
 
-.blacksmith-pin-config-image-zoom-row {
+.blacksmith-pin-config-image-zoom-row,
+.blacksmith-pin-config-callout-image-zoom-row {
     display: flex;
     align-items: flex-end;
 }

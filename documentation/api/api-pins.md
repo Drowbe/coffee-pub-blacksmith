@@ -362,7 +362,8 @@ interface StoredPinData {
   textLayout?: 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'; // Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is accepted and treated as 'arc-below'.
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
   calloutDisplay?: 'never' | 'hover'; // Data box shown while the pointer is on the pin (default: 'never'). See Callout
-  calloutStyle?: { width?: number; shape?: 'rounded' | 'square'; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }; // How the box looks: the pin's own design options plus text. Colours are hex
+  calloutImage?: { mode?: 'pin' | 'none' | 'custom'; src?: string; fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down' | 'zoom'; zoom?: number }; // The callout's picture: mirror the pin (default), none, or a custom image with its fit and zoom (1 to 2)
+  calloutStyle?: { width?: number; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }; // How the box looks: the pin's own design options plus text. Colours are hex
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)

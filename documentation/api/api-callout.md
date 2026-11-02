@@ -49,6 +49,8 @@ Shows a callout, or replaces the one already open under that id. Returns a funct
 | `title` | string | Required |
 | `subtitle` | string | Under the title, muted |
 | `image` | string | An image URL, shown as a 40px thumbnail. Wins over `icon` |
+| `imageFit` | string | How the image fills its tile: `cover` (default), `contain`, `fill`, `none`, `scale-down` or `zoom`, the words a pin image takes |
+| `imageZoom` | number | With `imageFit: 'zoom'`: 1 to 2, 1 being the same as cover |
 | `icon` | string | Font Awesome classes, shown in a tile where an image would be |
 | `badges` | `Array<string \| { text, variant?, icon? }>` | A string is a plain badge |
 | `body` | string | Plain text; line breaks are kept. Scrolls past about nine lines |
@@ -69,7 +71,6 @@ The same options a pin has, plus its text. Every field is optional, and one that
 | `fill` | `#rrggbb` | Background |
 | `stroke` | `#rrggbb` | Border colour |
 | `strokeWidth` | number | Border width in pixels, 0 to 8 |
-| `shape` | `'rounded'` \| `'square'` | Corners |
 | `dropShadow` | boolean | `false` removes the shadow |
 | `iconColor` | `#rrggbb` | The icon in the head tile |
 | `textColor` | `#rrggbb` | All text. Muted parts (subtitle, row labels, footer), the badges and the buttons are worked out from it |
@@ -105,4 +106,4 @@ Returns whether a callout is open under that id.
 
 ## Pins
 
-Every pin can show a callout. Set **Show: Hover** in the Callout section of Configure Pin (Appearance tab), or set `calloutDisplay: 'hover'` when creating the pin. It shows while the pointer is on the pin and goes when the pin is pressed or dragged. The pin's `calloutStyle` (width, shape, background, border, icon colour, drop shadow, text colour and size) is passed as the callout's `style`. See [Pins](api-pins.md) for what it holds and how a module adds data to it.
+Every pin can show a callout. Set **Show: Hover** in the Callout section of Configure Pin (Appearance tab), or set `calloutDisplay: 'hover'` when creating the pin. It shows while the pointer is on the pin and goes when the pin is pressed or dragged. The pin's **Image** setting picks the picture: **None**, **Mirror pin** (its own image or icon, the default) or **Custom image** (a URL with the same fit and zoom options as a pin image), stored as `calloutImage`. The pin's `calloutStyle` (width, background, border, icon colour, drop shadow, text colour and size) is passed as the callout's `style`. See [Pins](api-pins.md) for what it holds and how a module adds data to it.

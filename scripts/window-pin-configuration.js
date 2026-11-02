@@ -11,6 +11,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import {
     PIN_DEFAULTS,
     normalizeCalloutStyle,
+    normalizeCalloutImage,
     normalizeTextLayout,
     normalizePinTags,
     normalizeBlacksmithAccess,
@@ -108,6 +109,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._defaultMode = false;
         this.activeTab = null; // 'general' | 'tags' | 'pin' | 'appearance' | 'animations'; kept here so a re-render stays on the tab
         this.pinCalloutStyle = { ...PIN_DEFAULTS.calloutStyle };
+        this.pinCalloutImage = { ...PIN_DEFAULTS.calloutImage };
     }
 
     /**
@@ -174,6 +176,22 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         return normalizeCalloutStyle(style, this.pinCalloutStyle);
     }
 
+    /**
+     * The callout picture as the form shows it, checked by the pin store's own normaliser.
+     * @param {HTMLElement} root - The Callout section
+     * @returns {object}
+     * @private
+     */
+    _readCalloutImage(root) {
+        const picture = {};
+        root?.querySelectorAll('[data-callout-image-field]').forEach((el) => {
+            const key = el.dataset.calloutImageField;
+            if (key === 'zoomPercent') picture.zoom = Number(el.value) / 100;
+            else picture[key] = el.value;
+        });
+        return normalizeCalloutImage(picture, this.pinCalloutImage);
+    }
+
     _buildPinUpdateData({ sizeInput, imagePreview, shapeInput, strokeWidthInput,
         fillInput, strokeInput, iconColorInput, shadowInput, textLayoutInput, textDisplayInput,
         textColorInput, textSizeInput, textMaxLengthInput, textMaxWidthInput, textScaleInput,
@@ -218,6 +236,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             textDisplay: this.pinTextDisplay,
             calloutDisplay: this.pinCalloutDisplay,
             calloutStyle: this._readCalloutStyle(nativeHtml.querySelector('.blacksmith-pin-config-callout-section')),
+            calloutImage: this._readCalloutImage(nativeHtml.querySelector('.blacksmith-pin-config-callout-section')),
             textColor: this.pinTextColor,
             textSize: clampTS(textSizeInput?.value, this.pinTextSize),
             textMaxLength: clampLen(textMaxLengthInput?.value),
@@ -284,6 +303,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         if (checked.has('callout')) {
             partial.calloutDisplay = fullUpdateData.calloutDisplay;
             partial.calloutStyle = fullUpdateData.calloutStyle;
+            partial.calloutImage = fullUpdateData.calloutImage;
         }
         if (checked.has('animations')) {
             partial.eventAnimations = fullUpdateData.eventAnimations;
@@ -498,6 +518,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTextDisplay = pin.textDisplay || 'always';
         this.pinCalloutDisplay = pin.calloutDisplay || 'never';
         this.pinCalloutStyle = normalizeCalloutStyle(pin.calloutStyle);
+        this.pinCalloutImage = normalizeCalloutImage(pin.calloutImage);
         this.pinTextColor = pin.textColor || '#ffffff';
         this.pinTextSize = pin.textSize || 12;
         this.pinTextMaxLength = pin.textMaxLength ?? 0;
@@ -675,6 +696,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             pinTextDisplay: this.pinTextDisplay,
             pinCalloutDisplay: this.pinCalloutDisplay,
             pinCalloutStyle: this.pinCalloutStyle,
+            pinCalloutImage: this.pinCalloutImage,
+            pinCalloutImageZoomPercent: Math.round(this.pinCalloutImage.zoom * 100),
             pinTextColor: this.pinTextColor,
             pinTextSize: this.pinTextSize,
             pinTextMaxLength: this.pinTextMaxLength,
@@ -1033,7 +1056,33 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         });
         // The Callout section: a colour's text box and its picker are one value, and the form's state follows every edit
         const calloutSection = nativeHtml.querySelector('.blacksmith-pin-config-callout-section');
+        const calloutImageMode = nativeHtml.querySelector('.blacksmith-pin-config-callout-image-mode');
+        const calloutImageSrc = nativeHtml.querySelector('.blacksmith-pin-config-callout-image-src');
+        const syncCalloutImage = () => {
+            const picture = this._readCalloutImage(calloutSection);
+            this.pinCalloutImage = picture;
+            calloutSection.querySelector('.blacksmith-pin-config-callout-image-custom')?.classList.toggle('is-hidden', picture.mode !== 'custom');
+            calloutSection.querySelector('.blacksmith-pin-config-callout-image-zoom-row')?.classList.toggle('is-hidden', picture.fit !== 'zoom');
+            const label = calloutSection.querySelector('.blacksmith-pin-config-callout-image-zoom-row .blacksmith-pin-config-zoom-value');
+            if (label) label.textContent = `${Math.round(picture.zoom * 100)}%`;
+            const preview = calloutSection.querySelector('.blacksmith-pin-config-callout-image-preview');
+            if (preview) {
+                preview.src = picture.src;
+                preview.classList.toggle('is-hidden', !picture.src);
+            }
+        };
+        calloutSection?.querySelector('.blacksmith-pin-config-callout-image-browse')?.addEventListener('click', () => {
+            const FilePicker = foundry.applications.apps.FilePicker.implementation;
+            new FilePicker({
+                type: 'image',
+                callback: (path) => {
+                    if (calloutImageSrc) calloutImageSrc.value = path;
+                    syncCalloutImage();
+                }
+            }).browse();
+        });
         calloutSection?.addEventListener('input', (event) => {
+            if (event.target.dataset?.calloutImageField) syncCalloutImage();
             const target = event.target;
             const isPicker = target.matches?.('input[type="color"]');
             const key = isPicker ? target.dataset.calloutPicker : target.dataset?.calloutField;
@@ -1246,7 +1295,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                             ...(has('source') ? { image: pinUpdateData.image, imageFit: pinUpdateData.imageFit, imageZoom: pinUpdateData.imageZoom } : {}),
                             ...(has('design') ? { size: configData.pinSize, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
                             ...(has('text') ? configData.pinTextConfig : {}),
-                            ...(has('callout') ? { calloutDisplay: pinUpdateData.calloutDisplay, calloutStyle: pinUpdateData.calloutStyle } : {}),
+                            ...(has('callout') ? { calloutDisplay: pinUpdateData.calloutDisplay, calloutStyle: pinUpdateData.calloutStyle, calloutImage: pinUpdateData.calloutImage } : {}),
                             ...(has('animations') ? { eventAnimations: pinUpdateData.eventAnimations } : {}),
                             ...(has('classification') ? { tags: pinUpdateData.tags } : {}),
                             ...(has('permissions') ? {

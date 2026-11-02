@@ -28,7 +28,8 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
  * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
  * @property {'never' | 'hover'} [calloutDisplay] - Whether a data box (api.callout) opens while the pointer is on the pin: 'never' (default) or 'hover'. Its content is the pin's own data plus `config.callout` ({ subtitle, badges, body, rows, footer }).
- * @property {{ width?: number; shape?: 'rounded' | 'square'; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }} [calloutStyle] - How the pin's callout looks: the pin's own design options (size as `width`, shape, background, border, icon colour, drop shadow) and its text options (colour, size). Colours are hex.
+ * @property {{ width?: number; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }} [calloutStyle] - How the pin's callout looks: the pin's own design options (size as `width`, background, border, icon colour, drop shadow) and its text options (colour, size). Colours are hex.
+ * @property {{ mode?: 'pin' | 'none' | 'custom'; src?: string; fit?: string; zoom?: number }} [calloutImage] - The callout's picture: 'pin' (default) mirrors the pin's own image or icon, 'none' shows no picture, 'custom' shows `src` with the pin image's fit and zoom options.
  * @property {string} [textColor] - Text color (default: '#ffffff')
  * @property {number} [textSize] - Text size in pixels (default: 12)
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
@@ -205,7 +206,8 @@ export const PIN_DEFAULTS = Object.freeze({
     textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
     textDisplay: 'hover', // 'always' | 'hover' | 'never' | 'gm'
     calloutDisplay: 'never', // 'never' | 'hover': the data box shown while the pointer is on the pin (utility-pin-callout.js)
-    calloutStyle: { width: 280, shape: 'rounded', fill: '#222222', stroke: '#3d3d3d', strokeWidth: 1, iconColor: '#ffffff', dropShadow: true, textColor: '#ffffff', textSize: 12 },
+    calloutStyle: { width: 280, fill: '#222222', stroke: '#3d3d3d', strokeWidth: 1, iconColor: '#ffffff', dropShadow: true, textColor: '#ffffff', textSize: 12 },
+    calloutImage: { mode: 'pin', src: '', fit: 'cover', zoom: 1 },
     textColor: '#ffffff',
     textSize: 12,
     textMaxLength: 0, // 0 = no limit
@@ -221,6 +223,23 @@ export const PIN_DEFAULTS = Object.freeze({
     imageZoom: 1, // When imageFit is 'zoom': 1 = same as cover, 1.5 = 50% zoom in (clamped 1–2)
     config: {}
 });
+
+/**
+ * A pin's callout picture, checked field by field over `base` like the style is. `fit` and `zoom` are the pin image's own options.
+ * @param {object} value
+ * @param {object} [base]
+ * @returns {NonNullable<PinData['calloutImage']>}
+ */
+export function normalizeCalloutImage(value, base = PIN_DEFAULTS.calloutImage) {
+    const out = { ...PIN_DEFAULTS.calloutImage, ...base };
+    if (!value || typeof value !== 'object') return out;
+    if (value.mode === 'pin' || value.mode === 'none' || value.mode === 'custom') out.mode = value.mode;
+    if (typeof value.src === 'string') out.src = value.src.trim();
+    if (['cover', 'contain', 'fill', 'none', 'scale-down', 'zoom'].includes(value.fit)) out.fit = value.fit;
+    const zoom = Number(value.zoom);
+    if (value.zoom !== '' && value.zoom != null && Number.isFinite(zoom)) out.zoom = Math.max(1, Math.min(2, zoom));
+    return out;
+}
 
 /**
  * A pin's callout style, checked field by field over `base`: a value that is not valid is dropped and the
@@ -245,7 +264,6 @@ export function normalizeCalloutStyle(value, base = PIN_DEFAULTS.calloutStyle) {
     if (strokeWidth != null) out.strokeWidth = strokeWidth;
     const textSize = value.textSize === '' ? null : whole(value.textSize, 8, 32);
     if (textSize != null) out.textSize = textSize;
-    if (value.shape === 'rounded' || value.shape === 'square') out.shape = value.shape;
     if (typeof value.dropShadow === 'boolean') out.dropShadow = value.dropShadow;
     return out;
 }
@@ -397,6 +415,7 @@ export function applyDefaults(partial) {
         textDisplay: PIN_DEFAULTS.textDisplay,
         calloutDisplay: PIN_DEFAULTS.calloutDisplay,
         calloutStyle: { ...PIN_DEFAULTS.calloutStyle },
+        calloutImage: { ...PIN_DEFAULTS.calloutImage },
         textColor: PIN_DEFAULTS.textColor,
         textSize: PIN_DEFAULTS.textSize,
         textMaxLength: PIN_DEFAULTS.textMaxLength,
@@ -465,6 +484,7 @@ export function applyDefaults(partial) {
         if (callout === 'never' || callout === 'hover') base.calloutDisplay = callout;
     }
     if (partial.calloutStyle != null) base.calloutStyle = normalizeCalloutStyle(partial.calloutStyle, base.calloutStyle);
+    if (partial.calloutImage != null) base.calloutImage = normalizeCalloutImage(partial.calloutImage, base.calloutImage);
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
     if (partial.textMaxLength !== undefined) {

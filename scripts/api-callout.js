@@ -29,6 +29,7 @@ import { HookManager } from './manager-hooks.js';
 const LAYER_ID = 'blacksmith-callout-layer';
 const HOOK_CONTEXT = 'blacksmith-callout';
 const BADGE_VARIANTS = new Set(['accent', 'success', 'danger', 'warning', 'info']);
+const IMAGE_FITS = new Set(['cover', 'contain', 'fill', 'none', 'scale-down', 'zoom']);
 const SIDES = ['top', 'bottom', 'right', 'left'];
 const GAP = 10;           // px between the anchor and the box (the tail lives in it)
 const MARGIN = 8;         // px kept clear of the viewport edge
@@ -62,14 +63,14 @@ function icon(value) {
 const HEX = /^#[0-9a-f]{3,8}$/i;
 const STYLE_VARS = [
     '--blacksmith-callout-fill', '--blacksmith-callout-stroke', '--blacksmith-callout-stroke-width',
-    '--blacksmith-callout-radius', '--blacksmith-callout-shadow', '--blacksmith-callout-icon-color',
+    '--blacksmith-callout-shadow', '--blacksmith-callout-icon-color',
     '--blacksmith-callout-text', '--blacksmith-callout-text-size'
 ];
 
 /**
  * Put `spec.style` on the box as custom properties, which callout.css reads. This is the one door for
- * appearance and it is closed to anything but a measured value: colours are hex, numbers are clamped,
- * the shape is one of two words. Nothing the caller passes reaches a stylesheet or an attribute as text.
+ * appearance and it is closed to anything but a measured value: colours are hex, numbers are clamped.
+ * Nothing the caller passes reaches a stylesheet or an attribute as text.
  * Whatever is absent or invalid keeps the stylesheet's own look.
  */
 function applyStyle(el, style) {
@@ -86,7 +87,6 @@ function applyStyle(el, style) {
     if (strokeWidth != null) set('--blacksmith-callout-stroke-width', `${strokeWidth}px`);
     const textSize = whole('textSize', 8, 32);
     if (textSize != null) set('--blacksmith-callout-text-size', `${textSize}px`);
-    if (style.shape === 'square') set('--blacksmith-callout-radius', '0px');
     if (style.dropShadow === false) set('--blacksmith-callout-shadow', 'none');
 }
 
@@ -129,8 +129,10 @@ function renderActions(spec) {
 }
 
 function renderMarkup(spec) {
+    const fit = IMAGE_FITS.has(spec.imageFit) ? spec.imageFit : 'cover';
+    const zoom = Math.max(1, Math.min(2, Number(spec.imageZoom) || 1));
     const media = spec.image
-        ? `<img class="blacksmith-callout-image" src="${esc(spec.image)}" alt="">`
+        ? `<span class="blacksmith-callout-image"><img src="${esc(spec.image)}" alt="" data-fit="${fit}" style="--blacksmith-callout-image-zoom: ${zoom}"></span>`
         : (faClass(spec.icon) ? `<span class="blacksmith-callout-icon">${icon(spec.icon)}</span>` : '');
     const titles = `<div class="blacksmith-callout-titles"><div class="blacksmith-callout-title">${esc(spec.title)}</div>${spec.subtitle ? `<div class="blacksmith-callout-subtitle">${esc(spec.subtitle)}</div>` : ''}</div>`;
     const badges = (spec.badges ?? []).length
@@ -321,6 +323,8 @@ export const CalloutAPI = {
      * @param {string} spec.title
      * @param {string} [spec.subtitle]
      * @param {string} [spec.image] - Image URL; wins over `icon`
+     * @param {'cover'|'contain'|'fill'|'none'|'scale-down'|'zoom'} [spec.imageFit='cover'] - How `image` fills its tile; the same words a pin image takes
+     * @param {number} [spec.imageZoom=1] - With `imageFit: 'zoom'`: 1 to 2, 1 being the same as cover
      * @param {string} [spec.icon] - Font Awesome classes, e.g. `fa-solid fa-route`
      * @param {Array<string | {text: string, variant?: 'accent'|'success'|'danger'|'warning'|'info', icon?: string}>} [spec.badges]
      * @param {string} [spec.body] - Plain text; line breaks are kept

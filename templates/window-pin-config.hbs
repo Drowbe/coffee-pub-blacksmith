@@ -340,6 +340,15 @@
                 <div class="blacksmith-window-section-body">
                     <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text display</span>
+                            <select class="blacksmith-input blacksmith-pin-config-text-display">
+                                <option value="always" {{#if (eq pinTextDisplay "always")}}selected{{/if}}>Always</option>
+                                <option value="hover" {{#if (eq pinTextDisplay "hover")}}selected{{/if}}>Hover</option>
+                                <option value="never" {{#if (eq pinTextDisplay "never")}}selected{{/if}}>Never</option>
+                                <option value="gm" {{#if (eq pinTextDisplay "gm")}}selected{{/if}}>GM only</option>
+                            </select>
+                        </label>
+                        <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Text layout</span>
                             <select class="blacksmith-input blacksmith-pin-config-text-layout">
                                 <option value="under" {{#if (eq pinTextLayout "under")}}selected{{/if}}>Below the Pin</option>
@@ -349,15 +358,6 @@
                                 <option value="arc-below" {{#if (eq pinTextLayout "arc-below")}}selected{{/if}}>Arc Below the Pin</option>
                                 <option value="arc-above" {{#if (eq pinTextLayout "arc-above")}}selected{{/if}}>Arc Above the Pin</option>
                                 <option value="over" {{#if (eq pinTextLayout "over")}}selected{{/if}}>Overlay the Pin</option>
-                            </select>
-                        </label>
-                        <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Text display</span>
-                            <select class="blacksmith-input blacksmith-pin-config-text-display">
-                                <option value="always" {{#if (eq pinTextDisplay "always")}}selected{{/if}}>Always</option>
-                                <option value="hover" {{#if (eq pinTextDisplay "hover")}}selected{{/if}}>Hover</option>
-                                <option value="never" {{#if (eq pinTextDisplay "never")}}selected{{/if}}>Never</option>
-                                <option value="gm" {{#if (eq pinTextDisplay "gm")}}selected{{/if}}>GM only</option>
                             </select>
                         </label>
                     </div>
@@ -407,6 +407,48 @@
                     </span>
                 </div>
                 <div class="blacksmith-window-section-body">
+                    {{!-- The picture at the head of the box: none, the pin's own image or icon, or one of its own with the pin image's fit options --}}
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Image</span>
+                            <select class="blacksmith-input blacksmith-pin-config-callout-image-mode" data-callout-image-field="mode">
+                                <option value="none" {{#if (eq pinCalloutImage.mode "none")}}selected{{/if}}>None</option>
+                                <option value="pin" {{#if (eq pinCalloutImage.mode "pin")}}selected{{/if}}>Mirror pin</option>
+                                <option value="custom" {{#if (eq pinCalloutImage.mode "custom")}}selected{{/if}}>Custom image</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="blacksmith-pin-config-callout-image-custom {{#unless (eq pinCalloutImage.mode "custom")}}is-hidden{{/unless}}">
+                        <div class="blacksmith-field-row">
+                            <label class="blacksmith-field">
+                                <span class="blacksmith-field-label">Image Fit</span>
+                                <select class="blacksmith-input blacksmith-pin-config-callout-image-fit" data-callout-image-field="fit">
+                                    <option value="cover" {{#if (eq pinCalloutImage.fit "cover")}}selected{{/if}}>Cover</option>
+                                    <option value="contain" {{#if (eq pinCalloutImage.fit "contain")}}selected{{/if}}>Contain</option>
+                                    <option value="fill" {{#if (eq pinCalloutImage.fit "fill")}}selected{{/if}}>Fill</option>
+                                    <option value="none" {{#if (eq pinCalloutImage.fit "none")}}selected{{/if}}>Actual Size</option>
+                                    <option value="scale-down" {{#if (eq pinCalloutImage.fit "scale-down")}}selected{{/if}}>Scale Down</option>
+                                    <option value="zoom" {{#if (eq pinCalloutImage.fit "zoom")}}selected{{/if}}>Zoom</option>
+                                </select>
+                            </label>
+                            <div class="blacksmith-pin-config-callout-image-zoom-row {{#unless (eq pinCalloutImage.fit "zoom")}}is-hidden{{/unless}}">
+                                <label class="blacksmith-field">
+                                    <span class="blacksmith-field-label">Zoom level</span>
+                                    <div class="blacksmith-pin-config-zoom-control">
+                                        <input type="range" class="blacksmith-pin-config-callout-image-zoom" data-callout-image-field="zoomPercent" min="100" max="200" step="5" value="{{pinCalloutImageZoomPercent}}" data-tooltip="100% = same as Cover">
+                                        <span class="blacksmith-pin-config-zoom-value">{{pinCalloutImageZoomPercent}}%</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="blacksmith-pin-config-image-row">
+                            <input type="text" class="blacksmith-input blacksmith-pin-config-callout-image-src" data-callout-image-field="src" placeholder="Paste image URL..." value="{{pinCalloutImage.src}}">
+                            <button type="button" class="blacksmith-window-btn-secondary blacksmith-pin-config-callout-image-browse"><i class="fa-solid fa-folder-open"></i> Browse</button>
+                        </div>
+                        <div class="blacksmith-pin-config-image-preview-wrap">
+                            <img class="blacksmith-pin-config-image-preview blacksmith-pin-config-callout-image-preview {{#unless pinCalloutImage.src}}is-hidden{{/unless}}" src="{{pinCalloutImage.src}}" alt="Callout image preview">
+                        </div>
+                    </div>
                     <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Show</span>
@@ -422,17 +464,17 @@
                     </div>
                     <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Shape</span>
-                            <select class="blacksmith-input" data-callout-field="shape">
-                                <option value="rounded" {{#if (eq pinCalloutStyle.shape "rounded")}}selected{{/if}}>Rounded</option>
-                                <option value="square" {{#if (eq pinCalloutStyle.shape "square")}}selected{{/if}}>Square</option>
-                            </select>
-                        </label>
-                        <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Background</span>
                             <div class="blacksmith-pin-config-color-row">
                                 <input type="text" class="blacksmith-input blacksmith-pin-config-color-text" data-callout-field="fill" value="{{pinCalloutStyle.fill}}">
                                 <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="fill" value="{{pinCalloutStyle.fill}}">
+                            </div>
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text color</span>
+                            <div class="blacksmith-pin-config-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text" data-callout-field="textColor" value="{{pinCalloutStyle.textColor}}">
+                                <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="textColor" value="{{pinCalloutStyle.textColor}}">
                             </div>
                         </label>
                     </div>
@@ -463,13 +505,6 @@
                         <span class="blacksmith-toggle-label">Drop shadow</span>
                     </div>
                     <div class="blacksmith-field-row">
-                        <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Text color</span>
-                            <div class="blacksmith-pin-config-color-row">
-                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text" data-callout-field="textColor" value="{{pinCalloutStyle.textColor}}">
-                                <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="textColor" value="{{pinCalloutStyle.textColor}}">
-                            </div>
-                        </label>
                         <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Text size</span>
                             <input type="number" class="blacksmith-input" data-callout-field="textSize" min="8" max="32" step="1" value="{{pinCalloutStyle.textSize}}">

@@ -9,7 +9,8 @@
 // What the box holds, and where each part comes from:
 //   - title      the pin's text, else its type's registered name
 //   - subtitle   `config.callout.subtitle`, else the type's name (when the title is not already that)
-//   - image/icon the pin's own image or Font Awesome icon
+//   - image/icon the pin's own image or Font Awesome icon (`calloutImage.mode` 'pin'), a custom image with its own
+//                fit and zoom ('custom'), or none
 //   - badges     `config.callout.badges`, else the pin's tags
 //   - body, rows `config.callout.body` and `config.callout.rows` -- the data a module hangs on its own pins
 //   - buttons    the pin context menu's registered items (the same ones, in the same order), plus Configure
@@ -34,8 +35,10 @@ async function specFor(pin) {
     const typeLabel = PinManager.getPinTypeLabel(pin.moduleId, pin.type) || '';
 
     const title = pin.text?.trim() || typeLabel || 'Pin';
-    const image = pin.image ?? '';
-    const isIcon = /^fa[a-z-]*\s|\bfa-/.test(image);
+    const picture = pin.calloutImage ?? {};
+    const mode = picture.mode ?? 'pin';
+    const image = mode === 'custom' ? (picture.src ?? '') : (mode === 'pin' ? (pin.image ?? '') : '');
+    const isIcon = mode === 'pin' && /^fa[a-z-]*\s|\bfa-/.test(image);
 
     const actions = PinManager.getContextMenuItems(pin, userId)
         .filter((item) => !item.submenu)
@@ -53,6 +56,8 @@ async function specFor(pin) {
         title,
         subtitle: cfg.subtitle ?? (typeLabel && typeLabel !== title ? typeLabel : undefined),
         image: image && !isIcon ? image : undefined,
+        imageFit: mode === 'custom' ? picture.fit : (mode === 'pin' ? pin.imageFit : undefined),
+        imageZoom: mode === 'custom' ? picture.zoom : (mode === 'pin' ? pin.imageZoom : undefined),
         icon: isIcon ? image : undefined,
         badges: cfg.badges ?? (pin.tags ?? []),
         body: cfg.body,

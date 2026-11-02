@@ -18,6 +18,7 @@ import {
     normalizePinImageForStorage,
     normalizeTextLayout,
     normalizeCalloutStyle,
+    normalizeCalloutImage,
     normalizePinGroup,
     normalizePinTags,
     normalizePinRotation
@@ -2431,6 +2432,7 @@ export class PinManager {
             if (callout === 'never' || callout === 'hover') merged.calloutDisplay = callout;
         }
         if (patch.calloutStyle != null) merged.calloutStyle = normalizeCalloutStyle(patch.calloutStyle, merged.calloutStyle);
+        if (patch.calloutImage != null) merged.calloutImage = normalizeCalloutImage(patch.calloutImage, merged.calloutImage);
         if (patch.textColor != null) merged.textColor = String(patch.textColor);
         if (typeof patch.textSize === 'number' && patch.textSize > 0) merged.textSize = patch.textSize;
         if (patch.textMaxLength !== undefined) {
