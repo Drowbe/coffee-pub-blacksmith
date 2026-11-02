@@ -140,6 +140,7 @@ import { VOTE_CAST_ACTION, VOTE_CLOSE_ACTION } from './cards-vote.js';
 import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
+import { CalloutAPI } from './api-callout.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { QuantitySplitAPI } from './api-quantity-split.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
@@ -1333,6 +1334,7 @@ Hooks.once('init', async function() {
         toast: ToastAPI,
         away: AwayAPI,
         dialog: DialogAPI,
+        callout: CalloutAPI,
         entityList: EntityListAPI,
         quantitySplit: QuantitySplitAPI,
         campaign: CampaignAPI,

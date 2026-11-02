@@ -13,7 +13,7 @@
 - **Pin editing (per pin)**: `config.blacksmithAccess` is `'gm'` | `'private'` | `'public'` — who may edit the pin record (move, Configure Pin, delete). It does not control what opens on click; the calling module owns click/double-click behavior and document edit rights.
 - **Taxonomy**: Built-in `pin-taxonomy.json` (v3 format). Modules register taxonomy via `registerPinTaxonomy()`. Read back with `getModuleTaxonomy(moduleId)` (all types) or `getPinTaxonomy(moduleId, type)` (one type). A world-level tag registry tracks every tag ever used.
 - **GM tools**: Bulk delete (`deleteAll`, `deleteAllByType`), GM proxy (`requestGM`), ownership resolver hook, reconciliation helper, and the Manage Pins window (`openLayers()`) with taxonomy visibility, browse/tag management, custom tag administration, and saved profiles.
-- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Name** field for the pin's `text`, a **Linked to** row (its name for a type that declares a target, otherwise a line saying the pin holds no link or does not record one), then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Image** (Pin Source), **Appearance** (Pin Design, Text Format) and **Animations** (Event Animations). A player who owns the pin sees only Image, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
+- **Configure Pin window**: Full visual editor in five tabs. **General** (a **Name** field for the pin's `text`, a **Linked to** row (its name for a type that declares a target, otherwise a line saying the pin holds no link or does not record one), then Permissions: Pin editing, Pin visibility, Allow Duplicates), **Tags** (Classification), **Pin** (Pin Design, Pin Source), **Appearance** (Label, Callout) and **Animations** (Event Animations). A player who owns the pin sees only Pin, Appearance and Animations. "Update All [type] Pins" with a tag-scoped filter, and "Default for [type]" with per-section checkboxes.
 
 ## Overview
 
@@ -361,6 +361,8 @@ interface StoredPinData {
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
   textLayout?: 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'; // Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is accepted and treated as 'arc-below'.
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
+  calloutDisplay?: 'never' | 'hover'; // Data box shown while the pointer is on the pin (default: 'never'). See Callout
+  calloutStyle?: { width?: number; shape?: 'rounded' | 'square'; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }; // How the box looks: the pin's own design options plus text. Colours are hex
   textColor?: string; // Text color (default: '#ffffff') - supports hex, rgb, rgba, hsl, hsla, named colors
   textSize?: number; // Text size in pixels (default: 12)
   textMaxLength?: number; // Maximum text length before ellipsis (default: 0 = no limit)
@@ -1355,7 +1357,7 @@ await pinsAPI.configure(pinId, {
 **Behavior**:
 - Opens an Application V2 window with a form for editing pin properties.
 - Only users who can **edit** the pin (ownership-based) can open the window.
-- The window has five tabs: **General** (**Name**, **Linked to**, **Pin editing**, **Pin visibility**, allow duplicates; GM only), **Tags** (GM only), **Image** (**Pin Source**), **Appearance** (**Pin Design**, **Text Format**) and **Animations**. Every tab's fields stay in the form while another tab shows, so Save applies edits from all of them, and the open tab is remembered across a re-render. Pin **type** is not editable in the window.
+- The window has five tabs: **General** (**Name**, **Linked to**, **Pin editing**, **Pin visibility**, allow duplicates; GM only), **Tags** (GM only), **Pin** (**Pin Design**, **Pin Source**), **Appearance** (**Label**, **Callout**) and **Animations**. Every tab's fields stay in the form while another tab shows, so Save applies edits from all of them, and the open tab is remembered across a re-render. Pin **type** is not editable in the window.
 - The window header shows **"[Category]: [Pin Title]"** (e.g. "Journal Pin: The Rusty Anchor") using `pins.getPinTypeLabel(pin.moduleId, pin.type)`. The header includes a **"Default for [type]"** toggle (renamed from "Default" in v13.6.3); when enabled, each section shows an additional checkbox so the user can choose which sections (Design, Text, Animations, Source, Classification, Permissions) are saved as the client default for that type.
 - **Permissions section** (GM only): **Pin editing** (`blacksmithAccess`: **GM only** / **Owner** / **Everyone`) and **Pin visibility** (`blacksmithVisibility`: **Visible** / **Hidden**). Pin editing maps to `ownership.default`. Pin visibility does not change document rights. **Allow Duplicates** toggle.
 - **Action bar left** (v13.6.3): **"Update All [type] Pins"** toggle (moved from header). When enabled, each section header shows a checkbox; on save, only checked sections are bulk-applied to matching pins with a confirmation dialog. The Permissions section includes pin editing, pin visibility, and allow-duplicates when checked. A **"Filter by tag:"** chip row appears below the toggle showing every tag used across all same-type pins on the scene; the current pin's own tags are pre-selected. Selecting chips (multiselect, OR logic) narrows the update target — type is always the first gate, tags narrow within it. An empty tag selection (all chips deselected) is not possible on initial open since the pin's tags are pre-seeded; if all chips are manually deselected the update applies to all pins of that type.
@@ -1517,6 +1519,44 @@ The legacy `blacksmith.pins.*` Foundry hooks remain available. Use `pins.on()` w
 **Throws**: 
 - `Error` if eventType is invalid
 - `Error` if handler is not a function
+
+### Callout
+
+A pin with `calloutDisplay: 'hover'` opens a data box (see [Callout API](api-callout.md)) while the pointer is on it. The box goes when the pin is pressed or dragged, or the pointer leaves it and the box. A user sets it in the **Callout** section of Configure Pin's Appearance tab, with how the box looks. The default is `'never'`.
+
+What the box shows:
+
+| Part | Source |
+|---|---|
+| Title | `text`, else the type's name from `registerPinType` |
+| Subtitle | `config.callout.subtitle`, else the type's name |
+| Image or icon | `image` |
+| Badges | `config.callout.badges`, else `tags` |
+| Body, rows, footer | `config.callout.body`, `.rows`, `.footer` |
+| Buttons | the items added with `registerContextMenuItem`, in `order`, without a submenu; plus Configure Pin for anyone who can edit the pin |
+
+`config.callout` is plain data a module sets on its own pins, in the same shapes as the Callout API's `badges`, `rows` and `footer`:
+
+```javascript
+await pins.create({
+  id: foundry.utils.randomID(16),
+  moduleId: 'my-module',
+  type: 'shop',
+  x: 1200, y: 900,
+  text: 'The Gilded Anvil',
+  image: 'fa-solid fa-hammer',
+  calloutDisplay: 'hover',
+  config: {
+    callout: {
+      subtitle: 'Blacksmith, Phlan',
+      badges: [{ text: 'Open', variant: 'success' }],
+      rows: [{ label: 'Gold', value: '1,240 gp' }]
+    }
+  }
+});
+```
+
+A button here is a context menu item, so the one registration serves the right-click menu and the callout, and `visible`, `gmOnly` and `moduleId` filter both.
 
 ### `pins.registerContextMenuItem(itemId, itemData)`
 Register a custom context menu item for pins. The item appears above the separator, before built-in options (Ping Pin, Delete Pin, etc.). Returns a disposer function; call it to unregister.

@@ -91,7 +91,7 @@ Only GMs can write scene flags and the world setting. Non-GM users with edit per
 - **Entry**: `pinsAPI.configure(pinId, options)` → `PinConfigWindow.open(pinId, options)`.
 - **Resolve pin**: `getData()` calls `PinManager.get(this.pinId, ...)` — unplaced store checked first when `sceneId` is omitted.
 - **Permission**: `PinManager._canEdit(pin, userId)` in `getData()`; window refuses to open without edit permission.
-- **Sections**: Permissions, Classification, Pin Design, Text Format, Event Animations, Pin Source.
+- **Sections**: Permissions, Classification, Pin Design, Pin Source, Label, Callout, Event Animations. Each takes part in Update All and Default under its own key (`design`, `source`, `text`, `callout`, ...).
 - **Save**: Builds a full patch and calls `pinsAPI.update(this.pinId, patch, { sceneId })`. GM-only fields (tags, pin editing, pin visibility, allow duplicates) are applied separately.
 - **Pin visibility** (`config.blacksmithVisibility`): `'visible'` | `'hidden'` in Permissions (GM only). Hidden = marker not drawn for other players; GM and pin owner always see the pin.
 - **Pin editing** (`config.blacksmithAccess`): `'gm'` | `'private'` | `'public'` — who may edit the pin record; maps to `ownership.default`.
@@ -334,7 +334,7 @@ The third tab of the Manage Pins window lists every pin on the scene with what i
 
 The **Linked to** row is an anchor carrying `data-link` and `data-uuid`, which is Foundry's own content-link contract: core's body-level click handler resolves the UUID and opens the document in this client (a journal page opens its journal at that page). The window has no click handler of its own for it, and the anchor has no `href`, so there is nothing for the browser to navigate to.
 
-Five tabs, built from the shared `.blacksmith-tabs` markup and the shared `selectTab` action (`data-action="selectTab" data-value`, `role="tab"`, the instance's `activeTab`), as `window-pin-layers.js` and `window-json-import.js` do. The one difference is deliberate: `_selectTab` shows and hides panes in place and does not re-render, because this window is a form and a re-render would discard what was typed on the other tabs. Every pane stays in the DOM, `data-active-tab` on the root decides which shows, and Save reads them all. The tabs are General (Linked to, Permissions), Tags, Image (Pin Source), Appearance (Pin Design, Text Format) and Animations. A player who owns a pin has no General or Tags tab, and `_resolveActiveTab` falls back to the first tab they can see.
+Five tabs, built from the shared `.blacksmith-tabs` markup and the shared `selectTab` action (`data-action="selectTab" data-value`, `role="tab"`, the instance's `activeTab`), as `window-pin-layers.js` and `window-json-import.js` do. The one difference is deliberate: `_selectTab` shows and hides panes in place and does not re-render, because this window is a form and a re-render would discard what was typed on the other tabs. Every pane stays in the DOM, `data-active-tab` on the root decides which shows, and Save reads them all. The tabs are General (Linked to, Permissions), Tags, Pin (Pin Design, Pin Source), Appearance (Label, Callout) and Animations. A player who owns a pin has no General or Tags tab, and `_resolveActiveTab` falls back to the first tab they can see.
 
 To add a selected-state command, add a key branch in `_onDocumentKeyDown`. Claim the key (`preventDefault` and `stopPropagation`) only when you will act on it.
 
@@ -403,6 +403,7 @@ consumer writes `'owner'` anymore.
 | Render pre-filter  | `pins-renderer.js` — `_canUserSeePin()` && `!PinManager._isHiddenByFilter()` before DOM creation |
 | Public API         | `api-pins.js` → `game.modules.get('coffee-pub-blacksmith')?.api?.pins` |
 | Config UI          | `window-pin-configuration.js` (PinConfigWindow); opened via `pinsAPI.configure()`; context menu "Configure Pin" in `pins-renderer.js` |
+| Callout on hover   | `utility-pin-callout.js` over `api.callout`; fields `calloutDisplay`, `calloutStyle`; see `architecture-callout.md` |
 | Layers / filter UI | `window-pin-layers.js` (PinLayersWindow); counts via `getSceneFilterSummary()` |
 | Journal pins       | `ui-journal-pins.js` — via `JournalDomWatchdog`, HookManager-only |
 | Hooks              | `blacksmith.js`: canvasReady / updateScene trigger pin load; dropCanvasData for dropping pins onto canvas |

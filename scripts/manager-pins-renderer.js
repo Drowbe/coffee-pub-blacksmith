@@ -14,6 +14,7 @@ import {
     pinIconTag
 } from './manager-pins-permission-icons.js';
 import { normalizeBlacksmithAccess, normalizeBlacksmithVisibility, normalizePinRotation } from './manager-pins-schema.js';
+import { PinCallout } from './utility-pin-callout.js';
 
 /** @typedef {import('./manager-pins.js').PinData} PinData */
 
@@ -832,6 +833,7 @@ class PinDOMElement {
                 }
             }
             
+            PinCallout.show(freshPinData);
             PinManager._invokeHandlers('hoverIn', freshPinData, sceneId, userId, modifiers, e);
             if (freshPinData.eventAnimations?.hover?.animation) {
                 PinRenderer.ping(freshPinData.id, { animation: freshPinData.eventAnimations.hover.animation, sound: freshPinData.eventAnimations.hover.sound ?? null, loops: 1 });
@@ -853,12 +855,14 @@ class PinDOMElement {
                 }
             }
             
+            PinCallout.hide(pinId, { grace: true });
             PinManager._invokeHandlers('hoverOut', freshPinData, sceneId, userId, modifiers, e);
         });
         
         // Single click is the pins tool's own: it selects the pin and is never offered to modules.
         // Modules get doubleClick, rightClick and middleClick.
         pinElement.addEventListener('mousedown', async (e) => {
+            PinCallout.hide(pinId); // a press selects, drags or opens the menu: the box would only be in the way
             const button = e.button;
             const modifiers = this._extractModifiers(e);
             const sceneId = canvas?.scene?.id || '';
@@ -1949,6 +1953,7 @@ class PinDOMElement {
      * @param {string} pinId
      */
     static removePin(pinId) {
+        PinCallout.hide(pinId);
         this._discardRotation(pinId);
         if (this._selectedPinId === pinId) this._selectedPinId = null;
         const pinElement = this._pins.get(pinId);

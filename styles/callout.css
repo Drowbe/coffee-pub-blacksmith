@@ -1,0 +1,203 @@
+/* ------------------------------------ */
+/* --- CALLOUT ------------------------- */
+/* ------------------------------------ */
+/* The data box that points at something on the canvas -- scripts/api-callout.js. The markup is built there from
+   data, so these classes are the whole look: a module cannot restyle a callout, only fill it.
+
+   The box is always a dark panel, whatever Foundry's theme is, because it floats over a map. It supplies the
+   --blacksmith-tool-* values the shared badge and button read, so they take the panel's colours as they would
+   a Tool window's; no rule here restyles them.
+
+   <div class="blacksmith-callout" data-side="top" style="--blacksmith-callout-tail: 40px">
+       <div class="blacksmith-callout-head">
+           <img class="blacksmith-callout-image" src="" alt=""> | <span class="blacksmith-callout-icon"><i class="fa-solid fa-route"></i></span>
+           <div class="blacksmith-callout-titles">
+               <div class="blacksmith-callout-title">Phlan to Melvaunt</div>
+               <div class="blacksmith-callout-subtitle">Road</div>
+           </div>
+       </div>
+       <div class="blacksmith-callout-badges"><span class="blacksmith-badge">...</span></div>
+       <div class="blacksmith-callout-body">Plain text</div>
+       <dl class="blacksmith-callout-rows"><div class="blacksmith-callout-row"><dt>Distance</dt><dd>55 mi</dd></div></dl>
+       <div class="blacksmith-callout-actions"><button type="button" class="blacksmith-tool-btn">Open</button></div>
+       <div class="blacksmith-callout-footer">Small print</div>
+   </div>
+
+   data-side is the side of the ANCHOR the box sits on; the tail is drawn on the edge facing it. */
+
+.blacksmith-callout-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 2; /* above the pins overlay (1), below Foundry's own interface */
+}
+
+.blacksmith-callout {
+    /* What a caller's `style` sets (api-callout.js applyStyle), each falling back to the stock look:
+       --blacksmith-callout-fill, -stroke, -stroke-width, -radius, -shadow, -icon-color, -text, -text-size.
+       The ink, the line and the tile are worked out from them once, here, so every part reads the same value. */
+    --blacksmith-callout-ink: var(--blacksmith-callout-text, var(--blacksmith-text-inverse, #ffffff));
+    --blacksmith-callout-ink-muted: color-mix(in srgb, var(--blacksmith-callout-ink) 65%, transparent);
+    --blacksmith-callout-bg: var(--blacksmith-callout-fill, var(--blacksmith-surface-dark-1, #222222));
+    --blacksmith-callout-line: var(--blacksmith-callout-stroke, var(--blacksmith-border-subtle, rgba(255, 255, 255, 0.16)));
+    --blacksmith-callout-line-width: var(--blacksmith-callout-stroke-width, 1px);
+    --blacksmith-callout-tile: color-mix(in srgb, var(--blacksmith-callout-ink) 12%, var(--blacksmith-callout-bg));
+
+    /* The shared badge and button read these, so they take the panel's colours as they would a Tool window's. */
+    --blacksmith-tool-text: var(--blacksmith-callout-ink);
+    --blacksmith-tool-divider: color-mix(in srgb, var(--blacksmith-callout-ink) 22%, transparent);
+    --blacksmith-tool-surface-hover: color-mix(in srgb, var(--blacksmith-callout-ink) 12%, transparent);
+    --blacksmith-tool-surface-sunken: var(--blacksmith-callout-tile);
+
+    position: absolute;
+    box-sizing: border-box;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--blacksmith-space-md, 8px);
+    padding: var(--blacksmith-space-lg, 12px);
+    background: var(--blacksmith-callout-bg);
+    border: var(--blacksmith-callout-line-width) solid var(--blacksmith-callout-line);
+    border-radius: var(--blacksmith-callout-radius, var(--blacksmith-radius-lg, 5px));
+    box-shadow: var(--blacksmith-callout-shadow, var(--blacksmith-shadow-lg, 0 4px 10px rgba(0, 0, 0, 0.6)));
+    color: var(--blacksmith-callout-ink);
+    font-size: var(--blacksmith-callout-text-size, var(--blacksmith-font-size-sm, 0.85em));
+    line-height: 1.35;
+    pointer-events: auto;
+}
+
+/* The tail: a square turned 45 degrees, its two outer borders showing, centred on the anchor by --blacksmith-callout-tail.
+   Its offset is the box's border width plus half its own size, which puts its centre on the middle of the box's border. */
+.blacksmith-callout::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--blacksmith-callout-bg);
+    border: var(--blacksmith-callout-line-width) solid var(--blacksmith-callout-line);
+    transform: rotate(45deg);
+}
+
+.blacksmith-callout[data-side="top"]::after {
+    bottom: calc(-5px - var(--blacksmith-callout-line-width));
+    left: calc(var(--blacksmith-callout-tail, 50%) - 5px);
+    border-top: 0;
+    border-left: 0;
+}
+
+.blacksmith-callout[data-side="bottom"]::after {
+    top: calc(-5px - var(--blacksmith-callout-line-width));
+    left: calc(var(--blacksmith-callout-tail, 50%) - 5px);
+    border-bottom: 0;
+    border-right: 0;
+}
+
+.blacksmith-callout[data-side="left"]::after {
+    right: calc(-5px - var(--blacksmith-callout-line-width));
+    top: calc(var(--blacksmith-callout-tail, 50%) - 5px);
+    border-bottom: 0;
+    border-left: 0;
+}
+
+.blacksmith-callout[data-side="right"]::after {
+    left: calc(-5px - var(--blacksmith-callout-line-width));
+    top: calc(var(--blacksmith-callout-tail, 50%) - 5px);
+    border-top: 0;
+    border-right: 0;
+}
+
+.blacksmith-callout-head {
+    display: flex;
+    align-items: center;
+    gap: var(--blacksmith-space-md, 8px);
+}
+
+.blacksmith-callout-image,
+.blacksmith-callout-icon {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border-radius: calc(var(--blacksmith-callout-radius, var(--blacksmith-radius-lg, 5px)) * 0.8);
+}
+
+.blacksmith-callout-image {
+    object-fit: cover;
+    border: 1px solid var(--blacksmith-tool-divider);
+}
+
+.blacksmith-callout-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--blacksmith-callout-tile);
+    color: var(--blacksmith-callout-icon-color, var(--blacksmith-callout-ink));
+    font-size: 1.4em;
+}
+
+.blacksmith-callout-titles {
+    min-width: 0;
+}
+
+.blacksmith-callout-title {
+    color: var(--blacksmith-callout-ink);
+    font-size: var(--blacksmith-font-size-md, 1.1em);
+    font-weight: var(--blacksmith-font-weight-bold, 700);
+    overflow-wrap: anywhere;
+}
+
+.blacksmith-callout-subtitle {
+    color: var(--blacksmith-callout-ink-muted);
+}
+
+.blacksmith-callout-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--blacksmith-space-sm, 4px);
+}
+
+.blacksmith-callout-body {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    max-height: 9em;
+    overflow-y: auto;
+}
+
+.blacksmith-callout-rows {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--blacksmith-space-xs, 2px) var(--blacksmith-space-lg, 12px);
+    margin: 0;
+}
+
+.blacksmith-callout-row {
+    display: contents;
+}
+
+.blacksmith-callout-row dt {
+    color: var(--blacksmith-callout-ink-muted);
+}
+
+.blacksmith-callout-row dt i {
+    margin-right: var(--blacksmith-space-sm, 4px);
+}
+
+.blacksmith-callout-row dd {
+    margin: 0;
+    text-align: right;
+    color: var(--blacksmith-callout-ink);
+    overflow-wrap: anywhere;
+}
+
+.blacksmith-callout-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--blacksmith-space-sm, 4px);
+}
+
+.blacksmith-callout-footer {
+    color: var(--blacksmith-callout-ink-muted);
+    font-size: var(--blacksmith-font-size-xs, 0.8em);
+}

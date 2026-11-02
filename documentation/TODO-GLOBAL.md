@@ -1052,6 +1052,20 @@ the next move will want it. To confirm a world is done, count the pins by module
 `coffee-pub-squire`. Librarian's older legacy handling (`LEGACY_CODEX_PAGE_TYPE`, the legacy pin type map) is
 the page-type half of the original migration and is a separate cleanup in Librarian's own TODO.
 
+## Callout API — sibling adoption (Blacksmith side shipped, unverified in Foundry)
+
+`api.callout` is a data box that points at a scene point, a pin or a placeable: image or icon, badges, rows,
+body text and buttons, all passed as data. Contract: `api/api-callout.md`. Blacksmith's own pins are its first
+consumer (`calloutDisplay` in Configure Pin). A sibling picks it up once Blacksmith has been verified in
+Foundry, which is when `testing/callout.md` is empty.
+
+- **Cartographer**, `scripts/manager-routes.js` `_label()`: route labels are a `PIXI.Text` of one string, such as
+  "Phlan ↔ Melvaunt · 55 mi". A callout anchored at the route's midpoint shows the same with the distance and
+  travel times as rows. Cartographer decides whether the label stays as a resting label with the callout on
+  hover; the API gives it the box, not the choice.
+- **Any module with pins** needs nothing for a basic box: set `calloutDisplay: 'hover'` when creating the pin and,
+  to add data, `config.callout`. Its `registerContextMenuItem` items already become the box's buttons.
+
 ## Sibling deprecation warnings (spotted 2026-07-24)
 
 - **Bibliosoph registers the deprecated `renderChatMessage` hook** (`coffee-pub-bibliosoph/scripts/bibliosoph.js`, raw `Hooks.on`): Foundry v13 logs "The renderChatMessage hook is deprecated. Please use renderChatMessageHTML instead" on every chat message render; support is removed in v15. Not a rename-only fix — `renderChatMessageHTML` passes an `HTMLElement` where the old hook passed jQuery, so the callback body must drop jQuery calls (or wrap the element itself). Fix belongs in the Bibliosoph repo with its own verification. (Blacksmith is clean: its `HookManager` remaps legacy `renderChatMessage` registrations to `renderChatMessageHTML` automatically, and the module's own `CHAT_MESSAGE_TYPES` uses were removed 2026-07-24 — see Blacksmith `CHANGELOG.md`.)

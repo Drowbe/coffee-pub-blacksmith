@@ -106,12 +106,15 @@ You can have the windows of several pins open at once. Each new one opens a litt
 
 **Tags** (GM only): the tags used to group and hide pins.
 
-**Image**: **Pin Source**, an icon or an image for the pin.
+**Pin**:
+
+- **Pin Design**: **Size**, **Shape** (Circle, Square, Rectangle or None), **Background**, **Border**, **Icon Color** and **Drop shadow**.
+- **Pin Source**, an icon or an image for the pin.
 
 **Appearance**:
 
-- **Pin Design**: **Size**, **Shape** (Circle, Square, Rectangle or None), **Background**, **Border**, **Icon Color** and **Drop shadow**.
-- **Text Format**, the pin's text: **Text layout** (below, above, to the right, to the left, arcs above or below, or overlaid), **Text display** (Always, Hover, Never or GM only), **Text color**, **Text size**, **Max characters**, **Chars per line** and **Scale text with pin**.
+- **Label**, the pin's text: **Text layout** (below, above, to the right, to the left, arcs above or below, or overlaid), **Text display** (Always, Hover, Never or GM only), **Text color**, **Text size**, **Max characters**, **Chars per line** and **Scale text with pin**.
+- **Callout**, the box that opens beside the pin while the pointer is on it: **Show** (Never or Hover), **Width**, **Shape** (Rounded or Square), **Background**, **Border**, **Icon Color**, **Drop shadow**, **Text color** and **Text size**. It shows the pin's image, its type and tags, and the same actions as its right-click menu. Colours are written as hex, like #222222.
 
 **Animations**: for **Hover**, **Click**, **Double-click**, **Add (to canvas)** and **Delete**, the first column picks the animation and the second the sound. The Click animation plays when you select the pin.
 

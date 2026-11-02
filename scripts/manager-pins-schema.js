@@ -27,6 +27,8 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
  * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
  * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
+ * @property {'never' | 'hover'} [calloutDisplay] - Whether a data box (api.callout) opens while the pointer is on the pin: 'never' (default) or 'hover'. Its content is the pin's own data plus `config.callout` ({ subtitle, badges, body, rows, footer }).
+ * @property {{ width?: number; shape?: 'rounded' | 'square'; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }} [calloutStyle] - How the pin's callout looks: the pin's own design options (size as `width`, shape, background, border, icon colour, drop shadow) and its text options (colour, size). Colours are hex.
  * @property {string} [textColor] - Text color (default: '#ffffff')
  * @property {number} [textSize] - Text size in pixels (default: 12)
  * @property {number} [textMaxLength] - Maximum text length before ellipsis (default: 0 = no limit)
@@ -202,6 +204,8 @@ export const PIN_DEFAULTS = Object.freeze({
     dropShadow: true,
     textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
     textDisplay: 'hover', // 'always' | 'hover' | 'never' | 'gm'
+    calloutDisplay: 'never', // 'never' | 'hover': the data box shown while the pointer is on the pin (utility-pin-callout.js)
+    calloutStyle: { width: 280, shape: 'rounded', fill: '#222222', stroke: '#3d3d3d', strokeWidth: 1, iconColor: '#ffffff', dropShadow: true, textColor: '#ffffff', textSize: 12 },
     textColor: '#ffffff',
     textSize: 12,
     textMaxLength: 0, // 0 = no limit
@@ -217,6 +221,34 @@ export const PIN_DEFAULTS = Object.freeze({
     imageZoom: 1, // When imageFit is 'zoom': 1 = same as cover, 1.5 = 50% zoom in (clamped 1–2)
     config: {}
 });
+
+/**
+ * A pin's callout style, checked field by field over `base`: a value that is not valid is dropped and the
+ * earlier one kept, so a half-typed colour never reaches the callout. Colours are hex only -- the callout
+ * API accepts nothing else.
+ * @param {object} value - The style, or a part of it
+ * @param {object} [base] - What it is merged over
+ * @returns {NonNullable<PinData['calloutStyle']>}
+ */
+export function normalizeCalloutStyle(value, base = PIN_DEFAULTS.calloutStyle) {
+    const out = { ...PIN_DEFAULTS.calloutStyle, ...base };
+    if (!value || typeof value !== 'object') return out;
+    const hex = (v) => (typeof v === 'string' && /^#[0-9a-f]{3,8}$/i.test(v.trim())) ? v.trim() : null;
+    const whole = (v, min, max) => { const n = Math.round(Number(v)); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : null; };
+    for (const key of ['fill', 'stroke', 'iconColor', 'textColor']) {
+        const colour = hex(value[key]);
+        if (colour) out[key] = colour;
+    }
+    const width = value.width === '' ? null : whole(value.width, 160, 480);
+    if (width != null) out.width = width;
+    const strokeWidth = value.strokeWidth === '' ? null : whole(value.strokeWidth, 0, 8);
+    if (strokeWidth != null) out.strokeWidth = strokeWidth;
+    const textSize = value.textSize === '' ? null : whole(value.textSize, 8, 32);
+    if (textSize != null) out.textSize = textSize;
+    if (value.shape === 'rounded' || value.shape === 'square') out.shape = value.shape;
+    if (typeof value.dropShadow === 'boolean') out.dropShadow = value.dropShadow;
+    return out;
+}
 
 // ------------------------------------------------------------------
 // Migration map: version -> (pin) => migrated pin
@@ -363,6 +395,8 @@ export function applyDefaults(partial) {
         dropShadow: PIN_DEFAULTS.dropShadow,
         textLayout: PIN_DEFAULTS.textLayout,
         textDisplay: PIN_DEFAULTS.textDisplay,
+        calloutDisplay: PIN_DEFAULTS.calloutDisplay,
+        calloutStyle: { ...PIN_DEFAULTS.calloutStyle },
         textColor: PIN_DEFAULTS.textColor,
         textSize: PIN_DEFAULTS.textSize,
         textMaxLength: PIN_DEFAULTS.textMaxLength,
@@ -426,6 +460,11 @@ export function applyDefaults(partial) {
             base.textDisplay = display;
         }
     }
+    if (partial.calloutDisplay != null) {
+        const callout = String(partial.calloutDisplay).toLowerCase();
+        if (callout === 'never' || callout === 'hover') base.calloutDisplay = callout;
+    }
+    if (partial.calloutStyle != null) base.calloutStyle = normalizeCalloutStyle(partial.calloutStyle, base.calloutStyle);
     if (partial.textColor != null) base.textColor = String(partial.textColor);
     if (typeof partial.textSize === 'number' && partial.textSize > 0) base.textSize = partial.textSize;
     if (partial.textMaxLength !== undefined) {

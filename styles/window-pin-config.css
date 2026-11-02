@@ -79,7 +79,7 @@ div.blacksmith-pin-config-window .window-content {
 .blacksmith-pin-config[data-active-tab="general"] .blacksmith-pin-config-pane[data-pane="general"],
 .blacksmith-pin-config[data-active-tab="tags"] .blacksmith-pin-config-pane[data-pane="tags"],
 .blacksmith-pin-config[data-active-tab="appearance"] .blacksmith-pin-config-pane[data-pane="appearance"],
-.blacksmith-pin-config[data-active-tab="image"] .blacksmith-pin-config-pane[data-pane="image"],
+.blacksmith-pin-config[data-active-tab="pin"] .blacksmith-pin-config-pane[data-pane="pin"],
 .blacksmith-pin-config[data-active-tab="animations"] .blacksmith-pin-config-pane[data-pane="animations"] {
     display: block;
 }

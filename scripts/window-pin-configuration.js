@@ -9,6 +9,8 @@ import { MODULE } from './const.js';
 import { DialogAPI } from './api-dialog.js';
 import { postConsoleAndNotification } from './api-core.js';
 import {
+    PIN_DEFAULTS,
+    normalizeCalloutStyle,
     normalizeTextLayout,
     normalizePinTags,
     normalizeBlacksmithAccess,
@@ -92,6 +94,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.dropShadow = true;
         this.pinTextLayout = 'under';
         this.pinTextDisplay = 'always';
+        this.pinCalloutDisplay = 'never';
         this.pinTextColor = '#ffffff';
         this.pinTextSize = 12;
         this.pinTextMaxLength = 0;
@@ -103,7 +106,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this._updateAllMode = false;
         this._updateAllTags = new Set();
         this._defaultMode = false;
-        this.activeTab = null; // 'general' | 'tags' | 'image' | 'appearance' | 'animations'; kept here so a re-render stays on the tab
+        this.activeTab = null; // 'general' | 'tags' | 'pin' | 'appearance' | 'animations'; kept here so a re-render stays on the tab
+        this.pinCalloutStyle = { ...PIN_DEFAULTS.calloutStyle };
     }
 
     /**
@@ -131,7 +135,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
      * @private
      */
     _resolveActiveTab(isGM) {
-        const valid = isGM ? ['general', 'tags', 'image', 'appearance', 'animations'] : ['image', 'appearance', 'animations'];
+        const valid = isGM ? ['general', 'tags', 'pin', 'appearance', 'animations'] : ['pin', 'appearance', 'animations'];
         if (!valid.includes(this.activeTab)) this.activeTab = valid[0];
         return this.activeTab;
     }
@@ -153,6 +157,21 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             btn.classList.toggle('is-active', active);
             btn.setAttribute('aria-selected', String(active));
         });
+    }
+
+    /**
+     * The callout style as the form shows it. Read from the fields rather than kept up to date field by
+     * field, then checked by the same normaliser the pin store uses, so what is saved is what a pin accepts.
+     * @param {HTMLElement} root - The Callout section
+     * @returns {object}
+     * @private
+     */
+    _readCalloutStyle(root) {
+        const style = {};
+        root?.querySelectorAll('[data-callout-field]').forEach((el) => {
+            style[el.dataset.calloutField] = el.type === 'checkbox' ? el.checked : el.value;
+        });
+        return normalizeCalloutStyle(style, this.pinCalloutStyle);
     }
 
     _buildPinUpdateData({ sizeInput, imagePreview, shapeInput, strokeWidthInput,
@@ -197,6 +216,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             image: PinConfigWindow.iconToStoredImage(finalSelection),
             textLayout: savedTextLayout,
             textDisplay: this.pinTextDisplay,
+            calloutDisplay: this.pinCalloutDisplay,
+            calloutStyle: this._readCalloutStyle(nativeHtml.querySelector('.blacksmith-pin-config-callout-section')),
             textColor: this.pinTextColor,
             textSize: clampTS(textSizeInput?.value, this.pinTextSize),
             textMaxLength: clampLen(textMaxLengthInput?.value),
@@ -259,6 +280,10 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             partial.textMaxLength = fullUpdateData.textMaxLength;
             partial.textMaxWidth = fullUpdateData.textMaxWidth;
             partial.textScaleWithPin = fullUpdateData.textScaleWithPin;
+        }
+        if (checked.has('callout')) {
+            partial.calloutDisplay = fullUpdateData.calloutDisplay;
+            partial.calloutStyle = fullUpdateData.calloutStyle;
         }
         if (checked.has('animations')) {
             partial.eventAnimations = fullUpdateData.eventAnimations;
@@ -471,6 +496,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const normalizedLayout = normalizeTextLayout(pin.textLayout);
         this.pinTextLayout = normalizedLayout || 'under';
         this.pinTextDisplay = pin.textDisplay || 'always';
+        this.pinCalloutDisplay = pin.calloutDisplay || 'never';
+        this.pinCalloutStyle = normalizeCalloutStyle(pin.calloutStyle);
         this.pinTextColor = pin.textColor || '#ffffff';
         this.pinTextSize = pin.textSize || 12;
         this.pinTextMaxLength = pin.textMaxLength ?? 0;
@@ -646,6 +673,8 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             pinDropShadow: this.dropShadow,
             pinTextLayout: this.pinTextLayout,
             pinTextDisplay: this.pinTextDisplay,
+            pinCalloutDisplay: this.pinCalloutDisplay,
+            pinCalloutStyle: this.pinCalloutStyle,
             pinTextColor: this.pinTextColor,
             pinTextSize: this.pinTextSize,
             pinTextMaxLength: this.pinTextMaxLength,
@@ -722,6 +751,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         const shadowInput = nativeHtml.querySelector('.blacksmith-pin-config-shadow');
         const textLayoutInput = nativeHtml.querySelector('.blacksmith-pin-config-text-layout');
         const textDisplayInput = nativeHtml.querySelector('.blacksmith-pin-config-text-display');
+        const calloutDisplayInput = nativeHtml.querySelector('.blacksmith-pin-config-callout-display');
         const textColorInput = nativeHtml.querySelector('.blacksmith-pin-config-text-color');
         const textColorTextInput = nativeHtml.querySelector('.blacksmith-pin-config-text-color-text');
         const textSizeInput = nativeHtml.querySelector('.blacksmith-pin-config-text-size');
@@ -997,6 +1027,28 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 this.pinTextDisplay = display;
             }
         });
+        calloutDisplayInput?.addEventListener('change', () => {
+            const display = calloutDisplayInput.value;
+            if (display === 'never' || display === 'hover') this.pinCalloutDisplay = display;
+        });
+        // The Callout section: a colour's text box and its picker are one value, and the form's state follows every edit
+        const calloutSection = nativeHtml.querySelector('.blacksmith-pin-config-callout-section');
+        calloutSection?.addEventListener('input', (event) => {
+            const target = event.target;
+            const isPicker = target.matches?.('input[type="color"]');
+            const key = isPicker ? target.dataset.calloutPicker : target.dataset?.calloutField;
+            if (key && (isPicker || target.matches('.blacksmith-pin-config-color-text'))) {
+                const value = target.value.trim();
+                if (isPicker) {
+                    const text = calloutSection.querySelector(`[data-callout-field="${key}"]`);
+                    if (text) text.value = value;
+                } else if (/^#[0-9a-f]{6}$/i.test(value)) {
+                    const picker = calloutSection.querySelector(`[data-callout-picker="${key}"]`);
+                    if (picker) picker.value = value;
+                }
+            }
+            this.pinCalloutStyle = this._readCalloutStyle(calloutSection);
+        });
         textColorTextInput?.addEventListener('input', () => {
             const value = textColorTextInput.value.trim();
             if (value) {
@@ -1194,6 +1246,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                             ...(has('source') ? { image: pinUpdateData.image, imageFit: pinUpdateData.imageFit, imageZoom: pinUpdateData.imageZoom } : {}),
                             ...(has('design') ? { size: configData.pinSize, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
                             ...(has('text') ? configData.pinTextConfig : {}),
+                            ...(has('callout') ? { calloutDisplay: pinUpdateData.calloutDisplay, calloutStyle: pinUpdateData.calloutStyle } : {}),
                             ...(has('animations') ? { eventAnimations: pinUpdateData.eventAnimations } : {}),
                             ...(has('classification') ? { tags: pinUpdateData.tags } : {}),
                             ...(has('permissions') ? {

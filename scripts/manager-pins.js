@@ -17,6 +17,7 @@ import {
     pinsNeedStorageUpdate,
     normalizePinImageForStorage,
     normalizeTextLayout,
+    normalizeCalloutStyle,
     normalizePinGroup,
     normalizePinTags,
     normalizePinRotation
@@ -2425,6 +2426,11 @@ export class PinManager {
                 merged.textDisplay = display;
             }
         }
+        if (patch.calloutDisplay != null) {
+            const callout = String(patch.calloutDisplay).toLowerCase();
+            if (callout === 'never' || callout === 'hover') merged.calloutDisplay = callout;
+        }
+        if (patch.calloutStyle != null) merged.calloutStyle = normalizeCalloutStyle(patch.calloutStyle, merged.calloutStyle);
         if (patch.textColor != null) merged.textColor = String(patch.textColor);
         if (typeof patch.textSize === 'number' && patch.textSize > 0) merged.textSize = patch.textSize;
         if (patch.textMaxLength !== undefined) {
