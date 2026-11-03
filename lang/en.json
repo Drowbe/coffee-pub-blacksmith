@@ -1325,6 +1325,8 @@
 				"regionChangeMovement-Action-Label": "Movement type",
 				"regionChangeMovement-Action-Hint": "What a token inside the region moves as: swim in water, fly over a chasm, crawl through a tunnel.",
 				"regionChangeMovement-Restore-Label": "Put it back on leaving",
-				"regionChangeMovement-Restore-Hint": "Return the token to the movement type it had before it came in."
+				"regionChangeMovement-Restore-Hint": "Return the token to the movement type it had before it came in.",
+				"regionPartyMovement-Mode-Label": "Party movement mode",
+				"regionPartyMovement-Mode-Hint": "The mode the whole party moves in from now on, as if chosen from the menubar. Lock them down at a cutscene, free them at the gate."
 	}
 }

@@ -118,7 +118,8 @@
       "toggleTile": {},
       "showToast": {},
       "postToChat": {},
-      "changeMovement": {}
+      "changeMovement": {},
+      "partyMovement": {}
     }
   }
 }

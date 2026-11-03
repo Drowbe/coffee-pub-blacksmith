@@ -14,6 +14,7 @@
 //   Show Toast       A token walks in, and a toast (`api.toast`) appears, as a small notice or a billboard.
 //   Post to Chat     A token walks in, and read-aloud text is posted to chat as a card (`api.chatCards`).
 //   Change Movement  A token enters, and its movement type becomes swim, fly, crawl and so on, until it leaves.
+//   Party Movement   A token walks in, and the party's movement mode changes: Locked, Combat, Conga and so on.
 //
 // All are declared in module.json under `documentTypes.RegionBehavior`, and registered from `init` by
 // blacksmith.js once `module.api` exists. See documentation/api/api-regions.md.
@@ -21,6 +22,7 @@
 import { MODULE } from './const.js';
 import { playSound } from './api-core.js';
 import { HookManager } from './manager-hooks.js';
+import { getMovementTypes, setMovementType } from './token-movement.js';
 import { QuickRollsManager } from './manager-quick-rolls.js';
 
 const L = (key) => `${MODULE.ID}.${key}`;
@@ -233,6 +235,22 @@ async function restoreMovementOnExit(event) {
     });
 }
 
+// ===== CHANGE PARTY MOVEMENT MODE =====
+
+/** The party movement modes (Wander, Locked, Conga...), alphabetical. These are Blacksmith's own, from the menubar. */
+function partyMovementChoices() {
+    return Object.fromEntries(getMovementTypes(true)
+        .map((type) => [type.id, type.name])
+        .sort((x, y) => x[1].localeCompare(y[1], undefined, { sensitivity: 'base' })));
+}
+
+/** Set the party's movement mode, as choosing it from the menubar does, unless it is already that mode. */
+async function changePartyMovementOnWalkIn(event) {
+    if (!walkedIn(this, event)) return;
+    if (game.settings.get(MODULE.ID, 'movementType') !== this.mode) await setMovementType(this.mode);
+    if (this.once) await spend(this);
+}
+
 // ===== TOGGLE TILE =====
 
 async function toggleTileOnWalkIn(event) {
@@ -423,6 +441,21 @@ export function registerRegionBehaviors() {
         }),
         events: { tokenMoveIn: { run: 'activeGM', handler: toggleTileOnWalkIn } },
         reset: resetTile
+    });
+
+    regions.registerBehavior({
+        moduleId: MODULE.ID,
+        name: 'partyMovement',
+        label: 'Change Party Movement Mode',
+        icon: 'fa-solid fa-people-group',
+        fields: (fields) => ({
+            mode: new fields.StringField({
+                required: true, blank: false, initial: 'normal-movement', choices: partyMovementChoices(),
+                label: L('regionPartyMovement-Mode-Label'), hint: L('regionPartyMovement-Mode-Hint')
+            }),
+            ...walkInFields(fields)
+        }),
+        events: { tokenMoveIn: { run: 'activeGM', handler: changePartyMovementOnWalkIn } }
     });
 
     regions.registerBehavior({

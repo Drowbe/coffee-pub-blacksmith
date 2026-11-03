@@ -127,7 +127,7 @@ Both are on the GM's side: `reset` throws for anyone else. The Behaviors tab of 
 
 ## Behaviours Blacksmith registers
 
-Blacksmith uses this API for seven behaviours of its own, so a region can do these with no other module. They appear in a region's Behaviors tab as `CP Blacksmith: Request a Roll`, `Show Callout`, `Play Sound`, `Toggle Tile Visibility`, `Show Toast`, `Post to Chat` and `Change Movement Type`, and are declared in Blacksmith's `module.json`.
+Blacksmith uses this API for eight behaviours of its own, so a region can do these with no other module. They appear in a region's Behaviors tab as `CP Blacksmith: Request a Roll`, `Show Callout`, `Play Sound`, `Toggle Tile Visibility`, `Show Toast`, `Post to Chat`, `Change Movement Type` and `Change Party Movement Mode`, and are declared in Blacksmith's `module.json`.
 
 | Behaviour | Event | What it does |
 |---|---|---|
@@ -138,6 +138,7 @@ Blacksmith uses this API for seven behaviours of its own, so a region can do the
 | Show Toast | `tokenMoveIn`; every client that should see it shows its own | Shows a toast (`api.toast`): a notice, or a billboard from small to full screen with an animation. Fields: title, subtitle, icon, style, animation, seconds shown, shown to (everyone, or only the one who walked in), who sets it off, and only once |
 | Post to Chat | `tokenMoveIn`, on the active GM's client | Posts read-aloud text as a themed card (`api.chatCards`), public or whispered to the mover and the GMs. Fields: title, text (a line per paragraph), icon, posted to, who sets it off, and only once |
 | Change Movement Type | `tokenEnter` and `tokenExit`, on the active GM's client | Sets a token's movement type (swim, fly, crawl and so on, whatever the system defines) while it is inside, and puts the previous one back when it leaves. Fields: movement type, put it back on leaving, who sets it off |
+| Change Party Movement Mode | `tokenMoveIn`, on the active GM's client | Sets the party's movement mode (Wander, Locked, Combat, Conga, Fastest Path, Request), exactly as choosing it from the menubar does, unless it is already that mode. Fields: party movement mode, who sets it off, and only once |
 
 Request a Roll uses a walk-in, so a token created inside the region or dropped there by a teleport does not set it off. Show Callout follows presence, so those do open it.
 
