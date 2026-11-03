@@ -42,7 +42,7 @@ async function specFor(pin) {
 
     const actions = PinManager.getContextMenuItems(pin, userId)
         .filter((item) => !item.submenu)
-        .map((item) => ({ label: item.name, icon: item.icon, tooltip: item.description, onClick: () => item.callback() }));
+        .map((item) => ({ label: item.name, icon: item.icon?.match(/class="([^"]*)"/)?.[1] ?? item.icon, tooltip: item.description, onClick: () => item.callback() }));
     if (PinManager._canEdit(pin, userId)) {
         actions.push({
             label: 'Configure Pin',

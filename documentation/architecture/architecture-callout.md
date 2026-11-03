@@ -26,7 +26,9 @@ Pin elements are found by `.blacksmith-pin[data-pin-id]`. That couples this file
 
 ## Placement
 
-`place` measures the box (it is in the layer, hidden, before it is placed), tries the preferred side and then the others, and takes the first that fits the viewport with an 8px margin. If none fits it takes the preferred one and clamps. The box is clamped; the tail is not: `--blacksmith-callout-tail` is the anchor's centre expressed along the box's edge, kept 14px off the corners, so the tail still points at the anchor when the box has slid away from it. `data-side` is the side of the anchor the box is on, and the stylesheet draws the tail on the edge that faces it.
+`place` measures the box (it is in the layer, hidden, before it is placed), tries the preferred side and then the others (a preferred corner flips on each axis, then both, then the four sides; `data-side` for a corner is its horizontal edge, so the tail is drawn on that edge at the end nearest the anchor), and takes the first that fits the viewport with an 8px margin. If none fits it takes the preferred one and clamps. The box is clamped; the tail is not: `--blacksmith-callout-tail` is the anchor's centre expressed along the box's edge, kept 14px off the corners, so the tail still points at the anchor when the box has slid away from it. `data-side` is the side of the anchor the box is on, and the stylesheet draws the tail on the edge that faces it.
+
+`interactive: false` adds `blacksmith-callout-passive`, which is `pointer-events: none`. It exists for a box that follows the pointer: an interactive one would take `pointermove` from the canvas the moment the cursor crossed it. It cannot carry `actions`, and `validate` says so rather than ignoring them.
 
 ## Lifecycle and hover
 

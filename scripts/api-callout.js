@@ -12,9 +12,9 @@
 //
 // The caller passes DATA, never markup. Every string is escaped here, an icon must be a Font Awesome class,
 // a badge variant must be one of ours, and appearance is one closed `style` object of measured values (hex
-// colours, clamped numbers, a two-word shape) that becomes custom properties -- never a class, a style
-// string or a stylesheet. It exists so an author can restyle their own pins; a module that passes none gets
-// the same callout as every other, the rule the chat cards hold (tools/check-card-contracts.mjs).
+// colours, clamped numbers) that becomes custom properties -- never a class, a style string or a
+// stylesheet. It exists so an author can restyle their own callouts; a module that passes none gets the
+// same callout as every other, the rule the chat cards hold (tools/check-card-contracts.mjs).
 //
 // The lifecycle is the caller's: show it, update it, hide it. A hover-driven caller shows on enter and
 // hides with `{ grace: true }` on leave; the grace lets the pointer cross the gap and land on the box,
@@ -31,7 +31,9 @@ const HOOK_CONTEXT = 'blacksmith-callout';
 const BADGE_VARIANTS = new Set(['accent', 'success', 'danger', 'warning', 'info']);
 const IMAGE_FITS = new Set(['cover', 'contain', 'fill', 'none', 'scale-down', 'zoom']);
 const SIDES = ['top', 'bottom', 'right', 'left'];
-const GAP = 10;           // px between the anchor and the box (the tail lives in it)
+const DIAGONALS = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+const GAP = 10;           // px between the anchor and the box (the tail lives in it); `spec.gap` overrides
+const MAX_GAP = 48;
 const MARGIN = 8;         // px kept clear of the viewport edge
 const TAIL_INSET = 14;    // px the tail keeps from a box corner
 const GRACE_MS = 180;     // how long a graceful hide waits for the pointer to land on the box
@@ -99,9 +101,12 @@ function validate(id, spec) {
         (Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) || typeof anchor.pinId === 'string' || typeof anchor.uuid === 'string');
     if (!valid) throw new TypeError('callout: anchor must be { x, y } in scene units, { pinId }, or { uuid }');
     if (!spec.title || typeof spec.title !== 'string') throw new TypeError('callout: a title (string) is required');
-    if (spec.side != null && spec.side !== 'auto' && !SIDES.includes(spec.side)) {
-        throw new TypeError(`callout: side must be 'auto', ${SIDES.map((s) => `'${s}'`).join(', ')}`);
+    if (spec.side != null && spec.side !== 'auto' && !SIDES.includes(spec.side) && !DIAGONALS.includes(spec.side)) {
+        throw new TypeError(`callout: side must be 'auto', ${[...SIDES, ...DIAGONALS].map((s) => `'${s}'`).join(', ')}`);
     }
+    if (spec.gap != null && !Number.isFinite(spec.gap)) throw new TypeError('callout: gap must be a number of pixels');
+    if (spec.interactive != null && typeof spec.interactive !== 'boolean') throw new TypeError('callout: interactive must be a boolean');
+    if (spec.interactive === false && spec.actions?.length) throw new TypeError('callout: a callout with interactive: false cannot have actions, nothing in it can be clicked');
     if (spec.style != null && (typeof spec.style !== 'object' || Array.isArray(spec.style))) throw new TypeError('callout: style must be an object');
     for (const key of ['rows', 'badges', 'actions']) {
         if (spec[key] != null && !Array.isArray(spec[key])) throw new TypeError(`callout: ${key} must be an array`);
@@ -116,6 +121,7 @@ function validate(id, spec) {
 // ==================================================================
 
 function renderActions(spec) {
+    if (spec.interactive === false) return '';
     const visible = (spec.actions ?? []).map((action, index) => ({ action, index })).filter(({ action }) => {
         if (action.gmOnly && !game.user?.isGM) return false;
         return typeof action.visible === 'function' ? !!action.visible() : action.visible !== false;
@@ -185,12 +191,32 @@ function anchorRect(anchor) {
     return { left: Math.min(a.x, b.x), top: Math.min(a.y, b.y), right: Math.max(a.x, b.x), bottom: Math.max(a.y, b.y) };
 }
 
-/** Where a box of this size sits on one side of the anchor, unclamped, and how much of it fits on screen. */
-function candidate(side, a, w, h) {
+/** `spec.gap` in pixels, clamped, else the stock gap. */
+function gapOf(spec) {
+    return Number.isFinite(spec.gap) ? Math.max(0, Math.min(MAX_GAP, spec.gap)) : GAP;
+}
+
+/** The sides to try, in order: the preferred one, then what is nearest to it. A diagonal flips on each axis, then both. */
+function sidesFrom(preferred) {
+    if (DIAGONALS.includes(preferred)) {
+        const [v, h] = preferred.split('-');
+        const ov = v === 'top' ? 'bottom' : 'top';
+        const oh = h === 'left' ? 'right' : 'left';
+        return [preferred, `${v}-${oh}`, `${ov}-${h}`, `${ov}-${oh}`, ...SIDES];
+    }
+    return SIDES.includes(preferred) ? [preferred, ...SIDES.filter((s) => s !== preferred)] : SIDES;
+}
+
+/** Where a box of this size sits on one side (or corner) of the anchor, unclamped, and how much of it fits on screen. */
+function candidate(side, a, w, h, gap) {
     const cx = (a.left + a.right) / 2;
     const cy = (a.top + a.bottom) / 2;
-    const left = side === 'left' ? a.left - GAP - w : side === 'right' ? a.right + GAP : cx - w / 2;
-    const top = side === 'top' ? a.top - GAP - h : side === 'bottom' ? a.bottom + GAP : cy - h / 2;
+    const west = side === 'left' || side.endsWith('-left');
+    const east = side === 'right' || side.endsWith('-right');
+    const north = side === 'top' || side.startsWith('top-');
+    const south = side === 'bottom' || side.startsWith('bottom-');
+    const left = west ? a.left - gap - w : east ? a.right + gap : cx - w / 2;
+    const top = north ? a.top - gap - h : south ? a.bottom + gap : cy - h / 2;
     const visibleW = Math.min(left + w, innerWidth - MARGIN) - Math.max(left, MARGIN);
     const visibleH = Math.min(top + h, innerHeight - MARGIN) - Math.max(top, MARGIN);
     return { side, left, top, fits: visibleW >= w - 0.5 && visibleH >= h - 0.5 };
@@ -205,18 +231,20 @@ function place(entry) {
 
     const w = el.offsetWidth;
     const h = el.offsetHeight;
-    const preferred = SIDES.includes(spec.side) ? [spec.side, ...SIDES.filter((s) => s !== spec.side)] : SIDES;
-    const options = preferred.map((side) => candidate(side, a, w, h));
+    const gap = gapOf(spec);
+    const options = sidesFrom(spec.side).map((side) => candidate(side, a, w, h, gap));
     const chosen = options.find((o) => o.fits) ?? options[0];
 
     const left = Math.max(MARGIN, Math.min(chosen.left, innerWidth - MARGIN - w));
     const top = Math.max(MARGIN, Math.min(chosen.top, innerHeight - MARGIN - h));
     el.style.left = `${Math.round(left)}px`;
     el.style.top = `${Math.round(top)}px`;
-    el.dataset.side = chosen.side;
+    // A corner placement draws its tail on the horizontal edge that faces the anchor, at the end nearest it.
+    const edge = chosen.side.split('-')[0];
+    el.dataset.side = edge;
 
     // The tail points at the anchor's centre, kept off the corners; the box was clamped, the anchor was not.
-    const vertical = chosen.side === 'top' || chosen.side === 'bottom';
+    const vertical = edge === 'top' || edge === 'bottom';
     const centre = vertical ? (a.left + a.right) / 2 - left : (a.top + a.bottom) / 2 - top;
     const extent = vertical ? w : h;
     el.style.setProperty('--blacksmith-callout-tail', `${Math.round(Math.max(TAIL_INSET, Math.min(centre, extent - TAIL_INSET)))}px`);
@@ -331,9 +359,11 @@ export const CalloutAPI = {
      * @param {Array<{label: string, value: string|number, icon?: string}>} [spec.rows]
      * @param {Array<{label: string, onClick: Function, icon?: string, tooltip?: string, gmOnly?: boolean, visible?: boolean|Function, closeOnClick?: boolean}>} [spec.actions]
      * @param {string} [spec.footer]
-     * @param {'auto'|'top'|'bottom'|'left'|'right'} [spec.side='auto'] - Preferred side of the anchor; it flips to stay on screen
+     * @param {'auto'|'top'|'bottom'|'left'|'right'|'top-left'|'top-right'|'bottom-left'|'bottom-right'} [spec.side='auto'] - Preferred side or corner of the anchor; it flips to stay on screen
+     * @param {number} [spec.gap=10] - Pixels between the anchor and the box, 0 to 48
+     * @param {boolean} [spec.interactive=true] - false makes the box ignore the pointer, so it never takes events from the canvas; it cannot have `actions`
      * @param {number} [spec.maxWidth=280]
-     * @param {{ fill?: string, stroke?: string, strokeWidth?: number, shape?: 'rounded'|'square', dropShadow?: boolean, iconColor?: string, textColor?: string, textSize?: number }} [spec.style] - Appearance. Colours are hex (`#rrggbb`); anything else is ignored
+     * @param {{ fill?: string, stroke?: string, strokeWidth?: number, dropShadow?: boolean, iconColor?: string, textColor?: string, textSize?: number }} [spec.style] - Appearance. Colours are hex (`#rrggbb`); anything else is ignored
      * @param {AbortSignal} [spec.signal] - Aborting hides it
      * @returns {() => void} Hides this callout
      * @throws {TypeError} On a bad id or spec
@@ -352,6 +382,7 @@ export const CalloutAPI = {
         el.style.maxWidth = `${Math.max(160, Number(spec.maxWidth) || 280)}px`;
         el.style.visibility = 'hidden';
         applyStyle(el, spec.style);
+        el.classList.toggle('blacksmith-callout-passive', spec.interactive === false);
         el.innerHTML = renderMarkup(spec);
 
         const entry ={ spec, el, timer: null, hovered: false, leaveHides: false, abort: null };
@@ -390,6 +421,7 @@ export const CalloutAPI = {
         validate(id, spec);
         entry.spec = spec;
         if ('style' in patch) applyStyle(entry.el, spec.style);
+        if ('interactive' in patch) entry.el.classList.toggle('blacksmith-callout-passive', spec.interactive === false);
         if ('maxWidth' in patch) entry.el.style.maxWidth = `${Math.max(160, Number(spec.maxWidth) || 280)}px`;
         entry.el.innerHTML = renderMarkup(spec);
         place(entry);

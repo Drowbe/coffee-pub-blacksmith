@@ -37,7 +37,7 @@
 
 .blacksmith-callout {
     /* What a caller's `style` sets (api-callout.js applyStyle), each falling back to the stock look:
-       --blacksmith-callout-fill, -stroke, -stroke-width, -radius, -shadow, -icon-color, -text, -text-size.
+       --blacksmith-callout-fill, -stroke, -stroke-width, -shadow, -icon-color, -text, -text-size.
        The ink, the line and the tile are worked out from them once, here, so every part reads the same value. */
     --blacksmith-callout-ink: var(--blacksmith-callout-text, var(--blacksmith-text-inverse, #ffffff));
     --blacksmith-callout-ink-muted: color-mix(in srgb, var(--blacksmith-callout-ink) 65%, transparent);
@@ -67,6 +67,11 @@
     font-size: var(--blacksmith-callout-text-size, var(--blacksmith-font-size-sm, 0.85em));
     line-height: 1.35;
     pointer-events: auto;
+}
+
+/* A callout that is only a readout: it never takes the pointer, so the canvas keeps receiving it. */
+.blacksmith-callout-passive {
+    pointer-events: none;
 }
 
 /* The tail: a square turned 45 degrees, its two outer borders showing, centred on the anchor by --blacksmith-callout-tail.

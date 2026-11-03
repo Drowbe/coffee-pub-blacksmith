@@ -1523,7 +1523,7 @@ The legacy `blacksmith.pins.*` Foundry hooks remain available. Use `pins.on()` w
 
 ### Callout
 
-A pin with `calloutDisplay: 'hover'` opens a data box (see [Callout API](api-callout.md)) while the pointer is on it. The box goes when the pin is pressed or dragged, or the pointer leaves it and the box. A user sets it in the **Callout** section of Configure Pin's Appearance tab, with how the box looks. The default is `'never'`.
+A pin with `calloutDisplay: 'hover'` opens a data box (see [Callout API](api-callout.md)) while the pointer is on it. The box goes when the pin is pressed or dragged, or the pointer leaves it and the box. A user sets it in the **Callout** section of Configure Pin's Appearance tab, with how the box looks. The default is `'never'`. The **Image** setting picks the picture: **None**, **Mirror pin** (the pin's own image or icon, the default) or **Custom image** (a URL with the same fit and zoom options as a pin image), stored as `calloutImage`. `calloutStyle` (width, background, border, icon colour, drop shadow, text colour and size) is passed to the Callout API as its `style`.
 
 What the box shows:
 
