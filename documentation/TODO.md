@@ -1093,6 +1093,12 @@ decision: drop it where the live handler fully applies the change.
 
 ## Cross-cutting surfaces
 
+### A trigger engine: sources, actions, and the wiring between them (opened 2026-11-03)
+
+Region behaviours (`api.regions`) can already fire a roll request, a callout, a sound and a tile; pins, notes and combat events could drive the same things, and each driver would otherwise rebuild every action. Wanted: an `api.actions` registry (an action is a label, a field declaration and a `run(context)`), with drivers adapting their own events into one context, and conditions limited to a short fixed list (who triggered it, pass or fail) rather than a language. Roll actions emit an outcome, so "on pass" and "on fail" are slots that hold other actions; Request a Roll already reports each result (`onRollComplete`, `blacksmith.requestRollComplete`).
+
+Minstrel already has a rules engine of this shape (`scripts/manager-automation.js`: triggers OR, condition groups AND, clauses folded left to right, importance, `delayMs`, sanitize on read) but with one action and first-match-wins ranking, which suits ambience and not a trap. Reuse its vocabulary so a later merge stays possible; do not touch Minstrel yet. Minstrel would register Play Sound Scene as an action, so audio stays its lane. Open: run all matching actions or pick a winner; where the shared editor lives (the authoring form is the expensive part, and pins and notes have no Foundry-drawn form). Needs a plan in `documentation/plans/` before any code. Parked by the author until there is time to do it properly.
+
 ### Away: a player status for the whole table, replacing the Stage Manager marks
 
 Plan: **`documentation/plans/plan-away-status.md`**. A flag on the player's own user, a visible indicator, a party toast when they step away, an optional message, an "Are you back?" prompt on activity, and `api.away` so request-a-roll can tell the GM to roll for an away player. Replaces the Stage Manager's Away and Do Not Disturb marks. **Phase 1 is built (2026-10-27) and not yet seen in a running world:** `scripts/manager-away.js`, architecture in `architecture/architecture-away.md`, the public calls in `api/api-away.md`, verification in `testing/away.md`. Phases 2 to 4 remain (the "Are you back?" prompt, request-a-roll and other consumers, detection); see the plan.

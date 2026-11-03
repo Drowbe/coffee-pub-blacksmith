@@ -113,7 +113,9 @@
   "documentTypes": {
     "RegionBehavior": {
       "requestRoll": {},
-      "showCallout": {}
+      "showCallout": {},
+      "playSound": {},
+      "toggleTile": {}
     }
   }
 }

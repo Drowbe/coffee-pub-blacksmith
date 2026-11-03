@@ -71,6 +71,7 @@ Returns the type, `<moduleId>.<name>`, or `null` on a Foundry that has no region
 | `icon` | string | Font Awesome classes. Default `fa-solid fa-draw-polygon` |
 | `fields` | `(fields) => schema` | Returns the schema. Receives `foundry.data.fields`. Required |
 | `events` | object | A handler per event; see below |
+| `reset` | `() => Promise<boolean>` | Puts back what the behaviour changed in the world, when its region is reset. `this` is the behaviour; return true if it changed anything |
 | `localizationPrefixes` | string[] | Default `['BEHAVIOR.TYPES.<name>', 'BEHAVIOR.TYPES.base']` |
 
 Throws a `TypeError` on a bad spec, and an `Error` when called after `init` or when the type is already registered.
@@ -108,14 +109,32 @@ A region event reaches every client, and a handler that only runs for the mover 
 
 `tokenMoveIn` is the one for a token walking in. `tokenEnter` also fires for a token created inside the region or dropped in by a teleport, which is rarely a walk.
 
+## Once, and putting a region back
+
+A behaviour that should fire a single time switches itself off. Do it with `spend`, from an `activeGM` handler, and not with a bare `disabled: true`:
+
+```javascript
+{ run: 'activeGM', handler: function () { if (this.once) api.regions.spend(this.parent); } }
+```
+
+`spend(behavior)` disables the behaviour and marks it as switched off by its own trigger. `reset(region)` is the other half: it switches back on every behaviour so marked, and calls each behaviour's `reset` so it can put back what it changed in the world. A behaviour a GM disabled by hand is left as it was.
+
+```javascript
+const { reenabled, restored } = await api.regions.reset(region); // a RegionDocument or its UUID; GM only
+```
+
+Both are on the GM's side: `reset` throws for anyone else. The Behaviors tab of a region's sheet carries a Reset button for the GM that calls it. A behaviour that uses a bare `disabled: true` still works, but `reset` cannot tell it from a GM's choice and leaves it off.
+
 ## Behaviours Blacksmith registers
 
-Blacksmith uses this API for two behaviours of its own, so a region can do these with no other module. They appear in a region's Behaviors tab as `CP Blacksmith: Request a Roll` and `CP Blacksmith: Show Callout`, and are declared in Blacksmith's `module.json`.
+Blacksmith uses this API for four behaviours of its own, so a region can do these with no other module. They appear in a region's Behaviors tab as `CP Blacksmith: Request a Roll`, `Show Callout`, `Play Sound` and `Toggle Tile Visibility`, and are declared in Blacksmith's `module.json`.
 
 | Behaviour | Event | What it does |
 |---|---|---|
-| Request a Roll | `tokenMoveIn`, on the active GM's client | Posts a roll request to chat for the token that walked in (`api.openRequestRollDialog`, silent mode). Fields: roll type, roll, DC, title, explanation, who sets it off (a token a player owns, or any token), and only once |
+| Request a Roll | `tokenMoveIn`, on the active GM's client | Posts a roll request to chat for the token that walked in (`api.openRequestRollDialog`, silent mode). Fields: roll (one grouped dropdown, alphabetical: the system's skills, ability checks and saving throws, your Quick Rolls, or a dice formula), DC, title, explanation, cinematic, who sets it off (a token a player owns, or any token), and only once |
 | Show Callout | `tokenEnter` and `tokenExit`, on the mover's client | Opens a data box (`api.callout`) anchored to the region while the token is inside, and closes it when the token leaves. Fields: title, subtitle, text, icon |
+| Play Sound | `tokenMoveIn`; the active GM's client for the table, the mover's own client for one player | Plays an audio file (`playSound`). Fields: sound, volume, heard by (everyone, or only the one who walked in), who sets it off, and only once |
+| Toggle Tile Visibility | `tokenMoveIn`, on the active GM's client | Shows, hides or flips a tile's `hidden` state, remembering the state before the first trigger so a reset can restore it. Fields: tile, when triggered, who sets it off, and only once |
 
 Request a Roll uses a walk-in, so a token created inside the region or dropped there by a teleport does not set it off. Show Callout follows presence, so those do open it.
 

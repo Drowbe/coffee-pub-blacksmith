@@ -15,6 +15,8 @@
 //     through the `foundry` global, which a module script may be evaluated before.
 //   - The name in the Create Behavior list is `CP <Module>: <Label>` for every module in the suite, built here
 //     from the module's own title, so two modules cannot name theirs differently.
+//   - A behaviour that fires once ("Only once") is switched off by `spend`, which also marks it, so `reset`
+//     can switch back on exactly the ones a trigger switched off and leave alone the ones a GM disabled by hand.
 //   - A region event fires on EVERY client. A handler runs on the client of the user who caused it unless it
 //     says otherwise, so one player stepping into a shop does not open a window for the whole table.
 //
@@ -65,6 +67,9 @@ export const RegionsAPI = {
      *   a `CONST.REGION_EVENTS` value (`tokenMoveIn`, `tokenExit`, ...). A handler has the behaviour as `this` and receives
      *   Foundry's event. A bare function runs on the client of the user who caused the event. An array runs its
      *   handlers in order, each with its own `run`
+     * @param {() => Promise<boolean|void>} [spec.reset] - Puts back whatever this behaviour changed in the world when `reset` is
+     *   called on its region (a tile it hid, say). `this` is the behaviour. Return true if it changed anything. A behaviour
+     *   that was switched off by `spend` is switched back on for you, so it needs no `reset` for that
      * @param {string[]} [spec.localizationPrefixes] - Default `['BEHAVIOR.TYPES.<name>', 'BEHAVIOR.TYPES.base']`
      * @returns {string | null} The type (`<moduleId>.<name>`), or null on a Foundry without region behaviours
      * @throws {TypeError} On a bad spec
@@ -115,6 +120,10 @@ export const RegionsAPI = {
             }
 
             static events = handlers;
+
+            async reset() {
+                return spec.reset ? spec.reset.call(this) : false;
+            }
         }
 
         CONFIG.RegionBehavior.dataModels[type] = SuiteRegionBehavior;
@@ -139,5 +148,41 @@ export const RegionsAPI = {
             console.warn(`${MODULE.NAME} | ${type} is registered but ${moduleId}'s module.json does not declare it. Add "documentTypes": { "RegionBehavior": { "${name}": {} } }.`);
         }
         return type;
+    },
+
+    /**
+     * Switch a behaviour off because it has done its one job, and remember that it was the trigger and not a GM that did it.
+     * Use it for "Only once". Run it where a write is allowed: the active GM's client (an `activeGM` handler).
+     * @param {RegionBehavior} behavior - The behaviour document (`this.parent` inside a handler)
+     * @returns {Promise<RegionBehavior>}
+     */
+    spend(behavior) {
+        if (!behavior || typeof behavior.update !== 'function') throw new TypeError('regions: spend needs a RegionBehavior document');
+        return behavior.update({ disabled: true, [`flags.${MODULE.ID}.spent`]: true });
+    },
+
+    /**
+     * Put a region back to the state before anything triggered it: every behaviour switched off by `spend` is switched
+     * back on, and every behaviour that registered a `reset` puts back what it changed. A behaviour a GM disabled by
+     * hand is left disabled.
+     * @param {RegionDocument|string} region - The region, or its UUID
+     * @returns {Promise<{ reenabled: number, restored: number }>} How many behaviours were switched back on, and how many put the world back
+     * @throws {Error} When the user is not a GM
+     */
+    async reset(region) {
+        const doc = typeof region === 'string' ? await fromUuid(region) : region;
+        if (!doc?.behaviors) throw new TypeError('regions: reset needs a region or a region UUID');
+        if (!game.user?.isGM) throw new Error('regions: only a GM can reset a region');
+
+        let reenabled = 0;
+        let restored = 0;
+        for (const behavior of doc.behaviors) {
+            if (await behavior.system?.reset?.()) restored += 1;
+            if (behavior.getFlag(MODULE.ID, 'spent')) {
+                await behavior.update({ disabled: false, [`flags.${MODULE.ID}.-=spent`]: null });
+                reenabled += 1;
+            }
+        }
+        return { reenabled, restored };
     }
 };
