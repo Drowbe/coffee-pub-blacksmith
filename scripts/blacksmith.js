@@ -141,6 +141,7 @@ import { ChatCardsManager } from './manager-chat-cards.js';
 import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
 import { CalloutAPI } from './api-callout.js';
+import { RegionsAPI } from './api-regions.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { QuantitySplitAPI } from './api-quantity-split.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
@@ -1335,6 +1336,7 @@ Hooks.once('init', async function() {
         away: AwayAPI,
         dialog: DialogAPI,
         callout: CalloutAPI,
+        regions: RegionsAPI,
         entityList: EntityListAPI,
         quantitySplit: QuantitySplitAPI,
         campaign: CampaignAPI,
