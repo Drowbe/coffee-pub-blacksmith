@@ -2828,6 +2828,16 @@ export class PinRenderer {
     }
 
     /**
+     * Do what a double-click on a pin does: the modules' `doubleClick` handlers and the pin's double-click animation.
+     * The pin's own double-click and its callout (when it inherits the pin's action) both come through here.
+     * @param {PinData} pinData
+     * @param {MouseEvent} event
+     */
+    static _activate(pinData, event) {
+        return PinDOMElement._activate(pinData, event);
+    }
+
+    /**
      * Initialize the pins system (no longer needs layer parameter)
      */
     static initialize() {

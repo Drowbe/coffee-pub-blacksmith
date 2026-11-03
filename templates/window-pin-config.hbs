@@ -449,25 +449,29 @@
                             <img class="blacksmith-pin-config-image-preview blacksmith-pin-config-callout-image-preview {{#unless pinCalloutImage.src}}is-hidden{{/unless}}" src="{{pinCalloutImage.src}}" alt="Callout image preview">
                         </div>
                     </div>
-                    <div class="blacksmith-field-row">
-                        <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Show</span>
-                            <select class="blacksmith-input blacksmith-pin-config-callout-display" data-tooltip="A box with the pin's image, type, tags and actions, shown while the pointer is on the pin">
-                                <option value="never" {{#if (eq pinCalloutDisplay "never")}}selected{{/if}}>Never</option>
-                                <option value="hover" {{#if (eq pinCalloutDisplay "hover")}}selected{{/if}}>Hover</option>
-                            </select>
-                        </label>
-                        <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Width</span>
-                            <input type="number" class="blacksmith-input" data-callout-field="width" min="160" max="480" step="10" value="{{pinCalloutStyle.width}}">
-                        </label>
-                    </div>
+                    <label class="blacksmith-field">
+                        <span class="blacksmith-field-label">Show</span>
+                        <select class="blacksmith-input blacksmith-pin-config-callout-display" data-tooltip="A box with the pin's image, type, tags and actions, shown while the pointer is on the pin">
+                            <option value="never" {{#if (eq pinCalloutDisplay "never")}}selected{{/if}}>Never</option>
+                            <option value="hover" {{#if (eq pinCalloutDisplay "hover")}}selected{{/if}}>Hover</option>
+                        </select>
+                    </label>
                     <div class="blacksmith-toggle-row">
                         <label class="blacksmith-toggle">
                             <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-callout-inherit" {{#if pinCalloutInheritAction}}checked{{/if}}>
                             <span class="blacksmith-toggle-slider"></span>
                         </label>
                         <span class="blacksmith-toggle-label" data-tooltip="Pressing the callout does what a double-click on the pin does">Callout inherits Pin Action</span>
+                    </div>
+                    <div class="blacksmith-field-row">
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Width</span>
+                            <input type="number" class="blacksmith-input" data-callout-field="width" min="160" max="480" step="10" value="{{pinCalloutStyle.width}}">
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Text size</span>
+                            <input type="number" class="blacksmith-input" data-callout-field="textSize" min="8" max="32" step="1" value="{{pinCalloutStyle.textSize}}">
+                        </label>
                     </div>
                     <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
@@ -486,16 +490,19 @@
                         </label>
                     </div>
                     <div class="blacksmith-field-row">
-                        <div class="blacksmith-field">
+                        <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Border</span>
-                            <div class="blacksmith-pin-config-border-row">
-                                <div class="blacksmith-pin-config-color-row">
-                                    <input type="text" class="blacksmith-input blacksmith-pin-config-color-text" data-callout-field="stroke" value="{{pinCalloutStyle.stroke}}">
-                                    <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="stroke" value="{{pinCalloutStyle.stroke}}">
-                                </div>
-                                <input type="number" class="blacksmith-input" data-callout-field="strokeWidth" min="0" max="8" step="1" value="{{pinCalloutStyle.strokeWidth}}">
+                            <div class="blacksmith-pin-config-color-row">
+                                <input type="text" class="blacksmith-input blacksmith-pin-config-color-text" data-callout-field="stroke" value="{{pinCalloutStyle.stroke}}">
+                                <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="stroke" value="{{pinCalloutStyle.stroke}}">
                             </div>
-                        </div>
+                        </label>
+                        <label class="blacksmith-field">
+                            <span class="blacksmith-field-label">Border width</span>
+                            <input type="number" class="blacksmith-input" data-callout-field="strokeWidth" min="0" max="8" step="1" value="{{pinCalloutStyle.strokeWidth}}">
+                        </label>
+                    </div>
+                    <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Icon Color</span>
                             <div class="blacksmith-pin-config-color-row">
@@ -503,19 +510,13 @@
                                 <input type="color" class="blacksmith-pin-config-color-picker" data-callout-picker="iconColor" value="{{pinCalloutStyle.iconColor}}">
                             </div>
                         </label>
-                    </div>
-                    <div class="blacksmith-toggle-row">
-                        <label class="blacksmith-toggle">
-                            <input type="checkbox" class="blacksmith-toggle-input" data-callout-field="dropShadow" {{#if pinCalloutStyle.dropShadow}}checked{{/if}}>
-                            <span class="blacksmith-toggle-slider"></span>
-                        </label>
-                        <span class="blacksmith-toggle-label">Drop shadow</span>
-                    </div>
-                    <div class="blacksmith-field-row">
-                        <label class="blacksmith-field">
-                            <span class="blacksmith-field-label">Text size</span>
-                            <input type="number" class="blacksmith-input" data-callout-field="textSize" min="8" max="32" step="1" value="{{pinCalloutStyle.textSize}}">
-                        </label>
+                        <div class="blacksmith-field">
+                            <span class="blacksmith-field-label">Drop shadow</span>
+                            <label class="blacksmith-toggle">
+                                <input type="checkbox" class="blacksmith-toggle-input" data-callout-field="dropShadow" {{#if pinCalloutStyle.dropShadow}}checked{{/if}}>
+                                <span class="blacksmith-toggle-slider"></span>
+                            </label>
+                        </div>
                     </div>
                     <div class="blacksmith-pin-config-help">Colours are hex, like #222222.</div>
                 </div>
