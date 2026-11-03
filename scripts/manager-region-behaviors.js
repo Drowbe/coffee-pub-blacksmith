@@ -11,6 +11,9 @@
 //   Show Callout     A token enters, and a data box (`api.callout`) opens on the region, until the token leaves.
 //   Play Sound       A token walks in, and a sound plays: for the whole table, or for the one who walked in.
 //   Toggle Tile      A token walks in, and a tile on the scene is shown, hidden or flipped. A pit that appears.
+//   Show Toast       A token walks in, and a toast (`api.toast`) appears, as a small notice or a billboard.
+//   Post to Chat     A token walks in, and read-aloud text is posted to chat as a card (`api.chatCards`).
+//   Change Movement  A token enters, and its movement type becomes swim, fly, crawl and so on, until it leaves.
 //
 // All are declared in module.json under `documentTypes.RegionBehavior`, and registered from `init` by
 // blacksmith.js once `module.api` exists. See documentation/api/api-regions.md.
@@ -53,6 +56,14 @@ function rollChoices() {
 
 /** The `api` object, read at call time so it is the public surface a satellite would see. */
 const api = () => game.modules.get(MODULE.ID)?.api;
+
+/** A multi-line text field. The sheet draws a StringField as one line; this one asks for a textarea. */
+const longText = (fields, options) => new (class extends fields.StringField {
+    _toInput(config) {
+        config.elementType = 'textarea';
+        return super._toInput(config);
+    }
+})(options);
 
 const calloutId = (region) => `${MODULE.ID}:region:${region.id}`;
 
@@ -146,6 +157,81 @@ const soundFor = (heardBy) => function (event) {
     if (this.heardBy !== heardBy || !this.sound || !walkedIn(this, event)) return undefined;
     return playSound(this.sound, this.volume, false, heardBy === 'everyone');
 };
+
+// ===== SHOW TOAST =====
+
+/** One handler per audience, as with the sound: the toast is local, so each client that should see it shows it. */
+const toastFor = (shownTo) => function (event) {
+    if (this.shownTo !== shownTo || !walkedIn(this, event)) return;
+    api()?.toast?.show({
+        title: this.title || event.region?.name || 'Region',
+        subtitle: this.subtitle || undefined,
+        icon: this.icon || undefined,
+        duration: this.duration,
+        size: this.size === 'normal' ? undefined : this.size,
+        animation: this.animation === 'none' ? undefined : this.animation
+    });
+};
+
+// ===== POST TO CHAT =====
+
+/** Post the text as a themed card, once, from the active GM's client. A private one goes to the mover and the GMs. */
+async function postToChatOnWalkIn(event) {
+    if (!walkedIn(this, event)) return;
+    const paragraphs = String(this.text ?? '').split(/\n+/).map((line) => line.trim()).filter(Boolean);
+    if (!paragraphs.length) return;
+
+    const whisper = this.postedTo === 'mover' && event.user
+        ? [...new Set([event.user.id, ...game.users.filter((user) => user.isGM).map((user) => user.id)])]
+        : undefined;
+    await api()?.chatCards?.post({
+        moduleId: MODULE.ID,
+        type: 'region-text',
+        whisper,
+        parts: [
+            { part: 'header', ...(this.icon ? { icon: this.icon } : {}), title: this.title || event.region?.name || 'Region' },
+            { part: 'prose', blocks: paragraphs.map((text) => ({ type: 'paragraph', text })) }
+        ]
+    });
+    if (this.once) await spend(this);
+}
+
+// ===== CHANGE MOVEMENT TYPE =====
+
+/**
+ * The movement types a GM could set: the ones Foundry lets a token choose, not the ones it derives from terrain.
+ * Alphabetical, as every list here is.
+ */
+function movementChoices() {
+    const choices = [];
+    for (const [id, config] of Object.entries(CONFIG.Token?.movement?.actions ?? {})) {
+        if (config.terrainAction !== undefined || config.deriveTerrainDifficulty !== undefined) continue;
+        choices.push([id, game.i18n.localize(config.label ?? id)]);
+    }
+    choices.sort((x, y) => x[1].localeCompare(y[1], undefined, { sensitivity: 'base' }));
+    return Object.fromEntries(choices);
+}
+
+const movementFlag = (behavior) => `flags.${MODULE.ID}.movementBefore.${behavior.parent.id}`;
+
+/** Set the token's movement type, remembering what it was so it can be put back when the token leaves. */
+async function changeMovementOnEnter(event) {
+    const token = walkedIn(this, event);
+    if (!token || token.movementAction === this.action) return;
+    await token.update({ movementAction: this.action, [movementFlag(this)]: token.movementAction ?? null });
+}
+
+/** Put the movement type back, if this behaviour changed it and was asked to restore it. */
+async function restoreMovementOnExit(event) {
+    const token = event.data?.token;
+    if (!this.restore || !token) return;
+    const before = token.getFlag(MODULE.ID, 'movementBefore')?.[this.parent.id];
+    if (before === undefined) return;
+    await token.update({
+        ...(before ? { movementAction: before } : {}),
+        [`flags.${MODULE.ID}.movementBefore.-=${this.parent.id}`]: null
+    });
+}
 
 // ===== TOGGLE TILE =====
 
@@ -246,7 +332,7 @@ export function registerRegionBehaviors() {
                 required: false, blank: true, initial: '',
                 label: L('regionRequestRoll-Title-Label'), hint: L('regionRequestRoll-Title-Hint')
             }),
-            explanation: new fields.StringField({
+            explanation: longText(fields, {
                 required: false, blank: true, initial: '',
                 label: L('regionRequestRoll-Explanation-Label'), hint: L('regionRequestRoll-Explanation-Hint')
             }),
@@ -274,7 +360,7 @@ export function registerRegionBehaviors() {
                 required: false, blank: true, initial: '',
                 label: L('regionShowCallout-Subtitle-Label'), hint: L('regionShowCallout-Subtitle-Hint')
             }),
-            body: new fields.StringField({
+            body: longText(fields, {
                 required: false, blank: true, initial: '',
                 label: L('regionShowCallout-Body-Label'), hint: L('regionShowCallout-Body-Hint')
             }),
@@ -337,5 +423,107 @@ export function registerRegionBehaviors() {
         }),
         events: { tokenMoveIn: { run: 'activeGM', handler: toggleTileOnWalkIn } },
         reset: resetTile
+    });
+
+    regions.registerBehavior({
+        moduleId: MODULE.ID,
+        name: 'changeMovement',
+        label: 'Change Movement Type',
+        icon: 'fa-solid fa-person-swimming',
+        fields: (fields) => ({
+            action: new fields.StringField({
+                required: true, blank: false, initial: 'walk', choices: movementChoices(),
+                label: L('regionChangeMovement-Action-Label'), hint: L('regionChangeMovement-Action-Hint')
+            }),
+            restore: new fields.BooleanField({
+                initial: true,
+                label: L('regionChangeMovement-Restore-Label'), hint: L('regionChangeMovement-Restore-Hint')
+            }),
+            who: new fields.StringField({
+                required: true, blank: false, initial: 'any', choices: WHO,
+                label: L('regionCommon-Who-Label'), hint: L('regionCommon-Who-Hint')
+            })
+        }),
+        // Enter and exit, not move in and out: the type follows presence, so a token placed inside is covered too.
+        events: {
+            tokenEnter: { run: 'activeGM', handler: changeMovementOnEnter },
+            tokenExit: { run: 'activeGM', handler: restoreMovementOnExit }
+        }
+    });
+
+    regions.registerBehavior({
+        moduleId: MODULE.ID,
+        name: 'showToast',
+        label: 'Show Toast',
+        icon: 'fa-solid fa-bell',
+        fields: (fields) => ({
+            title: new fields.StringField({
+                required: false, blank: true, initial: '',
+                label: L('regionShowToast-Title-Label'), hint: L('regionShowToast-Title-Hint')
+            }),
+            subtitle: new fields.StringField({
+                required: false, blank: true, initial: '',
+                label: L('regionShowToast-Subtitle-Label'), hint: L('regionShowToast-Subtitle-Hint')
+            }),
+            icon: new fields.StringField({
+                required: false, blank: true, initial: 'fa-solid fa-circle-info',
+                label: L('regionShowToast-Icon-Label'), hint: L('regionShowToast-Icon-Hint')
+            }),
+            size: new fields.StringField({
+                required: true, blank: false, initial: 'normal',
+                choices: { normal: 'Notice (top of the screen)', small: 'Billboard: small', medium: 'Billboard: medium', large: 'Billboard: large', fullscreen: 'Billboard: full screen' },
+                label: L('regionShowToast-Size-Label'), hint: L('regionShowToast-Size-Hint')
+            }),
+            animation: new fields.StringField({
+                required: true, blank: false, initial: 'none',
+                choices: { none: 'None', pop: 'Pop', reveal: 'Reveal', pulse: 'Pulse', slam: 'Slam', shake: 'Shake' },
+                label: L('regionShowToast-Animation-Label'), hint: L('regionShowToast-Animation-Hint')
+            }),
+            duration: new fields.NumberField({
+                required: true, nullable: false, min: 0, initial: 8,
+                label: L('regionShowToast-Duration-Label'), hint: L('regionShowToast-Duration-Hint')
+            }),
+            shownTo: new fields.StringField({
+                required: true, blank: false, initial: 'mover',
+                choices: { everyone: 'Everyone at the table', mover: 'Only the player who walked in' },
+                label: L('regionShowToast-ShownTo-Label'), hint: L('regionShowToast-ShownTo-Hint')
+            }),
+            ...walkInFields(fields)
+        }),
+        events: {
+            tokenMoveIn: [
+                { run: 'everyone', handler: toastFor('everyone') },
+                { run: 'mover', handler: toastFor('mover') },
+                { run: 'activeGM', handler: function (event) { if (this.once && walkedIn(this, event)) return spend(this); } }
+            ]
+        }
+    });
+
+    regions.registerBehavior({
+        moduleId: MODULE.ID,
+        name: 'postToChat',
+        label: 'Post to Chat',
+        icon: 'fa-solid fa-scroll',
+        fields: (fields) => ({
+            title: new fields.StringField({
+                required: false, blank: true, initial: '',
+                label: L('regionPostToChat-Title-Label'), hint: L('regionPostToChat-Title-Hint')
+            }),
+            text: longText(fields, {
+                required: false, blank: true, initial: '',
+                label: L('regionPostToChat-Text-Label'), hint: L('regionPostToChat-Text-Hint')
+            }),
+            icon: new fields.StringField({
+                required: false, blank: true, initial: 'fa-solid fa-scroll',
+                label: L('regionPostToChat-Icon-Label'), hint: L('regionPostToChat-Icon-Hint')
+            }),
+            postedTo: new fields.StringField({
+                required: true, blank: false, initial: 'everyone',
+                choices: { everyone: 'Everyone at the table', mover: 'Only the player who walked in (and the GM)' },
+                label: L('regionPostToChat-PostedTo-Label'), hint: L('regionPostToChat-PostedTo-Hint')
+            }),
+            ...walkInFields(fields)
+        }),
+        events: { tokenMoveIn: { run: 'activeGM', handler: postToChatOnWalkIn } }
     });
 }

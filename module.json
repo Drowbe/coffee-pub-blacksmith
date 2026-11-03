@@ -115,7 +115,10 @@
       "requestRoll": {},
       "showCallout": {},
       "playSound": {},
-      "toggleTile": {}
+      "toggleTile": {},
+      "showToast": {},
+      "postToChat": {},
+      "changeMovement": {}
     }
   }
 }
