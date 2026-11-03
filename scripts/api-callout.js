@@ -106,7 +106,8 @@ function validate(id, spec) {
     }
     if (spec.gap != null && !Number.isFinite(spec.gap)) throw new TypeError('callout: gap must be a number of pixels');
     if (spec.interactive != null && typeof spec.interactive !== 'boolean') throw new TypeError('callout: interactive must be a boolean');
-    if (spec.interactive === false && spec.actions?.length) throw new TypeError('callout: a callout with interactive: false cannot have actions, nothing in it can be clicked');
+    if (spec.onClick != null && typeof spec.onClick !== 'function') throw new TypeError('callout: onClick must be a function');
+    if (spec.interactive === false && (spec.actions?.length || spec.onClick)) throw new TypeError('callout: a callout with interactive: false cannot have actions or onClick, nothing in it can be clicked');
     if (spec.style != null && (typeof spec.style !== 'object' || Array.isArray(spec.style))) throw new TypeError('callout: style must be an object');
     for (const key of ['rows', 'badges', 'actions']) {
         if (spec[key] != null && !Array.isArray(spec[key])) throw new TypeError(`callout: ${key} must be an array`);
@@ -114,6 +115,12 @@ function validate(id, spec) {
     for (const action of spec.actions ?? []) {
         if (!action?.label || typeof action.onClick !== 'function') throw new TypeError('callout: every action needs a label and an onClick function');
     }
+}
+
+/** How the box answers the pointer: ignores it (a read-out), or shows a pointer cursor because the whole box is a click. */
+function applyMode(el, spec) {
+    el.classList.toggle('blacksmith-callout-passive', spec.interactive === false);
+    el.classList.toggle('blacksmith-callout-clickable', typeof spec.onClick === 'function');
 }
 
 // ==================================================================
@@ -314,19 +321,22 @@ function stopHooks() {
     frame = null;
 }
 
+/** A click on a button runs that action; a click anywhere else in the box runs the spec's `onClick`, if it has one. */
 function onLayerClick(event) {
-    const button = event.target.closest?.('[data-callout-action]');
     const box = event.target.closest?.('.blacksmith-callout');
-    if (!button || !box) return;
+    const entry = box ? open.get(box.dataset.calloutId) : null;
+    if (!entry) return;
     const id = box.dataset.calloutId;
-    const entry = open.get(id);
-    const action = entry?.spec.actions?.[Number(button.dataset.calloutAction)];
+    const button = event.target.closest?.('[data-callout-action]');
+    const action = button
+        ? entry.spec.actions?.[Number(button.dataset.calloutAction)]
+        : (typeof entry.spec.onClick === 'function' ? { label: entry.spec.title, onClick: entry.spec.onClick, closeOnClick: entry.spec.closeOnClick } : null);
     if (!action) return;
     event.preventDefault();
     event.stopPropagation();
     if (action.closeOnClick !== false) CalloutAPI.hide(id);
     try {
-        const result = action.onClick({ id, close: () => CalloutAPI.hide(id) });
+        const result = action.onClick({ id, close: () => CalloutAPI.hide(id), event });
         if (result?.catch) result.catch((error) => reportError(id, action, error));
     } catch (error) {
         reportError(id, action, error);
@@ -358,6 +368,8 @@ export const CalloutAPI = {
      * @param {string} [spec.body] - Plain text; line breaks are kept
      * @param {Array<{label: string, value: string|number, icon?: string}>} [spec.rows]
      * @param {Array<{label: string, onClick: Function, icon?: string, tooltip?: string, gmOnly?: boolean, visible?: boolean|Function, closeOnClick?: boolean}>} [spec.actions]
+     * @param {Function} [spec.onClick] - Makes the whole box a click: runs when the box is pressed anywhere but on a button. Receives `{ id, close, event }`
+     * @param {boolean} [spec.closeOnClick=true] - Whether a press on the box (`onClick`) closes it first; each action has its own
      * @param {string} [spec.footer]
      * @param {'auto'|'top'|'bottom'|'left'|'right'|'top-left'|'top-right'|'bottom-left'|'bottom-right'} [spec.side='auto'] - Preferred side or corner of the anchor; it flips to stay on screen
      * @param {number} [spec.gap=10] - Pixels between the anchor and the box, 0 to 48
@@ -382,7 +394,7 @@ export const CalloutAPI = {
         el.style.maxWidth = `${Math.max(160, Number(spec.maxWidth) || 280)}px`;
         el.style.visibility = 'hidden';
         applyStyle(el, spec.style);
-        el.classList.toggle('blacksmith-callout-passive', spec.interactive === false);
+        applyMode(el, spec);
         el.innerHTML = renderMarkup(spec);
 
         const entry ={ spec, el, timer: null, hovered: false, leaveHides: false, abort: null };
@@ -421,7 +433,7 @@ export const CalloutAPI = {
         validate(id, spec);
         entry.spec = spec;
         if ('style' in patch) applyStyle(entry.el, spec.style);
-        if ('interactive' in patch) entry.el.classList.toggle('blacksmith-callout-passive', spec.interactive === false);
+        if ('interactive' in patch || 'onClick' in patch) applyMode(entry.el, spec);
         if ('maxWidth' in patch) entry.el.style.maxWidth = `${Math.max(160, Number(spec.maxWidth) || 280)}px`;
         entry.el.innerHTML = renderMarkup(spec);
         place(entry);

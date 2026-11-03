@@ -74,6 +74,11 @@
     pointer-events: none;
 }
 
+/* The whole box is a click (`onClick`): say so with the cursor. Buttons keep their own. */
+.blacksmith-callout-clickable {
+    cursor: pointer;
+}
+
 /* The tail: a square turned 45 degrees, its two outer borders showing, centred on the anchor by --blacksmith-callout-tail.
    Its offset is the box's border width plus half its own size, which puts its centre on the middle of the box's border. */
 .blacksmith-callout::after {

@@ -13,8 +13,8 @@
 //                fit and zoom ('custom'), or none
 //   - badges     `config.callout.badges`, else the pin's tags
 //   - body, rows `config.callout.body` and `config.callout.rows` -- the data a module hangs on its own pins
-//   - buttons    the pin context menu's registered items (the same ones, in the same order), plus Configure
-//                Pin for whoever may edit the pin
+//   - buttons    the pin context menu's registered items (the same ones, in the same order)
+//   - the box    when the pin's `calloutInheritAction` is on, pressing the box runs the pin's double-click action
 //
 // Whether a pin shows one is the pin's `calloutDisplay`, and how it looks is the pin's `calloutStyle`, both
 // set in the Callout section of Configure Pin.
@@ -26,6 +26,14 @@ const calloutId = (pinId) => `blacksmith-pin:${pinId}`;
 
 /** Pins whose pointer is still on them; a callout built after an async step is dropped when the pointer has left. */
 const wanted = new Set();
+
+/** Pressing the box does what a double-click on the pin does (`PinRenderer._activate`), on the pin as it is now. */
+function inheritPinAction(pinId, pin) {
+    return async ({ event }) => {
+        const [{ PinManager }, { PinRenderer }] = await Promise.all([import('./manager-pins.js'), import('./manager-pins-renderer.js')]);
+        await PinRenderer._activate(PinManager.get(pinId) || pin, event);
+    };
+}
 
 /** The callout spec for one pin. */
 async function specFor(pin) {
@@ -43,13 +51,6 @@ async function specFor(pin) {
     const actions = PinManager.getContextMenuItems(pin, userId)
         .filter((item) => !item.submenu)
         .map((item) => ({ label: item.name, icon: item.icon?.match(/class="([^"]*)"/)?.[1] ?? item.icon, tooltip: item.description, onClick: () => item.callback() }));
-    if (PinManager._canEdit(pin, userId)) {
-        actions.push({
-            label: 'Configure Pin',
-            icon: 'fa-solid fa-cog',
-            onClick: () => game.modules.get('coffee-pub-blacksmith')?.api?.pins?.configure(pin.id, { sceneId: canvas?.scene?.id })
-        });
-    }
 
     return {
         anchor: { pinId: pin.id },
@@ -64,6 +65,7 @@ async function specFor(pin) {
         rows: cfg.rows,
         footer: cfg.footer,
         actions,
+        onClick: pin.calloutInheritAction ? inheritPinAction(pin.id, pin) : undefined,
         style: pin.calloutStyle,
         maxWidth: pin.calloutStyle?.width
     };

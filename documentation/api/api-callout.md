@@ -56,6 +56,8 @@ Shows a callout, or replaces the one already open under that id. Returns a funct
 | `body` | string | Plain text; line breaks are kept. Scrolls past about nine lines |
 | `rows` | `Array<{ label, value, icon? }>` | Label on the left, value on the right |
 | `actions` | `Array<{ label, onClick, icon?, tooltip?, gmOnly?, visible?, closeOnClick? }>` | Buttons. `visible` is a boolean or a function, checked each time the box is drawn. `closeOnClick` defaults to `true` |
+| `onClick` | `({ id, close, event }) => void` | Makes the whole box a click: it runs when the box is pressed anywhere but on a button, and the cursor becomes a pointer. See [Clicks](#clicks) |
+| `closeOnClick` | boolean | With `onClick`: whether a press on the box closes it first. Default `true` |
 | `footer` | string | Small muted line at the bottom |
 | `side` | `'auto'`, a side (`'top'`, `'bottom'`, `'left'`, `'right'`) or a corner (`'top-left'`, `'top-right'`, `'bottom-left'`, `'bottom-right'`) | Preferred side or corner of the anchor. A corner puts the box up-left, up-right and so on, clear of the anchor on both axes. The box flips to another place to stay on screen (a corner flips on each axis, then both, then the four sides), then slides along the edge. The tail is drawn on the horizontal edge facing the anchor, at the end nearest it. Default `'auto'` (top, bottom, right, left) |
 | `gap` | number | Pixels between the anchor and the box, 0 to 48, default 10. The tail sits in it |
@@ -80,7 +82,19 @@ The look of the box. Every field is optional, and one that is absent or invalid 
 
 A colour must be hex (`#rgb`, `#rrggbb`, `#rrggbbaa`); a name, `rgb()` or anything else is ignored. The values become custom properties on the box, so nothing a caller passes reaches a stylesheet. Width is `maxWidth`, not part of `style`.
 
-`onClick` receives `{ id, close }`. A throw, or a rejected promise, is reported with a notification and does not break the box.
+## Clicks
+
+A callout answers a click in one of three ways, and you choose:
+
+1. **The whole box is one action.** Pass `onClick`. A press anywhere on the box runs it, and the cursor is a pointer.
+2. **Buttons.** Pass `actions`: any number, each its own button with its own `onClick`. They wrap onto more rows when they do not fit.
+3. **Neither.** Pass neither and the box is for reading; nothing in it reacts.
+
+`onClick` and `actions` can be used together; a press on a button runs that button only. The handler receives `{ id, close, event }`, where `event` is the click, for its modifier keys. A box with `interactive: false` takes neither.
+
+A hover-driven callout also closes on its own: `hide(id, { grace: true })` closes it a moment after the pointer leaves both the anchor and the box. Pressing closes it first by default (`closeOnClick`, on the box or on an action); pass `false` to keep it open.
+
+A throw, or a rejected promise, is reported with a notification and does not break the box.
 
 ## `update(id, patch)`
 

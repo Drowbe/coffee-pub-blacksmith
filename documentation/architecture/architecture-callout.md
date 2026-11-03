@@ -57,7 +57,8 @@ The layer sits at `z-index: 2` after the pins overlay (`1`), under Foundry's int
 | image or icon | `pin.image`, split into URL or Font Awesome |
 | badges | `config.callout.badges`, else `pin.tags` |
 | body, rows, footer | `config.callout.*` |
-| buttons | the pin context menu's registered items without a submenu, in order, then Configure Pin for whoever may edit |
+| buttons | the pin context menu's registered items without a submenu, in order |
+| the box | when `calloutInheritAction` is on, `onClick` runs `PinRenderer._activate`, which is what a double-click on the pin runs |
 
 The buttons are the context menu's items rather than a second registry, so a module that already added "Bring Players Here" to its pins has it in the callout with no change, and `visible`, `gmOnly` and `moduleId` filter the same way in both places. Items with a submenu are left out: a flyout inside a box is a second design.
 

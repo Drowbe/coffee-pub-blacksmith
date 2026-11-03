@@ -361,6 +361,7 @@ interface StoredPinData {
   dropShadow?: boolean; // Whether to show drop shadow (default: true) - controlled via CSS variable --blacksmith-pin-drop-shadow
   textLayout?: 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'; // Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is accepted and treated as 'arc-below'.
   textDisplay?: 'always' | 'hover' | 'never' | 'gm'; // Text display mode: 'always' (default), 'hover' (show on hover), 'never', or 'gm' (GM only)
+  calloutInheritAction?: boolean; // Pressing the callout does what a double-click on the pin does (default: false)
   calloutDisplay?: 'never' | 'hover'; // Data box shown while the pointer is on the pin (default: 'never'). See Callout
   calloutImage?: { mode?: 'pin' | 'none' | 'custom'; src?: string; fit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down' | 'zoom'; zoom?: number }; // The callout's picture: mirror the pin (default), none, or a custom image with its fit and zoom (1 to 2)
   calloutStyle?: { width?: number; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }; // How the box looks: the pin's own design options plus text. Colours are hex
@@ -1534,7 +1535,7 @@ What the box shows:
 | Image or icon | `image` |
 | Badges | `config.callout.badges`, else `tags` |
 | Body, rows, footer | `config.callout.body`, `.rows`, `.footer` |
-| Buttons | the items added with `registerContextMenuItem`, in `order`, without a submenu; plus Configure Pin for anyone who can edit the pin |
+| Buttons | the items added with `registerContextMenuItem`, in `order`, without a submenu. Any number |
 
 `config.callout` is plain data a module sets on its own pins, in the same shapes as the Callout API's `badges`, `rows` and `footer`:
 
@@ -1558,6 +1559,8 @@ await pins.create({
 ```
 
 A button here is a context menu item, so the one registration serves the right-click menu and the callout, and `visible`, `gmOnly` and `moduleId` filter both.
+
+`calloutInheritAction` (**Callout inherits Pin Action** in the Callout section; default `false`) makes pressing the box itself do what a double-click on the pin does: the same `doubleClick` handlers, the pin's double-click animation, and the same "no longer exists" warning for a broken target. The cursor over the box is a pointer when it is on. It is separate from the buttons: both can be present, and a press on a button runs only that button.
 
 ### `pins.registerContextMenuItem(itemId, itemData)`
 Register a custom context menu item for pins. The item appears above the separator, before built-in options (Ping Pin, Delete Pin, etc.). Returns a disposer function; call it to unregister.

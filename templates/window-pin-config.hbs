@@ -462,6 +462,13 @@
                             <input type="number" class="blacksmith-input" data-callout-field="width" min="160" max="480" step="10" value="{{pinCalloutStyle.width}}">
                         </label>
                     </div>
+                    <div class="blacksmith-toggle-row">
+                        <label class="blacksmith-toggle">
+                            <input type="checkbox" class="blacksmith-toggle-input blacksmith-pin-config-callout-inherit" {{#if pinCalloutInheritAction}}checked{{/if}}>
+                            <span class="blacksmith-toggle-slider"></span>
+                        </label>
+                        <span class="blacksmith-toggle-label" data-tooltip="Pressing the callout does what a double-click on the pin does">Callout inherits Pin Action</span>
+                    </div>
                     <div class="blacksmith-field-row">
                         <label class="blacksmith-field">
                             <span class="blacksmith-field-label">Background</span>

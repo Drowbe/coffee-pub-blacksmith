@@ -920,18 +920,33 @@ class PinDOMElement {
         const isDouble = this._lastClick.pinId === pinData.id && (now - this._lastClick.time) <= this.DOUBLE_CLICK_MS;
         this._lastClick = isDouble ? { pinId: null, time: 0 } : { pinId: pinData.id, time: now };
 
-        const animation = pinData.eventAnimations?.[isDouble ? 'doubleClick' : 'click'];
         if (isDouble) {
-            const { PinManager } = await import('./manager-pins.js');
-            // A pin whose declared target is gone has nothing to open: say so, and do not hand the module a
-            // double-click it could only fail on
-            const target = await PinManager.resolvePinTarget(pinData);
-            if (target.broken) {
-                ui.notifications?.warn('What this pin points to no longer exists.');
-            } else {
-                PinManager._invokeHandlers('doubleClick', pinData, canvas?.scene?.id || '', game.user?.id || '', this._extractModifiers(event), event);
-            }
+            await this._activate(pinData, event);
+            return;
         }
+        const animation = pinData.eventAnimations?.click;
+        if (animation?.animation) {
+            PinRenderer.ping(pinData.id, { animation: animation.animation, sound: animation.sound ?? null, loops: 1 });
+        }
+    }
+
+    /**
+     * What a double-click on a pin does: hand the modules their `doubleClick`, and play the pin's double-click
+     * animation. A pin's callout that inherits the pin's action runs this too, so the two cannot drift.
+     * @param {PinData} pinData
+     * @param {MouseEvent} event
+     */
+    static async _activate(pinData, event) {
+        const { PinManager } = await import('./manager-pins.js');
+        // A pin whose declared target is gone has nothing to open: say so, and do not hand the module a
+        // double-click it could only fail on
+        const target = await PinManager.resolvePinTarget(pinData);
+        if (target.broken) {
+            ui.notifications?.warn('What this pin points to no longer exists.');
+        } else {
+            PinManager._invokeHandlers('doubleClick', pinData, canvas?.scene?.id || '', game.user?.id || '', this._extractModifiers(event), event);
+        }
+        const animation = pinData.eventAnimations?.doubleClick;
         if (animation?.animation) {
             PinRenderer.ping(pinData.id, { animation: animation.animation, sound: animation.sound ?? null, loops: 1 });
         }

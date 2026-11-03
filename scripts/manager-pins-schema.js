@@ -27,6 +27,7 @@ import { postConsoleAndNotification } from './api-core.js';
  * @property {boolean} [dropShadow] - Whether to show drop shadow (default: true)
  * @property {'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'} [textLayout] - Text layout: 'under' (below), 'over' (centered over), 'above' (above pin), 'right' (right of pin, left-aligned), 'left' (left of pin, right-aligned), 'arc-above' (curved above pin), 'arc-below' (curved below pin). Legacy 'around' is treated as 'arc-below'.
  * @property {'always' | 'hover' | 'never' | 'gm'} [textDisplay] - Text display mode: 'always' (default), 'hover', 'never', or 'gm' (GM only)
+ * @property {boolean} [calloutInheritAction] - Whether pressing the pin's callout does what a double-click on the pin does. Default false.
  * @property {'never' | 'hover'} [calloutDisplay] - Whether a data box (api.callout) opens while the pointer is on the pin: 'never' (default) or 'hover'. Its content is the pin's own data plus `config.callout` ({ subtitle, badges, body, rows, footer }).
  * @property {{ width?: number; fill?: string; stroke?: string; strokeWidth?: number; iconColor?: string; dropShadow?: boolean; textColor?: string; textSize?: number }} [calloutStyle] - How the pin's callout looks: the pin's own design options (size as `width`, background, border, icon colour, drop shadow) and its text options (colour, size). Colours are hex.
  * @property {{ mode?: 'pin' | 'none' | 'custom'; src?: string; fit?: string; zoom?: number }} [calloutImage] - The callout's picture: 'pin' (default) mirrors the pin's own image or icon, 'none' shows no picture, 'custom' shows `src` with the pin image's fit and zoom options.
@@ -205,6 +206,7 @@ export const PIN_DEFAULTS = Object.freeze({
     dropShadow: true,
     textLayout: 'under', // 'under' | 'over' | 'above' | 'right' | 'left' | 'arc-above' | 'arc-below'
     textDisplay: 'hover', // 'always' | 'hover' | 'never' | 'gm'
+    calloutInheritAction: false, // pressing the callout runs the pin's double-click action (utility-pin-callout.js)
     calloutDisplay: 'never', // 'never' | 'hover': the data box shown while the pointer is on the pin (utility-pin-callout.js)
     calloutStyle: { width: 280, fill: '#222222', stroke: '#3d3d3d', strokeWidth: 1, iconColor: '#ffffff', dropShadow: true, textColor: '#ffffff', textSize: 12 },
     calloutImage: { mode: 'pin', src: '', fit: 'cover', zoom: 1 },
@@ -414,6 +416,7 @@ export function applyDefaults(partial) {
         textLayout: PIN_DEFAULTS.textLayout,
         textDisplay: PIN_DEFAULTS.textDisplay,
         calloutDisplay: PIN_DEFAULTS.calloutDisplay,
+        calloutInheritAction: PIN_DEFAULTS.calloutInheritAction,
         calloutStyle: { ...PIN_DEFAULTS.calloutStyle },
         calloutImage: { ...PIN_DEFAULTS.calloutImage },
         textColor: PIN_DEFAULTS.textColor,
@@ -483,6 +486,7 @@ export function applyDefaults(partial) {
         const callout = String(partial.calloutDisplay).toLowerCase();
         if (callout === 'never' || callout === 'hover') base.calloutDisplay = callout;
     }
+    if (typeof partial.calloutInheritAction === 'boolean') base.calloutInheritAction = partial.calloutInheritAction;
     if (partial.calloutStyle != null) base.calloutStyle = normalizeCalloutStyle(partial.calloutStyle, base.calloutStyle);
     if (partial.calloutImage != null) base.calloutImage = normalizeCalloutImage(partial.calloutImage, base.calloutImage);
     if (partial.textColor != null) base.textColor = String(partial.textColor);

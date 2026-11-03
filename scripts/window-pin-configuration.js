@@ -96,6 +96,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTextLayout = 'under';
         this.pinTextDisplay = 'always';
         this.pinCalloutDisplay = 'never';
+        this.pinCalloutInheritAction = false;
         this.pinTextColor = '#ffffff';
         this.pinTextSize = 12;
         this.pinTextMaxLength = 0;
@@ -235,6 +236,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             textLayout: savedTextLayout,
             textDisplay: this.pinTextDisplay,
             calloutDisplay: this.pinCalloutDisplay,
+            calloutInheritAction: this.pinCalloutInheritAction,
             calloutStyle: this._readCalloutStyle(nativeHtml.querySelector('.blacksmith-pin-config-callout-section')),
             calloutImage: this._readCalloutImage(nativeHtml.querySelector('.blacksmith-pin-config-callout-section')),
             textColor: this.pinTextColor,
@@ -302,6 +304,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         }
         if (checked.has('callout')) {
             partial.calloutDisplay = fullUpdateData.calloutDisplay;
+            partial.calloutInheritAction = fullUpdateData.calloutInheritAction;
             partial.calloutStyle = fullUpdateData.calloutStyle;
             partial.calloutImage = fullUpdateData.calloutImage;
         }
@@ -517,6 +520,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
         this.pinTextLayout = normalizedLayout || 'under';
         this.pinTextDisplay = pin.textDisplay || 'always';
         this.pinCalloutDisplay = pin.calloutDisplay || 'never';
+        this.pinCalloutInheritAction = !!pin.calloutInheritAction;
         this.pinCalloutStyle = normalizeCalloutStyle(pin.calloutStyle);
         this.pinCalloutImage = normalizeCalloutImage(pin.calloutImage);
         this.pinTextColor = pin.textColor || '#ffffff';
@@ -695,6 +699,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
             pinTextLayout: this.pinTextLayout,
             pinTextDisplay: this.pinTextDisplay,
             pinCalloutDisplay: this.pinCalloutDisplay,
+            pinCalloutInheritAction: this.pinCalloutInheritAction,
             pinCalloutStyle: this.pinCalloutStyle,
             pinCalloutImage: this.pinCalloutImage,
             pinCalloutImageZoomPercent: Math.round(this.pinCalloutImage.zoom * 100),
@@ -1050,6 +1055,9 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                 this.pinTextDisplay = display;
             }
         });
+        nativeHtml.querySelector('.blacksmith-pin-config-callout-inherit')?.addEventListener('change', (event) => {
+            this.pinCalloutInheritAction = !!event.target.checked;
+        });
         calloutDisplayInput?.addEventListener('change', () => {
             const display = calloutDisplayInput.value;
             if (display === 'never' || display === 'hover') this.pinCalloutDisplay = display;
@@ -1295,7 +1303,7 @@ export class PinConfigWindow extends BlacksmithWindowBaseV2 {
                             ...(has('source') ? { image: pinUpdateData.image, imageFit: pinUpdateData.imageFit, imageZoom: pinUpdateData.imageZoom } : {}),
                             ...(has('design') ? { size: configData.pinSize, shape: configData.pinShape, style: configData.pinStyle, dropShadow: configData.pinDropShadow } : {}),
                             ...(has('text') ? configData.pinTextConfig : {}),
-                            ...(has('callout') ? { calloutDisplay: pinUpdateData.calloutDisplay, calloutStyle: pinUpdateData.calloutStyle, calloutImage: pinUpdateData.calloutImage } : {}),
+                            ...(has('callout') ? { calloutDisplay: pinUpdateData.calloutDisplay, calloutInheritAction: pinUpdateData.calloutInheritAction, calloutStyle: pinUpdateData.calloutStyle, calloutImage: pinUpdateData.calloutImage } : {}),
                             ...(has('animations') ? { eventAnimations: pinUpdateData.eventAnimations } : {}),
                             ...(has('classification') ? { tags: pinUpdateData.tags } : {}),
                             ...(has('permissions') ? {

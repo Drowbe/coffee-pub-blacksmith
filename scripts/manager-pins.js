@@ -2431,6 +2431,7 @@ export class PinManager {
             const callout = String(patch.calloutDisplay).toLowerCase();
             if (callout === 'never' || callout === 'hover') merged.calloutDisplay = callout;
         }
+        if (typeof patch.calloutInheritAction === 'boolean') merged.calloutInheritAction = patch.calloutInheritAction;
         if (patch.calloutStyle != null) merged.calloutStyle = normalizeCalloutStyle(patch.calloutStyle, merged.calloutStyle);
         if (patch.calloutImage != null) merged.calloutImage = normalizeCalloutImage(patch.calloutImage, merged.calloutImage);
         if (patch.textColor != null) merged.textColor = String(patch.textColor);
