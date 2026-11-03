@@ -107,3 +107,15 @@ events: {
 A region event reaches every client, and a handler that only runs for the mover never runs on the GM's client when a player moves. A write that has to happen once belongs in an `activeGM` handler, not behind a GM check inside a `mover` one.
 
 `tokenMoveIn` is the one for a token walking in. `tokenEnter` also fires for a token created inside the region or dropped in by a teleport, which is rarely a walk.
+
+## Behaviours Blacksmith registers
+
+Blacksmith uses this API for two behaviours of its own, so a region can do these with no other module. They appear in a region's Behaviors tab as `CP Blacksmith: Request a Roll` and `CP Blacksmith: Show Callout`, and are declared in Blacksmith's `module.json`.
+
+| Behaviour | Event | What it does |
+|---|---|---|
+| Request a Roll | `tokenMoveIn`, on the active GM's client | Posts a roll request to chat for the token that walked in (`api.openRequestRollDialog`, silent mode). Fields: roll type, roll, DC, title, explanation, who sets it off (a token a player owns, or any token), and only once |
+| Show Callout | `tokenEnter` and `tokenExit`, on the mover's client | Opens a data box (`api.callout`) anchored to the region while the token is inside, and closes it when the token leaves. Fields: title, subtitle, text, icon |
+
+Request a Roll uses a walk-in, so a token created inside the region or dropped there by a teleport does not set it off. Show Callout follows presence, so those do open it.
+

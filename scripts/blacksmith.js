@@ -142,6 +142,7 @@ import { ToastAPI } from './api-toast.js';
 import { DialogAPI } from './api-dialog.js';
 import { CalloutAPI } from './api-callout.js';
 import { RegionsAPI } from './api-regions.js';
+import { registerRegionBehaviors } from './manager-region-behaviors.js';
 import { EntityListAPI } from './api-entity-list.js';
 import { QuantitySplitAPI } from './api-quantity-split.js';
 import { TokenIndicatorManager } from './manager-token-indicators.js';
@@ -1402,6 +1403,8 @@ Hooks.once('init', async function() {
             return dialog;
         }
     });
+    // After module.api exists and still inside `init`: a region behaviour registered later breaks token moves.
+    registerRegionBehaviors();
     if (MenuBar) {
         Object.assign(module.api, {
             registerMenubarTool: MenuBar.registerMenubarTool.bind(MenuBar),

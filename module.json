@@ -109,5 +109,11 @@
     ],
     "conflicts": [],
     "includes": []
+  },
+  "documentTypes": {
+    "RegionBehavior": {
+      "requestRoll": {},
+      "showCallout": {}
+    }
   }
 }

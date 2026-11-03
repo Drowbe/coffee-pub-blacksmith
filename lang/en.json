@@ -1261,6 +1261,29 @@
 				"globalConsoleDebugStyle-Label": "Debug Style",
 				"globalConsoleDebugStyle-Hint": "Looking for debug code? You have to ask yourself if you use the console to solve problems or if you enjoy a good word-search puzzle. Default: Fancy Pants.",
 
-				"canvasPickArea-Hint": "Drag a box to pick. Esc to cancel."
+				"canvasPickArea-Hint": "Drag a box to pick. Esc to cancel.",
+
+				"regionRequestRoll-RollType-Label": "Roll type",
+				"regionRequestRoll-RollType-Hint": "What kind of roll to request.",
+				"regionRequestRoll-RollValue-Label": "Roll",
+				"regionRequestRoll-RollValue-Hint": "The skill, ability or save, by name or id (perception, dex, con), or a dice formula such as 2d6+4.",
+				"regionRequestRoll-DC-Label": "DC",
+				"regionRequestRoll-DC-Hint": "The difficulty to beat. Leave empty to ask for the roll with no target.",
+				"regionRequestRoll-Title-Label": "Title",
+				"regionRequestRoll-Title-Hint": "The heading on the roll request. Empty uses the region's name.",
+				"regionRequestRoll-Explanation-Label": "Explanation",
+				"regionRequestRoll-Explanation-Hint": "Text shown on the roll request under About this Roll. Plain text.",
+				"regionRequestRoll-Who-Label": "Triggered by",
+				"regionRequestRoll-Who-Hint": "Which tokens set it off. Monsters and NPCs walking in are usually not the trap's target.",
+				"regionRequestRoll-Once-Label": "Only once",
+				"regionRequestRoll-Once-Hint": "Switch this behavior off after the first roll request.",
+				"regionShowCallout-Title-Label": "Title",
+				"regionShowCallout-Title-Hint": "The heading of the box. Empty uses the region's name.",
+				"regionShowCallout-Subtitle-Label": "Subtitle",
+				"regionShowCallout-Subtitle-Hint": "A line under the title.",
+				"regionShowCallout-Body-Label": "Text",
+				"regionShowCallout-Body-Hint": "The body of the box. Plain text; line breaks are kept.",
+				"regionShowCallout-Icon-Label": "Icon",
+				"regionShowCallout-Icon-Hint": "Font Awesome classes, such as fa-solid fa-circle-info. Empty shows no icon."
 	}
 }
