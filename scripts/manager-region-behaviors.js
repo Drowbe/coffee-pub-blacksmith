@@ -368,7 +368,7 @@ export function registerRegionBehaviors() {
         moduleId: MODULE.ID,
         name: 'showCallout',
         label: 'Show Callout',
-        icon: 'fa-solid fa-message',
+        icon: 'fa-solid fa-message-middle-top',
         fields: (fields) => ({
             title: new fields.StringField({
                 required: false, blank: true, initial: '',
@@ -383,7 +383,7 @@ export function registerRegionBehaviors() {
                 label: L('regionShowCallout-Body-Label'), hint: L('regionShowCallout-Body-Hint')
             }),
             icon: new fields.StringField({
-                required: false, blank: true, initial: 'fa-solid fa-circle-info',
+                required: false, blank: true, initial: 'fa-solid fa-message-middle-top',
                 label: L('regionShowCallout-Icon-Label'), hint: L('regionShowCallout-Icon-Hint')
             })
         }),
@@ -488,7 +488,7 @@ export function registerRegionBehaviors() {
         moduleId: MODULE.ID,
         name: 'showToast',
         label: 'Show Toast',
-        icon: 'fa-solid fa-bell',
+        icon: 'fa-solid fa-bullhorn',
         fields: (fields) => ({
             title: new fields.StringField({
                 required: false, blank: true, initial: '',
@@ -499,7 +499,7 @@ export function registerRegionBehaviors() {
                 label: L('regionShowToast-Subtitle-Label'), hint: L('regionShowToast-Subtitle-Hint')
             }),
             icon: new fields.StringField({
-                required: false, blank: true, initial: 'fa-solid fa-circle-info',
+                required: false, blank: true, initial: 'fa-solid fa-bullhorn',
                 label: L('regionShowToast-Icon-Label'), hint: L('regionShowToast-Icon-Hint')
             }),
             size: new fields.StringField({
@@ -536,7 +536,7 @@ export function registerRegionBehaviors() {
         moduleId: MODULE.ID,
         name: 'postToChat',
         label: 'Post to Chat',
-        icon: 'fa-solid fa-scroll',
+        icon: 'fa-solid fa-message',
         fields: (fields) => ({
             title: new fields.StringField({
                 required: false, blank: true, initial: '',
@@ -547,7 +547,7 @@ export function registerRegionBehaviors() {
                 label: L('regionPostToChat-Text-Label'), hint: L('regionPostToChat-Text-Hint')
             }),
             icon: new fields.StringField({
-                required: false, blank: true, initial: 'fa-solid fa-scroll',
+                required: false, blank: true, initial: 'fa-solid fa-message',
                 label: L('regionPostToChat-Icon-Label'), hint: L('regionPostToChat-Icon-Hint')
             }),
             postedTo: new fields.StringField({
