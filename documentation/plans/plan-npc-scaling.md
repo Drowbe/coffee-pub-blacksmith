@@ -115,11 +115,37 @@ A linked, directory-owned source is never mutated in either mode.
   `check-dice-builder.mjs` does.
 - **`api.npcScaling`** -- `preview(target, {cr | template | spec})`, `apply(target, {cr | template | spec,
   output})`, `templates.*`. Blacksmith's own window is its first consumer, not a private path.
-- **Window** -- a Blacksmith Tool window: target CR or template picker, a table of *stat / now / scaled*,
-  the editable DPR estimate, an output-mode switch. Built on the shared `blacksmith-tool-*` controls.
-- **Entry points** -- token context menu and actor sheet header control first.
+- **Window** -- `NpcScalingWindow extends BlacksmithToolWindowBaseV2` (`scripts/window-tool-base.js`):
+  target CR or template picker, a table of *stat / now / scaled*, the editable DPR estimate, an output-mode
+  switch. See *Blacksmith APIs this builds on* for the controls and the lifecycle.
+- **Entry points** -- the toolbar tool and the actor sheet header control first; see the table.
 - **Guidelines table** -- bundled data, editable, stored as a world setting seeded from the bundle (the
-  quick-rolls seed-once pattern), with import/export. Settings copy is the author's to write.
+  quick-rolls seed-once pattern, `QuickRollsManager.seedIfNeeded` / `exportPayload` / `importRolls`), with
+  import/export. Settings copy is the author's to write.
+
+## Blacksmith APIs this builds on
+
+Blacksmith is consumer zero (`feedback-blacksmith-is-consumer-zero`): the feature goes through the same
+surface a satellite would, and where a satellite would have to jump through a hoop, we fix the hoop.
+
+| Need | API | How it is used |
+|---|---|---|
+| The window | **Tool window** -- `BlacksmithToolWindowBaseV2`, `api-window.md` | Subclass it. **One window per target**: `NpcScalingWindow.openFor(tokenDocument \| actor)`, which focuses an open one rather than building a second, keyed on `uuid` -- never `actor.id` (see trap 4). Set `rememberPosition: false` where several can be open. Never assign `this.options.toolTheme`; use `setToolTheme()`. Handlers read the instance from `ACTION_HANDLERS`' third argument. Unregistered unless a toolbar tool needs to open it by id. |
+| Window controls | **`blacksmith-tool-*`**, `design-components.md` | The *now / scaled* table as a `.blacksmith-tool-section` per stat group; output mode as `.blacksmith-tool-segmented` (new actor / token only); template picker as `.blacksmith-tool-chips` or `.blacksmith-tool-card` rows; `.blacksmith-tool-editable` for the DPR estimate and a template's name (`change` event, `{ value, previous }`; skip a redraw while `api.toolEditable.isEditing`); `.blacksmith-tool-hint` / `-empty`; footer actions in the shared action bar -- Apply is the right-hand primary, secondary on the left. **No colour literals and no window-scoped restyling of a shared component** (`feedback-no-component-overrides`): a missing variant is added to the component. |
+| Confirm / ask | **`api.dialog`** | `confirm` before a destructive rescale or a delete-template; `choose` for the output mode when invoked from a macro; `prompt` for a template name, with `validate` rejecting a duplicate; `pickActor` when `api.npcScaling.apply` is called with no target. Dismissal follows the dialog contract (`closeValue`), not a custom cancel. |
+| Feedback | **`api.toast`** | One toast on success naming the new actor and its CR, one on refusal. Not `ui.notifications`. |
+| The target and its CR | **`api.getMonsterCR`, `api.parseCR`, `api.formatCR`, `api.getPartyCR`** | The same CR parsing and formatting the encounter bar uses, so `1/4` means the same thing everywhere. `getPartyCR` is the default suggestion for "scale to the party". |
+| Source actors | **`api.compendiums`** | Resolve a source by name or UUID, including from the GM's mapped NPC compendium, so a GM can scale a stock NPC without importing it first. |
+| Entry: toolbar | **`registerToolbarTool`** (`api-toolbar.md`) | A `gmOnly` tool, "Scale NPC", acting on the selected tokens. The toolbar is the registry's reason to exist: this is the one place the window is registered by id. |
+| Entry: sheet | **`getHeaderControls` through `HookManager`** | An NPC sheet header control that opens the window for that actor. The hook name is the ApplicationV2 one, not the V1 `getActorSheetHeaderButtons`, and its arguments differ (`manager-hooks.js` legacy table). Registered with `HookManager.registerHook` and a `context`, never a raw `Hooks.on`. |
+| Entry: canvas | **`api.uiContextMenu.show`** | Reserved, not v1. Foundry's token right-click is the HUD, not a context menu; adding to it is a separate decision. |
+| Provenance tags | **`api.tags`** | Open question: tag a scaled actor so it can be found and filtered in a directory. Decide before phase 2 -- it changes what the spec writes. |
+| Players and permissions | **`api.gmRequest`** | **Not used.** Scaling is GM-only end to end and creates a world actor; a player never reaches it, so there is nothing to relay. |
+| Logging, hooks, settings | **`postConsoleAndNotification`, `HookManager`, `registerHeader`** | As everywhere. The guidelines table and the template library are world settings under a new heading; `node tools/check-settings-headings.mjs` after. |
+| After scaling | **Foundry hook, our own name** | `blacksmith.npcScaling.applied`, fired once with `{ source, result, spec, output }`, so a satellite can react. Documented in `api-npc-scaling.md` with the rest of the surface. |
+
+Two APIs that look relevant and are not: **`api.importer`** -- scaling copies an existing actor and does not
+read foreign data, so the declaration model has nothing to declare; and **`api.rolls`** -- nothing here rolls.
 
 ## Auto-scale (later, not now)
 

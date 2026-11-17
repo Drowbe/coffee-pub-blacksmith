@@ -192,8 +192,11 @@ CR 12, source unchanged, numbers match the preview, the encounter bar counts it 
 
 ### Scaling window and entry points
 
-A Blacksmith Tool window with CR/template picker, a now/scaled table, an editable DPR estimate and an
-output-mode switch; entered from the token context menu and the actor sheet header. Verified live.
+A `BlacksmithToolWindowBaseV2` window (`openFor` one per target) built from the `blacksmith-tool-*` controls,
+with CR/template picker, a now/scaled table, an editable DPR estimate and an output-mode switch; `api.dialog`
+for confirms, `api.toast` for results, a `gmOnly` `registerToolbarTool` entry and an NPC sheet header control
+through `HookManager`. The plan's "Blacksmith APIs this builds on" table is the list. Verified live, on
+Light, Dark and Glass.
 
 ### Scale templates, token-only output, auto-scale
 
