@@ -170,6 +170,39 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 
 ---
 
+## NPC scaling
+
+Design and traps in `plans/plan-npc-scaling.md`. Agreed with the author 2026-11-17: in Blacksmith, CR retarget
+and named templates both, new actor by default, auto-scale on drop later.
+
+### Scaling engine and its check
+
+Pure functions in a new `utility-` file: the guidelines table, `specFromCR`, `applySpec` (returns update data,
+writes nothing), `estimateDPR`. First settle the open traps in the plan -- the attack/damage bonus paths per
+dnd5e version, and whether a spec writes `hp.max` or `hp.bonuses.overall`. Verified by a new
+`tools/check-npc-scaling.mjs` that slices the real functions out: proficiency is subtracted, CR 1/4 to 12
+lands on the table's row, and the source data is never mutated.
+
+### New-actor output, provenance and `api.npcScaling`
+
+`preview` and `apply` writing a new world actor with the `npcScaling` provenance flag in the same create call;
+rescale and revert regenerate from the source. Blacksmith's window is the first consumer. Needs
+`api-npc-scaling.md` and `architecture-npc-scaling.md` in the same change. Verified live: scale a goblin to
+CR 12, source unchanged, numbers match the preview, the encounter bar counts it at CR 12.
+
+### Scaling window and entry points
+
+A Blacksmith Tool window with CR/template picker, a now/scaled table, an editable DPR estimate and an
+output-mode switch; entered from the token context menu and the actor sheet header. Verified live.
+
+### Scale templates, token-only output, auto-scale
+
+Named presets with export/import and seeded defaults; token-only output with a one-write revert map and batch
+over tokens of one actor; later, auto-scale on `createToken` (opt-in must be three-valued). Each becomes its
+own entry once the one above it has shipped -- the plan holds the shape until then.
+
+---
+
 ## Importer
 
 Design, contract and build sequence: **`documentation/plans/plan-importer-api.md`**.
