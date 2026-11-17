@@ -78,7 +78,7 @@ export const ATTACK_TYPES = Object.freeze(['mwak', 'rwak', 'msak', 'rsak']);
 
 /**
  * A refusal the caller can act on. `code` is stable; `message` is for a person.
- * Codes: NO_CR, INVALID_CR, NO_PATH, BAD_SPEC.
+ * Codes: NO_CR, INVALID_CR, NO_PATH, BAD_SPEC, BAD_TEMPLATE, BAD_TABLE.
  */
 export class NpcScalingError extends Error {
     constructor(code, message) {
@@ -200,6 +200,337 @@ export function specFromCR(source, targetCR, { label = '', table = GUIDELINES } 
         damage: { addPerHit: Math.round((to.dpr - from.dpr) / attacks) }
     };
 }
+
+// ===== GUIDELINES FROM SAMPLES ====================================
+
+/** Every CR the table has a row for, as the keys the table uses, in order. */
+export const TABLE_KEYS = Object.freeze([0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)].map((cr) => crKey(cr)));
+
+const midpoint = (range) => (range[0] + range[1]) / 2;
+
+/**
+ * Whether a table is one the engine can scale with. Returns the problems, empty when it is sound.
+ *
+ * "Sound" is what the engine silently relies on: a row for every CR, finite numbers, ranges the right way
+ * round, and armor class, attack bonus, save DC, hit points and damage that never FALL as CR rises. A row
+ * that falls scales a creature DOWN while the preview reads fine, and nothing downstream compares rows.
+ *
+ * @param {Object} table
+ * @returns {string[]}
+ */
+export function validateTable(table) {
+    const problems = [];
+    if (!table || typeof table !== 'object') return ['the table is not an object'];
+    const keys = Object.keys(table);
+    for (const key of TABLE_KEYS) if (!(key in table)) problems.push(`CR ${key} has no row`);
+    for (const key of keys) if (!TABLE_KEYS.includes(key)) problems.push(`"${key}" is not a challenge rating`);
+    if (problems.length) return problems;
+
+    let prev = null;
+    for (const key of TABLE_KEYS) {
+        const row = table[key];
+        const numbers = [row?.ac, row?.atk, row?.dc, ...(row?.hp ?? [NaN]), ...(row?.dpr ?? [NaN])];
+        if (!Array.isArray(row?.hp) || row.hp.length !== 2 || !Array.isArray(row?.dpr) || row.dpr.length !== 2
+            || numbers.some((n) => !Number.isFinite(n))) {
+            problems.push(`CR ${key}: every figure must be a number, and hp and dpr a [min, max] pair`);
+            continue;
+        }
+        if (row.hp[0] > row.hp[1]) problems.push(`CR ${key}: hp range is backwards`);
+        if (row.dpr[0] > row.dpr[1]) problems.push(`CR ${key}: dpr range is backwards`);
+        if (prev) {
+            for (const col of ['ac', 'atk', 'dc']) {
+                if (row[col] < prev[col]) problems.push(`CR ${key}: ${col} ${row[col]} is below the row before it (${prev[col]})`);
+            }
+            if (midpoint(row.hp) < midpoint(prev.hp)) problems.push(`CR ${key}: hit points fall below the row before it`);
+            if (midpoint(row.dpr) < midpoint(prev.dpr)) problems.push(`CR ${key}: damage per round falls below the row before it`);
+        }
+        prev = row;
+    }
+    return problems;
+}
+
+/** Freeze a plain-data object and everything inside it. */
+export function deepFreeze(value) {
+    if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+        Object.values(value).forEach(deepFreeze);
+        Object.freeze(value);
+    }
+    return value;
+}
+
+const USABLE = Object.freeze({
+    ac: (v) => Number.isFinite(v) && v > 0,
+    hp: (v) => Number.isFinite(v) && v > 0,
+    atk: (v) => Number.isFinite(v),
+    dpr: (v) => Number.isFinite(v) && v > 0,
+    dc: (v) => Number.isFinite(v) && v > 0
+});
+
+function quantile(sorted, q) {
+    if (!sorted.length) return NaN;
+    const pos = (sorted.length - 1) * q;
+    const lo = Math.floor(pos);
+    const hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+/** Fill the gaps in a list by straight lines between the nearest known neighbours; ends copy the nearest. */
+function fillGaps(points) {
+    const known = points.map((v, i) => (v === null ? -1 : i)).filter((i) => i >= 0);
+    if (!known.length) return null;
+    return points.map((v, i) => {
+        if (v !== null) return v;
+        const lo = [...known].reverse().find((k) => k < i);
+        const hi = known.find((k) => k > i);
+        if (lo === undefined) return points[hi];
+        if (hi === undefined) return points[lo];
+        return points[lo] + (points[hi] - points[lo]) * ((i - lo) / (hi - lo));
+    });
+}
+
+/** Weighted pool-adjacent-violators: the closest non-decreasing sequence to `values`. */
+function isotonic(values, weights) {
+    const blocks = [];
+    values.forEach((v, i) => {
+        blocks.push({ sum: v * weights[i], w: weights[i], n: 1 });
+        while (blocks.length > 1) {
+            const b = blocks[blocks.length - 1];
+            const a = blocks[blocks.length - 2];
+            if (a.sum / a.w <= b.sum / b.w) break;
+            blocks.splice(-2, 2, { sum: a.sum + b.sum, w: a.w + b.w, n: a.n + b.n });
+        }
+    });
+    return blocks.flatMap((b) => Array(b.n).fill(b.sum / b.w));
+}
+
+/**
+ * Build a guidelines table from creatures: for each CR, the typical armor class, hit points, best attack bonus,
+ * damage per round and save DC of the creatures at that CR.
+ *
+ * - **Typical is the median**, so one outlier (a low-AC, high-HP giant) does not drag a row. Hit points and
+ *   damage carry a band of half the interquartile range either side, so the band centres on the median and
+ *   the engine, which reads the midpoint, reads the median.
+ * - **A creature counts for a figure only when it has one.** A creature with no attack has no attack bonus
+ *   and no damage per round; it still counts for armor class and hit points.
+ * - **A CR with fewer than `minSamples` creatures is interpolated** between its nearest populated neighbours
+ *   (the ends copy the nearest), and its few creatures are ignored for that row. The result says which rows
+ *   these were, so a GM is not shown a guess as a measurement.
+ * - **The columns are then smoothed to never fall as CR rises**, by the closest non-decreasing fit, because
+ *   real stat blocks are noisy and the engine takes gaps between rows. A row moved by more than rounding is
+ *   reported as smoothed.
+ *
+ * @param {Array<{ cr: number, ac?: number, hp?: number, atk?: number, dpr?: number, dc?: number }>} samples
+ * @param {Object} [options]
+ * @param {number} [options.minSamples=2]
+ * @returns {{ table: Object, report: { samples: number, minSamples: number, rows: Array<{ key: string, n: number, status: 'sampled'|'smoothed'|'interpolated' }> } }}
+ * @throws {NpcScalingError} BAD_TABLE when no creature gave a usable figure for a column.
+ */
+export function buildTable(samples, { minSamples = 2 } = {}) {
+    const byKey = new Map(TABLE_KEYS.map((key) => [key, []]));
+    let counted = 0;
+    for (const sample of samples ?? []) {
+        let key;
+        try { key = crKey(sample?.cr); } catch (error) { continue; } // a CR the table has no row for is not a sample
+        byKey.get(key).push(sample);
+        counted++;
+    }
+
+    const rows = TABLE_KEYS.map((key) => {
+        const own = byKey.get(key);
+        const enough = own.length >= minSamples;
+        const stat = {};
+        for (const metric of Object.keys(USABLE)) {
+            const values = enough ? own.map((s) => Number(s[metric])).filter(USABLE[metric]).sort((a, b) => a - b) : [];
+            stat[metric] = values.length ? { mid: quantile(values, 0.5), spread: (quantile(values, 0.75) - quantile(values, 0.25)) / 2 } : null;
+        }
+        return { key, n: own.length, stat };
+    });
+
+    const columns = {};
+    const spreads = {};
+    const interpolated = new Set();
+    for (const metric of Object.keys(USABLE)) {
+        const raw = rows.map((r) => r.stat[metric]?.mid ?? null);
+        const filled = fillGaps(raw);
+        if (!filled) throw new NpcScalingError('BAD_TABLE', `None of the ${counted} creature(s) has a usable ${metric}, so no table can be built.`);
+        rows.forEach((r, i) => { if (raw[i] === null) interpolated.add(r.key); });
+        const weights = rows.map((r) => (r.stat[metric] ? Math.max(1, r.n) : 0.25));
+        columns[metric] = { raw: filled, smooth: isotonic(filled, weights) };
+        const rawSpread = fillGaps(rows.map((r) => r.stat[metric]?.spread ?? null));
+        spreads[metric] = rawSpread ?? rows.map(() => 0);
+    }
+
+    const table = {};
+    const report = rows.map((r, i) => {
+        const smoothed = Object.keys(USABLE).some((m) => Math.abs(columns[m].smooth[i] - columns[m].raw[i]) > 0.5);
+        const band = (metric, floor) => {
+            const mid = Math.max(floor, Math.round(columns[metric].smooth[i]));
+            const spread = Math.min(Math.round(spreads[metric][i]), mid - floor);
+            return [mid - spread, mid + spread];
+        };
+        table[r.key] = {
+            ac: Math.round(columns.ac.smooth[i]),
+            hp: band('hp', 1),
+            atk: Math.round(columns.atk.smooth[i]),
+            dpr: band('dpr', 0),
+            dc: Math.round(columns.dc.smooth[i])
+        };
+        return { key: r.key, n: r.n, status: interpolated.has(r.key) ? 'interpolated' : (smoothed ? 'smoothed' : 'sampled') };
+    });
+
+    return { table: deepFreeze(table), report: { samples: counted, minSamples, rows: report } };
+}
+
+// ===== TEMPLATES ==================================================
+
+/** Version stamped on a template, so an exported library can be recognised later. */
+export const TEMPLATE_VERSION = 1;
+
+/** The CRs a retarget can land on, in order. */
+const CR_LADDER = Object.freeze([0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)]);
+
+/**
+ * Move a CR by a number of whole steps and land on a CR the table has a row for.
+ * Above CR 1 the step is exact (4 + 2 = 6). Below it the result snaps to the nearest fraction, so a
+ * template that says "two up" never produces a CR (2.25) with no row.
+ * @param {number} cr
+ * @param {number} by  Whole steps; negative goes down.
+ * @returns {number}
+ */
+export function shiftCR(cr, by) {
+    const n = Number(cr) + Number(by);
+    if (n >= 1) return Math.min(30, Math.round(n));
+    return CR_LADDER.filter((v) => v < 1).reduce((best, v) => (Math.abs(v - n) < Math.abs(best - n) ? v : best), 0);
+}
+
+const HP_MODES = Object.freeze(['percent', 'delta']);
+const int = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(Number(v) || 0)));
+
+/**
+ * Normalise one template: every field present, every number a whole number in a sane range.
+ *
+ * A template is NUMBERS WRITTEN IN, not derived from a CR gap. Its `attack` and `saveDC` are the totals a
+ * sheet would show (proficiency included), and `specFromTemplate` subtracts the proficiency change the CR
+ * step causes, exactly as `specFromCR` does. `damage` is per hit. `hp` is a percentage of the creature's own
+ * maximum (or a flat amount), so a template means the same thing on a goblin and on a dragon.
+ *
+ * @param {Object} raw
+ * @returns {{ id: string, name: string, version: number, crBy: number, hp: { mode: string, value: number }, ac: number, attack: number, saveDC: number, initiative: number, damage: number, legres: number, legact: number }}
+ * @throws {NpcScalingError} BAD_TEMPLATE when it has no name or is not an object.
+ */
+export function normalizeTemplate(raw) {
+    if (!raw || typeof raw !== 'object') throw new NpcScalingError('BAD_TEMPLATE', 'A template must be an object.');
+    const name = String(raw.name ?? '').trim().slice(0, 40);
+    if (!name) throw new NpcScalingError('BAD_TEMPLATE', 'A template needs a name.');
+    const mode = HP_MODES.includes(raw.hp?.mode) ? raw.hp.mode : 'percent';
+    return {
+        id: String(raw.id ?? '').trim(),
+        name,
+        version: TEMPLATE_VERSION,
+        crBy: int(raw.crBy, -30, 30),
+        hp: mode === 'percent'
+            // The ceiling is high on purpose: a 7 hit point goblin taken to CR 12 is +2857%.
+            ? { mode, value: int(raw.hp?.value, -90, 10000) }
+            : { mode, value: int(raw.hp?.value, -10000, 10000) },
+        ac: int(raw.ac, -10, 10),
+        attack: int(raw.attack, -10, 20),
+        saveDC: int(raw.saveDC, -10, 20),
+        initiative: int(raw.initiative, -10, 20),
+        damage: int(raw.damage, -50, 500),
+        legres: int(raw.legres, 0, 10),
+        legact: int(raw.legact, 0, 10)
+    };
+}
+
+/**
+ * Turn a template into a concrete spec for ONE creature. The CR step is resolved against the creature's own
+ * CR, and the proficiency change that CR step causes is subtracted from attack and save DC (dnd5e already
+ * applies it when `details.cr` is written).
+ *
+ * @param {Object} template  A normalised template.
+ * @param {{ cr: number|null }} source
+ * @returns {Object} A spec, ready for `applySpec`.
+ * @throws {NpcScalingError} NO_CR when the template steps the CR and the creature has none.
+ */
+export function specFromTemplate(template, source) {
+    const t = normalizeTemplate(template);
+    const hasCR = source?.cr !== null && source?.cr !== undefined && Number.isFinite(Number(source.cr));
+    const spec = { version: SPEC_VERSION, label: t.name };
+
+    let profChange = 0;
+    if (t.crBy) {
+        if (!hasCR) throw new NpcScalingError('NO_CR', `"${t.name}" changes the challenge rating, and this creature has none.`);
+        const to = shiftCR(source.cr, t.crBy);
+        if (to !== Number(source.cr)) {
+            spec.cr = { to };
+            profChange = proficiencyForCR(to) - proficiencyForCR(source.cr);
+        }
+    }
+    if (t.hp.value) spec.hp = { mode: t.hp.mode, value: t.hp.value };
+    if (t.ac) spec.ac = { add: t.ac };
+    if (t.attack - profChange) spec.attack = { add: t.attack - profChange };
+    if (t.saveDC - profChange) spec.saveDC = { add: t.saveDC - profChange };
+    if (t.initiative) spec.initiative = { add: t.initiative };
+    if (t.damage) spec.damage = { addPerHit: t.damage };
+    if (t.legres || t.legact) {
+        spec.resources = {};
+        if (t.legres) spec.resources.legres = t.legres;
+        if (t.legact) spec.resources.legact = t.legact;
+    }
+    return spec;
+}
+
+/**
+ * The inverse of `specFromTemplate`, for "save this scaling as a template". Absolute amounts become the
+ * portable form: a hit point change becomes a percentage of the creature's own maximum, an attack bonus
+ * becomes the total change including proficiency, and the CR change becomes a step.
+ *
+ * @param {Object} spec     A spec (from `specFromCR` or `specFromTemplate`).
+ * @param {{ cr: number|null, hpMax?: number }} source  The creature the spec was made for.
+ * @param {string} name
+ * @returns {Object} A normalised template with no id.
+ */
+export function templateFromSpec(spec, source, name) {
+    const hasCR = source?.cr !== null && source?.cr !== undefined && Number.isFinite(Number(source.cr));
+    const to = spec.cr?.to;
+    const crBy = hasCR && to !== undefined && to !== null ? Math.round(Number(to) - Number(source.cr)) : 0;
+    const profChange = hasCR && to !== undefined && to !== null ? proficiencyForCR(to) - proficiencyForCR(source.cr) : 0;
+
+    let hp = { mode: 'percent', value: 0 };
+    if (spec.hp?.mode === 'percent') hp = { mode: 'percent', value: spec.hp.value };
+    else if (spec.hp?.mode === 'delta') {
+        hp = Number(source?.hpMax) > 0
+            ? { mode: 'percent', value: (spec.hp.value / source.hpMax) * 100 }
+            : { mode: 'delta', value: spec.hp.value };
+    } else if (spec.hp?.mode === 'target' && Number(source?.hpMax) > 0) {
+        hp = { mode: 'percent', value: ((spec.hp.value - source.hpMax) / source.hpMax) * 100 };
+    }
+
+    return normalizeTemplate({
+        name,
+        crBy,
+        hp,
+        ac: spec.ac?.add ?? 0,
+        attack: (spec.attack?.add ?? 0) + profChange,
+        saveDC: (spec.saveDC?.add ?? 0) + profChange,
+        initiative: spec.initiative?.add ?? 0,
+        damage: spec.damage?.addPerHit ?? 0,
+        legres: spec.resources?.legres ?? 0,
+        legact: spec.resources?.legact ?? 0
+    });
+}
+
+/**
+ * The templates a world starts with. Starting points and nothing more: the numbers are this module's own
+ * judgement, not a published rule, and the GM edits or deletes them freely.
+ * Ids are fixed so an export imported into a second world updates these rather than duplicating them.
+ */
+export const BUILTIN_TEMPLATES = Object.freeze([
+    { id: 'tpl-weakened', name: 'Weakened',  crBy: -1, hp: { mode: 'percent', value: -25 }, ac: -1, attack: -1, saveDC: -1, damage: -2 },
+    { id: 'tpl-elite',    name: 'Elite',     crBy: 2,  hp: { mode: 'percent', value: 50 },  ac: 1,  attack: 2,  saveDC: 2,  damage: 3 },
+    { id: 'tpl-champion', name: 'Champion',  crBy: 4,  hp: { mode: 'percent', value: 100 }, ac: 2,  attack: 3,  saveDC: 3,  damage: 6,  legres: 1 },
+    { id: 'tpl-super',    name: 'Super',     crBy: 6,  hp: { mode: 'percent', value: 150 }, ac: 2,  attack: 4,  saveDC: 4,  damage: 10, legres: 3 }
+].map((t) => Object.freeze({ ...normalizeTemplate(t), id: t.id })));
 
 // ===== PATHS ======================================================
 
@@ -348,7 +679,10 @@ export function applySpec(source, spec, { has, get, hpValue = 'full' } = {}) {
             updates[path] = addToFormula(get(path), spec.damage.addPerHit);
         }
         const attacks = Math.max(1, Math.round(source.attacksPerRound ?? 1));
-        row('damage', 'Damage per hit', null, null, `${signed(spec.damage.addPerHit)} on every weapon and spell attack`);
+        // With the creature's own average hit known the row shows what a hit does now and after; without it, only the amount.
+        const known = Number.isFinite(source.avgHit) && source.avgHit > 0;
+        row('damage', 'Damage per hit', known ? Math.round(source.avgHit) : null, known ? Math.round(source.avgHit + spec.damage.addPerHit) : null,
+            `${signed(spec.damage.addPerHit)} on every weapon and spell attack`);
         if (Number.isFinite(source.dpr)) {
             row('dpr', 'Damage per round (estimate)', source.dpr, source.dpr + spec.damage.addPerHit * attacks);
         }

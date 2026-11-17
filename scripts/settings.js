@@ -4772,6 +4772,40 @@ export const registerSettings = () => {
 		default: false
 	});
 
+	// -- NPC Scaling: the template library --
+	// WORLD-scoped and config:false, like Quick Rolls above: content the table builds, edited in the Scale NPC
+	// window. The seeded flag records that the built-in templates were planted, so a library a GM emptied on
+	// purpose is not refilled.
+	game.settings.register(MODULE.ID, 'npcScalingTemplates', {
+		name: 'NPC Scaling Templates',
+		hint: "The Scale NPC window's template library. Edited in the window, not here.",
+		scope: 'world',
+		config: false,
+		type: Array,
+		default: []
+	});
+
+	game.settings.register(MODULE.ID, 'npcScalingTemplatesSeeded', {
+		name: 'NPC Scaling Templates Seeded',
+		hint: 'Internal. Whether the built-in scaling templates have been added to this world.',
+		scope: 'world',
+		config: false,
+		type: Boolean,
+		default: false
+	});
+
+	// -- NPC Scaling: the guidelines table --
+	// WORLD-scoped and config:false. Empty means "use the bundled DMG 2014 table"; otherwise a table the GM
+	// built from a compendium in the Scale NPC window, with where it came from.
+	game.settings.register(MODULE.ID, 'npcScalingGuidelines', {
+		name: 'NPC Scaling Guidelines',
+		hint: "The challenge rating table Scale NPC reads. Built in the window, not here.",
+		scope: 'world',
+		config: false,
+		type: Object,
+		default: {}
+	});
+
 	// -- Request Roll Theme File --
 	game.settings.register(MODULE.ID, 'requestRollThemeJson', {
 		name: MODULE.ID + '.requestRollThemeJson-Label',

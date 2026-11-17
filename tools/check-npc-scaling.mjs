@@ -53,7 +53,7 @@ const engine = await import(pathToFileURL(path.join(ROOT, SOURCE)).href);
 const {
     GUIDELINES, ATTACK_TYPES, NpcScalingError, SPEC_VERSION,
     crKey, proficiencyForCR, guidelineFor, addToFormula, specFromCR, applySpec,
-    parseMultiattackCount, estimateDPR
+    parseMultiattackCount, estimateDPR, validateTable, buildTable, TABLE_KEYS, deepFreeze
 } = engine;
 
 // ===== HELPERS ====================================================
@@ -77,22 +77,7 @@ const KEYS = ['0', '1/8', '1/4', '1/2', ...Array.from({ length: 30 }, (_, i) => 
 // Integer-like keys enumerate first in a JS object, so the fractions trail: compare as sets, not as order.
 expect('table keys', Object.keys(GUIDELINES).sort(), [...KEYS].sort());
 
-const order = ['ac', 'atk', 'dc'];
-let prev = null;
-for (const key of KEYS) {
-    const row = GUIDELINES[key];
-    if (!(row.hp[0] <= row.hp[1])) fail(`table CR ${key}: hp range is backwards ${row.hp}`);
-    if (!(row.dpr[0] <= row.dpr[1])) fail(`table CR ${key}: dpr range is backwards ${row.dpr}`);
-    if (prev) {
-        for (const col of order) {
-            if (row[col] < prev[col]) fail(`table CR ${key}: ${col} ${row[col]} is below the row before it (${prev[col]})`);
-        }
-        if (row.hp[0] <= prev.hp[1] && row.hp[0] !== prev.hp[1] + 1 && row.hp[0] < prev.hp[0]) fail(`table CR ${key}: hp falls below the row before it`);
-        if (row.hp[0] < prev.hp[0] || row.hp[1] < prev.hp[1]) fail(`table CR ${key}: hp is below the row before it`);
-        if (row.dpr[0] < prev.dpr[0] || row.dpr[1] < prev.dpr[1]) fail(`table CR ${key}: dpr is below the row before it`);
-    }
-    prev = row;
-}
+for (const problem of validateTable(GUIDELINES)) fail(`bundled table: ${problem}`);
 if (!Object.isFrozen(GUIDELINES)) fail('GUIDELINES must be frozen: a caller that edits the shared table edits it for every later scaling');
 
 expect('crKey 0.125', crKey(0.125), '1/8');
@@ -165,6 +150,8 @@ expect('preview attack total includes proficiency', [row(plan6, 'attack').from, 
 expect('preview save DC total includes proficiency', [row(plan6, 'saveDC').from, row(plan6, 'saveDC').to], [10, 14]);
 expect('preview proficiency', [row(plan6, 'prof').from, row(plan6, 'prof').to], [2, 4]);
 expect('preview dpr', row(plan6, 'dpr').to, 78);
+expect('preview damage per hit shows a value before and after', [row(plan6, 'damage').from, row(plan6, 'damage').to], [5, 78]);
+expect('damage per hit with no known hit shows only the amount', row(applySpec({ ...goblin, avgHit: undefined }, spec12, io(FIELDS_6)), 'damage').from, null);
 if (!row(plan6, 'ac').note) fail('preview: the AC row must say the scaled value no longer follows equipment');
 
 const plan5 = applySpec(goblin, spec12, io(FIELDS_5));
@@ -244,6 +231,156 @@ expect('dpr no attacks', estimateDPR([]), { dpr: 0, attacksPerRound: 1, avgHit: 
 
 // Spreading damage across attacks: the gap is divided, so three attacks carry a third each.
 expect('per-hit spread across attacks', specFromCR({ cr: 0.25, attacksPerRound: 3 }, 12).damage.addPerHit, 24);
+
+// ===== TEMPLATES ==================================================
+
+const {
+    TEMPLATE_VERSION, BUILTIN_TEMPLATES, shiftCR, normalizeTemplate, specFromTemplate, templateFromSpec
+} = engine;
+
+// The built-ins are whole, frozen, uniquely named and uniquely identified: a duplicate id makes an
+// imported library overwrite one built-in with another, silently.
+expect('built-in count', BUILTIN_TEMPLATES.length, 4);
+expect('built-in ids unique', new Set(BUILTIN_TEMPLATES.map((t) => t.id)).size, BUILTIN_TEMPLATES.length);
+expect('built-in names unique', new Set(BUILTIN_TEMPLATES.map((t) => t.name)).size, BUILTIN_TEMPLATES.length);
+if (!Object.isFrozen(BUILTIN_TEMPLATES)) fail('BUILTIN_TEMPLATES must be frozen: a caller editing it edits every world\'s seed');
+for (const t of BUILTIN_TEMPLATES) {
+    if (!t.id.startsWith('tpl-')) fail(`built-in "${t.name}" has no stable tpl- id`);
+    expect(`built-in "${t.name}" is already normalised`, normalizeTemplate(t), { ...t });
+}
+
+// A CR step lands on a CR with a row, above and below 1.
+expect('shiftCR whole', shiftCR(4, 2), 6);
+expect('shiftCR from a fraction lands on a whole CR', shiftCR(0.25, 2), 2);
+expect('shiftCR below zero floors at CR 0', shiftCR(0.25, -1), 0);
+expect('shiftCR down to a fraction', shiftCR(1, -1), 0);
+expect('shiftCR ceiling', shiftCR(29, 5), 30);
+expect('shiftCR zero step is the same CR', shiftCR(0.5, 0), 0.5);
+for (const [cr, by] of [[0.125, 1], [0.25, 3], [0.5, -1], [3, -5], [20, 12]]) {
+    const to = shiftCR(cr, by);
+    try { crKey(to); } catch (e) { fail(`shiftCR(${cr}, ${by}) = ${to} has no row in the table`); }
+}
+
+// Normalising clamps and refuses what has no name.
+expect('normalise clamps hp percent', normalizeTemplate({ name: 'x', hp: { mode: 'percent', value: -500 } }).hp, { mode: 'percent', value: -90 });
+expect('normalise defaults hp mode', normalizeTemplate({ name: 'x', hp: { mode: 'nonsense', value: 5 } }).hp.mode, 'percent');
+expect('normalise rounds', normalizeTemplate({ name: 'x', ac: 1.6 }).ac, 2);
+expect('normalise junk is zero', normalizeTemplate({ name: 'x', damage: 'lots' }).damage, 0);
+expect('normalise version', normalizeTemplate({ name: 'x' }).version, TEMPLATE_VERSION);
+expectThrows('template with no name', 'BAD_TEMPLATE', () => normalizeTemplate({ crBy: 2 }));
+expectThrows('template that is not an object', 'BAD_TEMPLATE', () => normalizeTemplate(null));
+
+// A template's attack and DC are TOTALS: the proficiency change its CR step causes is taken out of them,
+// so the sheet shows exactly what the template says. Elite on a goblin steps CR 1/4 to 2 (prof 2 to 2);
+// Super steps it to 6 (prof 2 to 3), so each of its +4 is written as +3.
+const byName = (n) => BUILTIN_TEMPLATES.find((t) => t.name === n);
+const elite = specFromTemplate(byName('Elite'), goblin);
+expect('elite cr', elite.cr, { to: 2 });
+expect('elite hp is a percentage', elite.hp, { mode: 'percent', value: 50 });
+expect('elite attack, no proficiency change', elite.attack, { add: 2 });
+expect('elite label is the template name', elite.label, 'Elite');
+const superSpec = specFromTemplate(byName('Super'), goblin);
+expect('super cr', superSpec.cr, { to: 6 });
+expect('super attack is net of proficiency', superSpec.attack, { add: 3 });
+expect('super save DC is net of proficiency', superSpec.saveDC, { add: 3 });
+expect('super resources', superSpec.resources, { legres: 3 });
+const superPlan = applySpec(goblin, superSpec, io(FIELDS_6));
+expect('super attack total on the sheet', [row(superPlan, 'attack').from, row(superPlan, 'attack').to], [4, 8]);
+expect('super hp is 150% on top', superPlan.updates['system.attributes.hp.max'], 18);
+expect('super legendary resistances written', superPlan.updates['system.resources.legres.max'], 3);
+
+// A template that changes nothing about CR works on a creature with no CR; one that steps it does not.
+expect('no CR step, no CR needed', specFromTemplate({ name: 'Flat', ac: 1 }, { cr: null }).ac, { add: 1 });
+expectThrows('CR step with no CR', 'NO_CR', () => specFromTemplate({ name: 'Up', crBy: 2 }, { cr: null }));
+
+// Saving a spec as a template and applying it back to the same creature is the identity, and the same
+// template means the same thing on a creature of another size.
+const saved = templateFromSpec(spec12, { cr: 0.25, hpMax: 7 }, 'Goblin to 12');
+expect('saved crBy', saved.crBy, 12);
+expect('saved attack is the sheet total', saved.attack, 5);
+expect('saved hp is a percentage of the creature\'s own', saved.hp.mode, 'percent');
+const back = specFromTemplate(saved, goblin);
+expect('round trip cr', back.cr, spec12.cr);
+expect('round trip attack', back.attack, spec12.attack);
+expect('round trip save DC', back.saveDC, spec12.saveDC);
+expect('round trip damage', back.damage, spec12.damage);
+expect('round trip hp lands on the same maximum',
+    applySpec(goblin, back, io(FIELDS_6)).updates['system.attributes.hp.max'], plan6.updates['system.attributes.hp.max']);
+const ogre = { cr: 2, ac: 11, hpMax: 59, hpValue: 59, attackBonus: 6, dpr: 13, attacksPerRound: 1, avgHit: 13 };
+expect('the same template on an ogre scales its own hit points', applySpec(ogre, specFromTemplate(byName('Elite'), ogre), io(FIELDS_6)).updates['system.attributes.hp.max'], 89);
+
+// ===== A TABLE BUILT FROM CREATURES ===============================
+
+const crOf = (key) => (key.includes('/') ? Number(key.split('/')[0]) / Number(key.split('/')[1]) : Number(key));
+
+// The validator refuses what the engine would silently mis-scale by.
+expect('the bundled table is sound', validateTable(GUIDELINES), []);
+expect('table keys are the ladder', [...TABLE_KEYS].sort(), [...KEYS].sort());
+const broken = JSON.parse(JSON.stringify(GUIDELINES));
+broken['10'].ac = 5;
+if (!validateTable(broken).some((p) => p.includes('CR 10') && p.includes('ac'))) fail('validateTable must catch armor class falling as CR rises');
+delete broken['3'];
+if (!validateTable(broken).some((p) => p.includes('CR 3 has no row'))) fail('validateTable must catch a missing row');
+const backwards = JSON.parse(JSON.stringify(GUIDELINES));
+backwards['5'].hp = [200, 100];
+if (!validateTable(backwards).some((p) => p.includes('backwards'))) fail('validateTable must catch a backwards range');
+const falling = JSON.parse(JSON.stringify(GUIDELINES));
+falling['8'].hp = [10, 20];
+if (!validateTable(falling).some((p) => p.includes('hit points fall'))) fail('validateTable must catch hit points falling as CR rises');
+if (!validateTable({ ...GUIDELINES, '99': GUIDELINES['1'] }).some((p) => p.includes('"99"'))) fail('validateTable must catch a CR that is not on the ladder');
+
+// Feeding the table its own midpoints, three creatures a row, must give the table back.
+const own = TABLE_KEYS.flatMap((key) => {
+    const g = guidelineFor(crOf(key));
+    return [1, 2, 3].map(() => ({ cr: crOf(key), ac: g.ac, hp: g.hp, atk: g.atk, dpr: g.dpr, dc: g.dc }));
+});
+const rebuilt = buildTable(own);
+expect('the rebuilt table is sound', validateTable(rebuilt.table), []);
+expect('every row came from creatures', rebuilt.report.rows.every((r) => r.status === 'sampled'), true);
+for (const key of TABLE_KEYS) {
+    const a = guidelineFor(crOf(key));
+    const b = guidelineFor(crOf(key), rebuilt.table);
+    expect(`round trip CR ${key}: ac, attack and DC`, [b.ac, b.atk, b.dc], [a.ac, a.atk, a.dc]);
+    if (Math.abs(b.hp - a.hp) > 1 || Math.abs(b.dpr - a.dpr) > 1) fail(`round trip CR ${key}: hp ${a.hp} -> ${b.hp}, dpr ${a.dpr} -> ${b.dpr}`);
+}
+if (!Object.isFrozen(rebuilt.table) || !Object.isFrozen(rebuilt.table['1'].hp)) fail('a built table must be deeply frozen: a caller editing it edits it for every later scaling');
+
+// The median, not the mean: one 400 hit point giant among three CR 5 creatures does not move the row.
+const crowd = (extra) => [
+    ...own.filter((s) => s.cr !== 5),
+    { cr: 5, ac: 15, hp: 130, atk: 6, dpr: 33, dc: 15 }, { cr: 5, ac: 15, hp: 140, atk: 6, dpr: 35, dc: 15 },
+    { cr: 5, ac: 15, hp: 150, atk: 6, dpr: 38, dc: 15 }, ...extra
+];
+expect('the median ignores an outlier', guidelineFor(5, buildTable(crowd([{ cr: 5, ac: 9, hp: 400, atk: 6, dpr: 33, dc: 15 }])).table).hp, 145);
+expect('the same row without it', guidelineFor(5, buildTable(crowd([])).table).hp, 140);
+
+// A creature counts only for the figures it has: no attack means no attack bonus, but it still counts.
+const noAttacks = buildTable([...own, ...[1, 2, 3, 4, 5].map(() => ({ cr: 5, ac: 15, hp: 138 }))]);
+expect('a creature with no attacks is counted', noAttacks.report.rows.find((r) => r.key === '5').n, 8);
+expect('attack bonus is not dragged to zero by it', guidelineFor(5, noAttacks.table).atk, 6);
+if (Math.abs(guidelineFor(5, noAttacks.table).dpr - guidelineFor(5).dpr) > 1) fail('damage per round is dragged by creatures that have no attacks');
+
+// A CR with too few creatures is interpolated and SAYS so; the ends copy their neighbour.
+const sparse = buildTable(own.filter((s) => s.cr !== 10 && !(s.cr === 11)), { minSamples: 2 });
+const status = (key) => sparse.report.rows.find((r) => r.key === key).status;
+expect('a CR with no creatures is interpolated', [status('10'), status('11')], ['interpolated', 'interpolated']);
+expect('and lies between its neighbours', guidelineFor(10, sparse.table).hp > guidelineFor(9, sparse.table).hp && guidelineFor(10, sparse.table).hp < guidelineFor(12, sparse.table).hp, true);
+expect('one creature is below the default minimum', buildTable([...own.filter((s) => s.cr !== 7), { cr: 7, ac: 30, hp: 999, atk: 20, dpr: 500, dc: 30 }]).report.rows.find((r) => r.key === '7').status, 'interpolated');
+const topless = buildTable(own.filter((s) => s.cr < 20));
+expect('the top end copies the nearest populated row', guidelineFor(30, topless.table).ac, guidelineFor(19, topless.table).ac);
+expect('a sparse build is still sound', validateTable(sparse.table), []);
+
+// Noise is smoothed so a row never falls as CR rises, and the row that moved says so.
+const noisy = buildTable(own.map((s) => (s.cr === 9 ? { ...s, ac: 12, hp: 100 } : s)));
+expect('a noisy build is sound', validateTable(noisy.table), []);
+expect('the row the noise hit is reported smoothed', noisy.report.rows.find((r) => r.key === '9').status, 'smoothed');
+
+// Samples are never mutated, junk is ignored, and nothing usable is refused by name.
+const frozenSamples = Object.freeze(own.map((s) => Object.freeze({ ...s })));
+try { buildTable(frozenSamples); } catch (e) { fail(`buildTable threw on frozen samples -- it writes to its arguments: ${e.message}`); }
+expect('a CR with no row is not a sample', buildTable([...own, { cr: 31, ac: 99, hp: 9999 }, { cr: 'x' }, null]).report.samples, own.length);
+expectThrows('no creatures at all', 'BAD_TABLE', () => buildTable([]));
+expectThrows('creatures with no hit points', 'BAD_TABLE', () => buildTable(own.map((s) => ({ cr: s.cr, ac: s.ac }))));
 
 // ===== RESULT =====================================================
 

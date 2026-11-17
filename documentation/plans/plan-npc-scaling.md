@@ -7,29 +7,26 @@ they await live verification (`testing/npc-scaling.md`). This plan holds only wh
 Author decisions, 2026-11-17: it lives in Blacksmith; a CR retarget and named templates both; a new actor
 by default; auto-scale on dropped tokens later.
 
-## Templates
+## Templates: what is left
 
-A named template is a spec with the numbers written in rather than derived: "Elite", "Champion", "Super".
-`applySpec` already takes one, so this is storage, a picker and an editor, not a new write path.
+The library, picker, editor, export and import are built (`architecture/architecture-npc-scaling.md`).
+Left:
 
-- **Library.** A world setting seeded once from a bundled set, with export and import, as the quick-rolls
-  library is (`QuickRollsManager.seedIfNeeded`, `exportPayload`, `importRolls`). Seeded defaults and the
-  seed flag follow that precedent so a world keeps what it built.
-- **Window.** A template picker beside the CR select, as `.blacksmith-tool-chips` or
-  `.blacksmith-tool-card` rows; saving the current preview as a template; `.blacksmith-tool-editable` for a
-  template's name; `api.dialog.prompt` for a new name, with `validate` rejecting a duplicate; `confirm`
-  before delete.
-- **API.** `api.npcScaling.templates.*` (list, get, save, delete), Blacksmith's window being the first
-  consumer. A template names no document, so it exports and imports as plain data.
-- **Resources.** A template can carry legendary resistances and actions counts. The engine already writes
-  them (`spec.resources`); nothing yet produces them.
+- **Per-type tuning.** A template applies the same numbers to every creature. A template that cares about
+  what a creature is (more hit points for a brute, more save DC for a caster) is a different feature.
+- **Restore the built-ins.** A GM who deletes them has no button to get them back; importing an export from
+  another world, or `api.npcScaling.templates.save` by hand, does it today.
 
-## Editable guidelines table
+## The guidelines table: what is left
 
-`GUIDELINES` ships as the DMG 2014 numbers. Make it a world setting seeded from that bundle, editable, with
-import and export, and pass it to the engine through the `table` parameter it already takes. Settings copy
-is the author's to write. **Open question:** whether this system should ship the 2024 DMG numbers instead;
-the table is data, so either is a small edit, but the figures need checking against the book.
+Building a table from a compendium is built (`architecture/architecture-npc-scaling.md`). Left:
+
+- **Hand-editing a row, and exporting or importing a table.** A built table is replaced whole; a GM who
+  disagrees with one figure rebuilds from different packs or waits for this.
+- **Save DC is a blunt column.** A sample's DC is the highest of its spell DC and its save activities' DCs, so
+  a creature with one punishing breath weapon reads high. Only the spell DC is scaled by it, so the effect is
+  small; a better column would separate the two.
+- **Settings copy** for a toggle or a default, if one is ever wanted, is the author's to write.
 
 ## Token-only output
 

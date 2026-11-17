@@ -33,6 +33,7 @@ unlinked token's changes count.
 | Request field | Meaning |
 |---|---|
 | `cr` | Target challenge rating, a number: `0.125`, `0.25`, `0.5`, `1` to `30` |
+| `template` | A saved template, by id (or the object), instead of `cr`. See Templates below |
 | `spec` | A ready-made spec instead of `cr`; its `version` must be `scaling.SPEC_VERSION` |
 | `label` | The name suffix: "Super" makes `Goblin (Super)`. With none the suffix is `CR 12` |
 | `attacksPerRound` | Correct the attack count the damage bonus is spread across. An integer from 1 |
@@ -62,12 +63,85 @@ points set to the new maximum, and a provenance flag. It sits in the source's fo
 a compendium). Armor class becomes a fixed value that no longer follows equipment; only spell save DCs are
 scaled, not a feature's own fixed DC.
 
+## Templates
+
+A template is a named scaling with its numbers written in: "Elite", "Super". It names no document, so it
+exports and imports as plain JSON. `scaling.templates` is the library, stored in the world; reads are open to
+every client and writes are GM only.
+
+```javascript
+const [elite] = scaling.templates.list();
+const { actor } = await scaling.apply(token, { template: elite.id });
+```
+
+A template is data, the numbers a table would say aloud:
+
+| Field | Meaning |
+|---|---|
+| `id` | Opaque and stable. A template saved without one gets one |
+| `name` | Up to 40 characters. It is also the name suffix: `Goblin (Elite)` |
+| `crBy` | Whole steps up (or down) from the creature's own CR. Above CR 1 the step is exact; below it the result snaps to a CR with a row. `0` leaves CR alone |
+| `hp` | `{ mode: 'percent' \| 'delta', value }`. A percentage is of the creature's own maximum, so a template means the same on a goblin and a dragon |
+| `ac`, `initiative` | Added |
+| `attack`, `saveDC` | The **total** change on the sheet, proficiency included. The proficiency change a `crBy` step causes is taken out before writing, as a CR retarget does |
+| `damage` | Added to every weapon and spell attack |
+| `legres`, `legact` | Sets the count. `0` leaves it alone |
+
+Every number is a whole number and is clamped to a sane range on the way in.
+
+| Member | Meaning |
+|---|---|
+| `list()` | Every template. The four built-ins (Weakened, Elite, Champion, Super) until the GM first changes the library |
+| `get(id)` | One template, or `null` |
+| `save(template)` | Add, or replace the one with this id. Resolves the stored template. `BAD_TEMPLATE` for no name |
+| `remove(id)` | Delete one |
+| `nameTaken(name, exceptId)` | Whether another template has this name, ignoring case |
+| `fromSpec(spec, source, name)` | The portable template a spec amounts to, from a spec and the `{ cr, hpMax }` it was made for |
+| `toSpec(template, source)` | The spec a template makes for a creature with this CR. Reads no actor |
+| `exportPayload()` / `exportToFile()` | The library as an enveloped payload, or downloaded as a file |
+| `parseImport(text)` | A file's text as templates, or `BAD_TEMPLATE`. Writes nothing |
+| `import(templates, { replace })` | Merge by id (default) or replace. Resolves `{ added, updated, total }` |
+
+The built-ins are a starting point, not a published rule: the numbers are this module's own, and a GM edits
+or deletes them. They are planted once; a library a GM emptied stays empty.
+
+## The guidelines table
+
+A CR retarget moves each stat by the gap between two rows of a table. The module ships the DMG 2014 table. The
+2024 books publish no equivalent, so a world can instead build one from the creatures in any actor
+compendium: per challenge rating, the **median** armor class, hit points, best attack bonus, damage per round
+and save DC of the NPCs there. A creature counts for a figure only when it has one (no attack, no attack
+bonus). A CR with fewer than `minSamples` creatures (default 2) is interpolated between its neighbours, and
+the columns are smoothed so none falls as CR rises; the result reports which rows were estimated or smoothed.
+
+```javascript
+const built = await scaling.buildGuidelines({ packs: ['dnd5e.actors24'] });   // writes nothing
+// built.table, built.report.rows: [{ key: '5', n: 11, status: 'sampled' | 'smoothed' | 'interpolated' }, ...]
+await scaling.setGuidelines(built);                                          // GM only: the world uses it now
+scaling.guidelineInfo();   // { kind: 'compendium', label, builtAt, samples, packs, rows }
+await scaling.resetGuidelines();                                             // back to DMG 2014
+```
+
+| Member | Meaning |
+|---|---|
+| `guidelines` | The table scaling reads now, frozen: bundled, or built |
+| `bundledGuidelines` | The DMG 2014 table, frozen, whatever the world uses |
+| `guidelineInfo()` | `{ kind: 'bundled' | 'compendium', label, builtAt, samples, packs, rows }` |
+| `buildGuidelines({ packs, minSamples, onProgress })` | Read the NPCs in these compendium ids and build a table. Loads the documents, so a few hundred creatures take seconds; `onProgress(done, total)` reports. Resolves `{ table, report, label, packs, skipped }` |
+| `setGuidelines(result)` | Make a built table the world's. `BAD_TABLE` for one whose rows fall or are missing |
+| `resetGuidelines()` | Use the bundled table again |
+
+A stored table that fails validation is not used; scaling falls back to the bundled one and logs it.
+Templates do not read the table: their numbers are written in.
+
 ## `provenance(actor)`
 
 ```javascript
 scaling.provenance(actor);
-// { sourceUuid, spec, version, appliedAt, crFrom, crTo }, or null for any other actor
+// { sourceUuid, spec, template, version, appliedAt, crFrom, crTo }, or null for any other actor
 ```
+
+`template` is the template id when one made it, otherwise `null`.
 
 ## Errors
 
@@ -80,10 +154,13 @@ Every refusal is an `NpcScalingError` (`scaling.NpcScalingError`), with a stable
 | `NOT_NPC` | The target is not an NPC |
 | `NO_CR` | The creature has no challenge rating to scale from |
 | `INVALID_CR` | The target CR has no row in the guidelines (0 to 30, and 1/8, 1/4, 1/2) |
-| `BAD_SPEC` | No `cr` and no `spec`, an unknown spec version, or a malformed spec |
+| `BAD_SPEC` | No `cr`, `template` or `spec`, an unknown spec version, or a malformed spec |
+| `BAD_TEMPLATE` | A template that does not exist, has no name, or an import file that is not a template library |
 | `NO_PATH` | The actor has nowhere to write a change the spec asks for |
 | `UNSUPPORTED_OUTPUT` | `output` is anything but `'actor'` |
 | `CREATE_FAILED` | Foundry did not create the actor |
+| `NO_PACK` | `buildGuidelines` was given no actor compendium that exists |
+| `BAD_TABLE` | No creature gave a usable figure for a column, or `setGuidelines` was given a table whose rows are missing or fall |
 
 ## `open(target)`
 
@@ -105,7 +182,6 @@ the new Actor. Also available as `scaling.HOOK_APPLIED`.
 |---|---|
 | `specFromCR(source, targetCR, { label })` | A CR retarget as a spec, from a snapshot you supply, reading no actor |
 | `proficiencyForCR(cr)` | The proficiency bonus dnd5e gives an NPC of this CR |
-| `guidelines` | The CR guidelines table, frozen |
 | `SPEC_VERSION` | The spec version this build reads |
 
 ## What this does not do

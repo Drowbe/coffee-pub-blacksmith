@@ -11,6 +11,8 @@ Source:
 |---|---|
 | `scripts/utility-npc-scaling.js` | The engine. Pure functions, no imports, no Foundry globals |
 | `scripts/manager-npc-scaling.js` | `NpcScalingManager`: resolves a target, reads a snapshot, writes the new actor |
+| `scripts/manager-npc-scaling-guidelines.js` | `NpcScalingGuidelines`: which table scaling reads (bundled, or the one built from a compendium) |
+| `scripts/manager-npc-scaling-templates.js` | `NpcScalingTemplates`: the template library in a world setting, with export and import |
 | `scripts/api-npc-scaling.js` | `NpcScalingAPI`, bound to `api.npcScaling` |
 | `scripts/window-npc-scaling.js` | `NpcScalingWindow` (Tool window) and the entry points |
 | `styles/window-npc-scaling.css` | Layout for the window; the controls are the shared `blacksmith-tool-*` set |
@@ -27,8 +29,8 @@ that matters most is the part that can be tested without Foundry. A line in the 
 gains an import or reads `game`, `foundry`, `canvas`, `ui`, `Hooks`, `CONFIG`, `Actor` or `ChatMessage`.
 
 A **spec** is serialisable and names no document, so it can be previewed, stored, exported and applied
-without change. Two things make one: `specFromCR` (a CR retarget) and, later, a saved template with its
-numbers written in. Both feed `applySpec`, so there is one write path.
+without change. Two things make one: `specFromCR` (a CR retarget) and `specFromTemplate` (a saved template
+with its numbers written in). Both feed `applySpec`, so there is one write path.
 
 ## What `specFromCR` does
 
@@ -46,9 +48,76 @@ The guidelines table is lopsided at low CR: a goblin has 7 hit points against a 
 Writing the target row's value would lift a weak creature onto the curve and make every creature of a CR
 the same. Taking the gap keeps the creature where it sat relative to its own CR. The table is the DMG 2014
 guidelines (`GUIDELINES`), a frozen object keyed by CR; every function that reads it takes the table as a
-parameter.
+parameter. The 2024 books publish no equivalent table (the 2024 DMG budgets encounters by XP and carries no
+monster statistics by CR), so there is no official 2024 set to ship; a world builds one from a compendium
+instead (next section).
+
+## The guidelines table, built from creatures
+
+`buildTable(samples)` (engine) turns a list of creatures into a table; `NpcScalingManager.sampleCompendium`
+reads the creatures; `NpcScalingGuidelines` stores the choice. Reading an installed bestiary is the only 2024
+source that can be audited and regenerated, and it works for any pack, a homebrew one included.
+
+- **A sample** is `{ cr, ac, hp, atk, dpr, dc }`, taken from the same `snapshot` a preview uses, so a
+  table row means what the window's "Now" column means. `dc` is the highest of the creature's spell DC and
+  its save activities' DCs. A figure a creature lacks is `null` or zero and counts for nothing: a creature
+  with no attack still counts for armor class and hit points.
+- **Typical is the median**, so one outlier does not drag a row. Hit points and damage carry a band of half
+  the interquartile range each side, centred on the median, because the engine reads the midpoint of a range.
+- **Sparse CRs are interpolated, and say so.** Fewer than `minSamples` (2) creatures at a CR and its row is
+  drawn between its populated neighbours (the ends copy the nearest); its few creatures are ignored for that
+  row. The report marks it `interpolated`, so a guess is never shown as a measurement.
+- **Columns are smoothed to never fall as CR rises**, by the closest non-decreasing fit (weighted
+  pool-adjacent-violators). Real stat blocks are noisy and a falling row would scale a creature down while the
+  preview read fine. A row the fit moved by more than rounding is marked `smoothed`.
+- **`validateTable`** is the gate: a row for every CR and none extra, finite numbers, ranges the right way
+  round, nothing falling. It runs on a stored table on every read, and on `setGuidelines`. A stored table
+  that fails is not used, and scaling falls back to the bundled one and logs it, so a hand-corrupted setting
+  cannot silently invert a scaling.
+
+The table is one `config: false` world setting that is empty for "use the bundled table". The window's
+**Guidelines** button opens a dialog to build or reset: pick actor compendiums (preselected from the ones the
+GM already chose for monsters in the compendium settings, else the system's 2024 pack), watch a progress bar,
+then see the built table beside the one in use, estimated rows shaded, and keep it only on **Use This Table**.
+Sampling loads every document in the chosen packs, so it is a few seconds for a bestiary; it yields to the
+browser every twenty creatures and reports progress.
 
 Initiative is not scaled: the guidelines have no column for it. A spec can still carry `initiative.add`.
+
+## Templates
+
+A template is the same change as a CR retarget, with the numbers written in instead of read off two rows.
+It is **portable on purpose**, so it means the same on a goblin and on a dragon, and that decides its shape:
+
+- **Hit points are a percentage** of the creature's own maximum (or a flat amount, by choice). A CR retarget
+  saved as a template has its hit point gap converted to a percentage of the creature it was made for, which
+  is why the ceiling is 10000%: a 7 hit point goblin taken to CR 12 is +2857%.
+- **Attack bonus and save DC are totals**, what the sheet will show change. `specFromTemplate` subtracts the
+  proficiency change that the template's CR step causes, exactly as `specFromCR` does, so the preview and
+  the sheet agree. `templateFromSpec` adds it back when a spec is saved, and the check holds that the two
+  are inverses.
+- **The CR change is a step** (`crBy`), resolved against the creature's own CR by `shiftCR`. Above CR 1 it is
+  exact; below, it snaps to a CR the table has a row for, so a step never produces CR 2.25.
+- **Damage is per hit**, added to every weapon and spell attack. A CR retarget spreads a damage gap across
+  the attack count; a template says the number outright.
+
+`normalizeTemplate` is the one gate: it clamps every number, defaults the hit point mode and refuses a
+template with no name, and it runs on every read from the setting, on save, and on import, so a hand-edited
+file cannot put an out-of-range number on a sheet.
+
+**Storage** (`NpcScalingTemplates`) copies the Quick Rolls library: a world-scoped, `config: false` setting
+holding the list, and a second setting recording that the built-ins have been planted. `all()` returns the
+built-ins until something is written, and the first write sets the flag, so there is no ready-time seed to
+order, and a library a GM emptied on purpose stays empty. The built-ins have fixed ids (`tpl-elite`), so an
+export imported into another world updates them rather than duplicating them. Import merges by id; replace is
+asked for, never assumed. The file is an envelope (`type`, `version`, `templates`) so it cannot be mistaken
+for any other JSON array.
+
+**The window** adds a Scale-by switch (challenge rating or template). In template mode the library is a row
+of selectable chips with new, edit, delete, export and import beside it, and one dialog (`api.dialog.prompt`)
+serves new and edit: a new template starts from whatever the window is previewing, so a CR retarget worth
+keeping is one dialog from being a template. The dialog's validator rejects a duplicate name. The name suffix
+follows the chosen template until the GM types one.
 
 ## The dnd5e facts it relies on
 
@@ -117,10 +186,10 @@ source is never written.
 ### Provenance
 
 ```
-flags.coffee-pub-blacksmith.npcScaling = { sourceUuid, spec, version, appliedAt, crFrom, crTo }
+flags.coffee-pub-blacksmith.npcScaling = { sourceUuid, spec, template, version, appliedAt, crFrom, crTo }
 ```
 
-One key, written once. Rescale and revert are both "regenerate from `sourceUuid`", so no backup exists to
+`template` is the id of the template that made it, or `null`. One key, written once. Rescale and revert are both "regenerate from `sourceUuid`", so no backup exists to
 go stale or be partially overwritten. A spec of another `version` is refused.
 
 ## The window
@@ -153,4 +222,13 @@ ApplicationV2 `getHeaderControlsActorSheetV2` hook. The V1 `getActorSheetHeaderB
 `tools/check-npc-scaling.mjs`: the table is whole, ordered and frozen; a CR retarget subtracts the
 proficiency change; amounts are row gaps and not row values; formula bonuses merge; paths resolve for both
 layouts and refuse by name when neither exists; nothing is mutated; CR 0, a fractional CR and a retarget
-down all work; the file imports nothing and reads no Foundry global.
+down all work; the file imports nothing and reads no Foundry global. For templates: the built-ins are whole,
+frozen, uniquely named and identified; `shiftCR` always lands on a CR with a row; normalising clamps and
+refuses a nameless template; a template's attack and DC are net of the proficiency its CR step causes; a spec
+saved as a template and applied back to the same creature is the identity; and the same template scales a
+different creature by its own hit points. For the table: the bundled one is sound; `validateTable` catches
+a falling column, a missing row, a backwards range and a CR off the ladder; a table built from the bundled
+table's own midpoints is that table; the median ignores an outlier; a creature with no attacks is counted but
+does not drag attack or damage; a sparse CR is interpolated and reported; the top end copies its neighbour;
+noise is smoothed and the row it hit is reported; a built table is deeply frozen and never mutates its input;
+nothing usable is refused by name.

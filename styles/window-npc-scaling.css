@@ -18,6 +18,47 @@
     gap: 12px;
 }
 
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-fields.is-single {
+    grid-template-columns: 1fr;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-templates {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-template-tools {
+    display: flex;
+    flex: none;
+    gap: 2px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-tool-hint + .blacksmith-npc-scaling-fields {
+    margin-top: 8px;
+}
+
+/* The template editor is a dialog, outside the window, so it is styled from its own class. */
+.blacksmith-npc-scaling-form {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.blacksmith-npc-scaling-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.blacksmith-npc-scaling-form-pair {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 6px;
+}
+
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-field {
     display: flex;
     flex-direction: column;
@@ -77,4 +118,64 @@
 
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-warning i {
     color: var(--blacksmith-status-warning);
+}
+
+/* The guidelines dialogs are outside the window, so the Tool window theme variables do not reach them: they borrow the dialog's own text colour instead. */
+.blacksmith-npc-scaling-packs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 6px;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: var(--blacksmith-radius-md, 4px);
+}
+
+.blacksmith-npc-scaling-pack {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.blacksmith-npc-scaling-compare {
+    max-height: 380px;
+    overflow: auto;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border-radius: var(--blacksmith-radius-md, 4px);
+}
+
+.blacksmith-npc-scaling-compare table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.blacksmith-npc-scaling-compare th,
+.blacksmith-npc-scaling-compare td {
+    padding: 3px 6px;
+    text-align: right;
+    border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+}
+
+.blacksmith-npc-scaling-compare th:first-child,
+.blacksmith-npc-scaling-compare td:first-child,
+.blacksmith-npc-scaling-compare th:last-child,
+.blacksmith-npc-scaling-compare td:last-child {
+    text-align: left;
+}
+
+.blacksmith-npc-scaling-compare thead th {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.blacksmith-npc-scaling-compare tr.is-estimated td {
+    background: color-mix(in srgb, currentColor 7%, transparent);
+    font-style: italic;
+}
+
+.blacksmith-npc-scaling-was {
+    text-decoration: line-through;
+    opacity: 0.6;
 }

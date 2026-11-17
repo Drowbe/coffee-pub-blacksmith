@@ -80,6 +80,12 @@ export default {
                 }
                 expect.ok('the guidelines table is frozen', Object.isFrozen(scaling.guidelines));
                 expect.ok('the applied hook is named', scaling.HOOK_APPLIED === 'blacksmith.npcScaling.applied');
+                for (const method of ['guidelineInfo', 'buildGuidelines', 'setGuidelines', 'resetGuidelines']) {
+                    expect.ok(`npcScaling.${method} is a function`, typeof scaling[method] === 'function');
+                }
+                for (const method of ['list', 'get', 'save', 'remove', 'nameTaken', 'fromSpec', 'toSpec', 'exportPayload', 'parseImport', 'import']) {
+                    expect.ok(`npcScaling.templates.${method} is a function`, typeof scaling.templates?.[method] === 'function');
+                }
                 expect('a missing target is refused by code', await code(scaling.preview('Actor.doesNotExist', { cr: 5 })), 'NO_TARGET');
             }
         },
@@ -182,6 +188,104 @@ export default {
                     expect('and sits at CR 8', second.system.details.cr, 8);
                 } finally {
                     await cleanup(created);
+                }
+            }
+        },
+        {
+            id: 'templates',
+            tier: 'headless',
+            group: 'Templates',
+            label: 'The library seeds, saves and removes; a template scales a goblin like the table says',
+            note: 'Writes one throwaway template and removes it. If the library was never touched it is also marked as seeded, which leaves it holding exactly the built-ins.',
+            run: async ({ expect }) => {
+                const api = requireApi('npcScaling');
+                const lib = api.npcScaling.templates;
+                const created = [];
+                const source = await makeGoblin();
+                created.push(source);
+                let tempId = null;
+                try {
+                    const names = lib.list().map((t) => t.name);
+                    expect.ok('the library is not empty (the built-ins, or the GM\'s own)', names.length > 0);
+                    expect.ok('every template has an id and a name', lib.list().every((t) => t.id && t.name));
+
+                    // An Elite-shaped template: CR step 2, +50% hit points, +2 attack, +3 damage per hit.
+                    const saved = await lib.save({ name: 'Harness Elite', crBy: 2, hp: { mode: 'percent', value: 50 }, ac: 1, attack: 2, saveDC: 2, damage: 3 });
+                    tempId = saved.id;
+                    expect.ok('save gave it an id', !!tempId);
+                    expect('it reads back by id', lib.get(tempId)?.name, 'Harness Elite');
+                    expect('its name is taken', lib.nameTaken('harness elite'), true);
+                    expect('not by itself', lib.nameTaken('Harness Elite', tempId), false);
+
+                    const preview = await api.npcScaling.preview(source, { template: tempId });
+                    const row = (key) => preview.preview.find((r) => r.key === key);
+                    expect('CR 1/4 steps up two to CR 2', [row('cr').from, row('cr').to], [0.25, 2]);
+                    expect('hit points are 50% on top of the creature\'s own 7', [row('hp').from, row('hp').to], [7, 11]);
+                    expect('armor class goes up by one', row('ac').to - row('ac').from, 1);
+                    expect('the spec is labelled with the template name', preview.spec.label, 'Harness Elite');
+
+                    const { actor } = await api.npcScaling.apply(source, { template: tempId });
+                    created.push(actor);
+                    expect('the new actor is named for the template', actor.name, 'Harness Goblin (Harness Elite)');
+                    expect('and sits at CR 2', actor.system.details.cr, 2);
+                    expect('and records which template made it', api.npcScaling.provenance(actor)?.template, tempId);
+
+                    await lib.remove(tempId);
+                    expect('removed', lib.get(tempId), null);
+                    tempId = null;
+                    expect('a removed template is refused by name', await code(api.npcScaling.preview(source, { template: 'tpl-does-not-exist' })), 'BAD_TEMPLATE');
+                    expect('a nameless template is refused', await code(lib.save({ crBy: 2 })), 'BAD_TEMPLATE');
+                } finally {
+                    if (tempId) await lib.remove(tempId).catch(() => {});
+                    await cleanup(created);
+                }
+            }
+        },
+        {
+            id: 'guidelines',
+            tier: 'headless',
+            group: 'Guidelines',
+            label: 'A table builds from the 2024 monsters, is sound, and scaling reads it',
+            note: 'Reads the dnd5e.actors24 compendium (a few seconds). Building writes nothing. If the world has no table of its own, the check also sets the built one and resets it; if it has, that is left alone.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('npcScaling');
+                const scaling = api.npcScaling;
+                expect.ok('the bundled table is frozen', Object.isFrozen(scaling.bundledGuidelines));
+                const info = scaling.guidelineInfo();
+                expect.ok('the table in use names its source', !!info.label);
+                log(`in use: ${info.label} (${info.kind})`);
+
+                expect('a pack that does not exist is refused by name', await code(scaling.buildGuidelines({ packs: ['nope.nope'] })), 'NO_PACK');
+                if (!game.packs.get('dnd5e.actors24')) {
+                    log('dnd5e.actors24 is not installed; the build is not exercised.');
+                    return;
+                }
+
+                const built = await scaling.buildGuidelines({ packs: ['dnd5e.actors24'] });
+                const counts = built.report.rows.reduce((acc, r) => ({ ...acc, [r.status]: (acc[r.status] ?? 0) + 1 }), {});
+                log(`read ${built.report.samples} creatures (${built.skipped} skipped); rows: ${JSON.stringify(counts)}`);
+                expect('a row for every challenge rating', Object.keys(built.table).length, 34);
+                expect.ok('a real bestiary is hundreds of creatures', built.report.samples > 100);
+                expect.ok('the built table is frozen', Object.isFrozen(built.table));
+                const cr5 = built.table['5'];
+                expect.ok('CR 5 armor class is plausible (11 to 19)', cr5.ac >= 11 && cr5.ac <= 19);
+                expect.ok('CR 5 hit points are plausible (60 to 200)', (cr5.hp[0] + cr5.hp[1]) / 2 >= 60 && (cr5.hp[0] + cr5.hp[1]) / 2 <= 200);
+                expect.ok('hit points rise from CR 1 to CR 20', built.table['20'].hp[0] > built.table['1'].hp[1]);
+                expect('building wrote nothing', scaling.guidelineInfo().kind, info.kind);
+
+                if (info.kind !== 'bundled') return;
+                const goblin = await makeGoblin();
+                try {
+                    await scaling.setGuidelines(built);
+                    expect('the world now uses the built table', scaling.guidelineInfo().kind, 'compendium');
+                    expect('and `guidelines` is that table', JSON.stringify(scaling.guidelines), JSON.stringify(built.table));
+                    const preview = await scaling.preview(goblin, { cr: 12 });
+                    expect.ok('a scaling still plans against it', preview.preview.some((r) => r.key === 'hp'));
+                    await scaling.resetGuidelines();
+                    expect('reset goes back to the bundled table', scaling.guidelineInfo().kind, 'bundled');
+                } finally {
+                    await scaling.resetGuidelines().catch(() => {});
+                    await cleanup([goblin]);
                 }
             }
         },

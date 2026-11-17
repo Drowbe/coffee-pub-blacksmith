@@ -175,20 +175,6 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 Written and awaiting live verification: `testing/npc-scaling.md`. What is left, and why, is in
 `plans/plan-npc-scaling.md`.
 
-### Scale templates
-
-Named presets ("Elite", "Champion", "Super") with a seeded library, export/import, a picker and an editor in
-the window, and `api.npcScaling.templates.*`. `applySpec` already takes a spec, so this is storage and UI.
-Touches `window-npc-scaling.js`, `api-npc-scaling.js`, a new manager for the library and its setting.
-Verified live: save a preview as a template, reload, apply it to another creature.
-
-### Editable guidelines table
-
-`GUIDELINES` is bundled DMG 2014 data. Make it a seeded world setting with import/export, passed to the
-engine through the `table` parameter it already takes, and settle whether the 2024 numbers should ship.
-Touches `settings.js`, `lang/en.json` (the author's copy), `manager-npc-scaling.js`. Verified by changing a
-row and seeing the preview move.
-
 ### Token-only output and batch
 
 Scale an unlinked token's own actor in place, with a one-write revert map, and several tokens of one actor at

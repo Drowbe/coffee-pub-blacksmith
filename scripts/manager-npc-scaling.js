@@ -12,9 +12,12 @@
 import { MODULE } from './const.js';
 import { postConsoleAndNotification } from './api-core.js';
 import { EncounterManager } from './manager-encounter.js';
+import { formatPackLabel } from './utility-compendium-types.js';
 import {
-    NpcScalingError, SPEC_VERSION, specFromCR, applySpec, parseMultiattackCount, estimateDPR, GUIDELINES
+    NpcScalingError, SPEC_VERSION, specFromCR, specFromTemplate, applySpec, parseMultiattackCount, estimateDPR
 } from './utility-npc-scaling.js';
+import { NpcScalingTemplates } from './manager-npc-scaling-templates.js';
+import { NpcScalingGuidelines } from './manager-npc-scaling-guidelines.js';
 
 /** The provenance flag key, under `flags.<module id>`. */
 export const NPC_SCALING_FLAG = 'npcScaling';
@@ -158,7 +161,8 @@ export class NpcScalingManager {
      * @param {Actor|Token|TokenDocument|string} target
      * @param {Object} request
      * @param {number} [request.cr]      Retarget to this challenge rating.
-     * @param {Object} [request.spec]    Or a ready-made spec (a template, or an edited preview).
+     * @param {string|Object} [request.template]  Or a saved template, by id or as an object.
+     * @param {Object} [request.spec]    Or a ready-made spec.
      * @param {string} [request.label]   Name suffix, e.g. "Super".
      * @param {number} [request.attacksPerRound]  The GM's correction of the attack count the damage bonus is spread across.
      * @returns {Promise<{ snapshot: Object, spec: Object, updates: Object, preview: Array, warnings: Array, source: Actor, actor: Actor, fromScaled: boolean }>}
@@ -171,11 +175,16 @@ export class NpcScalingManager {
         const snapshot = this.snapshot(read, { attacksPerRound: request.attacksPerRound });
 
         let spec = request.spec;
-        if (!spec) {
+        if (!spec && request.template) {
+            const template = typeof request.template === 'string' ? NpcScalingTemplates.get(request.template) : request.template;
+            if (!template) throw new NpcScalingError('BAD_TEMPLATE', `There is no scaling template "${request.template}".`);
+            spec = specFromTemplate(template, snapshot);
+            if (request.label) spec = { ...spec, label: request.label };
+        } else if (!spec) {
             if (request.cr === undefined || request.cr === null) {
-                throw new NpcScalingError('BAD_SPEC', 'Give a target challenge rating or a spec to scale by.');
+                throw new NpcScalingError('BAD_SPEC', 'Give a target challenge rating, a template or a spec to scale by.');
             }
-            spec = specFromCR(snapshot, Number(request.cr), { label: request.label ?? '' });
+            spec = specFromCR(snapshot, Number(request.cr), { label: request.label ?? '', table: NpcScalingGuidelines.current().table });
         } else if (spec.version !== SPEC_VERSION) {
             throw new NpcScalingError('BAD_SPEC', `This spec is version ${spec.version}; this Blacksmith reads version ${SPEC_VERSION}.`);
         }
@@ -224,6 +233,7 @@ export class NpcScalingManager {
         foundry.utils.setProperty(data, `flags.${MODULE.ID}.${NPC_SCALING_FLAG}`, {
             sourceUuid: source.uuid,
             spec,
+            template: typeof request.template === 'string' ? request.template : (request.template?.id || null),
             version: SPEC_VERSION,
             appliedAt: Date.now(),
             crFrom,
@@ -260,8 +270,76 @@ export class NpcScalingManager {
         return actor?.getFlag?.(MODULE.ID, NPC_SCALING_FLAG) ?? null;
     }
 
-    /** The guideline table in use. Read-only: a caller that edits it edits it for everyone. */
+    // ==============================================================
+    // ===== SAMPLING ===============================================
+    // ==============================================================
+
+    /** The highest save DC a creature has: its spell DC, or any save activity's DC. Null when it has none. */
+    static _bestSaveDC(actor, spellDC) {
+        let best = Number.isFinite(spellDC) ? spellDC : null;
+        for (const item of actor.items) {
+            for (const activity of item.system?.activities?.values?.() ?? []) {
+                if (activity.type !== 'save') continue;
+                const dc = Number(activity.save?.dc?.value);
+                if (Number.isFinite(dc) && dc > 0 && (best === null || dc > best)) best = dc;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * One creature as the figures a guidelines table is made of. A figure the creature does not have is
+     * `null` or zero, and the engine counts it for nothing (a creature with no attack has no attack bonus).
+     * @param {Actor} actor
+     * @returns {{ cr: number|null, ac: number, hp: number, atk: number|null, dpr: number, dc: number|null }}
+     */
+    static sample(actor) {
+        const s = this.snapshot(actor);
+        return { cr: s.cr, ac: s.ac, hp: s.hpMax, atk: s.attackBonus, dpr: s.dpr, dc: this._bestSaveDC(actor, s.saveDC) };
+    }
+
+    /**
+     * Read every NPC in these actor compendiums as a sample. Loads the documents, so a pack of several hundred
+     * creatures takes a few seconds; it yields to the browser as it goes so the window stays alive, and reports
+     * progress.
+     *
+     * @param {string[]} packIds  Compendium ids, e.g. `dnd5e.actors24`.
+     * @param {Object} [options]
+     * @param {(done: number, total: number) => void} [options.onProgress]
+     * @returns {Promise<{ samples: Object[], skipped: number, labels: string[], packIds: string[] }>}
+     * @throws {NpcScalingError} NO_PACK when none of the ids is an actor compendium.
+     */
+    static async sampleCompendium(packIds, { onProgress } = {}) {
+        const packs = (packIds ?? []).map((id) => game.packs.get(id)).filter((p) => p?.documentName === 'Actor');
+        if (!packs.length) throw new NpcScalingError('NO_PACK', 'Choose at least one actor compendium.');
+
+        const total = packs.reduce((n, p) => n + (p.index?.size ?? 0), 0);
+        const samples = [];
+        let done = 0;
+        let skipped = 0;
+        for (const pack of packs) {
+            const documents = await pack.getDocuments({ type: 'npc' });
+            for (const actor of documents) {
+                try {
+                    const sample = this.sample(actor);
+                    if (sample.cr === null) skipped++;
+                    else samples.push(sample);
+                } catch (error) {
+                    skipped++; // a creature this client cannot read is left out, and counted
+                }
+                done++;
+                if (done % 20 === 0) {
+                    onProgress?.(done, total);
+                    await new Promise((resolve) => setTimeout(resolve));
+                }
+            }
+        }
+        onProgress?.(done, Math.max(total, done));
+        return { samples, skipped, labels: packs.map((p) => formatPackLabel(p, p.collection)), packIds: packs.map((p) => p.collection) };
+    }
+
+    /** The guidelines table in use. Read-only: a caller that edits it edits it for everyone. */
     static get guidelines() {
-        return GUIDELINES;
+        return NpcScalingGuidelines.current().table;
     }
 }
