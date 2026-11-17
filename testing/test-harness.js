@@ -60,6 +60,7 @@ const SUITES = [
     `${BASE}/suite-hookmanager.js`,
     `${BASE}/suite-importer-declarations.js`,
     `${BASE}/suite-inventory.js`,
+    `${BASE}/suite-npc-scaling.js`,
     `${BASE}/suite-notes.js`,
     `${BASE}/suite-pins.js`,
     `${BASE}/suite-quantity-split.js`,

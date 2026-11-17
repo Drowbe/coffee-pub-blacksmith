@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Scale an NPC into a stronger or weaker copy of itself** (`scripts/utility-npc-scaling.js`, `manager-npc-scaling.js`, `api-npc-scaling.js`, `window-npc-scaling.js`, `styles/window-npc-scaling.css`, `scripts/blacksmith.js`). Pick a target challenge rating and Blacksmith makes a **new** actor: hit points, armor class, attack bonus, spell save DC and damage per hit are raised or lowered by the difference between the two challenge ratings in the CR guidelines, added to the creature's own figures, so a goblin stays a goblin and does not land on the table's curve. The source is never changed. Opened from a **Scale NPC** tool in the GM toolbar (for the selected NPC token) or from an NPC sheet's header menu: a Tool window, one per creature, showing stat / now / scaled before anything is written, with an editable attack count that the damage bonus is spread across. The result is named `Goblin (Super)`, keeps the source's folder, and carries one flag naming its source; scaling a scaled actor starts again from the original, so scalings never stack. dnd5e already moves an NPC's attack bonus and save DC with its CR (proficiency is derived from it), so the amounts written are net of that change. Armor class becomes a fixed value; only spell save DCs are scaled, not a feature's own fixed DC. `api.npcScaling` has `preview`, `apply`, `open`, `provenance` and `specFromCR`, refuses by `error.code`, and fires `blacksmith.npcScaling.applied`. Contract in `api/api-npc-scaling.md`, mechanism and the dnd5e facts it rests on in `architecture/architecture-npc-scaling.md`. **Verified:** the engine by `node tools/check-npc-scaling.mjs` (passing, including with the proficiency subtraction and the formula merge each broken in turn), the API by the new harness suite `testing/suites/suite-npc-scaling.js`; neither has run in Foundry, and the window, toolbar tool and sheet entry are owed in `testing/npc-scaling.md`.
+
 ## [14.6.0]
 
 ### Added

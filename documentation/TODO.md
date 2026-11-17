@@ -172,37 +172,34 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 
 ## NPC scaling
 
-Design and traps in `plans/plan-npc-scaling.md`. Agreed with the author 2026-11-17: in Blacksmith, CR retarget
-and named templates both, new actor by default, auto-scale on drop later.
+Written and awaiting live verification: `testing/npc-scaling.md`. What is left, and why, is in
+`plans/plan-npc-scaling.md`.
 
-### Scaling engine and its check
+### Scale templates
 
-Pure functions in a new `utility-` file: the guidelines table, `specFromCR`, `applySpec` (returns update data,
-writes nothing), `estimateDPR`. First settle the open traps in the plan -- the attack/damage bonus paths per
-dnd5e version, and whether a spec writes `hp.max` or `hp.bonuses.overall`. Verified by a new
-`tools/check-npc-scaling.mjs` that slices the real functions out: proficiency is subtracted, CR 1/4 to 12
-lands on the table's row, and the source data is never mutated.
+Named presets ("Elite", "Champion", "Super") with a seeded library, export/import, a picker and an editor in
+the window, and `api.npcScaling.templates.*`. `applySpec` already takes a spec, so this is storage and UI.
+Touches `window-npc-scaling.js`, `api-npc-scaling.js`, a new manager for the library and its setting.
+Verified live: save a preview as a template, reload, apply it to another creature.
 
-### New-actor output, provenance and `api.npcScaling`
+### Editable guidelines table
 
-`preview` and `apply` writing a new world actor with the `npcScaling` provenance flag in the same create call;
-rescale and revert regenerate from the source. Blacksmith's window is the first consumer. Needs
-`api-npc-scaling.md` and `architecture-npc-scaling.md` in the same change. Verified live: scale a goblin to
-CR 12, source unchanged, numbers match the preview, the encounter bar counts it at CR 12.
+`GUIDELINES` is bundled DMG 2014 data. Make it a seeded world setting with import/export, passed to the
+engine through the `table` parameter it already takes, and settle whether the 2024 numbers should ship.
+Touches `settings.js`, `lang/en.json` (the author's copy), `manager-npc-scaling.js`. Verified by changing a
+row and seeing the preview move.
 
-### Scaling window and entry points
+### Token-only output and batch
 
-A `BlacksmithToolWindowBaseV2` window (`openFor` one per target) built from the `blacksmith-tool-*` controls,
-with CR/template picker, a now/scaled table, an editable DPR estimate and an output-mode switch; `api.dialog`
-for confirms, `api.toast` for results, a `gmOnly` `registerToolbarTool` entry and an NPC sheet header control
-through `HookManager`. The plan's "Blacksmith APIs this builds on" table is the list. Verified live, on
-Light, Dark and Glass.
+Scale an unlinked token's own actor in place, with a one-write revert map, and several tokens of one actor at
+once. Touches `manager-npc-scaling.js`; `apply` refuses any output but `'actor'` until it exists. Verified
+live on a pasted group of unlinked tokens.
 
-### Scale templates, token-only output, auto-scale
+### Auto-scale on drop
 
-Named presets with export/import and seeded defaults; token-only output with a one-write revert map and batch
-over tokens of one actor; later, auto-scale on `createToken` (opt-in must be three-valued). Each becomes its
-own entry once the one above it has shipped -- the plan holds the shape until then.
+A `createToken` handler calling `api.npcScaling.apply(token, { cr, output: 'token' })`, opt-in three-valued.
+Blocked on token-only output, and on the author deciding how a creature's target CR is chosen (`getPartyCR`
+is a party total, not a per-creature rating).
 
 ---
 

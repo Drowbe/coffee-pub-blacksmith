@@ -109,6 +109,7 @@ import { registerCompendiumSearchWindow } from './window-compendium-search.js';
 import { registerRestWindow } from './window-rest.js';
 import { registerStageWindow } from './window-stage.js';
 import { registerDelegationWindow } from './window-delegation.js';
+import { registerNpcScalingWindow } from './window-npc-scaling.js';
 import { StageManager } from './manager-stage.js';
 import { AwayManager, AwayAPI } from './manager-away.js';
 import { registerStatusEffectsWindow } from './window-status-effects.js';
@@ -158,6 +159,7 @@ import { InventoryAPI } from './api-inventory.js';
 import { EquipLocationsAPI } from './api-equip-locations.js';
 import { GMRequestAPI } from './api-gm-request.js';
 import { PartyAPI } from './api-party.js';
+import { NpcScalingAPI } from './api-npc-scaling.js';
 import { registerHandlebarsHelpers } from './utility-handlebars.js';
 import { RollOutcomesManager } from './manager-roll-outcomes.js';
 import { DefeatedManager } from './manager-defeated.js';
@@ -786,6 +788,7 @@ Hooks.once('ready', async () => {
             registerRestWindow();
             registerStageWindow();
             registerDelegationWindow();
+            registerNpcScalingWindow();
             AwayManager.registerMenubarTool();
             // Reopen whatever the user left open. After registration, since it opens
             // through the same code paths the menubar tools use.
@@ -1351,6 +1354,7 @@ Hooks.once('init', async function() {
         equipLocations: EquipLocationsAPI,
         gmRequest: GMRequestAPI,
         party: PartyAPI,
+        npcScaling: NpcScalingAPI,
         getPartyCR: EncounterManager.getPartyCR.bind(EncounterManager),
         getMonsterCR: EncounterManager.getMonsterCR.bind(EncounterManager),
         calculateEncounterDifficulty: EncounterManager.calculateEncounterDifficulty.bind(EncounterManager),
