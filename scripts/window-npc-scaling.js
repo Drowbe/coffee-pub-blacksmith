@@ -127,6 +127,14 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         const attacks = planned?.snapshot?.attacksPerRound ?? snapshot.attacksPerRound;
         this._canApply = Boolean(planned) && !this._busy;
 
+        // The scene's own reading of what rating to aim for. A failure here is never worth losing the window.
+        let guidance = null;
+        try {
+            guidance = await NpcScalingAPI.guidance(this._target, { cr: planned?.spec?.cr?.to ?? null });
+        } catch (error) {
+            console.warn(`${MODULE.NAME} | NPC Scaling: scene guidance unavailable:`, error);
+        }
+
         const crSelect = CR_OPTIONS.map((key) => {
             const value = EncounterManager.parseCR(key);
             return `<option value="${key}"${value === this._cr ? ' selected' : ''}>${key}</option>`;
@@ -161,6 +169,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                         </span>
                     </div>
                     ${this._mode === 'template' ? this._templatePickerHtml(templates, template) : ''}
+                    ${this._guidanceHtml(guidance)}
                     <div class="blacksmith-npc-scaling-fields${this._mode === 'template' ? ' is-single' : ''}">
                         ${this._mode === 'cr' ? `<label class="blacksmith-npc-scaling-field">
                             <span>Challenge rating</span>
@@ -196,6 +205,31 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                 : '',
             toolFooterRight: `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-apply"${this._canApply ? '' : ' disabled'} data-tooltip="Create a new actor at this challenge rating. ${esc(source.name)} is not changed."><i class="fa-solid fa-plus"></i> Create Scaled Actor</button>`
         };
+    }
+
+    /**
+     * Which rating to aim for, from the scene. In CR mode a band is a chip that sets the CR; in Template mode
+     * the template decides the CR, so the bands are shown and the line says where it lands.
+     */
+    _guidanceHtml(g) {
+        if (!g) return '';
+        if (!g.available) {
+            return `<div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Put the party's tokens on this scene to see which challenge rating would make it Easy, Hard or Deadly.</div>`;
+        }
+        const range = (b) => (b.from === b.to ? EncounterManager.formatCR(b.from) : `${EncounterManager.formatCR(b.from)}\u2013${EncounterManager.formatCR(b.to)}`);
+        const inBand = (b) => g.chosen && g.chosen.cr >= b.from && g.chosen.cr <= b.to;
+        const chips = g.bands.map((b) => this._mode === 'cr'
+            ? `<label class="blacksmith-tool-chip is-selectable" data-tooltip="Set the challenge rating to ${esc(EncounterManager.formatCR(b.from))}, the lowest that makes this ${esc(b.label)}">
+                    <input type="radio" name="npc-scaling-band" value="${b.from}"${inBand(b) ? ' checked' : ''}>
+                    <span>${esc(b.label)} ${esc(range(b))}</span>
+                </label>`
+            : `<span class="blacksmith-tool-chip${inBand(b) ? ' is-active' : ''}">${esc(b.label)} ${esc(range(b))}</span>`).join('');
+        const others = g.othersCR > 0 ? `, with ${esc(EncounterManager.formatCR(g.othersCR))} of other monsters` : '';
+        const now = g.now ? ` At its own challenge rating this is ${esc(g.now.label)}.` : '';
+        const at = g.chosen ? ` At CR ${esc(EncounterManager.formatCR(g.chosen.cr))} it becomes ${esc(g.chosen.label)}.` : '';
+        return `
+            <div class="blacksmith-tool-chips blacksmith-npc-scaling-bands">${chips}</div>
+            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">For a party of CR ${esc(EncounterManager.formatCR(g.partyCR))}${others}.${now}${at}</div>`;
     }
 
     /** The stat / now / scaled table, the damage estimate, and anything the engine wants the GM to see. */
@@ -586,6 +620,13 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             const mode = event.target?.closest?.('input[name="npc-scaling-mode"]');
             if (mode) {
                 this._mode = mode.value === 'template' ? 'template' : 'cr';
+                this.render();
+                return;
+            }
+            const band = event.target?.closest?.('input[name="npc-scaling-band"]');
+            if (band) {
+                this._cr = Number(band.value);
+                this._attacksTo = null; // as for the select: the attack count follows the new rating
                 this.render();
                 return;
             }

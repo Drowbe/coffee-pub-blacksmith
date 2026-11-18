@@ -431,6 +431,66 @@ export function shiftCR(cr, by) {
     return CR_LADDER.filter((v) => v < 1).reduce((best, v) => (Math.abs(v - n) < Math.abs(best - n) ? v : best), 0);
 }
 
+// ===== SCENE GUIDANCE =============================================
+
+/**
+ * Which challenge ratings put THIS creature's encounter on each difficulty, given the party and the other
+ * monsters already on the scene.
+ *
+ * The encounter rule is not here. `difficulty(partyCR, monsterCR)` is passed in (Blacksmith hands it
+ * `EncounterManager.calculateEncounterDifficulty`), so this file keeps no copy of the thresholds and the
+ * window can never offer a band the combat bar would call something else. Monster CR is the SUM of the
+ * monsters, so the creature's own CR is added to `othersCR`.
+ *
+ * Difficulty rises with CR, so each band is one run of the ladder: `from` is the lowest CR that reaches it
+ * and `to` the highest that stays in it. A band the others already overshoot is absent.
+ *
+ * @param {Object} input
+ * @param {number} input.partyCR      The party's rating, as the encounter bar reads it. 0 means no party.
+ * @param {number} [input.othersCR=0] The other monsters' summed CR.
+ * @param {number|null} [input.currentCR]  The creature's own CR, when it is on the scene.
+ * @param {number|null} [input.chosenCR]   A CR to describe, such as the one the window has selected.
+ * @param {function(number, number): {difficulty: string, difficultyClass: string}} input.difficulty
+ * @returns {{ available: boolean, partyCR: number, othersCR: number,
+ *             now: ?{key: string, label: string}, chosen: ?{cr: number, key: string, label: string},
+ *             bands: Array<{key: string, label: string, from: number, to: number}> }}
+ */
+export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = null, difficulty } = {}) {
+    const party = Number(partyCR);
+    const others = Math.max(0, Number(othersCR) || 0);
+    const none = { available: false, partyCR: Number.isFinite(party) ? party : 0, othersCR: others, now: null, chosen: null, bands: [] };
+    if (!(party > 0) || typeof difficulty !== 'function') return none;
+
+    const read = (cr) => {
+        const d = difficulty(party, others + Number(cr));
+        return d && d.difficultyClass && d.difficultyClass !== 'none' ? { key: d.difficultyClass, label: d.difficulty } : null;
+    };
+
+    const bands = [];
+    for (const cr of CR_LADDER) {
+        const d = read(cr);
+        if (!d) continue;
+        const last = bands[bands.length - 1];
+        if (last && last.key === d.key) last.to = cr;
+        else bands.push({ key: d.key, label: d.label, from: cr, to: cr });
+    }
+
+    const pick = (cr) => {
+        if (cr === null || cr === undefined || !Number.isFinite(Number(cr))) return null;
+        const d = read(cr);
+        return d ? { cr: Number(cr), ...d } : null;
+    };
+    const now = pick(currentCR);
+    return {
+        available: true,
+        partyCR: party,
+        othersCR: others,
+        now: now ? { key: now.key, label: now.label } : null,
+        chosen: pick(chosenCR),
+        bands
+    };
+}
+
 const HP_MODES = Object.freeze(['percent', 'delta']);
 const int = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(Number(v) || 0)));
 

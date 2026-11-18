@@ -53,7 +53,7 @@ const engine = await import(pathToFileURL(path.join(ROOT, SOURCE)).href);
 const {
     GUIDELINES, ATTACK_TYPES, NpcScalingError, SPEC_VERSION,
     crKey, proficiencyForCR, guidelineFor, addToFormula, specFromCR, applySpec,
-    parseMultiattackCount, estimateDPR, validateTable, buildTable, TABLE_KEYS, deepFreeze
+    parseMultiattackCount, estimateDPR, validateTable, buildTable, TABLE_KEYS, deepFreeze, suggestCR
 } = engine;
 
 // ===== HELPERS ====================================================
@@ -441,6 +441,35 @@ const text = describeMultiattack({ name: 'Badger', count: 3, from: 1, crTo: 12 }
 expect('multiattack says three', text.includes('makes three attacks'), true);
 expect('and that it was scaled to CR 12', text.includes('Scaled to CR 12'), true);
 expect('and what it was before when that is worth saying', describeMultiattack({ name: 'Ogre', count: 3, from: 2 }).includes('made two before'), true);
+
+// ===== SCENE GUIDANCE =============================================
+
+// A stand-in for EncounterManager.calculateEncounterDifficulty, which needs Foundry. The engine keeps no
+// thresholds of its own, so what is checked is that it asks the rule and groups the answers, not the numbers.
+const rule = (party, monster) => {
+    if (party <= 0 || monster <= 0) return { difficulty: 'None', difficultyClass: 'none' };
+    const r = monster / party;
+    if (r < 0.25) return { difficulty: 'Trivial', difficultyClass: 'trivial' };
+    if (r < 0.5) return { difficulty: 'Easy', difficultyClass: 'easy' };
+    if (r < 1) return { difficulty: 'Moderate', difficultyClass: 'medium' };
+    if (r < 1.5) return { difficulty: 'Hard', difficultyClass: 'hard' };
+    if (r < 2.25) return { difficulty: 'Deadly', difficultyClass: 'deadly' };
+    return { difficulty: 'Impossible', difficultyClass: 'impossible' };
+};
+const g = suggestCR({ partyCR: 10, othersCR: 4, currentCR: 5, chosenCR: 12, difficulty: rule });
+expect('guidance is available with a party', g.available, true);
+expect('each band is one run of the ladder, from the lowest CR that reaches it',
+    g.bands.map((b) => [b.key, b.from, b.to]),
+    [['easy', 0, 0.5], ['medium', 1, 5], ['hard', 6, 10], ['deadly', 11, 18], ['impossible', 19, 30]]);
+expect('the other monsters are added to the creature', g.now, { key: 'medium', label: 'Moderate' });
+expect('a chosen CR is described', g.chosen, { cr: 12, key: 'deadly', label: 'Deadly' });
+expect('a band the others already overshoot is absent', suggestCR({ partyCR: 10, othersCR: 30, difficulty: rule }).bands.map((b) => b.key), ['impossible']);
+expect('no party, no guidance', suggestCR({ partyCR: 0, othersCR: 4, difficulty: rule }).available, false);
+expect('no rule, no guidance', suggestCR({ partyCR: 10 }).available, false);
+expect('a CR that rates as nothing is left out of the bands', suggestCR({ partyCR: 10, othersCR: 0, difficulty: rule }).bands[0].from, 0.125);
+expect('a creature not on the scene has no "now"', suggestCR({ partyCR: 10, othersCR: 4, difficulty: rule }).now, null);
+const ladder = suggestCR({ partyCR: 10, othersCR: 4, difficulty: rule }).bands;
+expect('bands cover the ladder without a gap', ladder.every((b, i) => i === 0 || b.from > ladder[i - 1].to), true);
 
 // ===== RESULT =====================================================
 

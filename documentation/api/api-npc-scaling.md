@@ -51,6 +51,35 @@ Returns:
 If the target already carries a scaling flag, the preview is of scaling its **source**, not the copy, so two
 scalings never stack.
 
+## `guidance(target, options)`
+
+Which challenge rating to aim for, read from the scene the creature is in.
+
+```javascript
+const g = await scaling.guidance(token, { cr: 12 });
+// { available: true, onScene: true, partyCR: 10, othersCR: 4,
+//   now: { key: 'medium', label: 'Moderate' }, chosen: { cr: 12, key: 'deadly', label: 'Deadly' },
+//   bands: [ { key: 'easy', label: 'Easy', from: 0, to: 0.5 }, { key: 'medium', label: 'Moderate', from: 1, to: 5 }, ... ] }
+```
+
+The party's rating and the other monsters' are the encounter figures Blacksmith's combat bar and the journal's
+encounter toolbar use (`api.getPartyCR`), counting only what can still fight, and the bands are that same
+difficulty rule, so the window never offers a rating the combat bar would call something else. Monster CR is a
+**sum**, so the creature's own CR is added to the other monsters' at each step of the ladder; each band is the
+run of ratings that lands the encounter on that difficulty, and `from` is the lowest that reaches it.
+
+| Field | Meaning |
+|---|---|
+| `available` | `false` when the scene holds no player character to rate against. The rest is then empty |
+| `onScene` | The target is a token (or an unlinked actor's sheet), so it was left out of the other monsters. A creature scaled from the sidebar is not subtracted |
+| `partyCR`, `othersCR` | The two figures, as the encounter bar reads them. Rounded to whole numbers once summed |
+| `now` | The encounter's difficulty with the creature at its own CR; `null` when it is not on the scene |
+| `chosen` | `{ cr, key, label }` for `options.cr`, when given |
+| `bands` | `{ key, label, from, to }`, in order of rising difficulty. `key` is the encounter's difficulty class (`trivial`, `easy`, `medium`, `hard`, `deadly`, `impossible`) |
+
+It is advice and changes nothing; `preview` and `apply` never read it. Refuses like `preview`: `NOT_GM`,
+`NO_TARGET`, `NOT_NPC`.
+
 ## `apply(target, request)`
 
 Creates the scaled actor. Takes the same request, plus `output`, which must be `'actor'` or omitted.

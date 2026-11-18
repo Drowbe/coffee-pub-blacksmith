@@ -37,6 +37,19 @@ export const NpcScalingAPI = {
     },
 
     /**
+     * Which challenge ratings would make the scene's encounter Easy, Moderate, Hard or Deadly, with this creature
+     * counted at each. Read from the party and the other monsters on the canvas, by the same rule as the combat bar.
+     * @param {Actor|Token|TokenDocument|string} target  An NPC, a token of one, or a UUID.
+     * @param {{ cr?: number }} [options]  A CR to describe in `chosen`.
+     * @returns {Promise<{ available: boolean, onScene: boolean, partyCR: number, othersCR: number,
+     *   now: ?Object, chosen: ?Object, bands: Array<{ key: string, label: string, from: number, to: number }> }>}
+     * @throws {NpcScalingError}
+     */
+    async guidance(target, options = {}) {
+        return NpcScalingManager.guidance(target, options);
+    },
+
+    /**
      * Scale a creature into a NEW actor. The source is never changed.
      * @param {Actor|Token|TokenDocument|string} target
      * @param {{ cr?: number, spec?: Object, label?: string, attacksPerRound?: number, output?: 'actor' }} request

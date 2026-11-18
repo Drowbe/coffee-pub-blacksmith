@@ -14,7 +14,7 @@ import { postConsoleAndNotification } from './api-core.js';
 import { EncounterManager } from './manager-encounter.js';
 import { formatPackLabel } from './utility-compendium-types.js';
 import {
-    NpcScalingError, SPEC_VERSION, specFromCR, specFromTemplate, applySpec, parseMultiattackCount, estimateDPR, describeMultiattack
+    NpcScalingError, SPEC_VERSION, specFromCR, specFromTemplate, applySpec, parseMultiattackCount, estimateDPR, describeMultiattack, suggestCR
 } from './utility-npc-scaling.js';
 import { CompendiumsAPI } from './api-compendiums.js';
 import { NpcScalingTemplates } from './manager-npc-scaling-templates.js';
@@ -62,6 +62,47 @@ export class NpcScalingManager {
                 `NPC Scaling: the source of ${actor.name} (${flag.sourceUuid}) no longer exists; scaling this actor itself.`, null, false, false);
         }
         return { actor, source: token?.baseActor ?? actor, token, fromScaled: false };
+    }
+
+    // ==============================================================
+    // ===== SCENE GUIDANCE =========================================
+    // ==============================================================
+
+    /**
+     * What challenge rating to aim for, read from the scene the creature is standing in.
+     *
+     * The party's rating and the other monsters' are Blacksmith's own encounter figures
+     * (`EncounterManager.getPartyCR`, `getMonsterCR`, counting only what can still fight), and the
+     * difficulty bands are `EncounterManager.calculateEncounterDifficulty`, so this agrees with the combat
+     * bar and the journal's encounter toolbar. A creature scaled from a TOKEN is left out of the others, since
+     * it is the thing being rated; one scaled from the sidebar, or a sheet, is not on the scene and so is
+     * not subtracted.
+     *
+     * @param {Actor|Token|TokenDocument|string} target
+     * @param {Object} [options]
+     * @param {number} [options.cr]  A CR to describe in `chosen`.
+     * @returns {Promise<Object>} `suggestCR`'s result, plus `onScene`. `available` is false when the scene
+     *   holds no player character to rate against.
+     * @throws {NpcScalingError} NOT_GM, NO_TARGET, NOT_NPC.
+     */
+    static async guidance(target, { cr } = {}) {
+        const { actor, token } = await this.resolve(target);
+        const own = token ?? actor.token ?? null;
+        const placed = canvas?.tokens?.placeables ?? [];
+        const others = own ? placed.filter((t) => t.document?.uuid !== own.uuid) : placed;
+
+        const partyCR = EncounterManager.parseCR(EncounterManager.getPartyCR(null, { onlyStanding: true }));
+        const othersCR = EncounterManager.parseCR(EncounterManager.getMonsterCR({}, others, { onlyStanding: true }));
+        const own5e = Number(actor.system?.details?.cr);
+
+        const result = suggestCR({
+            partyCR,
+            othersCR,
+            currentCR: own && Number.isFinite(own5e) ? own5e : null,
+            chosenCR: Number.isFinite(Number(cr)) ? Number(cr) : null,
+            difficulty: (party, monsters) => EncounterManager.calculateEncounterDifficulty(party, monsters)
+        });
+        return { ...result, onScene: Boolean(own) };
     }
 
     // ==============================================================

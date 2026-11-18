@@ -150,6 +150,25 @@ its items are ours to write, so the engine now writes damage into them.
 - **Spells are left alone.** A spell's damage is its own and scales with its own mechanism, so a creature
   whose only damage is spells falls back to the bonus path.
 
+## Scene guidance: which CR to choose
+
+Nothing in the numbers says what rating a creature should become; that depends on the table. The window
+reads it from the scene.
+
+- **`NpcScalingManager.guidance(target, { cr })`** reads `EncounterManager.getPartyCR` and `getMonsterCR`
+  (standing creatures only, with the creature's own token left out of the monsters when it is a token) and
+  hands them to the engine's **`suggestCR`** with `EncounterManager.calculateEncounterDifficulty` as the
+  rule. Blacksmith is consumer zero of its own encounter figures: the combat bar, the journal toolbar and this
+  window can never disagree about what Hard means.
+- **The engine holds no thresholds.** `suggestCR` is given the rule as a function and walks the CR ladder
+  asking it, grouping the answers into one run per difficulty. Monster CR is a sum, so the creature's CR is
+  added to the others' at each step. A change to the encounter rule changes the bands with no edit here.
+- **It is advice.** `plan` and `apply` never read it, and the first render still offers four above the
+  creature's own. In CR mode a band is a selectable chip that sets the CR to the band's lowest rating; in
+  Template mode the template decides the rating, so the bands are shown and the line says where it lands.
+- **A failure never costs the window.** A guidance error is logged and the section is omitted.
+- **Scaling from the sidebar** is not subtracted from the scene, since it is not on it.
+
 ## The dnd5e facts it relies on
 
 Verified against dnd5e **6.0.6**, by symbol. The line-number form of a citation is scanned by
@@ -243,8 +262,9 @@ ApplicationV2 `getHeaderControlsActorSheetV2` hook. The V1 `getActorSheetHeaderB
 - It does not touch the SOURCE's items. The new actor's attacks are rewritten (see Damage and attacks); the
   source's stay as they were.
 - It does not rewrite spell damage. A spell's damage belongs to the spell and its own scaling.
-- It does not use the party-CR function as a default target. `getPartyCR` is a sum across the party for
-  encounter budgeting, not a per-creature rating.
+- It does not pick the target CR from the party. `getPartyCR` is a sum across the party for encounter
+  budgeting, not a per-creature rating; it informs the bands the window offers (Scene guidance), and the GM
+  chooses.
 - It reads no other module's settings and needs none: every path above is core dnd5e.
 
 ## Invariants the check holds

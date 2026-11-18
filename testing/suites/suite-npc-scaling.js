@@ -75,7 +75,7 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('npcScaling');
                 const scaling = api.npcScaling;
-                for (const method of ['preview', 'apply', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
+                for (const method of ['preview', 'apply', 'guidance', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
                     expect.ok(`npcScaling.${method} is a function`, typeof scaling[method] === 'function');
                 }
                 expect.ok('the guidelines table is frozen', Object.isFrozen(scaling.guidelines));
@@ -87,6 +87,33 @@ export default {
                     expect.ok(`npcScaling.templates.${method} is a function`, typeof scaling.templates?.[method] === 'function');
                 }
                 expect('a missing target is refused by code', await code(scaling.preview('Actor.doesNotExist', { cr: 5 })), 'NO_TARGET');
+            }
+        },
+        {
+            id: 'guidance',
+            tier: 'headless',
+            group: 'Scene guidance',
+            label: 'The scene tells a creature which challenge ratings make the encounter Easy to Deadly',
+            note: 'Reads the party and the other monsters on the canvas. With no player character on the scene it says so rather than guessing.',
+            run: async ({ expect, log }) => {
+                const scaling = requireApi('npcScaling').npcScaling;
+                const actor = await makeGoblin();
+                try {
+                    const g = await scaling.guidance(actor, { cr: 12 });
+                    log(`party CR ${g.partyCR}, other monsters ${g.othersCR}, available ${g.available}`);
+                    expect.ok('available is a boolean', typeof g.available === 'boolean');
+                    expect.ok('bands is a list', Array.isArray(g.bands));
+                    expect.ok('a creature from the sidebar is not on the scene', g.onScene === false);
+                    if (g.available) {
+                        expect.ok('there is at least one band', g.bands.length > 0);
+                        expect.ok('bands rise without overlapping', g.bands.every((b, i) => b.from <= b.to && (i === 0 || b.from > g.bands[i - 1].to)));
+                        expect.ok('the chosen CR is described', g.chosen?.cr === 12 && typeof g.chosen.label === 'string');
+                    } else {
+                        expect.ok('with no party there are no bands', g.bands.length === 0);
+                    }
+                } finally {
+                    await cleanup([actor]);
+                }
             }
         },
         {

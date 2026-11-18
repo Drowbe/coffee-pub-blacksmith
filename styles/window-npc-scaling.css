@@ -40,6 +40,14 @@
     margin-top: 8px;
 }
 
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bands {
+    margin-bottom: 4px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-guidance {
+    margin-bottom: 8px;
+}
+
 /* The template editor is a dialog, outside the window, so it is styled from its own class. */
 .blacksmith-npc-scaling-form {
     display: flex;
