@@ -58,7 +58,7 @@ Which challenge rating to aim for, read from the scene the creature is in.
 ```javascript
 const g = await scaling.guidance(token, { cr: 12 });
 // { available: true, onScene: true, partyCR: 10, othersCR: 4,
-//   now: { key: 'medium', label: 'Moderate' }, chosen: { cr: 12, key: 'deadly', label: 'Deadly' },
+//   now: { key: 'medium', label: 'Moderate', monsterCR: 9 }, chosen: { cr: 12, key: 'deadly', label: 'Deadly', monsterCR: 16 },
 //   bands: [ { key: 'easy', label: 'Easy', from: 0, to: 0.5 }, { key: 'medium', label: 'Moderate', from: 1, to: 5 }, ... ] }
 ```
 
@@ -73,8 +73,8 @@ run of ratings that lands the encounter on that difficulty, and `from` is the lo
 | `available` | `false` when the scene holds no player character to rate against. The rest is then empty |
 | `onScene` | The target is a token (or an unlinked actor's sheet), so it was left out of the other monsters. A creature scaled from the sidebar is not subtracted |
 | `partyCR`, `othersCR` | The two figures, as the encounter bar reads them. Rounded to whole numbers once summed |
-| `now` | The encounter's difficulty with the creature at its own CR; `null` when it is not on the scene |
-| `chosen` | `{ cr, key, label }` for `options.cr`, when given |
+| `now` | `{ key, label, monsterCR }`: the encounter as it stands, with the creature at its own CR. When it is not on the scene, the scene without it. `monsterCR` is the monsters' combined CR |
+| `chosen` | `{ cr, key, label, monsterCR }` for `options.cr`, when given: the same figures with the creature at that CR |
 | `bands` | `{ key, label, from, to }`, in order of rising difficulty. `key` is the encounter's difficulty class (`trivial`, `easy`, `medium`, `hard`, `deadly`, `impossible`) |
 
 It is advice and changes nothing; `preview` and `apply` never read it. Refuses like `preview`: `NOT_GM`,

@@ -130,7 +130,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         // The scene's own reading of what rating to aim for. A failure here is never worth losing the window.
         let guidance = null;
         try {
-            guidance = await NpcScalingAPI.guidance(this._target, { cr: planned?.spec?.cr?.to ?? null });
+            guidance = await NpcScalingAPI.guidance(this._target, { cr: planned?.spec?.cr?.to ?? snapshot.cr ?? null });
         } catch (error) {
             console.warn(`${MODULE.NAME} | NPC Scaling: scene guidance unavailable:`, error);
         }
@@ -185,6 +185,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                     </div>
                 </div>
 
+                ${this._balanceHtml(guidance)}
+
                 <div class="blacksmith-tool-section">
                     <div class="blacksmith-tool-section-title">
                         <i class="fa-solid fa-table-list"></i>
@@ -224,12 +226,43 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                     <span>${esc(b.label)} ${esc(range(b))}</span>
                 </label>`
             : `<span class="blacksmith-tool-chip${inBand(b) ? ' is-active' : ''}">${esc(b.label)} ${esc(range(b))}</span>`).join('');
-        const others = g.othersCR > 0 ? `, with ${esc(EncounterManager.formatCR(g.othersCR))} of other monsters` : '';
-        const now = g.now ? ` At its own challenge rating this is ${esc(g.now.label)}.` : '';
-        const at = g.chosen ? ` At CR ${esc(EncounterManager.formatCR(g.chosen.cr))} it becomes ${esc(g.chosen.label)}.` : '';
         return `
             <div class="blacksmith-tool-chips blacksmith-npc-scaling-bands">${chips}</div>
-            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">For a party of CR ${esc(EncounterManager.formatCR(g.partyCR))}${others}.${now}${at}</div>`;
+            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Each range is the challenge ratings that make the scene that hard, with this creature counted in.</div>`;
+    }
+
+    /**
+     * What the scaling does to the scene's balance, in the same Now / Scaled columns as the stats: the party's
+     * rating, the monsters' combined rating, and the difficulty the encounter bar would show. Monster CR is a sum,
+     * so the creature's rating is one term of it, and the note says what the rest is.
+     */
+    _balanceHtml(g) {
+        if (!g?.available) return '';
+        const num = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
+        const others = g.othersCR > 0 ? `${num(g.othersCR)} from the other monsters on the scene, plus this creature.` : 'No other monsters are on the scene; this creature is all of it.';
+        const notOn = g.onScene ? '' : ' It is not on the scene, so Now is the scene without it.';
+        const row = (stat, now, next, note = '') => `<div class="blacksmith-npc-scaling-row">
+                <span class="blacksmith-npc-scaling-stat">${esc(stat)}</span>
+                <span class="blacksmith-npc-scaling-now">${esc(now)}</span>
+                <span class="blacksmith-npc-scaling-next">${esc(next)}</span>
+                ${note ? `<span class="blacksmith-npc-scaling-note blacksmith-tool-hint">${esc(note)}</span>` : ''}
+            </div>`;
+        const now = g.now;
+        const next = g.chosen ?? g.now;
+        const shift = now && next && now.key !== next.key ? ` The scene moves from ${now.label} to ${next.label}.` : '';
+        return `
+            <div class="blacksmith-tool-section">
+                <div class="blacksmith-tool-section-title">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                    <span>The scene</span>
+                </div>
+                <div class="blacksmith-npc-scaling-table">
+                    <div class="blacksmith-npc-scaling-row is-head"><span>Balance</span><span>Now</span><span>Scaled</span></div>
+                    ${row('Party CR', num(g.partyCR), num(g.partyCR))}
+                    ${row('Monsters CR', now ? num(now.monsterCR) : '–', next ? num(next.monsterCR) : '–', others + notOn)}
+                    ${row('Encounter', now?.label ?? '–', next?.label ?? '–', shift.trim())}
+                </div>
+            </div>`;
     }
 
     /** The stat / now / scaled table, the damage estimate, and anything the engine wants the GM to see. */

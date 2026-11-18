@@ -448,11 +448,13 @@ export function shiftCR(cr, by) {
  * @param {Object} input
  * @param {number} input.partyCR      The party's rating, as the encounter bar reads it. 0 means no party.
  * @param {number} [input.othersCR=0] The other monsters' summed CR.
- * @param {number|null} [input.currentCR]  The creature's own CR, when it is on the scene.
+ * @param {number|null} [input.currentCR]  The creature's own CR, when it is on the scene. With none, `now` is
+ *   the scene as it stands without it.
  * @param {number|null} [input.chosenCR]   A CR to describe, such as the one the window has selected.
  * @param {function(number, number): {difficulty: string, difficultyClass: string}} input.difficulty
  * @returns {{ available: boolean, partyCR: number, othersCR: number,
- *             now: ?{key: string, label: string}, chosen: ?{cr: number, key: string, label: string},
+ *             now: ?{key: string, label: string, monsterCR: number},
+ *             chosen: ?{cr: number, key: string, label: string, monsterCR: number},
  *             bands: Array<{key: string, label: string, from: number, to: number}> }}
  */
 export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = null, difficulty } = {}) {
@@ -461,15 +463,18 @@ export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = 
     const none = { available: false, partyCR: Number.isFinite(party) ? party : 0, othersCR: others, now: null, chosen: null, bands: [] };
     if (!(party > 0) || typeof difficulty !== 'function') return none;
 
+    // The encounter rule's own answer for this creature at `cr`, `none` included: a scene with no monster
+    // is "None", which the balance table shows and the bands leave out.
     const read = (cr) => {
-        const d = difficulty(party, others + Number(cr));
-        return d && d.difficultyClass && d.difficultyClass !== 'none' ? { key: d.difficultyClass, label: d.difficulty } : null;
+        const monsterCR = others + Number(cr);
+        const d = difficulty(party, monsterCR);
+        return d && d.difficultyClass ? { key: d.difficultyClass, label: d.difficulty, monsterCR } : null;
     };
 
     const bands = [];
     for (const cr of CR_LADDER) {
         const d = read(cr);
-        if (!d) continue;
+        if (!d || d.key === 'none') continue;
         const last = bands[bands.length - 1];
         if (last && last.key === d.key) last.to = cr;
         else bands.push({ key: d.key, label: d.label, from: cr, to: cr });
@@ -480,12 +485,12 @@ export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = 
         const d = read(cr);
         return d ? { cr: Number(cr), ...d } : null;
     };
-    const now = pick(currentCR);
+    const now = pick(currentCR ?? 0);
     return {
         available: true,
         partyCR: party,
         othersCR: others,
-        now: now ? { key: now.key, label: now.label } : null,
+        now: now ? { key: now.key, label: now.label, monsterCR: now.monsterCR } : null,
         chosen: pick(chosenCR),
         bands
     };

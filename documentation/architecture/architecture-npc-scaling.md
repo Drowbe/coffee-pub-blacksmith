@@ -166,6 +166,9 @@ reads it from the scene.
 - **It is advice.** `plan` and `apply` never read it, and the first render still offers four above the
   creature's own. In CR mode a band is a selectable chip that sets the CR to the band's lowest rating; in
   Template mode the template decides the rating, so the bands are shown and the line says where it lands.
+- **The balance table.** A **The scene** section shows Party CR, Monsters CR and Encounter in the same Now /
+  Scaled columns as the stats, from `now` and `chosen`. Monster CR is a sum, so the Monsters row's note names
+  what the other monsters contribute, and the Encounter row's says when the scene changes difficulty.
 - **A failure never costs the window.** A guidance error is logged and the section is omitted.
 - **Scaling from the sidebar** is not subtracted from the scene, since it is not on it.
 
