@@ -84,6 +84,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         this._labelTouched = false;
         this._label = DEFAULT_LABEL;
         this._attacks = null;
+        this._attacksTo = null;
         this._busy = false;
     }
 
@@ -214,19 +215,29 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             `<div class="blacksmith-tool-hint blacksmith-npc-scaling-warning"><i class="fa-solid fa-triangle-exclamation"></i> ${esc(w.message)}</div>`).join('');
 
         const shown = Number.isInteger(attacks) ? attacks : 1;
+        const after = planned.spec.attacks?.to ?? shown;
         return `
             <div class="blacksmith-npc-scaling-table">
                 <div class="blacksmith-npc-scaling-row is-head"><span>Stat</span><span>Now</span><span>Scaled</span></div>
                 ${rows || '<div class="blacksmith-tool-empty">Nothing changes at this challenge rating.</div>'}
             </div>
-            <div class="blacksmith-npc-scaling-field">
-                <span>Attacks per round (estimate)</span>
-                <span class="blacksmith-tool-editable" data-field="attacks" data-value="${shown}" data-required="true" data-maxlength="2">
-                    <span class="blacksmith-tool-editable-text">${shown}</span>
-                    <button type="button" class="blacksmith-tool-btn is-icon blacksmith-tool-editable-edit" data-tooltip="Correct the attack count. The damage bonus is spread across it, so more attacks means less on each."><i class="fa-solid fa-pen"></i></button>
-                </span>
+            <div class="blacksmith-npc-scaling-fields">
+                <div class="blacksmith-npc-scaling-field">
+                    <span>Attacks per round now (estimate)</span>
+                    <span class="blacksmith-tool-editable" data-field="attacks" data-value="${shown}" data-required="true" data-maxlength="2">
+                        <span class="blacksmith-tool-editable-text">${shown}</span>
+                        <button type="button" class="blacksmith-tool-btn is-icon blacksmith-tool-editable-edit" data-tooltip="Correct the attack count the creature makes now. It is read from Multiattack where that says so plainly."><i class="fa-solid fa-pen"></i></button>
+                    </span>
+                </div>
+                ${this._mode === 'cr' ? `<div class="blacksmith-npc-scaling-field">
+                    <span>Attacks per round after scaling</span>
+                    <span class="blacksmith-tool-editable" data-field="attacksTo" data-value="${after}" data-required="true" data-maxlength="2">
+                        <span class="blacksmith-tool-editable-text">${after}</span>
+                        <button type="button" class="blacksmith-tool-btn is-icon blacksmith-tool-editable-edit" data-tooltip="How many attacks it makes at the new challenge rating. The damage is shared across them, and Multiattack says so. Never fewer than it makes now."><i class="fa-solid fa-pen"></i></button>
+                    </span>
+                </div>` : ''}
             </div>
-            <div class="blacksmith-tool-hint">Armor class becomes a fixed value. Features with their own fixed save DC are not changed. Challenge rating changes are read from: ${esc(NpcScalingAPI.guidelineInfo().label)}.</div>
+            <div class="blacksmith-tool-hint">Damage is written into the creature's own attacks and features, and Multiattack says how many it makes. Spell damage is left to the spells. Armor class becomes a fixed value, and features with their own fixed save DC are not changed. Challenge rating changes are read from: ${esc(NpcScalingAPI.guidelineInfo().label)}.</div>
             ${warnings}`;
     }
 
@@ -236,7 +247,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
 
     /** What the current choices ask the manager to do. One place, so the preview and the apply cannot disagree. */
     _request() {
-        const request = { label: this._label, attacksPerRound: this._attacks ?? undefined };
+        const request = { label: this._label, attacksPerRound: this._attacks ?? undefined, attacksTo: this._attacksTo ?? undefined };
         if (this._mode === 'template') request.template = this._templateId;
         else request.cr = this._cr;
         return request;
@@ -568,6 +579,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             const select = event.target?.closest?.('select[name="npc-scaling-cr"]');
             if (select) {
                 this._cr = EncounterManager.parseCR(select.value);
+                this._attacksTo = null; // the attack count follows the new challenge rating until the GM sets one again
                 this.render();
                 return;
             }
@@ -596,6 +608,12 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                 const n = Math.round(Number(value));
                 if (Number.isFinite(n) && n >= 1 && n <= 10) {
                     this._attacks = n;
+                    this.render();
+                }
+            } else if (editable.dataset.field === 'attacksTo') {
+                const n = Math.round(Number(value));
+                if (Number.isFinite(n) && n >= 1 && n <= 10) {
+                    this._attacksTo = n;
                     this.render();
                 }
             }

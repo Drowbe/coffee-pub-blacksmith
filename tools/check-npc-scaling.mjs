@@ -108,7 +108,9 @@ expect('spec hp is the row GAP, not the row', spec12.hp, { mode: 'delta', value:
 expect('spec ac', spec12.ac, { add: 4 });
 expect('spec attack is net of proficiency', spec12.attack, { add: 3 });
 expect('spec saveDC is net of proficiency', spec12.saveDC, { add: 2 });
-expect('spec damage per hit', spec12.damage, { addPerHit: 73 });
+// A CR 12 creature makes three attacks, so its new damage per round (5 + 73) is shared across them, less the 5 a hit already does.
+expect('spec damage per hit', spec12.damage, { addPerHit: 21 });
+expect('spec adds attacks to match the new CR', spec12.attacks, { from: 1, to: 3 });
 
 // What the actor looks like to the schema: dnd5e 6.0.x
 const FIELDS_6 = new Set([
@@ -137,8 +139,8 @@ expect('6.x hp.value fills to the new max', u6['system.attributes.hp.value'], 20
 expect('6.x ac override', u6['system.attributes.ac.override'], 19);
 expect('6.x no 5.x ac keys', 'system.attributes.ac.calc' in u6, false);
 expect('6.x attack bonus on all four types', ATTACK_TYPES.map((t) => u6[`system.rolls.attack.${t}.bonus`]), ['3', '3', '3', '3']);
-expect('6.x damage merges with the existing 1d4', u6['system.rolls.damage.mwak.bonus'], '1d4 + 73');
-expect('6.x damage elsewhere is plain', u6['system.rolls.damage.rwak.bonus'], '73');
+expect('6.x damage merges with the existing 1d4', u6['system.rolls.damage.mwak.bonus'], '1d4 + 21');
+expect('6.x damage elsewhere is plain', u6['system.rolls.damage.rwak.bonus'], '21');
 expect('6.x spell DC', u6['system.bonuses.spell.dc'], '2');
 expect('6.x writes nothing it was not asked to', 'system.attributes.init.roll.bonus' in u6 || 'system.resources.legres.max' in u6, false);
 
@@ -150,14 +152,14 @@ expect('preview attack total includes proficiency', [row(plan6, 'attack').from, 
 expect('preview save DC total includes proficiency', [row(plan6, 'saveDC').from, row(plan6, 'saveDC').to], [10, 14]);
 expect('preview proficiency', [row(plan6, 'prof').from, row(plan6, 'prof').to], [2, 4]);
 expect('preview dpr', row(plan6, 'dpr').to, 78);
-expect('preview damage per hit shows a value before and after', [row(plan6, 'damage').from, row(plan6, 'damage').to], [5, 78]);
+expect('preview damage per hit shows a value before and after', [row(plan6, 'damage').from, row(plan6, 'damage').to], [5, 26]);
 expect('damage per hit with no known hit shows only the amount', row(applySpec({ ...goblin, avgHit: undefined }, spec12, io(FIELDS_6)), 'damage').from, null);
 if (!row(plan6, 'ac').note) fail('preview: the AC row must say the scaled value no longer follows equipment');
 
 const plan5 = applySpec(goblin, spec12, io(FIELDS_5));
 const u5 = plan5.updates;
 expect('5.x attack bonus', u5['system.bonuses.rwak.attack'], '3');
-expect('5.x damage merges', u5['system.bonuses.mwak.damage'], '1d4 + 73');
+expect('5.x damage merges', u5['system.bonuses.mwak.damage'], '1d4 + 21');
 expect('5.x ac is calc flat + flat', [u5['system.attributes.ac.calc'], u5['system.attributes.ac.flat']], ['flat', 19]);
 expect('5.x no 6.x ac key', 'system.attributes.ac.override' in u5, false);
 expect('5.x no 6.x roll keys', Object.keys(u5).some((k) => k.startsWith('system.rolls.')), false);
@@ -381,6 +383,64 @@ try { buildTable(frozenSamples); } catch (e) { fail(`buildTable threw on frozen 
 expect('a CR with no row is not a sample', buildTable([...own, { cr: 31, ac: 99, hp: 9999 }, { cr: 'x' }, null]).report.samples, own.length);
 expectThrows('no creatures at all', 'BAD_TABLE', () => buildTable([]));
 expectThrows('creatures with no hit points', 'BAD_TABLE', () => buildTable(own.map((s) => ({ cr: s.cr, ac: s.ac }))));
+
+// ===== DAMAGE WRITTEN INTO THE ACTIONS ============================
+
+const { scaleDamagePart, scaleParts, attacksForCR, describeMultiattack } = engine;
+
+// Dice first, in the part's own die; the remainder (under one die) goes into the flat bonus.
+expect('1d8 + 3 by +9 is 3d8 + 3', scaleDamagePart({ number: 1, denomination: 8, bonus: '3' }, 7.5, 9), { number: 3, bonus: '3' });
+expect('and by +10 keeps the leftover 1', scaleDamagePart({ number: 1, denomination: 8, bonus: '3' }, 7.5, 10), { number: 3, bonus: '3 + 1' });
+expect('a die-less bite of 1 is given d6s', scaleDamagePart({ bonus: '1' }, 1, 14), { number: 4, denomination: 6, bonus: '1' });
+expect('a flat bite below one d6 stays flat', scaleDamagePart({ bonus: '1' }, 1, 3), { bonus: '1 + 3' });
+expect('a custom formula that starts with dice grows its dice', scaleDamagePart({ custom: { enabled: true, formula: '2d6 + @mod' } }, 10, 7), { 'custom.formula': '4d6 + @mod' });
+expect('one that does not just has the amount appended', scaleDamagePart({ custom: { enabled: true, formula: '@mod + 2' } }, 5, 5), { 'custom.formula': '@mod + 2 + 5' });
+expect('a trivial change writes nothing', scaleDamagePart({ number: 1, denomination: 8, bonus: '3' }, 7.5, 0.3), null);
+expect('junk is refused, not written', scaleDamagePart({ number: 1, denomination: 8 }, NaN, 5), null);
+// Scaling down never takes a part below one die, or below 1 damage on average.
+const shrunk = scaleDamagePart({ number: 4, denomination: 6, bonus: '' }, 14, -30);
+expect('scaled down it keeps one die', shrunk.number, 1);
+expect('and never below 1 damage on average', 3.5 + Number(String(shrunk.bonus || 0).replace(/\s/g, '')) >= 1, true);
+
+// Each part grows by the same RATIO: a bite and a claw grow together, each by its own share.
+const partsOf = [
+    { itemId: 'bite', itemName: 'Bite', path: 'system.activities.a.damage.parts.0', avg: 15, data: { number: 2, denomination: 8, bonus: '6' } },
+    { itemId: 'claw', itemName: 'Claw', path: 'system.activities.b.damage.parts.0', avg: 9, data: { number: 2, denomination: 4, bonus: '4' } }
+];
+const doubled = scaleParts(partsOf, 1);
+expect('both parts are edited', doubled.map((e) => e.itemId), ['bite', 'claw']);
+expect('the bite gains its own average again', doubled[0].set.number, 2 + Math.trunc(15 / 4.5));
+expect('the claw gains its own, a smaller amount', doubled[1].set.number, 2 + Math.trunc(9 / 2.5));
+
+// A plan writes the damage into the parts and NO actor-level bonus, when there is an attack to measure by.
+const goblinParts = [{ itemId: 'i1', itemName: 'Scimitar', path: 'system.activities.a1.damage.parts.0', avg: 5, data: { number: 1, denomination: 6, bonus: '2' } }];
+const itemPlan = applySpec(goblin, spec12, { ...io(FIELDS_6), parts: goblinParts });
+expect('damage went into the action', itemPlan.itemEdits, [{ itemId: 'i1', itemName: 'Scimitar', path: 'system.activities.a1.damage.parts.0', set: { number: 7, bonus: '2' } }]);
+expect('and no bonus was written', Object.keys(itemPlan.updates).some((k) => k.includes('damage')), false);
+expect('the attack count is in the preview', [row(itemPlan, 'attacks').from, row(itemPlan, 'attacks').to], [1, 3]);
+expect('damage per round lands on the table figure', row(itemPlan, 'dpr').to, 78);
+// No attack to measure against, or no part to write to, falls back to the bonus.
+expect('no known hit falls back to the bonus', Object.keys(applySpec({ ...goblin, avgHit: 0 }, spec12, { ...io(FIELDS_6), parts: goblinParts }).updates).some((k) => k.includes('damage')), true);
+expect('no parts falls back to the bonus', applySpec(goblin, spec12, { ...io(FIELDS_6), parts: [] }).itemEdits, []);
+
+// Attacks follow the CR, and are added by a retarget UP only.
+expect('attacks by CR', [0, 2, 3, 7, 8, 15, 16, 30].map(attacksForCR), [1, 1, 2, 2, 3, 3, 4, 4]);
+expect('a CR 4 badger is given two attacks', specFromCR({ cr: 0, attacksPerRound: 1, avgHit: 1, dpr: 1 }, 4).attacks, { from: 1, to: 2 });
+expect('a creature that already makes enough is given none', specFromCR({ cr: 5, attacksPerRound: 3, avgHit: 10, dpr: 30 }, 8).attacks, undefined);
+expect('scaling down adds none', specFromCR({ cr: 12, attacksPerRound: 1, avgHit: 40, dpr: 40 }, 8).attacks, undefined);
+expect('scaling to the same CR adds none', specFromCR({ cr: 12, attacksPerRound: 1, avgHit: 40, dpr: 40 }, 12).attacks, undefined);
+expect('an explicit count wins', specFromCR({ cr: 1, attacksPerRound: 1, avgHit: 5, dpr: 5 }, 6, { attacksTo: 4 }).attacks, { from: 1, to: 4 });
+expect('an explicit count below the creature own is ignored', specFromCR({ cr: 1, attacksPerRound: 3, avgHit: 5, dpr: 15 }, 6, { attacksTo: 1 }).attacks, undefined);
+// The badger: one hit of 1, CR 0 to 4. Two attacks share the new damage, so each hit grows by less than one hit would alone.
+const badger = specFromCR({ cr: 0, attacksPerRound: 1, avgHit: 1, dpr: 1 }, 4);
+const alone = specFromCR({ cr: 0, attacksPerRound: 1, avgHit: 1, dpr: 1 }, 4, { attacksTo: 1 });
+expect('the badger hit grows by less when two attacks share it', badger.damage.addPerHit < alone.damage.addPerHit, true);
+
+// The Multiattack text names the count in words and says it was scaled.
+const text = describeMultiattack({ name: 'Badger', count: 3, from: 1, crTo: 12 });
+expect('multiattack says three', text.includes('makes three attacks'), true);
+expect('and that it was scaled to CR 12', text.includes('Scaled to CR 12'), true);
+expect('and what it was before when that is worth saying', describeMultiattack({ name: 'Ogre', count: 3, from: 2 }).includes('made two before'), true);
 
 // ===== RESULT =====================================================
 

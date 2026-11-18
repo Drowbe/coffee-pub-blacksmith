@@ -36,7 +36,8 @@ unlinked token's changes count.
 | `template` | A saved template, by id (or the object), instead of `cr`. See Templates below |
 | `spec` | A ready-made spec instead of `cr`; its `version` must be `scaling.SPEC_VERSION` |
 | `label` | The name suffix: "Super" makes `Goblin (Super)`. With none the suffix is `CR 12` |
-| `attacksPerRound` | Correct the attack count the damage bonus is spread across. An integer from 1 |
+| `attacksPerRound` | Correct the attack count the creature makes now, which is otherwise read from its Multiattack where that says so plainly. An integer from 1 |
+| `attacksTo` | Attacks per round to scale to, for a `cr` retarget. Default: what the new CR calls for (see below). Never fewer than the creature makes now |
 
 Returns:
 
@@ -44,7 +45,7 @@ Returns:
 |---|---|
 | `spec` | The spec that would be applied |
 | `preview` | Rows `{ key, label, from, to, note }`, one per thing that changes: `cr`, `prof`, `hp`, `ac`, `attack`, `saveDC`, `init`, `damage`, `dpr`, `legres`, `legact`. `from` and `to` are `null` where only a total is known; `note` says what a person should know |
-| `warnings` | `{ code, message }`. `DAMAGE_ON_ONE_ATTACK` when the per-hit bonus is more than three times the creature's own average hit |
+| `warnings` | `{ code, message }`. `DAMAGE_ON_ONE_ATTACK` when each hit would grow by more than three times the creature's own average hit: its attacks are too small to carry the CR |
 | `snapshot` | What the creature is now: `cr`, `ac`, `hpMax`, `hpValue`, `attackBonus`, `saveDC`, `dpr`, `attacksPerRound`, `avgHit`. Damage figures are an estimate |
 
 If the target already carries a scaling flag, the preview is of scaling its **source**, not the copy, so two
@@ -55,13 +56,35 @@ scalings never stack.
 Creates the scaled actor. Takes the same request, plus `output`, which must be `'actor'` or omitted.
 
 ```javascript
-const { actor, source, preview, warnings, spec } = await scaling.apply(token, { cr: 12, label: 'Super' });
+const { actor, source, preview, warnings, spec, multiattack } = await scaling.apply(token, { cr: 12, label: 'Super' });
 ```
 
-The new actor is a copy of the creature as it stands, with only the scaled fields changed, current hit
-points set to the new maximum, and a provenance flag. It sits in the source's folder (none, for a source in
+The new actor is a copy of the creature as it stands, with only the scaled fields and the creature's own
+attacks changed (see Damage and attacks), current hit points set to the new maximum, and a provenance flag. It sits in the source's folder (none, for a source in
 a compendium). Armor class becomes a fixed value that no longer follows equipment; only spell save DCs are
 scaled, not a feature's own fixed DC.
+
+## Damage and attacks
+
+Damage is written **into the creature's own actions**, not held as a hidden bonus. Each damage part of a
+non-spell attack, save or damage activity grows by the same ratio (a bite and a claw grow together, and a
+breath weapon with them), in whole dice of the part's own die first and the remainder in the flat bonus:
+`1d8 + 3` becomes `3d8 + 3`, and a bite of flat 1 is given d6s. A custom formula that starts with dice
+grows its dice; one that does not has the amount appended. Spell damage is left to the spells. Where there is
+nothing to measure against or write to (a creature with no attack damage), the amount is written as the
+actor-level damage bonus instead, and the preview row says so.
+
+A retarget **up** also gives the creature more attacks, because thirty damage on one hit is not the same
+creature as three hits of ten: one below CR 3, two below CR 8, three below CR 16, four above, and never fewer
+than it makes now. The per-hit amount is the new damage per round shared across them. When the count
+rises, the new actor's **Multiattack** says so: an existing Multiattack feature has a paragraph appended
+(its own text is kept, because it names which attacks go in which order); with none, the SRD's Multiattack
+feature is looked up through the feature compendiums the GM has chosen (`api.compendiums`) and used as the
+base of a new one, and with none of those a plain feature is made. `apply` resolves `multiattack`:
+`'added'`, `'extended'`, or `null` when the count did not rise.
+
+Templates carry a damage-per-hit amount, which is written the same way; they do not change the attack
+count.
 
 ## Templates
 
@@ -186,5 +209,5 @@ the new Actor. Also available as `scaling.HOOK_APPLIED`.
 
 ## What this does not do
 
-It does not edit the source, add attacks, change items, or scale an unlinked token in place. Armor class and
-fixed save DCs behave as described above.
+It does not edit the source, rewrite spell damage, scale fixed save DCs on features, or scale an unlinked
+token in place. Armor class behaves as described above.

@@ -42,7 +42,8 @@ Each amount is the **difference between two guideline rows**, added to the creat
 | Armor class | `row(target).ac - row(current).ac` |
 | Attack bonus | `(atk gap) - (proficiency change)` |
 | Spell save DC | `(dc gap) - (proficiency change)` |
-| Damage | `round((dpr gap) / attacksPerRound)` added to every hit |
+| Damage | `round((own dpr + dpr gap) / attacksAfter - own hit)` added to the strongest hit, and carried by `attacksAfter` attacks |
+| Attacks | `max(current, attacksForCR(target))` on a retarget UP only; none sideways or down |
 
 The guidelines table is lopsided at low CR: a goblin has 7 hit points against a CR 1/4 row of 36 to 49.
 Writing the target row's value would lift a weak creature onto the curve and make every creature of a CR
@@ -118,6 +119,36 @@ of selectable chips with new, edit, delete, export and import beside it, and one
 serves new and edit: a new template starts from whatever the window is previewing, so a CR retarget worth
 keeping is one dialog from being a template. The dialog's validator rejects a duplicate name. The name suffix
 follows the chosen template until the GM types one.
+
+## Damage and attacks, written into the actions
+
+The first version held damage as an actor-level bonus (`rolls.damage.<t>.bonus`). That reads wrongly on the
+sheet (the Bite still says `1` while +29 is added at roll time), reaches only weapon and spell attack
+rolls (a breath weapon never scaled), and puts all of a CR jump on one hit. Because the output is a NEW actor,
+its items are ours to write, so the engine now writes damage into them.
+
+- **`NpcScalingManager._damageParts(actor)`** lists every damage part of the creature's non-spell attack,
+  save and damage activities, each with where it is STORED. The prepared `activity.damage.parts` has the
+  weapon's base damage unshifted onto the front (`part.base`), which is not in the stored array, so a base
+  part's path is `system.damage.base` and every other part's index is the prepared index minus the number
+  of base parts. A base shared by several activities of one item is listed once. Healing is skipped.
+- **`scaleDamagePart(data, avg, addAvg)`** (engine) is the one place a formula is rewritten. Whole dice of
+  the part's own die first, remainder into the flat `bonus`, a floor of one die and one average damage when
+  scaling down, d6s for a part with no dice, the amount appended to a custom formula that does not start
+  with dice. `scaleParts` gives each part `avg * (addPerHit / strongestHit)`, so parts grow by one ratio.
+- **`applySpec` returns `itemEdits`** (`{ itemId, path, set }`), and writes the actor-level bonus ONLY as a
+  fallback: when the creature has no known hit to measure against, or no part to write to. The preview says
+  which happened. The manager applies edits to the copy's `items` with `setProperty`.
+- **Attacks.** `attacksForCR` (1 / 2 / 3 / 4 at CR 3, 8, 16) is a starting point, applied on a retarget up
+  only, so a same-CR retarget is still a no-op. `spec.attacks = { from, to }` is present only when the count
+  rises. The damage per round is then shared across them; `describeMultiattack` writes the text.
+- **Multiattack** (`_applyMultiattack`) appends a paragraph to an existing feature, never rewriting it: its
+  prose names which attacks go in which order, so a swapped count would contradict it. With none it asks
+  `api.compendiums.resolveDocument('Multiattack', 'feature', { exact: true })`, the GM's own feature
+  compendiums, and uses what it finds as the base of a new item; with none, a plain feature. Nothing
+  depends on the lookup succeeding.
+- **Spells are left alone.** A spell's damage is its own and scales with its own mechanism, so a creature
+  whose only damage is spells falls back to the bonus path.
 
 ## The dnd5e facts it relies on
 
@@ -209,10 +240,9 @@ ApplicationV2 `getHeaderControlsActorSheetV2` hook. The V1 `getActorSheetHeaderB
 ## What this deliberately does not do
 
 - It never writes the source. A scaled actor is a new document.
-- It does not touch items or activities. Damage, attack and DC are actor-level bonuses, so the scaled
-  actor's items are byte-for-byte the source's, and the change is visible on the sheet.
-- It does not add attacks. A one-attack creature scaled far up carries its damage on that attack, and the
-  engine warns (`DAMAGE_ON_ONE_ATTACK`) when the per-hit bonus is more than three times its own average hit.
+- It does not touch the SOURCE's items. The new actor's attacks are rewritten (see Damage and attacks); the
+  source's stay as they were.
+- It does not rewrite spell damage. A spell's damage belongs to the spell and its own scaling.
 - It does not use the party-CR function as a default target. `getPartyCR` is a sum across the party for
   encounter budgeting, not a per-creature rating.
 - It reads no other module's settings and needs none: every path above is core dnd5e.
@@ -231,4 +261,7 @@ a falling column, a missing row, a backwards range and a CR off the ladder; a ta
 table's own midpoints is that table; the median ignores an outlier; a creature with no attacks is counted but
 does not drag attack or damage; a sparse CR is interpolated and reported; the top end copies its neighbour;
 noise is smoothed and the row it hit is reported; a built table is deeply frozen and never mutates its input;
-nothing usable is refused by name.
+nothing usable is refused by name. For actions: dice grow before the flat bonus, a die-less part is given d6s,
+a custom formula keeps its tail, scaling down keeps one die and one average damage, parts grow by one ratio, damage
+is written into parts and not the bonus when there is a hit to measure, attacks rise only on a retarget up,
+and the Multiattack text names the count.

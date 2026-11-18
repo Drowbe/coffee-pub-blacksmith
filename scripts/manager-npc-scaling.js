@@ -14,8 +14,9 @@ import { postConsoleAndNotification } from './api-core.js';
 import { EncounterManager } from './manager-encounter.js';
 import { formatPackLabel } from './utility-compendium-types.js';
 import {
-    NpcScalingError, SPEC_VERSION, specFromCR, specFromTemplate, applySpec, parseMultiattackCount, estimateDPR
+    NpcScalingError, SPEC_VERSION, specFromCR, specFromTemplate, applySpec, parseMultiattackCount, estimateDPR, describeMultiattack
 } from './utility-npc-scaling.js';
+import { CompendiumsAPI } from './api-compendiums.js';
 import { NpcScalingTemplates } from './manager-npc-scaling-templates.js';
 import { NpcScalingGuidelines } from './manager-npc-scaling-guidelines.js';
 
@@ -102,6 +103,65 @@ export class NpcScalingManager {
         };
     }
 
+    /**
+     * The average of a damage formula, as the midpoint of its minimum and maximum. A formula this client cannot
+     * evaluate (a reference with no value) is 0: the figure is shown to the GM, who can correct it.
+     */
+    static _formulaAverage(formula, rollData) {
+        if (!formula) return 0;
+        try {
+            const low = new Roll(formula, rollData).evaluateSync({ minimize: true, strict: false }).total;
+            const high = new Roll(formula, rollData).evaluateSync({ maximize: true, strict: false }).total;
+            return Number.isFinite(low) && Number.isFinite(high) ? (low + high) / 2 : 0;
+        } catch (error) {
+            return 0;
+        }
+    }
+
+    /**
+     * Every damage part the creature's own actions carry, each with where it is STORED, so a scaling can write
+     * into it. Spells are left out (their damage belongs to the spell and its own scaling), as is healing.
+     * The base damage of a weapon is one shared part at `system.damage.base`, listed once however many
+     * activities include it.
+     * @param {Actor} actor
+     * @returns {Array<{ itemId: string, itemName: string, path: string, avg: number, data: Object }>}
+     */
+    static _damageParts(actor) {
+        const rollData = actor.getRollData?.() ?? {};
+        const parts = [];
+        const seen = new Set();
+        for (const item of actor.items) {
+            if (item.type === 'spell') continue;
+            for (const activity of item.system?.activities?.values?.() ?? []) {
+                if (!['attack', 'save', 'damage'].includes(activity.type)) continue;
+                const prepared = activity.damage?.parts ?? [];
+                // The prepared list has the weapon's base damage unshifted onto the front; the stored one does not.
+                const bases = prepared.filter((p) => p.base).length;
+                prepared.forEach((part, index) => {
+                    if ([...(part.types ?? [])].some((t) => t === 'healing' || t === 'temphp')) return;
+                    const path = part.base ? 'system.damage.base' : `system.activities.${activity.id}.damage.parts.${index - bases}`;
+                    const key = `${item.id}:${path}`;
+                    if (seen.has(key)) return;
+                    const stored = foundry.utils.getProperty(item._source, path);
+                    const avg = this._formulaAverage(part.formula, rollData);
+                    if (!stored || !(avg > 0)) return;
+                    seen.add(key);
+                    parts.push({
+                        itemId: item.id,
+                        itemName: item.name,
+                        path,
+                        avg,
+                        data: {
+                            number: stored.number, denomination: stored.denomination, bonus: stored.bonus,
+                            custom: { enabled: Boolean(stored.custom?.enabled), formula: stored.custom?.formula ?? '' }
+                        }
+                    });
+                });
+            }
+        }
+        return parts;
+    }
+
     /** The average damage of every attack activity the creature has, and its best to-hit. */
     static _attackAverages(actor) {
         const averages = [];
@@ -113,18 +173,7 @@ export class NpcScalingManager {
                 const toHit = Number.parseInt(activity.labels?.toHit, 10);
                 if (Number.isFinite(toHit) && (bestToHit === null || toHit > bestToHit)) bestToHit = toHit;
                 let total = 0;
-                for (const part of activity.damage?.parts ?? []) {
-                    const formula = part?.formula;
-                    if (!formula) continue;
-                    try {
-                        const low = new Roll(formula, rollData).evaluateSync({ minimize: true, strict: false }).total;
-                        const high = new Roll(formula, rollData).evaluateSync({ maximize: true, strict: false }).total;
-                        if (Number.isFinite(low) && Number.isFinite(high)) total += (low + high) / 2;
-                    } catch (error) {
-                        // A formula this client cannot evaluate (a reference with no value) contributes nothing;
-                        // the estimate is shown to the GM, who can correct it.
-                    }
-                }
+                for (const part of activity.damage?.parts ?? []) total += this._formulaAverage(part?.formula, rollData);
                 if (total > 0) averages.push(total);
             }
         }
@@ -151,7 +200,8 @@ export class NpcScalingManager {
         const schema = actor.system?.schema;
         return {
             has: (path) => Boolean(schema?.getField(path.replace(/^system\./, ''))),
-            get: (path) => foundry.utils.getProperty(actor._source, path)
+            get: (path) => foundry.utils.getProperty(actor._source, path),
+            parts: this._damageParts(actor)
         };
     }
 
@@ -164,8 +214,9 @@ export class NpcScalingManager {
      * @param {string|Object} [request.template]  Or a saved template, by id or as an object.
      * @param {Object} [request.spec]    Or a ready-made spec.
      * @param {string} [request.label]   Name suffix, e.g. "Super".
-     * @param {number} [request.attacksPerRound]  The GM's correction of the attack count the damage bonus is spread across.
-     * @returns {Promise<{ snapshot: Object, spec: Object, updates: Object, preview: Array, warnings: Array, source: Actor, actor: Actor, fromScaled: boolean }>}
+     * @param {number} [request.attacksPerRound]  The GM's correction of the attack count the creature makes now.
+     * @param {number} [request.attacksTo]  Attacks per round to scale to, for a challenge rating retarget. Default: what the new CR calls for.
+     * @returns {Promise<{ snapshot: Object, spec: Object, updates: Object, itemEdits: Array, preview: Array, warnings: Array, source: Actor, actor: Actor, fromScaled: boolean }>}
      */
     static async plan(target, request = {}) {
         const { actor, source, fromScaled } = await this.resolve(target);
@@ -184,7 +235,9 @@ export class NpcScalingManager {
             if (request.cr === undefined || request.cr === null) {
                 throw new NpcScalingError('BAD_SPEC', 'Give a target challenge rating, a template or a spec to scale by.');
             }
-            spec = specFromCR(snapshot, Number(request.cr), { label: request.label ?? '', table: NpcScalingGuidelines.current().table });
+            spec = specFromCR(snapshot, Number(request.cr), {
+                label: request.label ?? '', table: NpcScalingGuidelines.current().table, attacksTo: request.attacksTo
+            });
         } else if (spec.version !== SPEC_VERSION) {
             throw new NpcScalingError('BAD_SPEC', `This spec is version ${spec.version}; this Blacksmith reads version ${SPEC_VERSION}.`);
         }
@@ -212,7 +265,7 @@ export class NpcScalingManager {
         }
 
         const planned = await this.plan(target, request);
-        const { source, actor: read, spec, updates, preview, warnings, snapshot } = planned;
+        const { source, actor: read, spec, updates, itemEdits, preview, warnings, snapshot } = planned;
 
         // Copy the creature as it stands (a token's actor includes its unlinked changes), then write only
         // what the engine produced. `toObject` is the stored data, so nothing derived leaks in.
@@ -227,6 +280,15 @@ export class NpcScalingManager {
         data.name = this._name(source.name, spec.label, crTo);
         data.prototypeToken = { ...(data.prototypeToken ?? {}), name: data.name };
         for (const [path, value] of Object.entries(updates)) foundry.utils.setProperty(data, path, value);
+
+        // The creature's own actions get their share of the damage, and Multiattack says how many it makes. The
+        // copy is a new document, so its items are ours to write; the source's are never touched.
+        for (const edit of itemEdits) {
+            const item = data.items?.find((i) => i._id === edit.itemId);
+            if (!item) continue;
+            for (const [key, value] of Object.entries(edit.set)) foundry.utils.setProperty(item, `${edit.path}.${key}`, value);
+        }
+        const multiattack = await this._applyMultiattack(data, source, spec, crTo);
 
         // One flag, written in the same create call, so there is no window in which a scaled actor exists
         // without saying what it was scaled from.
@@ -243,12 +305,59 @@ export class NpcScalingManager {
         const created = await Actor.implementation.create(data);
         if (!created) throw new NpcScalingError('CREATE_FAILED', 'Foundry did not create the scaled actor.');
 
-        const result = { actor: created, source, preview, warnings, spec };
+        const result = { actor: created, source, preview, warnings, spec, multiattack };
         Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source, result: created, spec, output });
         postConsoleAndNotification(MODULE.NAME,
             `NPC Scaling: ${source.name} -> ${created.name} (CR ${EncounterManager.formatCR(crFrom ?? 0)} to ${EncounterManager.formatCR(crTo ?? 0)})`,
             { sourceUuid: source.uuid, actorUuid: created.uuid }, true, false);
         return result;
+    }
+
+    /**
+     * Say, on the new actor, that it makes more attacks. Only when the spec adds some.
+     *
+     * An existing Multiattack feature has a paragraph APPENDED, never rewritten: its prose names which
+     * attacks go in which order, and a count swapped into that sentence would leave it contradicting itself.
+     * With none, the SRD's Multiattack feature is looked up through the compendiums the GM has chosen for
+     * features (`api.compendiums`), and used as the base of a new one; with none of those either, a plain
+     * feature is made. Either way the description is the generated text.
+     *
+     * @param {Object} data  The new actor's data; its `items` are edited in place.
+     * @param {Actor} source
+     * @param {Object} spec
+     * @param {number|null} crTo
+     * @returns {Promise<'extended'|'added'|null>}
+     */
+    static async _applyMultiattack(data, source, spec, crTo) {
+        if (!spec.attacks) return null;
+        const text = describeMultiattack({ name: source.name, count: spec.attacks.to, from: spec.attacks.from, crTo });
+        data.items ??= [];
+
+        const existing = data.items.find((i) => /multiattack/i.test(i.name));
+        if (existing) {
+            foundry.utils.setProperty(existing, 'system.description.value', `${existing.system?.description?.value ?? ''}${text}`);
+            return 'extended';
+        }
+
+        let item = null;
+        try {
+            const found = await CompendiumsAPI.resolveDocument('Multiattack', 'feature', { exact: true });
+            item = found?.toObject?.() ?? null;
+        } catch (error) {
+            item = null; // a lookup that fails costs the SRD icon and structure, not the feature
+        }
+        if (item) {
+            delete item._id;
+            delete item._stats;
+            delete item.folder;
+            delete item.sort;
+            delete item.ownership;
+        } else {
+            item = { name: 'Multiattack', type: 'feat', img: 'icons/svg/combat.svg', system: { type: { value: 'monster' } } };
+        }
+        foundry.utils.setProperty(item, 'system.description.value', text);
+        data.items.push(item);
+        return 'added';
     }
 
     /** "Goblin (Super)", or "Goblin (CR 12)" when no label was given. */

@@ -57,9 +57,11 @@ of this phase:
 
 - **Tag a scaled actor** through `api.tags` so it can be found and filtered in the directory. Decide first:
   it changes what `apply` writes.
-- **Extra attacks.** A one-attack creature scaled far up carries its damage on that attack, and the engine
-  can only warn. Adding a real Multiattack means writing items into the new actor, which needs its own
-  decision.
+- **Attacks beyond the first are narrative.** Multiattack is text, so the extra attacks are the GM's to
+  adjudicate; nothing rolls them. A real Multiattack activity would need dnd5e to have one.
+- **Spell damage is not scaled.** A creature whose damage is all spells falls back to the actor bonus.
+- **Per-activity control.** Every damage part scales by one ratio; scaling one attack and not another needs a
+  per-attack choice in the window.
 - **The live 5.x pass.** The 5.x column of the path table comes from dnd5e's own migration table, not an
   install. `testing/npc-scaling.md` item 13 proves it.
 - **Fixed save DCs on features** are not scaled. Rewriting activity DCs is its own piece of work.

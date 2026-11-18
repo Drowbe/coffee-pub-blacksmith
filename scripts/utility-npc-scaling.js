@@ -162,6 +162,20 @@ export function addToFormula(existing, n) {
 // ===== SPEC FROM CR ===============================================
 
 /**
+ * How many attacks a creature of this CR is expected to make in a round: one below CR 3, two below CR 8,
+ * three below CR 16, four above. A starting point the GM can override; real stat blocks vary.
+ * @param {number} cr
+ * @returns {number}
+ */
+export function attacksForCR(cr) {
+    const n = Number(cr);
+    if (n < 3) return 1;
+    if (n < 8) return 2;
+    if (n < 16) return 3;
+    return 4;
+}
+
+/**
  * Describe the change from a creature's current CR to a target CR.
  *
  * Each amount is the DIFFERENCE between the two guideline rows, added to the creature's own
@@ -170,7 +184,10 @@ export function addToFormula(existing, n) {
  * the curve. Attack bonus and save DC are reduced by the proficiency change, because dnd5e
  * already applies that when `details.cr` is written.
  *
- * Damage is the gap in damage per round, spread across the creature's attacks per round.
+ * Damage is the gap in damage per round, and it is carried by MORE attacks as well as bigger ones: a
+ * creature that makes fewer attacks than its new CR calls for (`attacksForCR`, or `options.attacksTo`)
+ * is given more, and the per-hit amount is the new damage per round shared across them. One bite carrying
+ * thirty damage is not the same creature as three bites carrying ten.
  * Initiative is left alone: the guidelines have no column for it.
  *
  * @param {{ cr: number, attacksPerRound?: number }} source
@@ -178,9 +195,10 @@ export function addToFormula(existing, n) {
  * @param {Object} [options]
  * @param {string} [options.label='']  Name suffix and template name.
  * @param {Object} [options.table=GUIDELINES]
+ * @param {number} [options.attacksTo]  Attacks per round to scale to. Never below the creature's own count.
  * @returns {Object} A spec.
  */
-export function specFromCR(source, targetCR, { label = '', table = GUIDELINES } = {}) {
+export function specFromCR(source, targetCR, { label = '', table = GUIDELINES, attacksTo } = {}) {
     if (source?.cr === null || source?.cr === undefined || !Number.isFinite(Number(source.cr))) {
         throw new NpcScalingError('NO_CR', 'This creature has no challenge rating to scale from.');
     }
@@ -188,8 +206,14 @@ export function specFromCR(source, targetCR, { label = '', table = GUIDELINES } 
     const to = guidelineFor(targetCR, table);
     const profChange = to.prof - from.prof;
     const attacks = Math.max(1, Math.round(source.attacksPerRound ?? 1));
+    // Attacks are added by a retarget UP, never by one down or sideways (a same-CR retarget is a no-op), unless asked for.
+    const asked = Number.isFinite(Number(attacksTo)) && Number(attacksTo) >= 1 ? Math.round(Number(attacksTo)) : null;
+    const wanted = asked ?? (Number(targetCR) > Number(source.cr) ? attacksForCR(targetCR) : attacks);
+    const attacksAfter = Math.max(attacks, wanted);
+    const hit = Number.isFinite(source.avgHit) ? source.avgHit : 0;
+    const own = Number.isFinite(source.dpr) ? source.dpr : 0;
 
-    return {
+    const spec = {
         version: SPEC_VERSION,
         label,
         cr: { to: Number(targetCR) },
@@ -197,8 +221,12 @@ export function specFromCR(source, targetCR, { label = '', table = GUIDELINES } 
         ac: { add: to.ac - from.ac },
         attack: { add: (to.atk - from.atk) - profChange },
         saveDC: { add: (to.dc - from.dc) - profChange },
-        damage: { addPerHit: Math.round((to.dpr - from.dpr) / attacks) }
+        // The creature's own damage per round plus the table's gap, shared across the attacks it will make,
+        // less what one of its hits already does.
+        damage: { addPerHit: Math.round((own + (to.dpr - from.dpr)) / attacksAfter - hit) }
     };
+    if (attacksAfter > attacks) spec.attacks = { from: attacks, to: attacksAfter };
+    return spec;
 }
 
 // ===== GUIDELINES FROM SAMPLES ====================================
@@ -558,6 +586,94 @@ function firstPath(candidates, has) {
     return candidates.find((p) => has(p)) ?? null;
 }
 
+// ===== DAMAGE, WRITTEN INTO THE ACTIONS ===========================
+
+/**
+ * Add an average amount of damage to ONE damage part, in dice where the part has dice.
+ *
+ * A damage part is stored as dice (`number`, `denomination`) plus a `bonus` formula, or as a custom
+ * formula. The extra is taken as whole dice of the part's own die first, and the remainder (under one die's
+ * average) goes into the flat bonus, so `1d8 + 3` scaled by +9 becomes `3d8 + 3` and not `1d8 + 12`. A
+ * part with no dice (a bite of flat 1) is given d6s. A custom formula that starts with dice is treated the
+ * same way; one that does not just has the amount appended, which is always a legal formula.
+ * Scaling DOWN never takes a part below one die, or below 1 damage on average.
+ *
+ * @param {{ number?: number, denomination?: number, bonus?: string, custom?: { enabled?: boolean, formula?: string } }} data
+ *   The part as stored.
+ * @param {number} avg     The part's average damage now.
+ * @param {number} addAvg  Average damage to add (negative to take away).
+ * @returns {Object|null}  The fields to write (`number`, `denomination`, `bonus`, `custom.formula`), or null when
+ *   nothing should change.
+ */
+export function scaleDamagePart(data, avg, addAvg) {
+    if (!Number.isFinite(addAvg) || !Number.isFinite(avg)) return null;
+    // Never scale a part below an average of 1.
+    const add = avg >= 1 ? Math.max(addAvg, 1 - avg) : addAvg;
+    if (Math.abs(add) < 0.5) return null;
+
+    // Take whole dice of `die` sides off `add` and say what is left.
+    const dice = (count, die, floor) => {
+        const per = (die + 1) / 2;
+        const newCount = Math.max(floor, count + Math.trunc(add / per));
+        return { newCount, rest: Math.round(add - (newCount - count) * per) };
+    };
+
+    if (data?.custom?.enabled) {
+        const formula = String(data.custom.formula ?? '').trim();
+        if (!formula) return null;
+        const lead = formula.match(/^(\d+)\s*d\s*(\d+)(?!\d)(.*)$/i);
+        if (!lead) return { 'custom.formula': addToFormula(formula, Math.round(add)) };
+        const { newCount, rest } = dice(Number(lead[1]), Number(lead[2]), 1);
+        return { 'custom.formula': addToFormula(`${newCount}d${lead[2]}${lead[3]}`, rest) };
+    }
+
+    const number = Number(data?.number) || 0;
+    const die = Number(data?.denomination) || 0;
+    if (die > 0) {
+        const { newCount, rest } = dice(number, die, number > 0 ? 1 : 0);
+        return { number: newCount, bonus: addToFormula(data?.bonus, rest) };
+    }
+    // Flat only: give it d6s when growing, a smaller flat number when shrinking.
+    if (add > 0) {
+        const { newCount, rest } = dice(0, 6, 0);
+        return newCount > 0
+            ? { number: newCount, denomination: 6, bonus: addToFormula(data?.bonus, rest) }
+            : { bonus: addToFormula(data?.bonus, Math.round(add)) };
+    }
+    return { bonus: addToFormula(data?.bonus, Math.round(add)) };
+}
+
+/**
+ * The edits that give every damage part its share of a per-hit increase. The share is proportional, so a
+ * bite and a claw each grow by the same RATIO and a breath weapon grows with them.
+ * @param {Array<{ itemId: string, itemName: string, path: string, avg: number, data: Object }>} parts
+ * @param {number} ratio  The increase as a fraction of the creature's strongest average hit.
+ * @returns {Array<{ itemId: string, itemName: string, path: string, set: Object }>}
+ */
+export function scaleParts(parts, ratio) {
+    const edits = [];
+    for (const part of parts ?? []) {
+        const set = scaleDamagePart(part.data, part.avg, part.avg * ratio);
+        if (set) edits.push({ itemId: part.itemId, itemName: part.itemName, path: part.path, set });
+    }
+    return edits;
+}
+
+const NUMBER_WORDS = Object.freeze(['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight']);
+
+/**
+ * The Multiattack text for a scaled creature, as markup. Says plainly that this is a scaled stat block, so
+ * a GM reading the sheet later is not left wondering where the extra attacks came from.
+ * @param {{ name: string, count: number, from?: number, crTo?: number }} options
+ * @returns {string}
+ */
+export function describeMultiattack({ name, count, from = 1, crTo = null }) {
+    const word = NUMBER_WORDS[count] ?? String(count);
+    const was = from > 1 ? ` (it made ${NUMBER_WORDS[from] ?? from} before being scaled)` : '';
+    const cr = crTo === null || crTo === undefined ? '' : ` to CR ${crTo}`;
+    return `<p>Scaled${cr}. When the ${name} takes the Attack action, it makes ${word} attacks${was}, using any of its attacks and repeating its strongest one for the rest.</p>`;
+}
+
 // ===== APPLY ======================================================
 
 /**
@@ -571,17 +687,21 @@ function firstPath(candidates, has) {
  * @param {Object} io
  * @param {(path: string) => boolean} io.has   Whether the actor's schema has this field.
  * @param {(path: string) => *} io.get         The stored value at this path (for formula merging).
+ * @param {Array} [io.parts]  The creature's damage parts (see `scaleParts`). When given, and the creature has an
+ *   attack to measure against, damage is written into the parts and no bonus is written; otherwise it falls
+ *   back to the actor-level damage bonus.
  * @param {'full'|'ratio'} [io.hpValue='full'] Whether current HP is set to the new maximum, or keeps its ratio.
- * @returns {{ updates: Object, preview: Array, warnings: Array, spec: Object }}
+ * @returns {{ updates: Object, itemEdits: Array, preview: Array, warnings: Array, spec: Object }}
  * @throws {NpcScalingError} NO_PATH when a change is asked for and the actor has nowhere to put it.
  */
-export function applySpec(source, spec, { has, get, hpValue = 'full' } = {}) {
+export function applySpec(source, spec, { has, get, hpValue = 'full', parts } = {}) {
     if (!spec || typeof spec !== 'object') throw new NpcScalingError('BAD_SPEC', 'A spec is required.');
     if (typeof has !== 'function' || typeof get !== 'function') {
         throw new NpcScalingError('BAD_SPEC', 'applySpec needs `has` and `get` to read the actor.');
     }
 
     const updates = {};
+    const itemEdits = [];
     const preview = [];
     const warnings = [];
     const row = (key, label, from, to, note = '') => preview.push({ key, label, from, to, note });
@@ -672,27 +792,42 @@ export function applySpec(source, spec, { has, get, hpValue = 'full' } = {}) {
     }
 
     // --- Damage ---
+    const known = Number.isFinite(source.avgHit) && source.avgHit > 0;
+    const attacks = Math.max(1, Math.round(source.attacksPerRound ?? 1));
+    const attacksAfter = Math.max(attacks, Math.round(spec.attacks?.to ?? attacks));
     if (spec.damage?.addPerHit) {
-        for (const t of ATTACK_TYPES) {
-            const path = firstPath(PATHS.damage(t), has);
-            if (!path) throw new NpcScalingError('NO_PATH', 'This actor has no field to write damage bonuses to.');
-            updates[path] = addToFormula(get(path), spec.damage.addPerHit);
+        const add = spec.damage.addPerHit;
+        // Into the creature's own damage when there is an attack to measure it against and a part to write it to.
+        const edits = known && Array.isArray(parts) ? scaleParts(parts, add / source.avgHit) : [];
+        itemEdits.push(...edits);
+        if (!edits.length) {
+            for (const t of ATTACK_TYPES) {
+                const path = firstPath(PATHS.damage(t), has);
+                if (!path) throw new NpcScalingError('NO_PATH', 'This actor has no field to write damage bonuses to.');
+                updates[path] = addToFormula(get(path), add);
+            }
         }
-        const attacks = Math.max(1, Math.round(source.attacksPerRound ?? 1));
         // With the creature's own average hit known the row shows what a hit does now and after; without it, only the amount.
-        const known = Number.isFinite(source.avgHit) && source.avgHit > 0;
-        row('damage', 'Damage per hit', known ? Math.round(source.avgHit) : null, known ? Math.round(source.avgHit + spec.damage.addPerHit) : null,
-            `${signed(spec.damage.addPerHit)} on every weapon and spell attack`);
+        row('damage', 'Damage per hit', known ? Math.round(source.avgHit) : null, known ? Math.round(source.avgHit + add) : null,
+            edits.length
+                ? `${signed(add)} on the strongest hit; written into ${new Set(edits.map((e) => e.itemId)).size} of its actions, in proportion`
+                : `${signed(add)} on every weapon and spell attack, as a bonus (there is no action damage to rewrite)`);
         if (Number.isFinite(source.dpr)) {
-            row('dpr', 'Damage per round (estimate)', source.dpr, source.dpr + spec.damage.addPerHit * attacks);
+            const scaled = edits.length && known
+                ? source.dpr * (1 + add / source.avgHit) + (attacksAfter - attacks) * (source.avgHit + add)
+                : source.dpr + add * attacksAfter + (attacksAfter - attacks) * (known ? source.avgHit : 0);
+            row('dpr', 'Damage per round (estimate)', source.dpr, Math.round(scaled));
         }
-        if (Number.isFinite(source.avgHit) && source.avgHit > 0 && spec.damage.addPerHit > source.avgHit * 3) {
+        if (known && add > source.avgHit * 3) {
             warnings.push({
                 code: 'DAMAGE_ON_ONE_ATTACK',
-                message: `The damage bonus (+${spec.damage.addPerHit}) is more than three times the creature's own average hit (${source.avgHit}). `
-                    + 'The damage is carried by too few attacks to read as the same creature.'
+                message: `Each hit would grow by ${add}, more than three times the creature's own average hit (${Math.round(source.avgHit)}). `
+                    + 'Its attacks are too small to carry this challenge rating; a smaller step, or a template, reads more like the same creature.'
             });
         }
+    }
+    if (attacksAfter > attacks) {
+        row('attacks', 'Attacks per round', attacks, attacksAfter, 'Multiattack is added or extended to say so');
     }
 
     // --- Legendary resistances and actions ---
@@ -705,7 +840,7 @@ export function applySpec(source, spec, { has, get, hpValue = 'full' } = {}) {
         row('legact', 'Legendary actions', Number(get(PATHS.legact()[0])) || 0, spec.resources.legact);
     }
 
-    return { updates, preview, warnings, spec };
+    return { updates, itemEdits, preview, warnings, spec };
 }
 
 function signed(n) {

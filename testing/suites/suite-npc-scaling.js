@@ -162,6 +162,74 @@ export default {
             }
         },
         {
+            id: 'actions',
+            tier: 'headless',
+            group: 'Scaling',
+            label: 'Damage is written into the creature\'s own attack, and Multiattack says how many it makes',
+            run: async ({ expect, log }) => {
+                const api = requireApi('npcScaling');
+                const created = [];
+                const source = await makeGoblin();
+                created.push(source);
+                try {
+                    // A feature with one attack: 1d6 + 2 slashing.
+                    const [slash] = await source.createEmbeddedDocuments('Item', [{
+                        name: 'Harness Slash',
+                        type: 'feat',
+                        system: {
+                            activities: {
+                                harnessslash0001: {
+                                    _id: 'harnessslash0001',
+                                    type: 'attack',
+                                    activation: { type: 'action' },
+                                    attack: { type: { value: 'melee', classification: 'weapon' }, ability: 'str' },
+                                    damage: { includeBase: false, parts: [{ number: 1, denomination: 6, bonus: '2', types: ['slashing'] }] }
+                                }
+                            }
+                        }
+                    }]);
+                    const part = (item) => item.system.activities.get('harnessslash0001')?.damage?.parts?.[0];
+                    expect('the source starts at 1d6 + 2', [part(slash).number, part(slash).denomination], [1, 6]);
+
+                    const preview = await api.npcScaling.preview(source, { cr: 12 });
+                    const row = (key) => preview.preview.find((r) => r.key === key);
+                    expect('a CR 12 creature is given three attacks', [row('attacks')?.from, row('attacks')?.to], [1, 3]);
+                    expect.ok('the damage row says it is written into its actions', /written into/.test(row('damage')?.note ?? ''));
+                    log(`damage per hit ${row('damage')?.from} -> ${row('damage')?.to}; per round ${row('dpr')?.from} -> ${row('dpr')?.to}`);
+
+                    const result = await api.npcScaling.apply(source, { cr: 12 });
+                    created.push(result.actor);
+                    const scaled = result.actor;
+                    const grown = scaled.items.find((i) => i.name === 'Harness Slash');
+                    expect.ok('the scaled actor has the attack', !!grown);
+                    expect.ok('its dice grew', part(grown).number > 1);
+                    expect('its die did not change', part(grown).denomination, 6);
+                    expect('and the SOURCE\'s attack is untouched', [part(slash).number, part(source.items.get(slash.id)).denomination], [1, 6]);
+                    expect('no actor-level damage bonus was written', scaled.system.rolls?.damage?.mwak?.bonus ?? scaled.system.bonuses?.mwak?.damage ?? '', '');
+
+                    const multi = scaled.items.find((i) => /multiattack/i.test(i.name));
+                    expect.ok('the scaled actor has a Multiattack feature', !!multi);
+                    expect.ok('and it says three attacks', /three attacks/.test(multi?.system?.description?.value ?? ''));
+                    expect('the result says it was added', result.multiattack, 'added');
+                    log(`Multiattack came from ${multi?._stats?.compendiumSource ? 'the compendium' : 'a plain feature'}`);
+                    expect('the source has no Multiattack', source.items.some((i) => /multiattack/i.test(i.name)), false);
+
+                    // A creature that already has one gets a paragraph appended, and its own text kept.
+                    const withText = await Actor.implementation.create({ name: 'Harness Multi', type: 'npc', system: { details: { cr: 1 } } });
+                    created.push(withText);
+                    await withText.createEmbeddedDocuments('Item', [{ name: 'Multiattack', type: 'feat', system: { description: { value: '<p>The creature makes two attacks.</p>' } } }]);
+                    const second = await api.npcScaling.apply(withText, { cr: 8, attacksTo: 3 });
+                    created.push(second.actor);
+                    const text = second.actor.items.find((i) => /multiattack/i.test(i.name))?.system?.description?.value ?? '';
+                    expect.ok('its own text is kept', text.includes('The creature makes two attacks.'));
+                    expect.ok('and the scaled paragraph is added after it', text.includes('three attacks') && text.indexOf('Scaled') > text.indexOf('two attacks'));
+                    expect('the result says it was extended', second.multiattack, 'extended');
+                } finally {
+                    await cleanup(created);
+                }
+            }
+        },
+        {
             id: 'rescale',
             tier: 'headless',
             group: 'Scaling',
