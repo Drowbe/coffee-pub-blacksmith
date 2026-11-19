@@ -175,6 +175,28 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 Written and awaiting live verification: `testing/npc-scaling.md`. What is left, and why, is in
 `plans/plan-npc-scaling.md`.
 
+### Redesign the Scale NPC indicators, as shared controls
+
+The scene meter, the Now and Scaled pins, the Change chips and the before and after bars in `window-npc-scaling.js`
+were written for this window and read as sloppy and washed out. Redesign them **before** anything is shared, since a
+shared control is a contract for every Tool window in the suite. Decide first, then build:
+
+- **Change chips** use the shared `.blacksmith-badge` (`-danger` up, `-info` down, `-success` and `-warning` if a
+  direction is ever good or bad) instead of `.blacksmith-npc-scaling-delta`. No custom CSS left.
+- **Meter** (`blacksmith-tool-meter`?): zones at full strength with no dimming, larger and clearer Now and Scaled
+  markers, a legible scale. Decide whether it is a shared Tool window control, which needs the documentation in
+  `designsystem/design-components.md`, or stays local.
+- **Difficulty colours** are the combat bar's muted *text* palette (`CombatBarManager.getDifficultyChipColor`), which
+  washes out as a fill, and the saturated palette exists only as hex in `styles/toolbar-encounter.css`
+  (`.difficulty-badge.*`). Move the zone colours into design tokens (`vars.css` and `designsystem/design-tokens.md`,
+  checked by `check-design-tokens.mjs`) and have the encounter toolbar read them too.
+- **Before and after bars** need a shared home too, or a decision to drop them for the chip alone.
+- **Slider** is the shared `.blacksmith-slider` (`window-form-controls.css`), not a `blacksmith-tool-*` control. Decide
+  whether the Tool window set gains one (a filled track, the orange state) or keeps pointing at the form control.
+
+Touches `window-npc-scaling.js`, `styles/window-npc-scaling.css`, `styles/window-tool-controls.css`,
+`styles/vars.css`, `designsystem/`.
+
 ### Batch in the Scale NPC window
 
 `api.npcScaling.applyToTokens` scales several tokens; the window scales one. Open it with several tokens
