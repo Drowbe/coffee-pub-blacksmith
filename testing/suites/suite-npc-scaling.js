@@ -99,7 +99,7 @@ export default {
                 const scaling = requireApi('npcScaling').npcScaling;
                 const actor = await makeGoblin();
                 try {
-                    const g = await scaling.guidance(actor, { cr: 12 });
+                    const g = await scaling.guidance(actor, { cr: 12, count: 3 });
                     log(`party CR ${g.partyCR}, other monsters ${g.othersCR}, available ${g.available}`);
                     expect.ok('available is a boolean', typeof g.available === 'boolean');
                     expect.ok('bands is a list', Array.isArray(g.bands));
@@ -108,6 +108,8 @@ export default {
                         expect.ok('there is at least one band', g.bands.length > 0);
                         expect.ok('bands rise without overlapping', g.bands.every((b, i) => b.from <= b.to && (i === 0 || b.from > g.bands[i - 1].to)));
                         expect.ok('the chosen CR is described', g.chosen?.cr === 12 && typeof g.chosen.label === 'string');
+                        expect.ok('the count is carried and priced in', g.count === 3 && g.chosen.monsterCR === g.othersCR + 36);
+                        expect.ok('the meter has zones along a ratio axis', g.zones.length > 0 && g.zones.at(-1).to === g.maxRatio);
                     } else {
                         expect.ok('with no party there are no bands', g.bands.length === 0);
                     }

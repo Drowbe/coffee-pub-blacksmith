@@ -433,6 +433,10 @@ export function shiftCR(cr, by) {
 
 // ===== SCENE GUIDANCE =============================================
 
+/** The most copies of one creature the balance reads, and the ratio of monster CR to party CR the meter spans. */
+const MAX_COPIES = 20;
+const MAX_RATIO = 2.5;
+
 /**
  * Which challenge ratings put THIS creature's encounter on each difficulty, given the party and the other
  * monsters already on the scene.
@@ -451,24 +455,31 @@ export function shiftCR(cr, by) {
  * @param {number|null} [input.currentCR]  The creature's own CR, when it is on the scene. With none, `now` is
  *   the scene as it stands without it.
  * @param {number|null} [input.chosenCR]   A CR to describe, such as the one the window has selected.
+ * @param {number} [input.count=1]  How many of this creature the encounter holds at that rating, 1 to 20. The bands
+ *   and `chosen` are for that many; `now` is always the scene as it stands.
  * @param {function(number, number): {difficulty: string, difficultyClass: string}} input.difficulty
  * @returns {{ available: boolean, partyCR: number, othersCR: number,
- *             now: ?{key: string, label: string, monsterCR: number},
- *             chosen: ?{cr: number, key: string, label: string, monsterCR: number},
+ *             now: ?{key: string, label: string, monsterCR: number, ratio: number},
+ *             chosen: ?{cr: number, key: string, label: string, monsterCR: number, ratio: number},
+ *             count: number, zones: Array<{key: string, label: string, from: number, to: number}>, maxRatio: number,
  *             bands: Array<{key: string, label: string, from: number, to: number}> }}
  */
-export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = null, difficulty } = {}) {
+export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = null, count = 1, difficulty } = {}) {
     const party = Number(partyCR);
     const others = Math.max(0, Number(othersCR) || 0);
-    const none = { available: false, partyCR: Number.isFinite(party) ? party : 0, othersCR: others, now: null, chosen: null, bands: [] };
+    const copies = Math.min(MAX_COPIES, Math.max(1, Math.round(Number(count)) || 1));
+    const none = {
+        available: false, partyCR: Number.isFinite(party) ? party : 0, othersCR: others, count: copies,
+        now: null, chosen: null, bands: [], zones: [], maxRatio: MAX_RATIO
+    };
     if (!(party > 0) || typeof difficulty !== 'function') return none;
 
-    // The encounter rule's own answer for this creature at `cr`, `none` included: a scene with no monster
-    // is "None", which the balance table shows and the bands leave out.
-    const read = (cr) => {
-        const monsterCR = others + Number(cr);
+    // The encounter rule's own answer for `n` creatures of rating `cr` beside the others, `none` included: a
+    // scene with no monster is "None", which the balance table shows and the bands leave out.
+    const read = (cr, n = copies) => {
+        const monsterCR = others + n * Number(cr);
         const d = difficulty(party, monsterCR);
-        return d && d.difficultyClass ? { key: d.difficultyClass, label: d.difficulty, monsterCR } : null;
+        return d && d.difficultyClass ? { key: d.difficultyClass, label: d.difficulty, monsterCR, ratio: monsterCR / party } : null;
     };
 
     const bands = [];
@@ -480,19 +491,34 @@ export function suggestCR({ partyCR, othersCR = 0, currentCR = null, chosenCR = 
         else bands.push({ key: d.key, label: d.label, from: cr, to: cr });
     }
 
-    const pick = (cr) => {
+    // The same rule across the whole axis, as runs of monsters-to-party RATIO, for a meter. Each hundredth is
+    // judged at its middle so a threshold falls on the boundary and not a rounding error either side of it.
+    const zones = [];
+    for (let i = 0; i < MAX_RATIO * 100; i++) {
+        const d = difficulty(party, ((i + 0.5) / 100) * party);
+        if (!d || !d.difficultyClass || d.difficultyClass === 'none') continue;
+        const last = zones[zones.length - 1];
+        if (last && last.key === d.difficultyClass) last.to = (i + 1) / 100;
+        else zones.push({ key: d.difficultyClass, label: d.difficulty, from: i / 100, to: (i + 1) / 100 });
+    }
+
+    const pick = (cr, n) => {
         if (cr === null || cr === undefined || !Number.isFinite(Number(cr))) return null;
-        const d = read(cr);
+        const d = read(cr, n);
         return d ? { cr: Number(cr), ...d } : null;
     };
-    const now = pick(currentCR ?? 0);
+    // "Now" is the scene as it stands: this creature once, at its own rating, or not at all.
+    const now = pick(currentCR ?? 0, 1);
     return {
         available: true,
         partyCR: party,
         othersCR: others,
-        now: now ? { key: now.key, label: now.label, monsterCR: now.monsterCR } : null,
-        chosen: pick(chosenCR),
-        bands
+        count: copies,
+        now: now ? { key: now.key, label: now.label, monsterCR: now.monsterCR, ratio: now.ratio } : null,
+        chosen: pick(chosenCR, copies),
+        bands,
+        zones,
+        maxRatio: MAX_RATIO
     };
 }
 

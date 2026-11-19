@@ -15,6 +15,7 @@ import { registerToolbarTool } from './manager-toolbar.js';
 import { HookManager } from './manager-hooks.js';
 import { ToastAPI } from './api-toast.js';
 import { EncounterManager } from './manager-encounter.js';
+import { CombatBarManager } from './manager-combatbar.js';
 import { DialogAPI } from './api-dialog.js';
 import { NpcScalingManager } from './manager-npc-scaling.js';
 import { NpcScalingAPI } from './api-npc-scaling.js';
@@ -40,6 +41,12 @@ const TEMPLATE_FIELDS = [
 const CR_OPTIONS = ['0', '1/8', '1/4', '1/2', ...Array.from({ length: 30 }, (_, i) => String(i + 1))];
 
 const esc = (value) => foundry.utils.escapeHTML(String(value ?? ''));
+
+/** A figure the table can compare: a real number, not a blank, and not a formula. */
+const isNum = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+
+/** The rows whose size is the point, so they get a bar of now against scaled beside the change. */
+const MAGNITUDE_ROWS = new Set(['hp', 'damage', 'dpr', 'attacks']);
 
 export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
 
@@ -85,6 +92,9 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         this._label = DEFAULT_LABEL;
         this._attacks = null;
         this._attacksTo = null;
+        this._count = 1;
+        this._chosenCR = null;
+        this._sceneSeq = 0;
         this._busy = false;
     }
 
@@ -130,7 +140,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         // The scene's own reading of what rating to aim for. A failure here is never worth losing the window.
         let guidance = null;
         try {
-            guidance = await NpcScalingAPI.guidance(this._target, { cr: planned?.spec?.cr?.to ?? snapshot.cr ?? null });
+            this._chosenCR = planned?.spec?.cr?.to ?? snapshot.cr ?? null;
+            guidance = await NpcScalingAPI.guidance(this._target, { cr: this._chosenCR, count: this._count });
         } catch (error) {
             console.warn(`${MODULE.NAME} | NPC Scaling: scene guidance unavailable:`, error);
         }
@@ -210,59 +221,139 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
     }
 
     /**
-     * Which rating to aim for, from the scene. In CR mode a band is a chip that sets the CR; in Template mode
-     * the template decides the CR, so the bands are shown and the line says where it lands.
+     * Which rating to aim for, from the scene: a band is a chip that sets the CR. Shown for a CR retarget only. A
+     * template decides its own rating, so there is nothing to pick, and the scene table says where it lands.
      */
     _guidanceHtml(g) {
-        if (!g) return '';
+        if (!g || this._mode !== 'cr') return '';
         if (!g.available) {
             return `<div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Put the party's tokens on this scene to see which challenge rating would make it Easy, Hard or Deadly.</div>`;
         }
         const range = (b) => (b.from === b.to ? EncounterManager.formatCR(b.from) : `${EncounterManager.formatCR(b.from)}\u2013${EncounterManager.formatCR(b.to)}`);
         const inBand = (b) => g.chosen && g.chosen.cr >= b.from && g.chosen.cr <= b.to;
-        const chips = g.bands.map((b) => this._mode === 'cr'
-            ? `<label class="blacksmith-tool-chip is-selectable" data-tooltip="Set the challenge rating to ${esc(EncounterManager.formatCR(b.from))}, the lowest that makes this ${esc(b.label)}">
+        const chips = g.bands.map((b) => `<label class="blacksmith-tool-chip is-selectable" data-tooltip="Set the challenge rating to ${esc(EncounterManager.formatCR(b.from))}, the lowest that makes this ${esc(b.label)}">
                     <input type="radio" name="npc-scaling-band" value="${b.from}"${inBand(b) ? ' checked' : ''}>
                     <span>${esc(b.label)} ${esc(range(b))}</span>
-                </label>`
-            : `<span class="blacksmith-tool-chip${inBand(b) ? ' is-active' : ''}">${esc(b.label)} ${esc(range(b))}</span>`).join('');
+                </label>`).join('');
+        const many = g.count > 1 ? `${g.count} of them` : 'this creature';
         return `
             <div class="blacksmith-tool-chips blacksmith-npc-scaling-bands">${chips}</div>
-            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Each range is the challenge ratings that make the scene that hard, with this creature counted in.</div>`;
+            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Each range is the challenge ratings that make the scene that hard with ${many} counted in.</div>`;
     }
 
     /**
-     * What the scaling does to the scene's balance, in the same Now / Scaled columns as the stats: the party's
-     * rating, the monsters' combined rating, and the difficulty the encounter bar would show. Monster CR is a sum,
-     * so the creature's rating is one term of it, and the note says what the rest is.
+     * The scene: how many of this creature to add, then what that does to the balance. The slider sits OUTSIDE the
+     * region that is redrawn while it moves, so dragging it is never interrupted.
      */
     _balanceHtml(g) {
         if (!g?.available) return '';
-        const num = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
-        const others = g.othersCR > 0 ? `${num(g.othersCR)} from the other monsters on the scene, plus this creature.` : 'No other monsters are on the scene; this creature is all of it.';
-        const notOn = g.onScene ? '' : ' It is not on the scene, so Now is the scene without it.';
-        const row = (stat, now, next, note = '') => `<div class="blacksmith-npc-scaling-row">
-                <span class="blacksmith-npc-scaling-stat">${esc(stat)}</span>
-                <span class="blacksmith-npc-scaling-now">${esc(now)}</span>
-                <span class="blacksmith-npc-scaling-next">${esc(next)}</span>
-                ${note ? `<span class="blacksmith-npc-scaling-note blacksmith-tool-hint">${esc(note)}</span>` : ''}
-            </div>`;
-        const now = g.now;
-        const next = g.chosen ?? g.now;
-        const shift = now && next && now.key !== next.key ? ` The scene moves from ${now.label} to ${next.label}.` : '';
         return `
             <div class="blacksmith-tool-section">
                 <div class="blacksmith-tool-section-title">
                     <i class="fa-solid fa-scale-balanced"></i>
                     <span>The scene</span>
                 </div>
-                <div class="blacksmith-npc-scaling-table">
-                    <div class="blacksmith-npc-scaling-row is-head"><span>Balance</span><span>Now</span><span>Scaled</span></div>
-                    ${row('Party CR', num(g.partyCR), num(g.partyCR))}
-                    ${row('Monsters CR', now ? num(now.monsterCR) : '–', next ? num(next.monsterCR) : '–', others + notOn)}
-                    ${row('Encounter', now?.label ?? '–', next?.label ?? '–', shift.trim())}
+                <div class="blacksmith-npc-scaling-count">
+                    <span>How many of these</span>
+                    <div class="blacksmith-slider">
+                        <input type="range" name="npc-scaling-count" min="1" max="20" step="1" value="${g.count}" aria-label="How many of this creature to add">
+                        <span>\u00d7 ${g.count}</span>
+                    </div>
                 </div>
+                <div data-region="npc-scaling-scene">${this._sceneBodyHtml(g)}</div>
             </div>`;
+    }
+
+    /**
+     * The meter and the balance table. The meter is the difficulty rule laid out along one axis, monsters' CR as a
+     * share of the party's, with a pin for the scene now and one for the scene after the scaling. The zone colours
+     * are the combat bar's own.
+     */
+    _sceneBodyHtml(g) {
+        const num = (n) => (Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100));
+        const pct = (ratio) => Math.min(100, Math.max(0, (ratio / g.maxRatio) * 100));
+        const now = g.now;
+        const next = g.chosen ?? g.now;
+
+        const zones = g.zones.map((z) => `<span class="blacksmith-npc-scaling-zone${next?.key === z.key ? ' is-active' : ''}" style="width:${pct(z.to) - pct(z.from)}%;background:${CombatBarManager.getDifficultyChipColor(z.key)}" data-tooltip="${esc(z.label)}"><span>${esc(z.label)}</span></span>`).join('');
+        const pin = (kind, label, point) => point
+            ? `<span class="blacksmith-npc-scaling-pin is-${kind}" style="left:${pct(point.ratio)}%" data-tooltip="${esc(label)}: ${esc(point.label)}, monsters at ${Math.round(point.ratio * 100)}% of the party"><span>${esc(label)}</span></span>`
+            : '';
+        const meter = `
+            <div class="blacksmith-npc-scaling-meter" role="img" aria-label="Encounter balance now and after scaling">
+                <div class="blacksmith-npc-scaling-track">${zones}</div>
+                ${pin('now', 'Now', now)}
+                ${pin('scaled', 'Scaled', next)}
+            </div>`;
+
+        const others = g.othersCR > 0 ? `${num(g.othersCR)} from the other monsters on the scene` : 'No other monsters are on the scene';
+        const cr = g.chosen ? num(g.chosen.cr) : null;
+        const added = g.chosen ? ` plus ${g.count > 1 ? `${g.count} \u00d7 CR ${cr}` : `this creature at CR ${cr}`}` : '';
+        const notOn = g.onScene ? '' : ' It is not on the scene, so Now is the scene without it.';
+        const row = (stat, was, will, note = '', delta = '<span></span>') => `<div class="blacksmith-npc-scaling-row">
+                <span class="blacksmith-npc-scaling-stat">${esc(stat)}</span>
+                <span class="blacksmith-npc-scaling-now">${esc(was)}</span>
+                <span class="blacksmith-npc-scaling-next">${esc(will)}</span>
+                ${delta}
+                ${note ? `<span class="blacksmith-npc-scaling-note blacksmith-tool-hint">${esc(note)}</span>` : ''}
+            </div>`;
+        const share = next ? `Monsters are ${Math.round(next.ratio * 100)}% of the party's CR.` : '';
+        const shift = now && next && now.key !== next.key ? ` The scene moves from ${now.label} to ${next.label}.` : '';
+        return `
+            ${meter}
+            <div class="blacksmith-npc-scaling-table has-delta">
+                <div class="blacksmith-npc-scaling-row is-head"><span>Balance</span><span>Now</span><span>Scaled</span><span>Change</span></div>
+                ${row('Party CR', num(g.partyCR), num(g.partyCR))}
+                ${row('Monsters CR', now ? num(now.monsterCR) : '\u2013', next ? num(next.monsterCR) : '\u2013', `${others}${added}.${notOn}`, this._deltaHtml(now?.monsterCR, next?.monsterCR))}
+                ${row('Encounter', now?.label ?? '\u2013', next?.label ?? '\u2013', `${share}${shift}`.trim())}
+            </div>`;
+    }
+
+    /** Redraw only the meter and table, for the slider: a full render would replace the slider under the pointer. */
+    async _refreshScene() {
+        const seq = ++this._sceneSeq;
+        let g;
+        try {
+            g = await NpcScalingAPI.guidance(this._target, { cr: this._chosenCR, count: this._count });
+        } catch {
+            return;
+        }
+        if (seq !== this._sceneSeq || !g?.available) return;
+        const region = this.element?.querySelector('[data-region="npc-scaling-scene"]');
+        if (region) region.innerHTML = this._sceneBodyHtml(g);
+    }
+
+    /**
+     * The change between two figures as a small coloured chip: up in the damage red (a stronger creature), down in
+     * the info blue (a weaker one), none flat. Blank where either figure is not a plain number.
+     * @param {*} from
+     * @param {*} to
+     * @param {boolean} [percent=false]  Also say it as a percentage in the tooltip, for rows where size is the point.
+     */
+    _deltaHtml(from, to, percent = false) {
+        if (!isNum(from) || !isNum(to)) return '<span></span>';
+        const f = Number(from);
+        const d = Math.round((Number(to) - f) * 100) / 100;
+        const dir = d > 0 ? 'is-up' : d < 0 ? 'is-down' : 'is-flat';
+        const text = d > 0 ? `+${d}` : d < 0 ? `\u2212${Math.abs(d)}` : '0';
+        const tip = d === 0 ? 'No change'
+            : percent && f > 0 ? `${Math.abs(Math.round((d / f) * 100))}% ${d > 0 ? 'more' : 'less'} than now`
+                : `${Math.abs(d)} ${d > 0 ? 'higher' : 'lower'} than now`;
+        return `<span class="blacksmith-npc-scaling-delta ${dir}" data-tooltip="${esc(tip)}">${esc(text)}</span>`;
+    }
+
+    /** Two thin bars under a row, now and scaled, to the same scale, so how much bigger reads without the numbers. */
+    _barsHtml(row) {
+        if (!MAGNITUDE_ROWS.has(row.key) || !isNum(row.from) || !isNum(row.to)) return '';
+        const f = Number(row.from);
+        const t = Number(row.to);
+        const max = Math.max(f, t);
+        if (!(max > 0)) return '';
+        const dir = t > f ? 'is-up' : t < f ? 'is-down' : 'is-flat';
+        return `<span class="blacksmith-npc-scaling-bars" aria-hidden="true">
+                <span class="blacksmith-npc-scaling-bar is-now" style="width:${((f / max) * 100).toFixed(1)}%"></span>
+                <span class="blacksmith-npc-scaling-bar is-scaled ${dir}" style="width:${((t / max) * 100).toFixed(1)}%"></span>
+            </span>`;
     }
 
     /** The stat / now / scaled table, the damage estimate, and anything the engine wants the GM to see. */
@@ -270,10 +361,13 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         const rows = planned.preview.map((row) => {
             const now = row.from === null || row.from === undefined ? '' : esc(row.from);
             const next = row.to === null || row.to === undefined ? '' : esc(row.to);
+            // The rating row is the cause of every other change, so it carries no change of its own.
             return `<div class="blacksmith-npc-scaling-row">
                 <span class="blacksmith-npc-scaling-stat">${esc(row.label)}</span>
                 <span class="blacksmith-npc-scaling-now">${now || '&ndash;'}</span>
                 <span class="blacksmith-npc-scaling-next">${next || '&ndash;'}</span>
+                ${row.key === 'cr' ? '<span></span>' : this._deltaHtml(row.from, row.to, MAGNITUDE_ROWS.has(row.key))}
+                ${this._barsHtml(row)}
                 ${row.note ? `<span class="blacksmith-npc-scaling-note blacksmith-tool-hint">${esc(row.note)}</span>` : ''}
             </div>`;
         }).join('');
@@ -284,8 +378,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         const shown = Number.isInteger(attacks) ? attacks : 1;
         const after = planned.spec.attacks?.to ?? shown;
         return `
-            <div class="blacksmith-npc-scaling-table">
-                <div class="blacksmith-npc-scaling-row is-head"><span>Stat</span><span>Now</span><span>Scaled</span></div>
+            <div class="blacksmith-npc-scaling-table has-delta">
+                <div class="blacksmith-npc-scaling-row is-head"><span>Stat</span><span>Now</span><span>Scaled</span><span>Change</span></div>
                 ${rows || '<div class="blacksmith-tool-empty">Nothing changes at this challenge rating.</div>'}
             </div>
             <div class="blacksmith-npc-scaling-fields">
@@ -641,6 +735,16 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         if (!root || this._wired) return;
         this._wired = true;
 
+        // The count slider, live: only the meter and table are redrawn, so the slider under the pointer survives.
+        root.addEventListener('input', (event) => {
+            const range = event.target?.closest?.('input[name="npc-scaling-count"]');
+            if (!range) return;
+            this._count = Math.min(20, Math.max(1, Math.round(Number(range.value)) || 1));
+            const label = range.parentElement?.querySelector('span');
+            if (label) label.textContent = `\u00d7 ${this._count}`;
+            this._refreshScene();
+        });
+
         // The CR select. A native `change`, listened for once on the window root.
         root.addEventListener('change', (event) => {
             const select = event.target?.closest?.('select[name="npc-scaling-cr"]');
@@ -653,6 +757,11 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             const mode = event.target?.closest?.('input[name="npc-scaling-mode"]');
             if (mode) {
                 this._mode = mode.value === 'template' ? 'template' : 'cr';
+                this.render();
+                return;
+            }
+            // The slider moves live (see the input listener below); letting go redraws the rest, whose bands depend on it.
+            if (event.target?.closest?.('input[name="npc-scaling-count"]')) {
                 this.render();
                 return;
             }

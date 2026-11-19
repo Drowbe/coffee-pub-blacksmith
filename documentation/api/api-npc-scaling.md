@@ -56,9 +56,10 @@ scalings never stack.
 Which challenge rating to aim for, read from the scene the creature is in.
 
 ```javascript
-const g = await scaling.guidance(token, { cr: 12 });
-// { available: true, onScene: true, partyCR: 10, othersCR: 4,
-//   now: { key: 'medium', label: 'Moderate', monsterCR: 9 }, chosen: { cr: 12, key: 'deadly', label: 'Deadly', monsterCR: 16 },
+const g = await scaling.guidance(token, { cr: 12, count: 1 });
+// { available: true, onScene: true, partyCR: 10, othersCR: 4, count: 1,
+//   now: { key: 'medium', label: 'Moderate', monsterCR: 9, ratio: 0.9 },
+//   chosen: { cr: 12, key: 'deadly', label: 'Deadly', monsterCR: 16, ratio: 1.6 },
 //   bands: [ { key: 'easy', label: 'Easy', from: 0, to: 0.5 }, { key: 'medium', label: 'Moderate', from: 1, to: 5 }, ... ] }
 ```
 
@@ -74,7 +75,9 @@ run of ratings that lands the encounter on that difficulty, and `from` is the lo
 | `onScene` | The target is a token (or an unlinked actor's sheet), so it was left out of the other monsters. A creature scaled from the sidebar is not subtracted |
 | `partyCR`, `othersCR` | The two figures, as the encounter bar reads them. Rounded to whole numbers once summed |
 | `now` | `{ key, label, monsterCR }`: the encounter as it stands, with the creature at its own CR. When it is not on the scene, the scene without it. `monsterCR` is the monsters' combined CR |
-| `chosen` | `{ cr, key, label, monsterCR }` for `options.cr`, when given: the same figures with the creature at that CR |
+| `count` | How many of the creature the encounter holds at the chosen rating, from `options.count`: an integer from 1 to 20, default 1. Monster CR is the others plus `count` times the rating; `bands` and `chosen` are for that many, `now` is not |
+| `chosen` | `{ cr, key, label, monsterCR, ratio }` for `options.cr`, when given: the same figures with `count` of the creature at that CR. `ratio` is monster CR over party CR |
+| `zones`, `maxRatio` | The difficulty rule laid along one axis for a meter: `{ key, label, from, to }` runs of the **ratio** of monster CR to party CR, from 0 to `maxRatio` (2.5). Found by asking the rule, so they hold no thresholds of their own and do not depend on the creature |
 | `bands` | `{ key, label, from, to }`, in order of rising difficulty. `key` is the encounter's difficulty class (`trivial`, `easy`, `medium`, `hard`, `deadly`, `impossible`) |
 
 It is advice and changes nothing; `preview` and `apply` never read it. Refuses like `preview`: `NOT_GM`,

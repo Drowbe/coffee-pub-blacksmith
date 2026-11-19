@@ -48,6 +48,96 @@
     margin-bottom: 8px;
 }
 
+/* How many of the creature: a label and the shared slider on one line. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-count {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+/* The meter: the difficulty zones along one axis, a pin above for now and one below for after scaling. The zone
+   colours come from the combat bar through inline style; the rest is the tool theme. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-meter {
+    position: relative;
+    padding: 20px 0;
+    margin-bottom: 4px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-track {
+    display: flex;
+    height: 22px;
+    overflow: hidden;
+    border: 1px solid var(--blacksmith-tool-field-border);
+    border-radius: 4px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+    opacity: 0.45;
+    transition: opacity 0.15s ease;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-zone.is-active {
+    opacity: 1;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-zone > span {
+    overflow: hidden;
+    padding: 0 3px;
+    font-size: 0.65em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: rgba(0, 0, 0, 0.75);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+    font-size: 0.7em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--blacksmith-tool-text);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin::after {
+    content: '';
+    border: 5px solid transparent;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin.is-now {
+    top: 0;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin.is-now::after {
+    border-top-color: currentColor;
+    border-bottom-width: 0;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin.is-scaled {
+    bottom: 0;
+    flex-direction: column-reverse;
+    color: var(--blacksmith-tool-accent);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-pin.is-scaled::after {
+    border-bottom-color: currentColor;
+    border-top-width: 0;
+}
+
 /* The template editor is a dialog, outside the window, so it is styled from its own class. */
 .blacksmith-npc-scaling-form {
     display: flex;
@@ -114,6 +204,64 @@
 
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-next {
     font-weight: 600;
+}
+
+/* A table with a Change column: the stat, now, scaled, then the change. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-table.has-delta .blacksmith-npc-scaling-row {
+    grid-template-columns: 1fr 64px 64px 64px;
+}
+
+/* The change chip: up is a stronger creature (damage red), down a weaker one (info blue), flat is muted. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-delta {
+    justify-self: end;
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--blacksmith-tool-text-muted);
+    background: color-mix(in srgb, var(--blacksmith-tool-text-muted) 15%, transparent);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-delta.is-up {
+    color: var(--blacksmith-status-damage);
+    background: color-mix(in srgb, var(--blacksmith-status-damage) 16%, transparent);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-delta.is-down {
+    color: var(--blacksmith-status-info);
+    background: color-mix(in srgb, var(--blacksmith-status-info) 16%, transparent);
+}
+
+/* Now and scaled as two thin bars to one scale, spanning the row under its figures. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    grid-column: 1 / -1;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar {
+    height: 4px;
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-now {
+    background: var(--blacksmith-tool-text-muted);
+    opacity: 0.55;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled {
+    background: var(--blacksmith-tool-text-muted);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled.is-up {
+    background: var(--blacksmith-status-damage);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled.is-down {
+    background: var(--blacksmith-status-info);
 }
 
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-row.is-head > span:nth-child(n+2) {

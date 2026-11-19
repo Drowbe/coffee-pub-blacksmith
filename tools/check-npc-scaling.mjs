@@ -461,16 +461,30 @@ expect('guidance is available with a party', g.available, true);
 expect('each band is one run of the ladder, from the lowest CR that reaches it',
     g.bands.map((b) => [b.key, b.from, b.to]),
     [['easy', 0, 0.5], ['medium', 1, 5], ['hard', 6, 10], ['deadly', 11, 18], ['impossible', 19, 30]]);
-expect('the other monsters are added to the creature', g.now, { key: 'medium', label: 'Moderate', monsterCR: 9 });
-expect('a chosen CR is described, with the monsters combined', g.chosen, { cr: 12, key: 'deadly', label: 'Deadly', monsterCR: 16 });
+expect('the other monsters are added to the creature', g.now, { key: 'medium', label: 'Moderate', monsterCR: 9, ratio: 0.9 });
+expect('a chosen CR is described, with the monsters combined', g.chosen, { cr: 12, key: 'deadly', label: 'Deadly', monsterCR: 16, ratio: 1.6 });
 expect('a band the others already overshoot is absent', suggestCR({ partyCR: 10, othersCR: 30, difficulty: rule }).bands.map((b) => b.key), ['impossible']);
 expect('no party, no guidance', suggestCR({ partyCR: 0, othersCR: 4, difficulty: rule }).available, false);
 expect('no rule, no guidance', suggestCR({ partyCR: 10 }).available, false);
 expect('a CR that rates as nothing is left out of the bands', suggestCR({ partyCR: 10, othersCR: 0, difficulty: rule }).bands[0].from, 0.125);
-expect('a creature not on the scene: "now" is the scene without it', suggestCR({ partyCR: 10, othersCR: 4, difficulty: rule }).now, { key: 'easy', label: 'Easy', monsterCR: 4 });
+expect('a creature not on the scene: "now" is the scene without it', suggestCR({ partyCR: 10, othersCR: 4, difficulty: rule }).now, { key: 'easy', label: 'Easy', monsterCR: 4, ratio: 0.4 });
 expect('an empty scene reads None, and is not a band', [suggestCR({ partyCR: 10, difficulty: rule }).now?.key, suggestCR({ partyCR: 10, difficulty: rule }).bands.some((b) => b.key === 'none')], ['none', false]);
 const ladder = suggestCR({ partyCR: 10, othersCR: 4, difficulty: rule }).bands;
 expect('bands cover the ladder without a gap', ladder.every((b, i) => i === 0 || b.from > ladder[i - 1].to), true);
+
+// The meter's zones are the rule laid along one axis, as runs of monsters-to-party ratio, with no threshold held here.
+expect('zones follow the rule along the ratio axis', g.zones.map((z) => [z.key, z.from, z.to]),
+    [['trivial', 0, 0.25], ['easy', 0.25, 0.5], ['medium', 0.5, 1], ['hard', 1, 1.5], ['deadly', 1.5, 2.25], ['impossible', 2.25, 2.5]]);
+expect('the axis is exposed', g.maxRatio, 2.5);
+expect('zones do not depend on the creature', suggestCR({ partyCR: 10, othersCR: 30, difficulty: rule }).zones, g.zones);
+
+// How many of the creature: the others plus N times its rating.
+const three = suggestCR({ partyCR: 10, othersCR: 4, currentCR: 5, chosenCR: 5, count: 3, difficulty: rule });
+expect('three of them at CR 5 add fifteen', three.chosen, { cr: 5, key: 'deadly', label: 'Deadly', monsterCR: 19, ratio: 1.9 });
+expect('bands are for that many', three.bands.map((b) => [b.key, b.from, b.to]),
+    [['easy', 0, 0.25], ['medium', 0.5, 1], ['hard', 2, 3], ['deadly', 4, 6], ['impossible', 7, 30]]);
+expect('now is the scene as it stands, whatever the count', three.now, g.now);
+expect('the count is clamped to 1 to 20', [suggestCR({ partyCR: 10, count: 0, difficulty: rule }).count, suggestCR({ partyCR: 10, count: 99, difficulty: rule }).count, suggestCR({ partyCR: 10, count: 'x', difficulty: rule }).count], [1, 20, 1]);
 
 // ===== RESULT =====================================================
 

@@ -169,8 +169,29 @@ reads it from the scene.
 - **The balance table.** A **The scene** section shows Party CR, Monsters CR and Encounter in the same Now /
   Scaled columns as the stats, from `now` and `chosen`. Monster CR is a sum, so the Monsters row's note names
   what the other monsters contribute, and the Encounter row's says when the scene changes difficulty.
+- **The meter.** `suggestCR` also returns `zones`: it asks the rule at the middle of each hundredth of the
+  monsters-to-party ratio from 0 to 2.5 and groups the answers, so a threshold lands on a boundary and the
+  engine still holds none. The window draws them as one bar coloured by `CombatBarManager.getDifficultyChipColor`
+  (the combat bar's own palette, not a second one), the zone the scaled scene lands in at full strength, with a
+  pin above for Now and one below for Scaled.
+- **How many.** A slider, 1 to 20, is the number of the creature in the encounter at the chosen rating:
+  monster CR is the others plus `count` times it. The bands and `chosen` follow it; `now` does not. The
+  slider sits outside the region redrawn while it moves (`_refreshScene` replaces only the meter and table), and
+  letting go does a full render so the band chips catch up. A full render on every `input` would replace the
+  slider under the pointer and end the drag.
+- **Template mode shows no band chips.** A template decides the rating, so there is nothing to pick; the scene
+  table says where it lands.
 - **A failure never costs the window.** A guidance error is logged and the section is omitted.
 - **Scaling from the sidebar** is not subtracted from the scene, since it is not on it.
+
+## Reading the table at a glance
+
+Both tables (the stats, and The scene) have a **Change** column: `_deltaHtml(from, to)` is a chip, `+14` in the
+damage red where the creature gets stronger, `−2` in the info blue where it gets weaker, `0` muted. Hit
+points, damage per hit, damage per round and attacks (`MAGNITUDE_ROWS`) also get `_barsHtml`: two thin bars, now
+and scaled, to one scale per row, with the percentage in the chip's tooltip. The challenge rating row carries no
+chip, since it causes every other change, and a row with no plain number on one side (a formula, a total with no
+before) shows none. The colours are the `--blacksmith-status-*` tokens, so they follow the theme.
 
 ## The dnd5e facts it relies on
 

@@ -81,11 +81,12 @@ export class NpcScalingManager {
      * @param {Actor|Token|TokenDocument|string} target
      * @param {Object} [options]
      * @param {number} [options.cr]  A CR to describe in `chosen`.
+     * @param {number} [options.count=1]  How many of the creature to add at that CR, 1 to 20.
      * @returns {Promise<Object>} `suggestCR`'s result, plus `onScene`. `available` is false when the scene
      *   holds no player character to rate against.
      * @throws {NpcScalingError} NOT_GM, NO_TARGET, NOT_NPC.
      */
-    static async guidance(target, { cr } = {}) {
+    static async guidance(target, { cr, count } = {}) {
         const { actor, token } = await this.resolve(target);
         const own = token ?? actor.token ?? null;
         const placed = canvas?.tokens?.placeables ?? [];
@@ -99,7 +100,8 @@ export class NpcScalingManager {
             partyCR,
             othersCR,
             currentCR: own && Number.isFinite(own5e) ? own5e : null,
-            chosenCR: Number.isFinite(Number(cr)) ? Number(cr) : null,
+            chosenCR: cr !== null && cr !== undefined && Number.isFinite(Number(cr)) ? Number(cr) : null,
+            count,
             difficulty: (party, monsters) => EncounterManager.calculateEncounterDifficulty(party, monsters)
         });
         return { ...result, onScene: Boolean(own) };
