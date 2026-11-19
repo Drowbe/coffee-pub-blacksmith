@@ -23,8 +23,24 @@ import { NpcScalingGuidelines } from './manager-npc-scaling-guidelines.js';
 /** The provenance flag key, under `flags.<module id>`. */
 export const NPC_SCALING_FLAG = 'npcScaling';
 
-/** Fired once after a new actor has been written. */
+/** The flag a TOKEN carries while it is scaled: in place on its own actor, or pointed at a scaled actor. */
+export const NPC_SCALING_TOKEN_FLAG = 'npcScalingToken';
+
+/** Fired once after a new actor has been written, or a token scaled. */
 export const NPC_SCALING_APPLIED_HOOK = 'blacksmith.npcScaling.applied';
+
+/** Fired once after a scaled token has been put back. */
+export const NPC_SCALING_REVERTED_HOOK = 'blacksmith.npcScaling.reverted';
+
+/**
+ * The part of an item's data an edit lives in, so the whole of it can be written and put back. Foundry replaces
+ * an array wholesale, so a damage part cannot be updated by its index: the unit is the damage object, either the
+ * weapon's (`system.damage`) or one activity's (`system.activities.<id>.damage`).
+ */
+const editRoot = (path) => {
+    const seg = String(path).split('.');
+    return (seg[1] === 'activities' ? seg.slice(0, 4) : seg.slice(0, 2)).join('.');
+};
 
 export class NpcScalingManager {
 
@@ -49,8 +65,9 @@ export class NpcScalingManager {
         let doc = target;
         if (typeof doc === 'string') doc = await fromUuid(doc);
         if (doc?.document) doc = doc.document; // a Token placeable
-        const token = doc?.documentName === 'Token' ? doc : null;
-        const actor = token ? token.actor : (doc?.documentName === 'Actor' ? doc : null);
+        const actor = doc?.documentName === 'Token' ? doc.actor : (doc?.documentName === 'Actor' ? doc : null);
+        // An unlinked token's sheet is its synthetic actor's: it still knows which token it belongs to.
+        const token = doc?.documentName === 'Token' ? doc : (actor?.isToken ? actor.token : null);
         if (!actor) throw new NpcScalingError('NO_TARGET', 'There is no creature to scale.');
         if (actor.type !== 'npc') throw new NpcScalingError('NOT_NPC', `${actor.name} is not an NPC; only NPCs can be scaled.`);
 
@@ -294,19 +311,32 @@ export class NpcScalingManager {
     // ==============================================================
 
     /**
-     * Scale a creature into a NEW actor. The source is never changed.
+     * Scale a creature into a NEW actor (`output: 'actor'`, the default), or scale a TOKEN (`output: 'token'`).
+     * The source is never changed.
      *
-     * @param {Actor|Token|TokenDocument|string} target
-     * @param {Object} request  As `plan`, plus `output` ('actor' is the only one yet).
-     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object }>}
+     * A token that is NOT linked to its actor is scaled in place: its own actor is changed, nothing is created, and
+     * `revertToken` puts every changed value back. A LINKED token shares its actor with every other token of it, so
+     * changing that actor would change them all; it gets a new scaled actor and is pointed at it instead, and
+     * reverting points it back. An unlinked token whose actor is already a scaled copy is refused.
+     *
+     * @param {Actor|Token|TokenDocument|string} target  For `output: 'token'`, a token (or an unlinked token's actor).
+     * @param {Object} request  As `plan`, plus `output`: 'actor' or 'token'.
+     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'swap' }>}
      * @throws {NpcScalingError}
      */
     static async apply(target, request = {}) {
         const output = request.output ?? 'actor';
+        if (output === 'token') return this._applyToToken(target, request);
         if (output !== 'actor') {
-            throw new NpcScalingError('UNSUPPORTED_OUTPUT', `Output "${output}" is not available yet; scaling writes a new actor.`);
+            throw new NpcScalingError('UNSUPPORTED_OUTPUT', `Output "${output}" is not known; scaling writes an 'actor', or scales a 'token'.`);
         }
+        const result = await this._createScaledActor(target, request);
+        Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source: result.source, result: result.actor, spec: result.spec, output });
+        return result;
+    }
 
+    /** Write the new actor. Fires no hook: `apply` does, once, for whichever output it was asked for. */
+    static async _createScaledActor(target, request = {}) {
         const planned = await this.plan(target, request);
         const { source, actor: read, spec, updates, itemEdits, preview, warnings, snapshot } = planned;
 
@@ -349,7 +379,6 @@ export class NpcScalingManager {
         if (!created) throw new NpcScalingError('CREATE_FAILED', 'Foundry did not create the scaled actor.');
 
         const result = { actor: created, source, preview, warnings, spec, multiattack };
-        Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source, result: created, spec, output });
         postConsoleAndNotification(MODULE.NAME,
             `NPC Scaling: ${source.name} -> ${created.name} (CR ${EncounterManager.formatCR(crFrom ?? 0)} to ${EncounterManager.formatCR(crTo ?? 0)})`,
             { sourceUuid: source.uuid, actorUuid: created.uuid }, true, false);
@@ -407,6 +436,233 @@ export class NpcScalingManager {
     static _name(base, label, cr) {
         const suffix = String(label ?? '').trim() || `CR ${EncounterManager.formatCR(Number(cr) || 0)}`;
         return `${base} (${suffix})`;
+    }
+
+    // ==============================================================
+    // ===== TOKENS =================================================
+    // ==============================================================
+
+    /**
+     * What a scaled token says about itself, or null for any other token. One flag, written once, before anything
+     * it describes: it holds the original of every value that was changed, so reverting is a read and a write-back,
+     * and a failure halfway can always be undone.
+     * @param {Token|TokenDocument} token
+     * @returns {Object|null} `{ version, mode: 'delta'|'swap', sourceUuid, spec, template, appliedAt, crFrom, crTo, original }`
+     */
+    static tokenScaling(token) {
+        const doc = token?.document ?? token;
+        return doc?.getFlag?.(MODULE.ID, NPC_SCALING_TOKEN_FLAG) ?? null;
+    }
+
+    static async _applyToToken(target, request = {}) {
+        const { token, fromScaled } = await this.resolve(target);
+        if (!token) {
+            throw new NpcScalingError('NO_TOKEN', 'Scaling a token needs a token on a scene. This is an actor: scale it into a new actor, or select its token.');
+        }
+        if (this.tokenScaling(token)) throw new NpcScalingError('ALREADY_SCALED', `${token.name} is already scaled. Revert it first.`);
+
+        const rest = { ...request, output: undefined };
+        let result;
+        if (token.actorLink) {
+            result = await this._swapToken(token, rest);
+        } else {
+            if (fromScaled) {
+                throw new NpcScalingError('ALREADY_SCALED', `${token.name} is already a scaled copy. Scale the original creature instead.`);
+            }
+            result = await this._scaleInPlace(token, rest);
+        }
+        Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source: result.source, result: result.actor, spec: result.spec, output: 'token', token });
+        return result;
+    }
+
+    /**
+     * Scale an unlinked token's own actor. Everything is worked out first (the new values, the originals they
+     * replace, the Multiattack text), the flag holding the originals is written, and only then is anything changed.
+     * An item's damage is written as the whole damage object it lives in, because Foundry replaces arrays.
+     */
+    static async _scaleInPlace(token, request) {
+        const planned = await this.plan(token, request);
+        const { source, actor, spec, updates, itemEdits, preview, warnings, snapshot } = planned;
+        const crFrom = snapshot.cr;
+        const crTo = spec.cr?.to ?? snapshot.cr;
+        const originalName = token.name;
+        const name = this._name(originalName, spec.label, crTo);
+
+        // Pairs, not a map: a path has dots in it, and a flag key with dots is read back as nesting.
+        const stored = actor.toObject();
+        const originalActor = Object.keys(updates).map((path) => ({
+            path, value: foundry.utils.deepClone(foundry.utils.getProperty(stored, path)) ?? null
+        }));
+
+        const edited = new Map();
+        for (const edit of itemEdits) {
+            const item = actor.items.get(edit.itemId);
+            if (!item) continue;
+            let entry = edited.get(item.id);
+            if (!entry) {
+                const data = item.toObject();
+                entry = { data, was: foundry.utils.deepClone(data), roots: new Set() };
+                edited.set(item.id, entry);
+            }
+            for (const [key, value] of Object.entries(edit.set)) foundry.utils.setProperty(entry.data, `${edit.path}.${key}`, value);
+            entry.roots.add(editRoot(edit.path));
+        }
+        const itemPatches = [];
+        const originalItems = [];
+        for (const [id, { data, was, roots }] of edited) {
+            const patch = { _id: id };
+            const prior = [];
+            for (const root of roots) {
+                foundry.utils.setProperty(patch, root, foundry.utils.getProperty(data, root));
+                prior.push({ root, value: foundry.utils.getProperty(was, root) });
+            }
+            itemPatches.push(patch);
+            originalItems.push({ id, roots: prior });
+        }
+
+        const snap = { items: actor.items.map((i) => i.toObject()) };
+        const multiattack = await this._applyMultiattack(snap, source, spec, crTo);
+        let extended = null;
+        let created = null;
+        if (multiattack === 'extended') {
+            const hit = snap.items.find((i) => /multiattack/i.test(i.name));
+            extended = { id: hit._id, was: actor.items.get(hit._id)?.system?.description?.value ?? '', now: hit.system.description.value };
+        } else if (multiattack === 'added') {
+            created = snap.items[snap.items.length - 1];
+            created._id = foundry.utils.randomID(); // known before it exists, so the flag can name it
+        }
+
+        const record = {
+            version: SPEC_VERSION,
+            mode: 'delta',
+            sourceUuid: source.uuid,
+            spec,
+            template: typeof request.template === 'string' ? request.template : (request.template?.id || null),
+            appliedAt: Date.now(),
+            crFrom,
+            crTo,
+            original: {
+                name: originalName,
+                actor: originalActor,
+                items: originalItems,
+                description: extended ? { id: extended.id, value: extended.was } : null,
+                created: created ? created._id : null
+            }
+        };
+
+        await token.setFlag(MODULE.ID, NPC_SCALING_TOKEN_FLAG, record);
+        try {
+            await actor.update(updates);
+            if (itemPatches.length) await actor.updateEmbeddedDocuments('Item', itemPatches);
+            if (extended) await actor.updateEmbeddedDocuments('Item', [{ _id: extended.id, 'system.description.value': extended.now }]);
+            if (created) await actor.createEmbeddedDocuments('Item', [created], { keepId: true });
+            await token.update({ name });
+        } catch (error) {
+            try {
+                await this.revertToken(token);
+            } catch (revertError) {
+                console.error(`${MODULE.NAME} | NPC Scaling: could not undo a half-finished scaling of ${originalName}:`, revertError);
+            }
+            throw error;
+        }
+
+        postConsoleAndNotification(MODULE.NAME,
+            `NPC Scaling: token ${originalName} scaled in place (CR ${EncounterManager.formatCR(crFrom ?? 0)} to ${EncounterManager.formatCR(crTo ?? 0)})`,
+            { tokenUuid: token.uuid }, true, false);
+        return { actor: token.actor, token, source, preview, warnings, spec, multiattack, mode: 'delta' };
+    }
+
+    /**
+     * A linked token shares its actor with every token of it, so that actor cannot be changed for one. Make the
+     * scaled actor and point the token at it. The flag goes in the same update as the new actor id, so the token
+     * never points at the copy without saying what it was.
+     */
+    static async _swapToken(token, request) {
+        const originalActorId = token.actorId;
+        const originalName = token.name;
+        const result = await this._createScaledActor(token, request);
+        const made = this.provenance(result.actor);
+        const name = this._name(originalName, result.spec.label, made?.crTo);
+        const record = {
+            version: SPEC_VERSION,
+            mode: 'swap',
+            sourceUuid: result.source.uuid,
+            spec: result.spec,
+            template: made?.template ?? null,
+            appliedAt: Date.now(),
+            crFrom: made?.crFrom ?? null,
+            crTo: made?.crTo ?? null,
+            original: { actorId: originalActorId, name: originalName },
+            createdActorUuid: result.actor.uuid
+        };
+        await token.update({ actorId: result.actor.id, name, [`flags.${MODULE.ID}.${NPC_SCALING_TOKEN_FLAG}`]: record });
+        return { ...result, token, mode: 'swap' };
+    }
+
+    /**
+     * Put a scaled token back. A token scaled in place has each value it changed written back from the flag, and
+     * the Multiattack it was given removed. A token pointed at a scaled actor is pointed back at its own, and the
+     * scaled actor is LEFT in the directory: it was a real document, may have been edited, and other things may
+     * use it.
+     *
+     * @param {Token|TokenDocument|Actor|string} target
+     * @returns {Promise<{ token: TokenDocument, actor: Actor }>}
+     * @throws {NpcScalingError} NOT_GM, NO_TARGET, NOT_NPC, NO_TOKEN, NOT_SCALED.
+     */
+    static async revertToken(target) {
+        const { token } = await this.resolve(target);
+        if (!token) throw new NpcScalingError('NO_TOKEN', 'There is no token to revert.');
+        const record = this.tokenScaling(token);
+        if (!record) throw new NpcScalingError('NOT_SCALED', `${token.name} is not scaled.`);
+
+        const was = record.original ?? {};
+        if (record.mode === 'swap') {
+            await token.update({ actorId: was.actorId, name: was.name });
+        } else {
+            const actor = token.actor;
+            if (was.created && actor.items.get(was.created)) await actor.deleteEmbeddedDocuments('Item', [was.created]);
+            const patches = [];
+            for (const { id, roots } of was.items ?? []) {
+                if (!actor.items.get(id)) continue;
+                const patch = { _id: id };
+                for (const { root, value } of roots) foundry.utils.setProperty(patch, root, value);
+                patches.push(patch);
+            }
+            if (was.description && actor.items.get(was.description.id)) {
+                patches.push({ _id: was.description.id, 'system.description.value': was.description.value });
+            }
+            if (patches.length) await actor.updateEmbeddedDocuments('Item', patches);
+            const restore = {};
+            for (const { path, value } of was.actor ?? []) restore[path] = value;
+            if (Object.keys(restore).length) await actor.update(restore);
+            await token.update({ name: was.name });
+        }
+        // Last, so a revert that fails partway can be run again.
+        await token.unsetFlag(MODULE.ID, NPC_SCALING_TOKEN_FLAG);
+
+        Hooks.callAll(NPC_SCALING_REVERTED_HOOK, { token, mode: record.mode, sourceUuid: record.sourceUuid });
+        postConsoleAndNotification(MODULE.NAME, `NPC Scaling: token ${token.name} reverted`, { tokenUuid: token.uuid }, true, false);
+        return { token, actor: token.actor };
+    }
+
+    /**
+     * Scale several tokens, each by its own figures: the same request is planned against each creature, so a CR
+     * target moves a goblin and an ogre by different amounts. One that cannot be scaled does not stop the rest.
+     * @param {Array<Token|TokenDocument|string>} targets
+     * @param {Object} request  As `plan`.
+     * @returns {Promise<{ results: Object[], failures: Array<{ target: *, error: Error }> }>}
+     */
+    static async applyToTokens(targets, request = {}) {
+        const results = [];
+        const failures = [];
+        for (const target of targets ?? []) {
+            try {
+                results.push(await this.apply(target, { ...request, output: 'token' }));
+            } catch (error) {
+                failures.push({ target, error });
+            }
+        }
+        return { results, failures };
     }
 
     // ==============================================================

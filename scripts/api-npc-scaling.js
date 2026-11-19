@@ -6,7 +6,7 @@
 //
 // See documentation/api/api-npc-scaling.md.
 
-import { NpcScalingManager, NPC_SCALING_APPLIED_HOOK } from './manager-npc-scaling.js';
+import { NpcScalingManager, NPC_SCALING_APPLIED_HOOK, NPC_SCALING_REVERTED_HOOK } from './manager-npc-scaling.js';
 import { NpcScalingTemplates } from './manager-npc-scaling-templates.js';
 import { NpcScalingGuidelines } from './manager-npc-scaling-guidelines.js';
 import {
@@ -17,6 +17,9 @@ export const NpcScalingAPI = {
 
     /** The hook fired once after a scaled actor is created: `{ source, result, spec, output }`. */
     HOOK_APPLIED: NPC_SCALING_APPLIED_HOOK,
+
+    /** The hook fired once after a scaled token is put back: `{ token, mode, sourceUuid }`. */
+    HOOK_REVERTED: NPC_SCALING_REVERTED_HOOK,
 
     /** The error class every refusal is an instance of; `error.code` is stable. */
     NpcScalingError,
@@ -50,14 +53,45 @@ export const NpcScalingAPI = {
     },
 
     /**
-     * Scale a creature into a NEW actor. The source is never changed.
+     * Scale a creature into a NEW actor (`output: 'actor'`, the default) or scale a token (`output: 'token'`).
+     * The source is never changed. An unlinked token is scaled in place; a linked one gets a new actor and is
+     * pointed at it. Either is undone by `revert`.
      * @param {Actor|Token|TokenDocument|string} target
-     * @param {{ cr?: number, spec?: Object, label?: string, attacksPerRound?: number, output?: 'actor' }} request
-     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object }>}
+     * @param {{ cr?: number, spec?: Object, label?: string, attacksPerRound?: number, output?: 'actor'|'token' }} request
+     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'swap' }>}
      * @throws {NpcScalingError}
      */
     async apply(target, request = {}) {
         return NpcScalingManager.apply(target, request);
+    },
+
+    /**
+     * Scale several tokens at once, each by its own figures. One that cannot be scaled does not stop the rest.
+     * @param {Array<Token|TokenDocument|string>} targets
+     * @param {{ cr?: number, template?: string, label?: string }} request
+     * @returns {Promise<{ results: Object[], failures: Array<{ target: *, error: Error }> }>}
+     */
+    async applyToTokens(targets, request = {}) {
+        return NpcScalingManager.applyToTokens(targets, request);
+    },
+
+    /**
+     * Put a scaled token back as it was.
+     * @param {Token|TokenDocument|Actor|string} target
+     * @returns {Promise<{ token: TokenDocument, actor: Actor }>}
+     * @throws {NpcScalingError} NOT_SCALED when the token is not scaled.
+     */
+    async revert(target) {
+        return NpcScalingManager.revertToken(target);
+    },
+
+    /**
+     * What a scaled token says about itself, or null.
+     * @param {Token|TokenDocument} token
+     * @returns {{ mode: 'delta'|'swap', sourceUuid: string, spec: Object, appliedAt: number, crFrom: number|null, crTo: number|null }|null}
+     */
+    tokenProvenance(token) {
+        return NpcScalingManager.tokenScaling(token);
     },
 
     /**

@@ -28,17 +28,14 @@ Building a table from a compendium is built (`architecture/architecture-npc-scal
   small; a better column would separate the two.
 - **Settings copy** for a toggle or a default, if one is ever wanted, is the author's to write.
 
-## Token-only output
+## Token output: what is left
 
-Scale an unlinked token's own actor in place, for a one-off, without creating a document.
+Built (`architecture/architecture-npc-scaling.md`, Scaling a token). Left:
 
-- Writes the same `updates` to the token's actor (an ActorDelta).
-- **Revert** cannot regenerate from a source, so it stores the original value of every path it touched as
-  one map in one flag write, and restoring writes it back. One key written once is what prevents a second
-  write from clobbering the first.
-- **Batch**: several tokens of one actor, each with its own delta.
-- The window gains an output switch (`.blacksmith-tool-segmented`) only when this exists; `apply` already
-  refuses any output but `'actor'` by name.
+- **Batch in the window.** `applyToTokens` exists; the window scales the one token it was opened for. Opening it
+  with several selected, and a switch to apply to all of one creature's, is the missing piece.
+- **A linked token's scaled actor stays in the directory after Revert.** Deleting it would be tidier and is
+  unsafe: it may have been edited or used elsewhere. A "delete it too" choice on Revert would be the way.
 
 ## Auto-scale on drop
 

@@ -175,17 +175,16 @@ other `new DialogV2` sites (`api-menubar.js` x4, `manager-vote.js` x2, `utility-
 Written and awaiting live verification: `testing/npc-scaling.md`. What is left, and why, is in
 `plans/plan-npc-scaling.md`.
 
-### Token-only output and batch
+### Batch in the Scale NPC window
 
-Scale an unlinked token's own actor in place, with a one-write revert map, and several tokens of one actor at
-once. Touches `manager-npc-scaling.js`; `apply` refuses any output but `'actor'` until it exists. Verified
-live on a pasted group of unlinked tokens.
+`api.npcScaling.applyToTokens` scales several tokens; the window scales one. Open it with several tokens
+selected and offer to apply to all of one creature's. Touches `window-npc-scaling.js`.
 
 ### Auto-scale on drop
 
 A `createToken` handler calling `api.npcScaling.apply(token, { cr, output: 'token' })`, opt-in three-valued.
-Blocked on token-only output, and on the author deciding how a creature's target CR is chosen (`getPartyCR`
-is a party total, not a per-creature rating).
+Blocked on the author deciding how a creature's target CR is chosen (`getPartyCR` is a party total, not a
+per-creature rating).
 
 ---
 

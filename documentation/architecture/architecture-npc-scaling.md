@@ -184,6 +184,36 @@ reads it from the scene.
 - **A failure never costs the window.** A guidance error is logged and the section is omitted.
 - **Scaling from the sidebar** is not subtracted from the scene, since it is not on it.
 
+## Scaling a token
+
+`apply` dispatches on `output`. `'actor'` is `_createScaledActor` (which fires no hook; `apply` fires it once for
+either output). `'token'` is `_applyToToken`, which needs a token (`resolve` now also finds the token of an
+unlinked token's synthetic actor, so its sheet's header control can scale it) and splits on `actorLink`.
+
+- **Unlinked: `_scaleInPlace`.** Everything is worked out first: the engine's `updates`, the originals they
+  replace, the item patches, the Multiattack. Then the flag is written, and only then is anything changed. A
+  failure partway runs `revertToken`, which is safe because the flag already holds every original.
+  - **Pairs, not a map.** The originals are stored as `[{ path, value }]`, because a path has dots in it and a
+    flag key with dots is read back as nesting.
+  - **Items are written as the damage object they live in** (`editRoot`): Foundry replaces an array whole, so a
+    part cannot be updated by index. The unit is `system.damage` or `system.activities.<id>.damage`.
+  - **Multiattack.** The generated text is computed against a snapshot of the items; an extended feature's
+    original description is kept, and an added feature's id is chosen before it exists (`keepId`) so the flag can
+    name it and revert can delete it.
+- **Linked: `_swapToken`.** A linked actor is shared by every token of it, so changing it would change them
+  all. The scaled actor is made as for `output: 'actor'` and the token is pointed at it in one update that
+  also writes the flag. Revert points it back and leaves the actor: it was a real document and may have been
+  edited.
+- **Refusals.** Already scaled (the flag) and an unlinked token whose actor is already a scaled copy, since
+  applying the engine's absolute values over a copy would duplicate its Multiattack. Both say so by code.
+- **Revert** writes the originals back, removes the added Multiattack, restores the name, and removes the flag
+  last, so a revert that fails partway can be run again.
+- **The window** shows a **Result** switch (New actor / This token) only for a token, a hint saying which of the
+  two mechanisms applies, and for an already-scaled token replaces the whole body with what was done and a
+  **Revert Token** button.
+- **Batch** is `applyToTokens`: the request planned against each token's own creature, a failure kept and the
+  rest carried on. It is API only; the window scales the one token it was opened for.
+
 ## Reading the table at a glance
 
 Both tables (the stats, and The scene) have a **Change** column: `_deltaHtml(from, to)` is a chip, `+14` in the

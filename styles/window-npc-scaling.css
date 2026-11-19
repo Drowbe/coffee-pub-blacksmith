@@ -48,6 +48,15 @@
     margin-bottom: 8px;
 }
 
+/* The result of the scaling: a label and the shared segmented switch on one line. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-output {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+}
+
 /* How many of the creature: a label and the shared slider on one line. */
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-count {
     display: grid;

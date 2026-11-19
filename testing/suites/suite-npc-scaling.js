@@ -75,7 +75,7 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('npcScaling');
                 const scaling = api.npcScaling;
-                for (const method of ['preview', 'apply', 'guidance', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
+                for (const method of ['preview', 'apply', 'applyToTokens', 'revert', 'tokenProvenance', 'guidance', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
                     expect.ok(`npcScaling.${method} is a function`, typeof scaling[method] === 'function');
                 }
                 expect.ok('the guidelines table is frozen', Object.isFrozen(scaling.guidelines));
@@ -87,6 +87,93 @@ export default {
                     expect.ok(`npcScaling.templates.${method} is a function`, typeof scaling.templates?.[method] === 'function');
                 }
                 expect('a missing target is refused by code', await code(scaling.preview('Actor.doesNotExist', { cr: 5 })), 'NO_TARGET');
+            }
+        },
+        {
+            id: 'tokens',
+            tier: 'headless',
+            group: 'Token output',
+            label: 'A token is scaled in place (unlinked) or pointed at a scaled actor (linked), and Revert puts it back',
+            note: 'Builds a throwaway scene with two tokens of one goblin. Needs no canvas; the scene and every actor are deleted afterwards.',
+            run: async ({ expect, log }) => {
+                const api = requireApi('npcScaling');
+                const scaling = api.npcScaling;
+                const made = [];
+                const goblin = await makeGoblin();
+                made.push(goblin);
+                let scene = null;
+                try {
+                    const [slash] = await goblin.createEmbeddedDocuments('Item', [{
+                        name: 'Harness Slash',
+                        type: 'feat',
+                        system: {
+                            activities: {
+                                harnessslash0001: {
+                                    _id: 'harnessslash0001',
+                                    type: 'attack',
+                                    activation: { type: 'action' },
+                                    attack: { type: { value: 'melee', classification: 'weapon' }, ability: 'str' },
+                                    damage: { includeBase: false, parts: [{ number: 1, denomination: 6, bonus: '2', types: ['slashing'] }] }
+                                }
+                            }
+                        }
+                    }]);
+                    const part = (actor) => actor.items.find((i) => i.name === 'Harness Slash')?.system.activities.get('harnessslash0001')?.damage?.parts?.[0];
+
+                    scene = await Scene.create({ name: 'Harness NPC Scaling', width: 1000, height: 1000, grid: { size: 100 } });
+                    const [loose, tied] = await scene.createEmbeddedDocuments('Token', [
+                        { name: 'Loose Goblin', actorId: goblin.id, actorLink: false, x: 0, y: 0 },
+                        { name: 'Tied Goblin', actorId: goblin.id, actorLink: true, x: 200, y: 0 }
+                    ]);
+
+                    // ----- unlinked: in place -----
+                    expect('no token is scaled to begin with', [scaling.tokenProvenance(loose), scaling.tokenProvenance(tied)], [null, null]);
+                    const hpBefore = loose.actor.system.attributes.hp.max;
+                    const before = { dice: part(loose.actor).number, name: loose.name, ac: loose.actor.system.attributes.ac.flat };
+                    const res = await scaling.apply(loose, { cr: 12, label: 'Super', output: 'token' });
+                    expect('an unlinked token is scaled in place', res.mode, 'delta');
+                    expect.ok('its own actor changed: more hit points', loose.actor.system.attributes.hp.max > hpBefore);
+                    expect.ok('its attack grew', part(loose.actor).number > before.dice);
+                    expect('the token is renamed', loose.name, 'Loose Goblin (Super)');
+                    expect.ok('it says it was scaled', scaling.tokenProvenance(loose)?.mode === 'delta');
+                    expect('the BASE actor is untouched', [goblin.system.attributes.hp.max, part(goblin).number], [hpBefore, before.dice]);
+                    expect('no new actor was created', game.actors.filter((a) => a.name.startsWith('Harness Goblin (')).length, 0);
+                    expect('a second scaling is refused', await code(scaling.apply(loose, { cr: 5, output: 'token' })), 'ALREADY_SCALED');
+                    log(`in place: hp ${hpBefore} -> ${loose.actor.system.attributes.hp.max}, dice ${before.dice} -> ${part(loose.actor).number}`);
+
+                    await scaling.revert(loose);
+                    expect('revert restores the hit points', loose.actor.system.attributes.hp.max, hpBefore);
+                    expect('and the attack', part(loose.actor).number, before.dice);
+                    expect('and the name', loose.name, before.name);
+                    expect('and removes the flag', scaling.tokenProvenance(loose), null);
+                    expect('reverting a token that is not scaled is refused', await code(scaling.revert(loose)), 'NOT_SCALED');
+
+                    // ----- an actor, not a token -----
+                    expect('scaling an actor as a token is refused', await code(scaling.apply(goblin, { cr: 5, output: 'token' })), 'NO_TOKEN');
+
+                    // ----- linked: a new actor, and the token is pointed at it -----
+                    const swapped = await scaling.apply(tied, { cr: 12, label: 'Super', output: 'token' });
+                    made.push(swapped.actor);
+                    expect('a linked token gets a new actor', swapped.mode, 'swap');
+                    expect.ok('the token points at the new actor', tied.actorId === swapped.actor.id && tied.actorId !== goblin.id);
+                    expect('the shared actor is untouched', goblin.system.attributes.hp.max, hpBefore);
+                    await scaling.revert(tied);
+                    expect('revert points the token back', tied.actorId, goblin.id);
+                    expect('and restores its name', tied.name, 'Tied Goblin');
+                    expect.ok('the scaled actor is left in the directory', !!game.actors.get(swapped.actor.id));
+
+                    // ----- several at once -----
+                    const batch = await scaling.applyToTokens([loose, tied, 'Token.doesNotExist'], { cr: 6, output: 'token' });
+                    expect('both real tokens were scaled', batch.results.length, 2);
+                    expect('the bad one failed alone', batch.failures.length, 1);
+                    for (const r of batch.results) if (r.mode === 'swap') made.push(r.actor);
+                    await scaling.revert(loose);
+                    await scaling.revert(tied);
+                    expect('every token reverts', [scaling.tokenProvenance(loose), scaling.tokenProvenance(tied)], [null, null]);
+                } finally {
+                    try { await scene?.delete(); } catch (_) { /* gone */ }
+                    await cleanup(made);
+                }
             }
         },
         {
