@@ -119,31 +119,41 @@ base of a new one, and with none of those a plain feature is made. `apply` resol
 Templates carry a damage-per-hit amount, which is written the same way; they do not change the attack
 count.
 
-## Scaling a token
+## Scaling in place
 
-`output: 'token'` scales the creature a token stands for, so the one on the scene becomes the stronger one.
+By default the result is a **new actor** and nothing else changes. Two other outputs change something that
+already exists.
 
 ```javascript
-const { token, actor, mode } = await scaling.apply(token, { cr: 12, label: 'Super', output: 'token' });
-await scaling.revert(token);                         // put it back
-scaling.tokenProvenance(token);                      // null, or what was done to it
+await scaling.apply(token, { cr: 12, label: 'Super', output: 'token' });    // an unlinked token's own actor
+await scaling.apply(token, { cr: 12, label: 'Super', output: 'update' });   // the actor itself, and every token linked to it
+await scaling.revert(token);                                                // put it back
+scaling.tokenProvenance(token);                                             // null, or what was done to a token
+scaling.inPlaceProvenance(actor);                                           // null, or what was done to an actor
 const { results, failures } = await scaling.applyToTokens(tokens, { cr: 12 });
 ```
 
-| The token is | What happens | `mode` |
+| `output` | Changes | `mode` |
 |---|---|---|
-| **Unlinked** | Its own actor is changed in place (an ActorDelta). Nothing is created. The token is renamed `Name (Label)`. Hit points, the creature's attacks and a Multiattack are written as for a new actor | `'delta'` |
-| **Linked** | Its actor is shared with every token of it, so it is not changed. A new scaled actor is made and the token is pointed at it | `'swap'` |
+| `'actor'` | Nothing that exists. A new scaled actor is created | |
+| `'token'` | An **unlinked** token's own actor (an ActorDelta). The base actor and every other token are untouched. The token is renamed `Name (Label)` | `'delta'` |
+| `'update'` | The creature's **actor itself**, so every token linked to it, on every scene, shows the change. The actor and its prototype token are renamed `Name (Label)`. Whatever was given (a token or an actor), it is the actor that changes | `'actor'` |
 
-The token carries one flag, `npcScalingToken`, written once and before anything it describes. For an in-place
-scaling it holds the original of every value that was changed, so `revert` writes them back (and removes a
-Multiattack it added); for a swap it holds the original actor id. A token that is already scaled refuses another
-scaling (`ALREADY_SCALED`): revert first, so scalings never stack. `revert` of a swap points the token back
-and **leaves the scaled actor in the directory**. An unlinked token whose actor is already a scaled copy is
-refused, as is an actor that is not a token (`NO_TOKEN`).
+A linked token has no stats of its own, which is why `'token'` refuses one (`LINKED_TOKEN`) and `'update'` is the
+way. Hit points, the creature's attacks and a Multiattack are written as for a new actor, and current hit points
+are set to the new maximum.
 
-`applyToTokens` plans the same request against each token's own creature, so a CR target moves a goblin and an
-ogre by different amounts. A token that cannot be scaled lands in `failures` and does not stop the rest.
+The token or actor carries one flag (`npcScalingToken` or `npcScalingInPlace`), written once and before anything
+it describes. It holds the original of every value that was changed, so `revert` writes them back (and removes a
+Multiattack it added) and restores the name. Given a token, `revert` reverts what carries the flag: the token's
+own scaling, else the actor it is linked to. Something already scaled in place refuses another scaling
+(`ALREADY_SCALED`): revert first, so scalings never stack. An unlinked token or an actor that is already a scaled
+copy is refused too, as is an actor in a compendium (`READ_ONLY`) and, for `'token'`, an actor that is not a token
+(`NO_TOKEN`).
+
+`applyToTokens` plans the same request against each unlinked token's own creature, so a CR target moves a goblin
+and an ogre by different amounts. A token that cannot be scaled, a linked one included, lands in `failures` and
+does not stop the rest.
 
 ## Templates
 
@@ -239,10 +249,12 @@ Every refusal is an `NpcScalingError` (`scaling.NpcScalingError`), with a stable
 | `BAD_SPEC` | No `cr`, `template` or `spec`, an unknown spec version, or a malformed spec |
 | `BAD_TEMPLATE` | A template that does not exist, has no name, or an import file that is not a template library |
 | `NO_PATH` | The actor has nowhere to write a change the spec asks for |
-| `UNSUPPORTED_OUTPUT` | `output` is neither `'actor'` nor `'token'` |
-| `NO_TOKEN` | `output: 'token'` (or `revert`) was given an actor that is not a token |
-| `ALREADY_SCALED` | The token is already scaled (revert it first), or is an unlinked token whose actor is already a scaled copy |
-| `NOT_SCALED` | `revert` was given a token that is not scaled |
+| `UNSUPPORTED_OUTPUT` | `output` is none of `'actor'`, `'token'` and `'update'` |
+| `NO_TOKEN` | `output: 'token'` was given an actor that is not a token |
+| `LINKED_TOKEN` | `output: 'token'` was given a linked token: use `'update'` or `'actor'` |
+| `READ_ONLY` | `output: 'update'` was given an actor in a compendium |
+| `ALREADY_SCALED` | It is already scaled in place (revert it first), or is a scaled copy that cannot be scaled again in place |
+| `NOT_SCALED` | `revert` was given something that is not scaled in place |
 | `CREATE_FAILED` | Foundry did not create the actor |
 | `NO_PACK` | `buildGuidelines` was given no actor compendium that exists |
 | `BAD_TABLE` | No creature gave a usable figure for a column, or `setGuidelines` was given a table whose rows are missing or fall |
@@ -255,8 +267,8 @@ Opens the scaling window for a creature, or focuses the one already open for it.
 ## The hook
 
 ```javascript
-Hooks.on('blacksmith.npcScaling.applied', ({ source, result, spec, output, token }) => { /* ... */ });   // output is 'actor' or 'token'; token is set for 'token'
-Hooks.on('blacksmith.npcScaling.reverted', ({ token, mode, sourceUuid }) => { /* ... */ });
+Hooks.on('blacksmith.npcScaling.applied', ({ source, result, spec, output, token }) => { /* ... */ });   // output is 'actor', 'token' or 'update'; token is set for 'token'
+Hooks.on('blacksmith.npcScaling.reverted', ({ token, actor, mode, sourceUuid }) => { /* ... */ });   // token is null when an actor was reverted
 ```
 
 Fired once on the GM's client after the new actor exists. `source` is the Actor it was scaled from, `result`

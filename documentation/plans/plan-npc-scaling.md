@@ -28,14 +28,16 @@ Building a table from a compendium is built (`architecture/architecture-npc-scal
   small; a better column would separate the two.
 - **Settings copy** for a toggle or a default, if one is ever wanted, is the author's to write.
 
-## Token output: what is left
+## In-place output: what is left
 
-Built (`architecture/architecture-npc-scaling.md`, Scaling a token). Left:
+Built (`architecture/architecture-npc-scaling.md`, Scaling in place). Left:
 
-- **Batch in the window.** `applyToTokens` exists; the window scales the one token it was opened for. Opening it
+- **Batch in the window.** `applyToTokens` exists; the window scales the one creature it was opened for. Opening it
   with several selected, and a switch to apply to all of one creature's, is the missing piece.
-- **A linked token's scaled actor stays in the directory after Revert.** Deleting it would be tidier and is
-  unsafe: it may have been edited or used elsewhere. A "delete it too" choice on Revert would be the way.
+- **Token names after an update.** `'update'` renames the actor and its prototype token; tokens already on a scene
+  keep their own names. Renaming them would mean recording each one for revert.
+- **Unlink, scale, re-link** for a linked token, as a third way to change one token without touching the actor.
+  Rejected for now: damage taken while unlinked is lost when it re-links.
 
 ## Auto-scale on drop
 

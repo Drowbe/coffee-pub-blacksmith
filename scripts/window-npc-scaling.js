@@ -94,8 +94,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         this._attacks = null;
         this._attacksTo = null;
         this._count = 1;
+        this._crCustom = false;
         this._output = 'actor';
-        this._hasToken = false;
         this._chosenCR = null;
         this._sceneSeq = 0;
         this._busy = false;
@@ -114,12 +114,13 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         }
         const { actor, source, fromScaled } = resolved;
 
-        // A token already scaled is offered its way back, not another scaling on top.
-        const scaledToken = resolved.token ? NpcScalingManager.tokenScaling(resolved.token) : null;
-        if (scaledToken) return this._revertView(resolved.token, scaledToken);
-        this._hasToken = Boolean(resolved.token);
-        // An unlinked token whose actor is already a scaled copy cannot be scaled in place; the switch says so.
-        const tokenBlocked = this._output === 'token' && this._hasToken && !resolved.token.actorLink && fromScaled;
+        // Something already scaled in place is offered its way back, not another scaling on top.
+        const scaledState = NpcScalingManager.inPlaceState(resolved);
+        if (scaledState) return this._revertView(scaledState);
+        const choices = this._outputChoices(resolved);
+        if (!choices.some((c) => c.value === this._output)) this._output = 'actor';
+        const real = resolved.token?.baseActor ?? actor;
+        const blocked = this._outputBlocked(resolved, real, fromScaled);
         const read = fromScaled ? source : actor;
         const snapshot = NpcScalingManager.snapshot(read);
 
@@ -145,7 +146,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         }
 
         const attacks = planned?.snapshot?.attacksPerRound ?? snapshot.attacksPerRound;
-        this._canApply = Boolean(planned) && !this._busy && !tokenBlocked;
+        this._canApply = Boolean(planned) && !this._busy && !blocked;
 
         // The scene's own reading of what rating to aim for. A failure here is never worth losing the window.
         let guidance = null;
@@ -156,6 +157,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             console.warn(`${MODULE.NAME} | NPC Scaling: scene guidance unavailable:`, error);
         }
 
+        // The select is the way to an exact rating: shown for Custom, and when there is no scene to aim from.
+        const showSelect = this._mode === 'cr' && (this._crCustom || !guidance?.available);
         const crSelect = CR_OPTIONS.map((key) => {
             const value = EncounterManager.parseCR(key);
             return `<option value="${key}"${value === this._cr ? ' selected' : ''}>${key}</option>`;
@@ -191,8 +194,8 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                     </div>
                     ${this._mode === 'template' ? this._templatePickerHtml(templates, template) : ''}
                     ${this._guidanceHtml(guidance)}
-                    <div class="blacksmith-npc-scaling-fields${this._mode === 'template' ? ' is-single' : ''}">
-                        ${this._mode === 'cr' ? `<label class="blacksmith-npc-scaling-field">
+                    <div class="blacksmith-npc-scaling-fields${showSelect ? '' : ' is-single'}">
+                        ${showSelect ? `<label class="blacksmith-npc-scaling-field">
                             <span>Challenge rating</span>
                             <select class="blacksmith-select" name="npc-scaling-cr">${crSelect}</select>
                         </label>` : ''}
@@ -204,7 +207,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                             </span>
                         </div>
                     </div>
-                    ${this._outputHtml(resolved, tokenBlocked)}
+                    ${this._outputHtml(choices, blocked, resolved, real)}
                 </div>
 
                 ${this._balanceHtml(guidance)}
@@ -227,29 +230,40 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             toolFooterLeft: fromScaled
                 ? `<button type="button" class="blacksmith-window-btn-secondary" data-action="npc-scaling-open-source" data-tooltip="Open ${esc(source.name)}, the creature this was scaled from"><i class="fa-solid fa-user"></i> Open Source</button>`
                 : '',
-            toolFooterRight: this._applyButtonHtml(source, resolved.token)
+            toolFooterRight: this._applyButtonHtml(source, real)
         };
     }
 
     /**
-     * Which rating to aim for, from the scene: a band is a chip that sets the CR. Shown for a CR retarget only. A
-     * template decides its own rating, so there is nothing to pick, and the scene table says where it lands.
+     * Which rating to aim for, from the scene. Each chip is a difficulty and shows the challenge rating it sets,
+     * the lowest that reaches it; **Custom** is the way to any other rating, and the only thing that shows the select.
+     * For a CR retarget only: a template decides its own rating, and the scene table says where it lands.
      */
     _guidanceHtml(g) {
         if (!g || this._mode !== 'cr') return '';
         if (!g.available) {
             return `<div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Put the party's tokens on this scene to see which challenge rating would make it Easy, Hard or Deadly.</div>`;
         }
-        const range = (b) => (b.from === b.to ? EncounterManager.formatCR(b.from) : `${EncounterManager.formatCR(b.from)}\u2013${EncounterManager.formatCR(b.to)}`);
-        const inBand = (b) => g.chosen && g.chosen.cr >= b.from && g.chosen.cr <= b.to;
-        const chips = g.bands.map((b) => `<label class="blacksmith-tool-chip is-selectable" data-tooltip="Set the challenge rating to ${esc(EncounterManager.formatCR(b.from))}, the lowest that makes this ${esc(b.label)}">
-                    <input type="radio" name="npc-scaling-band" value="${b.from}"${inBand(b) ? ' checked' : ''}>
-                    <span>${esc(b.label)} ${esc(range(b))}</span>
-                </label>`).join('');
-        const many = g.count > 1 ? `${g.count} of them` : 'this creature';
+        const cr = (n) => EncounterManager.formatCR(n);
+        const inBand = (band) => !this._crCustom && g.chosen && g.chosen.cr >= band.from && g.chosen.cr <= band.to;
+        const chip = (value, label, tip, checked) => `<label class="blacksmith-tool-chip is-selectable" data-tooltip="${esc(tip)}">
+                    <input type="radio" name="npc-scaling-band" value="${value}"${checked ? ' checked' : ''}>
+                    <span>${esc(label)}</span>
+                </label>`;
+        const chips = g.bands.map((band) => chip(
+            band.from,
+            `${band.label} \u00b7 CR ${cr(band.from)}`,
+            `Set the challenge rating to ${cr(band.from)}, the lowest that makes this ${band.label}.${band.to > band.from ? ` Up to CR ${cr(band.to)} stays ${band.label}.` : ''}`,
+            inBand(band)
+        )).join('') + chip('custom', 'Custom', 'Choose any challenge rating', this._crCustom);
+        const many = g.count > 1 ? ` with ${g.count} of them` : '';
+        const at = g.chosen ? `Scaling to CR ${cr(g.chosen.cr)}. ` : '';
         return `
-            <div class="blacksmith-tool-chips blacksmith-npc-scaling-bands">${chips}</div>
-            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">Each range is the challenge ratings that make the scene that hard with ${many} counted in.</div>`;
+            <div class="blacksmith-npc-scaling-aim">
+                <span>Aim for</span>
+                <div class="blacksmith-tool-chips blacksmith-npc-scaling-bands">${chips}</div>
+            </div>
+            <div class="blacksmith-tool-hint blacksmith-npc-scaling-guidance">${at}Each choice is the lowest challenge rating that makes the scene that hard${many}.</div>`;
     }
 
     /**
@@ -334,43 +348,63 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         if (region) region.innerHTML = this._sceneBodyHtml(g);
     }
 
-    /** What the result of the scaling is: a new actor, or this token. Only offered for a token. */
-    _outputHtml(resolved, blocked) {
-        const token = resolved.token;
-        if (!token) return '';
-        const radio = (value, label, tip) => `<label class="blacksmith-tool-segment" data-tooltip="${esc(tip)}"><input type="radio" name="npc-scaling-output" value="${value}"${this._output === value ? ' checked' : ''}><span>${label}</span></label>`;
-        let hint = '';
-        if (this._output === 'token') {
-            if (blocked) hint = `${esc(token.name)} is already a scaled copy, so it cannot be scaled again in place. Scale the original creature instead.`;
-            else if (token.actorLink) hint = 'This token is linked to its actor, which other tokens share, so a new actor is made and the token is pointed at it. Reverting points it back and leaves that actor in the directory.';
-            else hint = "This token's own actor is changed in place. Nothing is created, and Revert puts every changed value back.";
+    /**
+     * What the scaling can write here. An unlinked token has stats of its own, so it can be scaled itself. A linked
+     * token, and an actor, have none: what changes is the actor, and with it every token linked to it.
+     */
+    _outputChoices(resolved) {
+        const newActor = { value: 'actor', label: 'New actor', tip: 'Create a new actor and leave this creature alone' };
+        if (resolved.token && !resolved.token.actorLink) {
+            return [newActor, { value: 'token', label: 'This token', tip: 'Scale the token on the scene' }];
+        }
+        return [newActor, { value: 'update', label: 'Update actor', tip: 'Change the actor itself, and every token linked to it' }];
+    }
+
+    /** Why the chosen result cannot be done here, or an empty string. */
+    _outputBlocked(resolved, real, fromScaled) {
+        if (this._output === 'token' && fromScaled) {
+            return `${resolved.token.name} is already a scaled copy, so it cannot be scaled again in place. Scale the original creature instead.`;
+        }
+        if (this._output === 'update') {
+            if (real.pack) return `${real.name} is in a compendium and cannot be changed. Scale it into a new actor instead.`;
+            if (fromScaled) return `${real.name} is already a scaled copy, so it cannot be scaled again in place. Scale the original creature instead.`;
+        }
+        return '';
+    }
+
+    /** The Result switch and a line saying what the chosen one does. */
+    _outputHtml(choices, blocked, resolved, real) {
+        const radio = (c) => `<label class="blacksmith-tool-segment" data-tooltip="${esc(c.tip)}"><input type="radio" name="npc-scaling-output" value="${c.value}"${this._output === c.value ? ' checked' : ''}><span>${esc(c.label)}</span></label>`;
+        let hint = blocked;
+        if (!hint && this._output === 'token') hint = "This token's own actor is changed in place. Nothing is created, and Revert puts every changed value back.";
+        if (!hint && this._output === 'update') {
+            hint = `${real.name} itself is changed, not a copy, and renamed. Every token linked to it, on every scene, changes too. You are asked to confirm, and Revert puts every changed value back.`;
         }
         return `
             <div class="blacksmith-npc-scaling-output">
                 <span>Result</span>
-                <div class="blacksmith-tool-segmented" role="radiogroup" aria-label="Result">
-                    ${radio('actor', 'New actor', 'Create a new actor and leave this token alone')}
-                    ${radio('token', 'This token', 'Scale the token on the scene')}
-                </div>
+                <div class="blacksmith-tool-segmented" role="radiogroup" aria-label="Result">${choices.map(radio).join('')}</div>
             </div>
-            ${hint ? `<div class="blacksmith-tool-hint">${hint}</div>` : ''}`;
+            ${hint ? `<div class="blacksmith-tool-hint">${esc(hint)}</div>` : ''}`;
     }
 
     /** The one write, labelled for what it does. */
-    _applyButtonHtml(source, token) {
+    _applyButtonHtml(source, real) {
         const disabled = this._canApply ? '' : ' disabled';
-        if (token && this._output === 'token') {
-            return `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-apply"${disabled} data-tooltip="Scale ${esc(token.name)} on the scene. Revert puts it back."><i class="fa-solid fa-arrow-up-right-dots"></i> Scale This Token</button>`;
-        }
-        return `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-apply"${disabled} data-tooltip="Create a new actor at this challenge rating. ${esc(source.name)} is not changed."><i class="fa-solid fa-plus"></i> Create Scaled Actor</button>`;
+        const button = (icon, label, tip) => `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-apply"${disabled} data-tooltip="${esc(tip)}"><i class="fa-solid ${icon}"></i> ${label}</button>`;
+        if (this._output === 'token') return button('fa-arrow-up-right-dots', 'Scale This Token', 'Scale this token on the scene. Revert puts it back.');
+        if (this._output === 'update') return button('fa-arrow-up-right-dots', 'Update Actor', `Change ${real.name} itself, and every token linked to it. You are asked to confirm.`);
+        return button('fa-plus', 'Create Scaled Actor', `Create a new actor at this challenge rating. ${source.name} is not changed.`);
     }
 
-    /** A scaled token: what was done to it, and the way back. */
-    _revertView(token, record) {
+    /** Something scaled in place: what was done to it, and the way back. */
+    _revertView(state) {
+        const { record, kind, name } = state;
         const cr = (n) => EncounterManager.formatCR(n ?? 0);
-        const how = record.mode === 'swap'
-            ? 'It now points at a scaled actor made from its own. Reverting points it back and leaves that actor in the directory.'
+        const how = kind === 'actor'
+            ? 'The actor itself was changed, so every token linked to it shows the change. Reverting puts every changed value back.'
             : 'Its own actor was changed in place. Reverting puts every changed value back.';
+        const label = kind === 'actor' ? 'Revert Actor' : 'Revert Token';
         return {
             appId: WINDOW_ID,
             bodyContent: `
@@ -378,16 +412,16 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
                     <div class="blacksmith-tool-section is-ruleless">
                         <div class="blacksmith-tool-section-title">
                             <i class="fa-solid fa-skull"></i>
-                            <span>${esc(token.name)}</span>
+                            <span>${esc(name)}</span>
                             <span class="blacksmith-tool-section-actions">
                                 <span class="blacksmith-badge blacksmith-badge-info">CR ${esc(cr(record.crFrom))} to ${esc(cr(record.crTo))}</span>
                             </span>
                         </div>
-                        <div class="blacksmith-tool-hint">This token has been scaled (${esc(new Date(record.appliedAt).toLocaleString())}). ${esc(how)}</div>
+                        <div class="blacksmith-tool-hint">This has been scaled (${esc(new Date(record.appliedAt).toLocaleString())}). ${esc(how)}</div>
                         <div class="blacksmith-tool-hint">Revert it to scale it again; a new scaling starts from the original, so the two do not stack.</div>
                     </div>
                 </div>`,
-            toolFooterRight: `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-revert" data-tooltip="Put ${esc(token.name)} back as it was"><i class="fa-solid fa-rotate-left"></i> Revert Token</button>`
+            toolFooterRight: `<button type="button" class="blacksmith-window-btn-primary" data-action="npc-scaling-revert" data-tooltip="Put ${esc(name)} back as it was"><i class="fa-solid fa-rotate-left"></i> ${label}</button>`
         };
     }
 
@@ -417,10 +451,9 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         const t = Number(row.to);
         const max = Math.max(f, t);
         if (!(max > 0)) return '';
-        const dir = t > f ? 'is-up' : t < f ? 'is-down' : 'is-flat';
         return `<span class="blacksmith-npc-scaling-bars" aria-hidden="true">
-                <span class="blacksmith-npc-scaling-bar is-now" style="width:${((f / max) * 100).toFixed(1)}%"></span>
-                <span class="blacksmith-npc-scaling-bar is-scaled ${dir}" style="width:${((t / max) * 100).toFixed(1)}%"></span>
+                <span class="blacksmith-npc-scaling-track-bar"><span class="blacksmith-npc-scaling-bar is-now" style="width:${((f / max) * 100).toFixed(1)}%"></span></span>
+                <span class="blacksmith-npc-scaling-track-bar"><span class="blacksmith-npc-scaling-bar is-scaled" style="width:${((t / max) * 100).toFixed(1)}%"></span></span>
             </span>`;
     }
 
@@ -477,7 +510,7 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
     /** What the current choices ask the manager to do. One place, so the preview and the apply cannot disagree. */
     _request() {
         const request = { label: this._label, attacksPerRound: this._attacks ?? undefined, attacksTo: this._attacksTo ?? undefined };
-        if (this._hasToken && this._output === 'token') request.output = 'token';
+        if (this._output === 'token' || this._output === 'update') request.output = this._output;
         if (this._mode === 'template') request.template = this._templateId;
         else request.cr = this._cr;
         return request;
@@ -804,6 +837,20 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         if (!root || this._wired) return;
         this._wired = true;
 
+        // The aim chips act on CLICK, not change: the lit one can be pressed again to snap back to its lowest rating.
+        root.addEventListener('click', (event) => {
+            const band = event.target?.closest?.('input[name="npc-scaling-band"]');
+            if (!band) return;
+            if (band.value === 'custom') {
+                this._crCustom = true;
+            } else {
+                this._crCustom = false;
+                this._cr = Number(band.value);
+                this._attacksTo = null; // as for the select: the attack count follows the new rating
+            }
+            this.render();
+        });
+
         // The count slider, live: only the meter and table are redrawn, so the slider under the pointer survives.
         root.addEventListener('input', (event) => {
             const range = event.target?.closest?.('input[name="npc-scaling-count"]');
@@ -831,19 +878,12 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
             }
             const output = event.target?.closest?.('input[name="npc-scaling-output"]');
             if (output) {
-                this._output = output.value === 'token' ? 'token' : 'actor';
+                this._output = ['token', 'update'].includes(output.value) ? output.value : 'actor';
                 this.render();
                 return;
             }
             // The slider moves live (see the input listener below); letting go redraws the rest, whose bands depend on it.
             if (event.target?.closest?.('input[name="npc-scaling-count"]')) {
-                this.render();
-                return;
-            }
-            const band = event.target?.closest?.('input[name="npc-scaling-band"]');
-            if (band) {
-                this._cr = Number(band.value);
-                this._attacksTo = null; // as for the select: the attack count follows the new rating
                 this.render();
                 return;
             }
@@ -887,9 +927,31 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         this._busy = true;
         try {
             const request = this._request();
+            if (request.output === 'update') {
+                const { actor: target, token: targetToken } = await NpcScalingManager.resolve(this._target);
+                const real = targetToken?.baseActor ?? target;
+                const confirmed = await DialogAPI.confirm({
+                    title: 'Update Actor',
+                    content: `<p>Update <strong>${esc(real.name)}</strong> itself? It is renamed, and every token linked to it, on every scene, changes with it. Revert puts every changed value back.</p>`,
+                    confirmLabel: 'Update Actor',
+                    confirmIcon: 'fa-solid fa-arrow-up-right-dots',
+                    destructive: true
+                });
+                if (!confirmed) return;
+            }
             const result = await NpcScalingManager.apply(this._target, request);
             const { actor } = result;
-            if (request.output === 'token') {
+            if (request.output === 'update') {
+                ToastAPI.show({
+                    title: 'Actor updated',
+                    subtitle: actor.name,
+                    icon: 'fa-solid fa-arrow-up-right-dots',
+                    moduleId: MODULE.ID,
+                    duration: 8,
+                    callToAction: 'Open sheet',
+                    onClick: () => actor.sheet?.render(true)
+                });
+            } else if (request.output === 'token') {
                 ToastAPI.show({
                     title: 'Token scaled',
                     subtitle: result.token.name,
@@ -926,10 +988,10 @@ export class NpcScalingWindow extends BlacksmithToolWindowBaseV2 {
         if (this._busy) return;
         this._busy = true;
         try {
-            const { token } = await NpcScalingManager.revertToken(this._target);
+            const { token, actor } = await NpcScalingManager.revert(this._target);
             ToastAPI.show({
-                title: 'Token reverted',
-                subtitle: token.name,
+                title: token ? 'Token reverted' : 'Actor reverted',
+                subtitle: (token ?? actor).name,
                 icon: 'fa-solid fa-rotate-left',
                 moduleId: MODULE.ID,
                 duration: 6

@@ -40,6 +40,21 @@
     margin-top: 8px;
 }
 
+/* The aim row: a label, then the chips. */
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-aim {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-aim > span {
+    flex: none;
+    padding-top: 3px;
+    color: var(--blacksmith-tool-text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bands {
     margin-bottom: 4px;
 }
@@ -242,16 +257,26 @@
     background: color-mix(in srgb, var(--blacksmith-status-info) 16%, transparent);
 }
 
-/* Now and scaled as two thin bars to one scale, spanning the row under its figures. */
+/* Now and scaled as two thin bars to one scale, each in a faint track so a full-width one does not read as a
+   divider. Neutral on purpose: the change chip carries the colour, and scaled is a darker shade of now. */
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bars {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     grid-column: 1 / -1;
 }
 
-.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar {
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-track-bar {
+    display: block;
     height: 4px;
+    overflow: hidden;
+    border-radius: 2px;
+    background: color-mix(in srgb, var(--blacksmith-tool-text-muted) 14%, transparent);
+}
+
+.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar {
+    display: block;
+    height: 100%;
     border-radius: 2px;
     transition: width 0.2s ease;
 }
@@ -262,15 +287,7 @@
 }
 
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled {
-    background: var(--blacksmith-tool-text-muted);
-}
-
-.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled.is-up {
-    background: var(--blacksmith-status-damage);
-}
-
-.blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-bar.is-scaled.is-down {
-    background: var(--blacksmith-status-info);
+    background: color-mix(in srgb, var(--blacksmith-tool-text-muted) 50%, var(--blacksmith-tool-text));
 }
 
 .blacksmith-npc-scaling-tool-window .blacksmith-npc-scaling-row.is-head > span:nth-child(n+2) {

@@ -23,13 +23,16 @@ import { NpcScalingGuidelines } from './manager-npc-scaling-guidelines.js';
 /** The provenance flag key, under `flags.<module id>`. */
 export const NPC_SCALING_FLAG = 'npcScaling';
 
-/** The flag a TOKEN carries while it is scaled: in place on its own actor, or pointed at a scaled actor. */
+/** The flag an unlinked TOKEN carries while its own actor is scaled in place. */
 export const NPC_SCALING_TOKEN_FLAG = 'npcScalingToken';
 
-/** Fired once after a new actor has been written, or a token scaled. */
+/** The flag an ACTOR carries while it is scaled in place, which every token linked to it shows. */
+export const NPC_SCALING_ACTOR_FLAG = 'npcScalingInPlace';
+
+/** Fired once after a new actor has been written, or a token or an actor scaled in place. */
 export const NPC_SCALING_APPLIED_HOOK = 'blacksmith.npcScaling.applied';
 
-/** Fired once after a scaled token has been put back. */
+/** Fired once after a token or actor scaled in place has been put back. */
 export const NPC_SCALING_REVERTED_HOOK = 'blacksmith.npcScaling.reverted';
 
 /**
@@ -311,24 +314,28 @@ export class NpcScalingManager {
     // ==============================================================
 
     /**
-     * Scale a creature into a NEW actor (`output: 'actor'`, the default), or scale a TOKEN (`output: 'token'`).
-     * The source is never changed.
+     * Scale a creature. `output` says what to write:
      *
-     * A token that is NOT linked to its actor is scaled in place: its own actor is changed, nothing is created, and
-     * `revertToken` puts every changed value back. A LINKED token shares its actor with every other token of it, so
-     * changing that actor would change them all; it gets a new scaled actor and is pointed at it instead, and
-     * reverting points it back. An unlinked token whose actor is already a scaled copy is refused.
+     * - `'actor'` (the default): a NEW actor. The source is never changed.
+     * - `'token'`: an UNLINKED token's own actor, in place. Nothing is created and the base actor is untouched. A
+     *   LINKED token is refused (`LINKED_TOKEN`): it has no stats of its own to change.
+     * - `'update'`: the creature's ACTOR itself, in place, so every token linked to it, on every scene, shows the
+     *   change. A compendium actor is refused (`READ_ONLY`).
      *
-     * @param {Actor|Token|TokenDocument|string} target  For `output: 'token'`, a token (or an unlinked token's actor).
-     * @param {Object} request  As `plan`, plus `output`: 'actor' or 'token'.
-     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'swap' }>}
+     * Both in-place outputs keep the original of every value they change, and `revert` writes them back. An
+     * unlinked token or actor that is already a scaled copy is refused.
+     *
+     * @param {Actor|Token|TokenDocument|string} target  For `'token'`, a token (or an unlinked token's actor).
+     * @param {Object} request  As `plan`, plus `output`: 'actor', 'token' or 'update'.
+     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'actor' }>}
      * @throws {NpcScalingError}
      */
     static async apply(target, request = {}) {
         const output = request.output ?? 'actor';
         if (output === 'token') return this._applyToToken(target, request);
+        if (output === 'update') return this._applyUpdate(target, request);
         if (output !== 'actor') {
-            throw new NpcScalingError('UNSUPPORTED_OUTPUT', `Output "${output}" is not known; scaling writes an 'actor', or scales a 'token'.`);
+            throw new NpcScalingError('UNSUPPORTED_OUTPUT', `Output "${output}" is not known; use 'actor', 'token' or 'update'.`);
         }
         const result = await this._createScaledActor(target, request);
         Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source: result.source, result: result.actor, spec: result.spec, output });
@@ -439,54 +446,99 @@ export class NpcScalingManager {
     }
 
     // ==============================================================
-    // ===== TOKENS =================================================
+    // ===== SCALING IN PLACE =======================================
     // ==============================================================
 
     /**
-     * What a scaled token says about itself, or null for any other token. One flag, written once, before anything
-     * it describes: it holds the original of every value that was changed, so reverting is a read and a write-back,
+     * What a token scaled in place says about itself, or null. One flag, written once and before anything it
+     * describes: it holds the original of every value that was changed, so reverting is a read and a write-back,
      * and a failure halfway can always be undone.
      * @param {Token|TokenDocument} token
-     * @returns {Object|null} `{ version, mode: 'delta'|'swap', sourceUuid, spec, template, appliedAt, crFrom, crTo, original }`
+     * @returns {Object|null} `{ version, mode: 'delta', sourceUuid, spec, template, appliedAt, crFrom, crTo, original }`
      */
     static tokenScaling(token) {
         const doc = token?.document ?? token;
         return doc?.getFlag?.(MODULE.ID, NPC_SCALING_TOKEN_FLAG) ?? null;
     }
 
+    /**
+     * What an actor scaled in place says about itself, or null. As `tokenScaling`, with `mode: 'actor'`.
+     * @param {Actor} actor  The real actor, not an unlinked token's synthetic one.
+     * @returns {Object|null}
+     */
+    static actorScaling(actor) {
+        return actor?.getFlag?.(MODULE.ID, NPC_SCALING_ACTOR_FLAG) ?? null;
+    }
+
+    /**
+     * Whether the thing resolved is scaled in place, and which of the two carries it: its token, or the actor the
+     * token is linked to. Both look the same to a person; they revert differently.
+     * @param {{ actor: Actor, token: TokenDocument|null }} resolved  What `resolve` returned.
+     * @returns {{ kind: 'token'|'actor', record: Object, name: string }|null}
+     */
+    static inPlaceState({ actor, token }) {
+        const tokenRecord = token ? this.tokenScaling(token) : null;
+        if (tokenRecord) return { kind: 'token', record: tokenRecord, name: token.name };
+        const real = token?.baseActor ?? actor;
+        const record = this.actorScaling(real);
+        return record ? { kind: 'actor', record, name: real.name } : null;
+    }
+
+    /** `output: 'token'`: an unlinked token's own actor, in place. */
     static async _applyToToken(target, request = {}) {
         const { token, fromScaled } = await this.resolve(target);
         if (!token) {
-            throw new NpcScalingError('NO_TOKEN', 'Scaling a token needs a token on a scene. This is an actor: scale it into a new actor, or select its token.');
+            throw new NpcScalingError('NO_TOKEN', 'Scaling a token needs a token on a scene. This is an actor: scale it into a new actor, update it, or select its token.');
+        }
+        if (token.actorLink) {
+            throw new NpcScalingError('LINKED_TOKEN',
+                `${token.name} is linked to its actor, so it has no stats of its own to change. Use output 'update' to scale the actor (every token linked to it changes), or 'actor' for a new one.`);
         }
         if (this.tokenScaling(token)) throw new NpcScalingError('ALREADY_SCALED', `${token.name} is already scaled. Revert it first.`);
+        if (fromScaled) throw new NpcScalingError('ALREADY_SCALED', `${token.name} is already a scaled copy. Scale the original creature instead.`);
 
-        const rest = { ...request, output: undefined };
-        let result;
-        if (token.actorLink) {
-            result = await this._swapToken(token, rest);
-        } else {
-            if (fromScaled) {
-                throw new NpcScalingError('ALREADY_SCALED', `${token.name} is already a scaled copy. Scale the original creature instead.`);
-            }
-            result = await this._scaleInPlace(token, rest);
-        }
+        const result = await this._scaleInPlace(token, { ...request, output: undefined });
         Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source: result.source, result: result.actor, spec: result.spec, output: 'token', token });
         return result;
     }
 
     /**
-     * Scale an unlinked token's own actor. Everything is worked out first (the new values, the originals they
-     * replace, the Multiattack text), the flag holding the originals is written, and only then is anything changed.
-     * An item's damage is written as the whole damage object it lives in, because Foundry replaces arrays.
+     * `output: 'update'`: the creature's actor itself, in place. Whatever was given, a token or an actor, it is the
+     * actor the tokens are linked to that changes, so every one of them shows it.
      */
-    static async _scaleInPlace(token, request) {
-        const planned = await this.plan(token, request);
+    static async _applyUpdate(target, request = {}) {
+        const resolved = await this.resolve(target);
+        const real = resolved.token?.baseActor ?? resolved.actor;
+        if (real.pack) throw new NpcScalingError('READ_ONLY', `${real.name} is in a compendium and cannot be changed. Scale it into a new actor instead.`);
+        if (this.actorScaling(real)) throw new NpcScalingError('ALREADY_SCALED', `${real.name} has already been updated. Revert it first.`);
+        const { fromScaled } = await this.resolve(real);
+        if (fromScaled) throw new NpcScalingError('ALREADY_SCALED', `${real.name} is already a scaled copy. Scale the original creature instead.`);
+
+        const result = await this._scaleInPlace(real, { ...request, output: undefined });
+        Hooks.callAll(NPC_SCALING_APPLIED_HOOK, { source: result.source, result: result.actor, spec: result.spec, output: 'update' });
+        return result;
+    }
+
+    /**
+     * Scale a document in place: an unlinked token (its own actor, which lives in the token) or an actor. Everything
+     * is worked out first (the new values, the originals they replace, the Multiattack text), the flag holding the
+     * originals is written, and only then is anything changed. An item's damage is written as the whole damage
+     * object it lives in, because Foundry replaces arrays.
+     *
+     * @param {TokenDocument|Actor} doc
+     * @param {Object} request  As `plan`.
+     */
+    static async _scaleInPlace(doc, request) {
+        const isToken = doc.documentName === 'Token';
+        const flagKey = isToken ? NPC_SCALING_TOKEN_FLAG : NPC_SCALING_ACTOR_FLAG;
+        const planned = await this.plan(doc, request);
         const { source, actor, spec, updates, itemEdits, preview, warnings, snapshot } = planned;
         const crFrom = snapshot.cr;
         const crTo = spec.cr?.to ?? snapshot.cr;
-        const originalName = token.name;
+        const originalName = doc.name;
         const name = this._name(originalName, spec.label, crTo);
+        // An actor's prototype token carries the name new tokens are dropped with, so it follows.
+        const rename = isToken ? { name } : { name, 'prototypeToken.name': name };
 
         // Pairs, not a map: a path has dots in it, and a flag key with dots is read back as nesting.
         const stored = actor.toObject();
@@ -534,7 +586,7 @@ export class NpcScalingManager {
 
         const record = {
             version: SPEC_VERSION,
-            mode: 'delta',
+            mode: isToken ? 'delta' : 'actor',
             sourceUuid: source.uuid,
             spec,
             template: typeof request.template === 'string' ? request.template : (request.template?.id || null),
@@ -543,6 +595,7 @@ export class NpcScalingManager {
             crTo,
             original: {
                 name: originalName,
+                prototypeName: isToken ? null : (doc.prototypeToken?.name ?? null),
                 actor: originalActor,
                 items: originalItems,
                 description: extended ? { id: extended.id, value: extended.was } : null,
@@ -550,16 +603,16 @@ export class NpcScalingManager {
             }
         };
 
-        await token.setFlag(MODULE.ID, NPC_SCALING_TOKEN_FLAG, record);
+        await doc.setFlag(MODULE.ID, flagKey, record);
         try {
             await actor.update(updates);
             if (itemPatches.length) await actor.updateEmbeddedDocuments('Item', itemPatches);
             if (extended) await actor.updateEmbeddedDocuments('Item', [{ _id: extended.id, 'system.description.value': extended.now }]);
             if (created) await actor.createEmbeddedDocuments('Item', [created], { keepId: true });
-            await token.update({ name });
+            await doc.update(rename);
         } catch (error) {
             try {
-                await this.revertToken(token);
+                await this.revert(doc);
             } catch (revertError) {
                 console.error(`${MODULE.NAME} | NPC Scaling: could not undo a half-finished scaling of ${originalName}:`, revertError);
             }
@@ -567,87 +620,64 @@ export class NpcScalingManager {
         }
 
         postConsoleAndNotification(MODULE.NAME,
-            `NPC Scaling: token ${originalName} scaled in place (CR ${EncounterManager.formatCR(crFrom ?? 0)} to ${EncounterManager.formatCR(crTo ?? 0)})`,
-            { tokenUuid: token.uuid }, true, false);
-        return { actor: token.actor, token, source, preview, warnings, spec, multiattack, mode: 'delta' };
-    }
-
-    /**
-     * A linked token shares its actor with every token of it, so that actor cannot be changed for one. Make the
-     * scaled actor and point the token at it. The flag goes in the same update as the new actor id, so the token
-     * never points at the copy without saying what it was.
-     */
-    static async _swapToken(token, request) {
-        const originalActorId = token.actorId;
-        const originalName = token.name;
-        const result = await this._createScaledActor(token, request);
-        const made = this.provenance(result.actor);
-        const name = this._name(originalName, result.spec.label, made?.crTo);
-        const record = {
-            version: SPEC_VERSION,
-            mode: 'swap',
-            sourceUuid: result.source.uuid,
-            spec: result.spec,
-            template: made?.template ?? null,
-            appliedAt: Date.now(),
-            crFrom: made?.crFrom ?? null,
-            crTo: made?.crTo ?? null,
-            original: { actorId: originalActorId, name: originalName },
-            createdActorUuid: result.actor.uuid
+            `NPC Scaling: ${isToken ? 'token' : 'actor'} ${originalName} scaled in place (CR ${EncounterManager.formatCR(crFrom ?? 0)} to ${EncounterManager.formatCR(crTo ?? 0)})`,
+            { uuid: doc.uuid }, true, false);
+        return {
+            actor: isToken ? doc.actor : doc,
+            token: isToken ? doc : null,
+            source, preview, warnings, spec, multiattack,
+            mode: isToken ? 'delta' : 'actor'
         };
-        await token.update({ actorId: result.actor.id, name, [`flags.${MODULE.ID}.${NPC_SCALING_TOKEN_FLAG}`]: record });
-        return { ...result, token, mode: 'swap' };
     }
 
     /**
-     * Put a scaled token back. A token scaled in place has each value it changed written back from the flag, and
-     * the Multiattack it was given removed. A token pointed at a scaled actor is pointed back at its own, and the
-     * scaled actor is LEFT in the directory: it was a real document, may have been edited, and other things may
-     * use it.
+     * Put something scaled in place back. Each value it changed is written back from the flag, the Multiattack it
+     * was given is removed, and the name is restored; the flag goes last, so a revert that fails partway can be run
+     * again. Whichever of a token, a linked token or an actor is given, what is reverted is what carries the flag:
+     * the token's own, else the actor it is linked to.
      *
      * @param {Token|TokenDocument|Actor|string} target
-     * @returns {Promise<{ token: TokenDocument, actor: Actor }>}
-     * @throws {NpcScalingError} NOT_GM, NO_TARGET, NOT_NPC, NO_TOKEN, NOT_SCALED.
+     * @returns {Promise<{ token: TokenDocument|null, actor: Actor }>}
+     * @throws {NpcScalingError} NOT_GM, NO_TARGET, NOT_NPC, NOT_SCALED.
      */
-    static async revertToken(target) {
-        const { token } = await this.resolve(target);
-        if (!token) throw new NpcScalingError('NO_TOKEN', 'There is no token to revert.');
-        const record = this.tokenScaling(token);
-        if (!record) throw new NpcScalingError('NOT_SCALED', `${token.name} is not scaled.`);
+    static async revert(target) {
+        const resolved = await this.resolve(target);
+        const state = this.inPlaceState(resolved);
+        if (!state) throw new NpcScalingError('NOT_SCALED', `${(resolved.token ?? resolved.actor).name} is not scaled.`);
 
-        const was = record.original ?? {};
-        if (record.mode === 'swap') {
-            await token.update({ actorId: was.actorId, name: was.name });
-        } else {
-            const actor = token.actor;
-            if (was.created && actor.items.get(was.created)) await actor.deleteEmbeddedDocuments('Item', [was.created]);
-            const patches = [];
-            for (const { id, roots } of was.items ?? []) {
-                if (!actor.items.get(id)) continue;
-                const patch = { _id: id };
-                for (const { root, value } of roots) foundry.utils.setProperty(patch, root, value);
-                patches.push(patch);
-            }
-            if (was.description && actor.items.get(was.description.id)) {
-                patches.push({ _id: was.description.id, 'system.description.value': was.description.value });
-            }
-            if (patches.length) await actor.updateEmbeddedDocuments('Item', patches);
-            const restore = {};
-            for (const { path, value } of was.actor ?? []) restore[path] = value;
-            if (Object.keys(restore).length) await actor.update(restore);
-            await token.update({ name: was.name });
+        const isToken = state.kind === 'token';
+        const doc = isToken ? resolved.token : (resolved.token?.baseActor ?? resolved.actor);
+        const actor = isToken ? doc.actor : doc;
+        const was = state.record.original ?? {};
+
+        if (was.created && actor.items.get(was.created)) await actor.deleteEmbeddedDocuments('Item', [was.created]);
+        const patches = [];
+        for (const { id, roots } of was.items ?? []) {
+            if (!actor.items.get(id)) continue;
+            const patch = { _id: id };
+            for (const { root, value } of roots) foundry.utils.setProperty(patch, root, value);
+            patches.push(patch);
         }
-        // Last, so a revert that fails partway can be run again.
-        await token.unsetFlag(MODULE.ID, NPC_SCALING_TOKEN_FLAG);
+        if (was.description && actor.items.get(was.description.id)) {
+            patches.push({ _id: was.description.id, 'system.description.value': was.description.value });
+        }
+        if (patches.length) await actor.updateEmbeddedDocuments('Item', patches);
+        const restore = {};
+        for (const { path, value } of was.actor ?? []) restore[path] = value;
+        if (Object.keys(restore).length) await actor.update(restore);
+        await doc.update(isToken ? { name: was.name } : { name: was.name, 'prototypeToken.name': was.prototypeName ?? was.name });
+        await doc.unsetFlag(MODULE.ID, isToken ? NPC_SCALING_TOKEN_FLAG : NPC_SCALING_ACTOR_FLAG);
 
-        Hooks.callAll(NPC_SCALING_REVERTED_HOOK, { token, mode: record.mode, sourceUuid: record.sourceUuid });
-        postConsoleAndNotification(MODULE.NAME, `NPC Scaling: token ${token.name} reverted`, { tokenUuid: token.uuid }, true, false);
-        return { token, actor: token.actor };
+        const token = isToken ? doc : null;
+        Hooks.callAll(NPC_SCALING_REVERTED_HOOK, { token, actor, mode: state.record.mode, sourceUuid: state.record.sourceUuid });
+        postConsoleAndNotification(MODULE.NAME, `NPC Scaling: ${state.name} reverted`, { uuid: doc.uuid }, true, false);
+        return { token, actor };
     }
 
     /**
-     * Scale several tokens, each by its own figures: the same request is planned against each creature, so a CR
-     * target moves a goblin and an ogre by different amounts. One that cannot be scaled does not stop the rest.
+     * Scale several unlinked tokens, each by its own figures: the same request is planned against each creature, so a
+     * CR target moves a goblin and an ogre by different amounts. One that cannot be scaled (a linked token, say) does
+     * not stop the rest.
      * @param {Array<Token|TokenDocument|string>} targets
      * @param {Object} request  As `plan`.
      * @returns {Promise<{ results: Object[], failures: Array<{ target: *, error: Error }> }>}

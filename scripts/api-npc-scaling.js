@@ -18,7 +18,7 @@ export const NpcScalingAPI = {
     /** The hook fired once after a scaled actor is created: `{ source, result, spec, output }`. */
     HOOK_APPLIED: NPC_SCALING_APPLIED_HOOK,
 
-    /** The hook fired once after a scaled token is put back: `{ token, mode, sourceUuid }`. */
+    /** The hook fired once after something scaled in place is put back: `{ token, actor, mode, sourceUuid }`. */
     HOOK_REVERTED: NPC_SCALING_REVERTED_HOOK,
 
     /** The error class every refusal is an instance of; `error.code` is stable. */
@@ -53,12 +53,12 @@ export const NpcScalingAPI = {
     },
 
     /**
-     * Scale a creature into a NEW actor (`output: 'actor'`, the default) or scale a token (`output: 'token'`).
-     * The source is never changed. An unlinked token is scaled in place; a linked one gets a new actor and is
-     * pointed at it. Either is undone by `revert`.
+     * Scale a creature. `output: 'actor'` (the default) writes a NEW actor and changes nothing else. `'token'`
+     * scales an unlinked token's own actor in place. `'update'` scales the creature's actor itself in place, so every
+     * token linked to it shows the change. Both in-place outputs are undone by `revert`.
      * @param {Actor|Token|TokenDocument|string} target
-     * @param {{ cr?: number, spec?: Object, label?: string, attacksPerRound?: number, output?: 'actor'|'token' }} request
-     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'swap' }>}
+     * @param {{ cr?: number, spec?: Object, label?: string, attacksPerRound?: number, output?: 'actor'|'token'|'update' }} request
+     * @returns {Promise<{ actor: Actor, source: Actor, preview: Array, warnings: Array, spec: Object, multiattack: ?string, token?: TokenDocument, mode?: 'delta'|'actor' }>}
      * @throws {NpcScalingError}
      */
     async apply(target, request = {}) {
@@ -66,7 +66,8 @@ export const NpcScalingAPI = {
     },
 
     /**
-     * Scale several tokens at once, each by its own figures. One that cannot be scaled does not stop the rest.
+     * Scale several unlinked tokens at once, each by its own figures. One that cannot be scaled (a linked token, say)
+     * does not stop the rest.
      * @param {Array<Token|TokenDocument|string>} targets
      * @param {{ cr?: number, template?: string, label?: string }} request
      * @returns {Promise<{ results: Object[], failures: Array<{ target: *, error: Error }> }>}
@@ -76,22 +77,32 @@ export const NpcScalingAPI = {
     },
 
     /**
-     * Put a scaled token back as it was.
+     * Put something scaled in place back as it was. Given a token, it reverts what carries the flag: the token's own
+     * scaling, else the actor it is linked to.
      * @param {Token|TokenDocument|Actor|string} target
-     * @returns {Promise<{ token: TokenDocument, actor: Actor }>}
-     * @throws {NpcScalingError} NOT_SCALED when the token is not scaled.
+     * @returns {Promise<{ token: TokenDocument|null, actor: Actor }>}
+     * @throws {NpcScalingError} NOT_SCALED when nothing is scaled in place.
      */
     async revert(target) {
-        return NpcScalingManager.revertToken(target);
+        return NpcScalingManager.revert(target);
     },
 
     /**
-     * What a scaled token says about itself, or null.
+     * What a token scaled in place says about itself, or null.
      * @param {Token|TokenDocument} token
-     * @returns {{ mode: 'delta'|'swap', sourceUuid: string, spec: Object, appliedAt: number, crFrom: number|null, crTo: number|null }|null}
+     * @returns {{ mode: 'delta', sourceUuid: string, spec: Object, appliedAt: number, crFrom: number|null, crTo: number|null }|null}
      */
     tokenProvenance(token) {
         return NpcScalingManager.tokenScaling(token);
+    },
+
+    /**
+     * What an actor scaled in place (`output: 'update'`) says about itself, or null.
+     * @param {Actor} actor
+     * @returns {{ mode: 'actor', sourceUuid: string, spec: Object, appliedAt: number, crFrom: number|null, crTo: number|null }|null}
+     */
+    inPlaceProvenance(actor) {
+        return NpcScalingManager.actorScaling(actor);
     },
 
     /**

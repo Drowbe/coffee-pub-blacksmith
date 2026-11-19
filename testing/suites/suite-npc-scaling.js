@@ -75,7 +75,7 @@ export default {
             run: async ({ expect }) => {
                 const api = requireApi('npcScaling');
                 const scaling = api.npcScaling;
-                for (const method of ['preview', 'apply', 'applyToTokens', 'revert', 'tokenProvenance', 'guidance', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
+                for (const method of ['preview', 'apply', 'applyToTokens', 'revert', 'tokenProvenance', 'inPlaceProvenance', 'guidance', 'open', 'provenance', 'specFromCR', 'proficiencyForCR']) {
                     expect.ok(`npcScaling.${method} is a function`, typeof scaling[method] === 'function');
                 }
                 expect.ok('the guidelines table is frozen', Object.isFrozen(scaling.guidelines));
@@ -93,7 +93,7 @@ export default {
             id: 'tokens',
             tier: 'headless',
             group: 'Token output',
-            label: 'A token is scaled in place (unlinked) or pointed at a scaled actor (linked), and Revert puts it back',
+            label: 'An unlinked token is scaled in place, a linked one by updating its actor, and Revert puts each back',
             note: 'Builds a throwaway scene with two tokens of one goblin. Needs no canvas; the scene and every actor are deleted afterwards.',
             run: async ({ expect, log }) => {
                 const api = requireApi('npcScaling');
@@ -151,25 +151,29 @@ export default {
                     // ----- an actor, not a token -----
                     expect('scaling an actor as a token is refused', await code(scaling.apply(goblin, { cr: 5, output: 'token' })), 'NO_TOKEN');
 
-                    // ----- linked: a new actor, and the token is pointed at it -----
-                    const swapped = await scaling.apply(tied, { cr: 12, label: 'Super', output: 'token' });
-                    made.push(swapped.actor);
-                    expect('a linked token gets a new actor', swapped.mode, 'swap');
-                    expect.ok('the token points at the new actor', tied.actorId === swapped.actor.id && tied.actorId !== goblin.id);
-                    expect('the shared actor is untouched', goblin.system.attributes.hp.max, hpBefore);
-                    await scaling.revert(tied);
-                    expect('revert points the token back', tied.actorId, goblin.id);
-                    expect('and restores its name', tied.name, 'Tied Goblin');
-                    expect.ok('the scaled actor is left in the directory', !!game.actors.get(swapped.actor.id));
+                    // ----- linked: the token has no stats of its own, so the ACTOR is what changes -----
+                    expect('a linked token cannot be scaled as a token', await code(scaling.apply(tied, { cr: 12, output: 'token' })), 'LINKED_TOKEN');
+                    const actorsBefore = game.actors.size;
+                    const upd = await scaling.apply(tied, { cr: 12, label: 'Super', output: 'update' });
+                    expect('the actor is updated in place', upd.mode, 'actor');
+                    expect.ok('the actor itself has more hit points', goblin.system.attributes.hp.max > hpBefore);
+                    expect.ok('and the linked token shows them', tied.actor.system.attributes.hp.max === goblin.system.attributes.hp.max);
+                    expect('the actor is renamed', goblin.name, 'Harness Goblin (Super)');
+                    expect('no copy was made', game.actors.size, actorsBefore);
+                    expect.ok('the actor says it was scaled', scaling.inPlaceProvenance(goblin)?.mode === 'actor');
+                    expect('a second update is refused', await code(scaling.apply(goblin, { cr: 5, output: 'update' })), 'ALREADY_SCALED');
+                    log(`update: hp ${hpBefore} -> ${goblin.system.attributes.hp.max}`);
+                    await scaling.revert(tied); // through the linked token
+                    expect('revert restores the actor hit points', goblin.system.attributes.hp.max, hpBefore);
+                    expect('and its name', goblin.name, 'Harness Goblin');
+                    expect('and removes the flag', scaling.inPlaceProvenance(goblin), null);
 
-                    // ----- several at once -----
-                    const batch = await scaling.applyToTokens([loose, tied, 'Token.doesNotExist'], { cr: 6, output: 'token' });
-                    expect('both real tokens were scaled', batch.results.length, 2);
-                    expect('the bad one failed alone', batch.failures.length, 1);
-                    for (const r of batch.results) if (r.mode === 'swap') made.push(r.actor);
+                    // ----- several at once: a linked token fails alone -----
+                    const batch = await scaling.applyToTokens([loose, tied, 'Token.doesNotExist'], { cr: 6 });
+                    expect('the unlinked token was scaled', batch.results.length, 1);
+                    expect('the linked one and the bad one failed alone', batch.failures.length, 2);
                     await scaling.revert(loose);
-                    await scaling.revert(tied);
-                    expect('every token reverts', [scaling.tokenProvenance(loose), scaling.tokenProvenance(tied)], [null, null]);
+                    expect('it reverts', scaling.tokenProvenance(loose), null);
                 } finally {
                     try { await scene?.delete(); } catch (_) { /* gone */ }
                     await cleanup(made);

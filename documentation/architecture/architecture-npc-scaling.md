@@ -164,7 +164,9 @@ reads it from the scene.
   asking it, grouping the answers into one run per difficulty. Monster CR is a sum, so the creature's CR is
   added to the others' at each step. A change to the encounter rule changes the bands with no edit here.
 - **It is advice.** `plan` and `apply` never read it, and the first render still offers four above the
-  creature's own. In CR mode a band is a selectable chip that sets the CR to the band's lowest rating; in
+  creature's own. In CR mode each band is an **Aim for** chip showing the CR it sets (the lowest that reaches it; pressing the
+  lit one snaps back to it, which is why the chips act on click and not change), and a **Custom** chip shows the
+  challenge rating select, which is hidden otherwise and always shown when there is no party to read; in
   Template mode the template decides the rating, so the bands are shown and the line says where it lands.
 - **The balance table.** A **The scene** section shows Party CR, Monsters CR and Encounter in the same Now /
   Scaled columns as the stats, from `now` and `chosen`. Monster CR is a sum, so the Monsters row's note names
@@ -184,15 +186,19 @@ reads it from the scene.
 - **A failure never costs the window.** A guidance error is logged and the section is omitted.
 - **Scaling from the sidebar** is not subtracted from the scene, since it is not on it.
 
-## Scaling a token
+## Scaling in place
 
 `apply` dispatches on `output`. `'actor'` is `_createScaledActor` (which fires no hook; `apply` fires it once for
-either output). `'token'` is `_applyToToken`, which needs a token (`resolve` now also finds the token of an
-unlinked token's synthetic actor, so its sheet's header control can scale it) and splits on `actorLink`.
+whichever output). `'token'` is `_applyToToken` and `'update'` is `_applyUpdate`; both end in
+`_scaleInPlace(doc)`, where `doc` is an unlinked **token** or an **actor**.
 
-- **Unlinked: `_scaleInPlace`.** Everything is worked out first: the engine's `updates`, the originals they
-  replace, the item patches, the Multiattack. Then the flag is written, and only then is anything changed. A
-  failure partway runs `revertToken`, which is safe because the flag already holds every original.
+- **Who has stats to change.** An unlinked token carries its own actor (an ActorDelta), so it can be scaled
+  alone. A linked token has none: its actor is shared by every token of it, so `'token'` refuses it
+  (`LINKED_TOKEN`) and `'update'` changes the actor, which every linked token then shows. `resolve` also finds the
+  token of an unlinked token's synthetic actor, so its sheet's header control can scale the token.
+- **`_scaleInPlace`.** Everything is worked out first: the engine's `updates`, the originals they replace, the item
+  patches, the Multiattack. Then the flag is written, and only then is anything changed. A failure partway runs
+  `revert`, which is safe because the flag already holds every original.
   - **Pairs, not a map.** The originals are stored as `[{ path, value }]`, because a path has dots in it and a
     flag key with dots is read back as nesting.
   - **Items are written as the damage object they live in** (`editRoot`): Foundry replaces an array whole, so a
@@ -200,19 +206,19 @@ unlinked token's synthetic actor, so its sheet's header control can scale it) an
   - **Multiattack.** The generated text is computed against a snapshot of the items; an extended feature's
     original description is kept, and an added feature's id is chosen before it exists (`keepId`) so the flag can
     name it and revert can delete it.
-- **Linked: `_swapToken`.** A linked actor is shared by every token of it, so changing it would change them
-  all. The scaled actor is made as for `output: 'actor'` and the token is pointed at it in one update that
-  also writes the flag. Revert points it back and leaves the actor: it was a real document and may have been
-  edited.
-- **Refusals.** Already scaled (the flag) and an unlinked token whose actor is already a scaled copy, since
-  applying the engine's absolute values over a copy would duplicate its Multiattack. Both say so by code.
-- **Revert** writes the originals back, removes the added Multiattack, restores the name, and removes the flag
-  last, so a revert that fails partway can be run again.
-- **The window** shows a **Result** switch (New actor / This token) only for a token, a hint saying which of the
-  two mechanisms applies, and for an already-scaled token replaces the whole body with what was done and a
-  **Revert Token** button.
-- **Batch** is `applyToTokens`: the request planned against each token's own creature, a failure kept and the
-  rest carried on. It is API only; the window scales the one token it was opened for.
+  - **Names.** A token is renamed; an actor is renamed along with its prototype token, which is what new tokens
+    are dropped with. Tokens already on a scene keep the name they have.
+- **Two flags.** `npcScalingToken` on a token and `npcScalingInPlace` on an actor, same record shape
+  (`mode: 'delta'` or `'actor'`). `inPlaceState(resolved)` finds which carries it: the token's own, else the
+  actor it is linked to; `revert` reverts that one.
+- **Refusals.** Already scaled in place, a scaled copy (applying the engine's absolute values over a copy would
+  duplicate its Multiattack), a compendium actor for `'update'` (`READ_ONLY`). Each says so by code.
+- **The window** shows a **Result** switch: for an unlinked token *New actor* or *This token*; for a linked token or
+  an actor *New actor* or *Update actor*. A line says what the chosen one does, and **Update actor** asks for
+  confirmation before writing, since it changes every token linked to it. Something already scaled in place
+  replaces the whole body with what was done and a **Revert** button.
+- **Batch** is `applyToTokens`: the request planned against each token's own creature, a failure (a linked token,
+  say) kept and the rest carried on. It is API only; the window scales the one creature it was opened for.
 
 ## Reading the table at a glance
 
@@ -221,7 +227,8 @@ damage red where the creature gets stronger, `−2` in the info blue where it ge
 points, damage per hit, damage per round and attacks (`MAGNITUDE_ROWS`) also get `_barsHtml`: two thin bars, now
 and scaled, to one scale per row, with the percentage in the chip's tooltip. The challenge rating row carries no
 chip, since it causes every other change, and a row with no plain number on one side (a formula, a total with no
-before) shows none. The colours are the `--blacksmith-status-*` tokens, so they follow the theme.
+before) shows none. The chips use the `--blacksmith-status-*` tokens, so they follow the theme; the bars are neutral (scaled a darker
+shade of now, each in a faint track) so a full-width bar does not read as a divider.
 
 ## The dnd5e facts it relies on
 
